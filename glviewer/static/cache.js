@@ -2,8 +2,6 @@
 // to the tree.  Eventually I want to get rid fo the tree.
 // I am trying to get rid of the roots now.
 
-
-
 // A stripped down source object.
 // A source object must have a getTileUrl method.
 // It can have any instance variables it needs to

@@ -21,7 +21,6 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc notesWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc tab.js >> sa.min.js 
 ~/bin/uglifyjs -nc annotationWidget.js >> sa.min.js 
-~/bin/uglifyjs -nc conferenceWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc recorderWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc navigationWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc favoritesWidget.js >> sa.min.js 
@@ -41,6 +40,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc cache.js >> sa.min.js 
 ~/bin/uglifyjs -nc section.js >> sa.min.js 
 ~/bin/uglifyjs -nc view.js >> sa.min.js 
+~/bin/uglifyjs -nc annotationLayer.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewer.js >> sa.min.js 
 ~/bin/uglifyjs -nc pairTransformation.js >> sa.min.js 
 ~/bin/uglifyjs -nc presentation.js >> sa.min.js 
@@ -66,6 +66,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc lassoWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc widgetPopup.js >> sa.min.js 
 ~/bin/uglifyjs -nc shape.js >> sa.min.js 
+~/bin/uglifyjs -nc shapeGroup.js >> sa.min.js 
 ~/bin/uglifyjs -nc crossHairs.js >> sa.min.js 
 ~/bin/uglifyjs -nc arrow.js >> sa.min.js 
 ~/bin/uglifyjs -nc arrowWidget.js >> sa.min.js 

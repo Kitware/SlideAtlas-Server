@@ -8337,7 +8337,7 @@ var DownloadImage = (function () {
         }
 
         
-        var d = new Dialog(StartDownloadCallback);
+        var d = new SA.Dialog(StartDownloadCallback);
         d.Body.css({'margin':'1em 2em',
                     // Hack no time to figure out layout with border box option.
                     'padding-bottom':'2em',
@@ -8553,7 +8553,7 @@ var DownloadImage = (function () {
 
         // A dialog to cancel the download before we get all the tiles
         // needed to render thie image.
-        d = new Dialog(CancelDownloadCallback);
+        d = new SA.Dialog(CancelDownloadCallback);
         DOWNLOAD_WIDGET.CancelDialog = d;
         d.Title.text('Processing');
 
@@ -9125,7 +9125,8 @@ var VIEWER2;
 
 function DualViewWidget(parent) {
     var self = this;
-    this.Viewers = [];
+    this.Viewers = []; // It would be nice to get rid of this.
+    this.ViewerDivs = [];
 
     // Rather than getting the current note from the NotesWidget, keep a
     // reference here.  SlideShow can have multiple "displays".
@@ -9146,6 +9147,7 @@ function DualViewWidget(parent) {
             .saViewer({overview:true, zoomWidget:true})
             .addClass("sa-view-canvas-div");
 
+        this.ViewerDivs[i] = viewerDiv;
         this.Viewers[i] = viewerDiv[0].saViewer;
         // TODO: Get rid of this.
         // I beleive the note should sets this, and we do not need to do it
@@ -9168,7 +9170,7 @@ function DualViewWidget(parent) {
     if ( ! MOBILE_DEVICE || MOBILE_DEVICE == 'iPad') {
         // Todo: Make the button become more opaque when pressed.
         $('<img>')
-            .appendTo(this.Viewers[0].Div)
+            .appendTo(this.ViewerDivs[0])
             .css({'position':'absolute',
                   'right':'0px',
                   'top':'0px'})
@@ -9181,7 +9183,7 @@ function DualViewWidget(parent) {
                 return false;});
 
         $('<img>').appendTo(parent)
-            .appendTo(this.Viewers[1].Div)
+            .appendTo(this.ViewerDivs[1])
             .css({'position':'absolute',
                   'left':'0px',
                   'top':'0px'})
@@ -9469,7 +9471,6 @@ DualViewWidget.prototype.AnimateViewToggle = function () {
         this.Viewer1Fraction = this.AnimationTarget;
         this.UpdateSize();
         this.UpdateGui();
-        // this function is defined in init.js
         this.Draw();
         return;
     }
@@ -9518,18 +9519,6 @@ DualViewWidget.prototype.CreateThumbnailImage = function(height) {
 }
 
 
-DualViewWidget.prototype.ShowImage = function (img) {
-    alert("Do not depricate DualViewWidget.ShowIMage(img)");
-
-    /* I do not think this does anything
-    //document.body.appendChild(img);
-    var disp =
-        $('<img>').appendTo(parent)
-        .addClass("sa-active")
-        .attr('src',img.src);
-    */
-}
-
 DualViewWidget.prototype.Draw = function () {
     if (GL) {
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
@@ -9546,33 +9535,27 @@ DualViewWidget.prototype.Draw = function () {
 
 
 DualViewWidget.prototype.UpdateSize = function () {
-    var height = this.Parent.height();
-    var width = this.Parent.width();
+    var percent = this.Viewer1Fraction*100;
+    if (this.ViewerDivs[0]) {
+        this.ViewerDivs[0].css({'left':'0%',
+                                'width':percent+'%',
+                                'height':'100%'});
+    }
+    if (this.ViewerDivs[1]) {
+        this.ViewerDivs[1].css({'left':percent+'%',
+                                'width':(100-percent)+'%',
+                               'height':'100%'});
+    }
 
-    var width1 = width * this.Viewer1Fraction;
-    var width2 = width - width1;
-
-
-    if (width2 <= 10) {
+    if (percent >= 90) {
         this.Viewers[1].Hide();
     } else {
         this.Viewers[1].Show();
     }
 
-    // GL was odd because both viewer wer pu in the same canvas.
-
-    // TODO: Let css handle positioning the viewers.
-    //       This call positions the overview and still affect the main view.
-    if (this.Viewers[0]) {
-        // this should call UpdateSize
-        this.Viewers[0].SetViewport([0, 0, width1, height]);
-        this.Viewers[0].EventuallyRender(false);
-    }
-    if (this.Viewers[1]) {
-        // this should call UpdateSize
-        this.Viewers[1].SetViewport([width1, 0, width2, height]);
-        this.Viewers[1].EventuallyRender(false);
-    }
+    // Only window trigger resize events.
+    // Make sure the viewer, views and layers get a resize.
+    $(window).trigger('resize');
 }
 
 
@@ -10731,12 +10714,6 @@ Note.prototype.DisplayView = function(display) {
         display.GetViewer(i).Reset();
     }
 
-    // Set the state of the notes widget.
-    // Should we ever turn it off?
-    if (SA.NotesWidget && this.NotesPanelOpen && ! SA.NotesWidget.Visibility) {
-        SA.NotesWidget.ToggleNotesWindow();
-    }
-
     // We could have more than two in the future.
     if (this.Type != 'Stack') {
         // I want the single view (when set by the user) to persist for rthe stack.
@@ -10832,13 +10809,7 @@ Note.prototype.InitializeStackTransforms = function () {
 // -Hyperlink selection background color (and color) should not be saved in
 //     the note / database.
 
-
-
-
-
-
 //==============================================================================
-
 
 function TextEditor(parent, display) {
     var self = this;
@@ -11045,18 +11016,21 @@ TextEditor.prototype.AddQuestion = function() {
     var clone = range.cloneContents();
     bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
     if (clone.childElementCount > 1) {
+        //var answers = clone.querySelectorAll('li');
         var answers = [];
         var li = clone.querySelector('li');
         if (li) {
-            answers = li.parent;
+            answers = li.parentElement;
         } else {
             answers = clone.children[1];
         }
         for (var i = 0; i < answers.childElementCount; ++i) {
             var answer = answers.children[i];
+            var bold = (answer.style.fontWeight == "bold") ||
+                       ($(answer).find('b').length > 0);
             bar.saQuestion('AddAnswerText',
                            answer.textContent,
-                           $(answer).find('b').length);
+                           bold);
         }
     }
 
@@ -11075,7 +11049,7 @@ TextEditor.prototype.AddQuestion = function() {
             sel.removeAllRanges();
             sel.addRange(range);
             self.TextEntry[0].focus();
-            self.Modified = true;
+            self.UpdateNote();
         });
 }
 
@@ -11313,7 +11287,8 @@ TextEditor.prototype.SetHtml = function(html) {
 
     if (SA.Edit) {
         var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true});
+        items.saQuestion({editable:true,
+                          position : 'static'});
     }
 
     // Not needed here long term.
@@ -11339,7 +11314,8 @@ TextEditor.prototype.LoadNote = function(note) {
     // TODO: Hide this.  Maybe use saHtml.
     if (SA.Edit) {
         var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true});
+        items.saQuestion({editable:true,
+                          position : 'static'});
     }
 
     // TODO: Make the hyper link the same pattern as questions.
@@ -11427,88 +11403,19 @@ function NotesWidget(parent, display) {
     this.Display = display;
 
     this.Modified = false;
-    this.Window = $('<div>').appendTo('body')
+    this.Window = $('<div>')
+        .appendTo(parent)
         .css({
             'background-color': 'white',
             'position': 'absolute',
-            'top' : '0%',
-            'left' : '0%',
+            'top'    : '0%',
+            'left'   : '0%',
             'height' : '100%',
+            'width'  : '100%',
             'z-index': '2'})
-        .hide()
         .attr('draggable','false')
         .on("dragstart", function() {return false;})
         .attr('id', 'NoteWindow');
-
-    //--------------------------------------------------------------------------
-
-    // TODO: Move the resize animation outside of this widget.
-    // It would be more elegant if this widget was size passive.
-
-    // It would be nice to animate the transition
-    // It would be nice to integrate all animation in a flexible utility.
-    this.AnimationLastTime;
-    this.AnimationDuration;
-    this.AnimationTarget;
-    // For animating the display of the notes window (DIV).
-    this.Width = 0;
-    this.Visibility = false;
-    this.Dragging = false;
-
-    if ( ! MOBILE_DEVICE || MOBILE_DEVICE == 'iPad') {
-        this.ResizeNoteWindowEdge = $('<div>')
-            .appendTo(parent)
-            .css({'position': 'absolute',
-                  'height': '100%',
-                  'width': '3px',
-                  'top' : '0px',
-                  'left' : '0px',
-                  'background': '#BDF',
-                  'z-index': '10',
-                  'cursor': 'col-resize'})
-            .hover(function () {$(this).css({'background':'#9BF'});},
-                   function () {$(this).css({'background':'#BDF'});})
-            .mousedown(function () {
-                self.StartDrag();
-            });
-
-        this.OpenNoteWindowButton = $('<img>')
-            .appendTo(parent)
-            .css({'position': 'absolute',
-                  'height': '20px',
-                  'width': '20px',
-                  'top' : '0px',
-                  'left' : '3px',
-                  'opacity': '0.6',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none',
-                  'z-index': '6'})
-            .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
-            .click(function(){self.ToggleNotesWindow();})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;});
-
-
-        this.CloseNoteWindowButton = $('<img>')
-            .appendTo(this.Window)
-            .css({'position': 'absolute',
-                  'height': '20px',
-                  'width': '20x',
-                  'top' : '0px',
-                  'right' : '0px',
-                  'opacity': '0.6',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none',
-                  'z-index': '6'})
-            .hide()
-            .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
-            .click(function(){self.ToggleNotesWindow();})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;});
-
-    }
 
     //--------------------------------------------------------------------------
 
@@ -11778,6 +11685,12 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
         this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
     }
 
+    // Set the state of the notes widget.
+    // Should we ever turn it off?
+    if (SA.ResizePanel) {
+        SA.ResizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
+    }
+
     this.UpdateQuestionMode();
 }
 
@@ -11827,7 +11740,7 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     }
     note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
-    note.NotesPanelOpen = this.Visibility;
+    note.NotesPanelOpen = (SA.ResizePanel && SA.ResizePanel.Visibility);
 
     var rootNote = this.Display.GetRootNote();
     if (rootNote.Type == "Stack") {
@@ -11845,47 +11758,6 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
 }
 
 //------------------------------------------------------------------------------
-NotesWidget.prototype.StartDrag = function () {
-    this.Dragging = true;
-    $('body').bind('mousemove',NotesWidgetResizeDrag);
-    $('body').bind('mouseup', NotesWidgetResizeStopDrag);
-    $('body').css({'cursor': 'col-resize'});
-}
-NotesWidgetResizeDrag = function (e) {
-    SA.NotesWidget.SetWidth(e.pageX - 1);
-    if (SA.NotesWidget.Width < 200) {
-        NotesWidgetResizeStopDrag();
-        SA.NotesWidget.ToggleNotesWindow();
-    }
-
-    return false;
-}
-NotesWidgetResizeStopDrag = function () {
-    $('body').unbind('mousemove',NotesWidgetResizeDrag);
-    $('body').unbind('mouseup', NotesWidgetResizeStopDrag);
-    $('body').css({'cursor': 'auto'});
-}
-//------------------------------------------------------------------------------
-
-
-
-NotesWidget.prototype.SetWidth = function(width) {
-    this.Width = width;
-    this.Window.width(width);
-    // TODO: Get rid of this hack.
-    $(window).trigger('resize');
-}
-
-// Necessary to set the height.
-NotesWidget.prototype.Resize = function(width, height) {
-    this.TextEditor.Resize(width,height);
-    if (this.UserTextEditor) {
-        this.UserTextEditor.Resize(width,height);
-    }
-    var pos = this.LinksDiv.offset();
-    this.LinksDiv.height(height - pos.top);
-}
-
 
 NotesWidget.prototype.GetCurrentNote = function() {
     return this.Display.GetNote();
@@ -11930,65 +11802,11 @@ NotesWidget.prototype.SaveBrownNote = function() {
     });
 }
 
-
-NotesWidget.prototype.ToggleNotesWindow = function() {
-    this.Visibility = ! this.Visibility;
-    RecordState();
-
-    if (this.Visibility) {
-        this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 325;
-    } else {
-        this.Window.hide();
-        this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 0;
-    }
-    this.AnimationLastTime = new Date().getTime();
-    this.AnimationDuration = 1000.0;
-    this.AnimateNotesWindow();
-}
-
-
 // Randomize the order of the children
 NotesWidget.prototype.RandomCallback = function() {
   var note = this.GetCurrentNote();
   note.Children.sort(function(a,b){return Math.random() - 0.5;});
   note.UpdateChildrenGUI();
-}
-
-
-NotesWidget.prototype.AnimateNotesWindow = function() {
-    var timeStep = new Date().getTime() - this.AnimationLastTime;
-    if (timeStep > this.AnimationDuration) {
-        // end the animation.
-        this.SetWidth(this.AnimationTarget);
-        // Hack to recompute viewports
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
-
-        if (this.CloseNoteWindowButton) {
-            if (this.Visibility) {
-                this.CloseNoteWindowButton.show();
-                this.OpenNoteWindowButton.hide();
-                this.Window.fadeIn();
-            } else {
-                this.CloseNoteWindowButton.hide();
-                this.OpenNoteWindowButton.show();
-            }
-        }
-        draw();
-        return;
-    }
-
-    var k = timeStep / this.AnimationDuration;
-
-    // update
-    this.AnimationDuration *= (1.0-k);
-    this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
-
-    draw();
-    var self = this;
-    requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
 // Called when a new slide/view is loaded.
@@ -12021,10 +11839,6 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.TabbedWindow.ShowTabDiv(this.LinksDiv);
     } else {
         this.TabbedWindow.ShowTabDiv(this.TextDiv);
-        // Hack to open the notes window if we have text.
-        if ( ! this.Visibility) { // && ! MOBILE_DEVICE) {
-            this.ToggleNotesWindow();
-        }
     }
 }
 
@@ -12130,7 +11944,7 @@ Tab = (function () {
     function Tab (parent,imageSrc, tabID) {
         var self = this; // trick to set methods in callbacks.
         if ( ! parent) { alert("null parent: tab"); }
-        parent = parent || VIEW_PANEL;
+        parent = parent || SA.MainDiv;
 
         this.Div = $('<div>')
             .appendTo(parent)
@@ -12233,12 +12047,12 @@ Tab = (function () {
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
 // or maybe the delete key.
 
-function AnnotationWidget (viewer) {
+function AnnotationWidget (layer) {
     var self = this; // trick to set methods in callbacks.
-    this.Viewer = viewer;
-    viewer.AnnotationWidget = this;
+    this.Layer = layer;
+    layer.AnnotationWidget = this;
 
-    this.Tab = new Tab(viewer.GetDiv(),
+    this.Tab = new Tab(layer.GetCanvasDiv(),
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
     this.Tab.Div
@@ -12277,6 +12091,7 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"Circle.gif")
         .prop('title', "Circle")
         .click(function(){self.NewCircle();});
+    /*
     this.RectButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -12285,6 +12100,7 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"rectangle.gif")
         .prop('title', "Rectangle")
         .click(function(){self.NewRect();});
+    */
     this.GridButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -12317,6 +12133,7 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"select_lasso.png")
         .prop('title', "Lasso")
         .click(function(){self.NewLasso();});
+    /*
     this.SectionsButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -12325,7 +12142,9 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"sections.png")
         .prop('title', "Segment")
         .click(function(){self.DetectSections();});
-    /*this.FillButton = $('<img>')
+    */
+    /*
+    this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
               'opacity': '0.6',
@@ -12349,12 +12168,12 @@ AnnotationWidget.prototype.hide = function() {
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
-    if (this.Viewer.GetAnnotationVisibility() == visibility) {
+    if (this.Layer.GetVisibility() == visibility) {
         return;
     }
 
     // Hack to make all stack viewers share a single annotation visibility
-    // flag. 
+    // flag.
     if (SA.NotesWidget) {
         var note = SA.NotesWidget.GetCurrentNote();
         if (note.Type == 'Stack') {
@@ -12372,13 +12191,12 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
         }
     }
 
-    this.Viewer.SetAnnotationVisibility(visibility);
-
-    this.Viewer.EventuallyRender(true);
+    this.Layer.SetVisibility(visibility);
+    this.Layer.EventuallyDraw();
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {
-  return this.Viewer.GetAnnotationVisibility();
+  return this.Layer.GetVisibility();
 }
 
 AnnotationWidget.prototype.ToggleVisibility = function() {
@@ -12422,40 +12240,42 @@ AnnotationWidget.prototype.NewText = function() {
 // Probably want a singleton pencil.
 AnnotationWidget.prototype.NewPencil = function() {
     var button = this.PencilButton;
-    var widget = this.ActivateButton(button, PencilWidget);
+    var widget = this.ActivateButton(button, SA.PencilWidget);
 }
 
 AnnotationWidget.prototype.NewLasso = function() {
     var button = this.LassoButton;
-    var widget = this.ActivateButton(button, LassoWidget);
+    var widget = this.ActivateButton(button, SA.LassoWidget);
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
     var button = this.PolylineButton;
-    var widget = this.ActivateButton(button, PolylineWidget);
+    var widget = this.ActivateButton(button, SA.PolylineWidget);
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
     var button = this.CircleButton;
-    var widget = this.ActivateButton(button, CircleWidget);
+    var widget = this.ActivateButton(button, SA.CircleWidget);
     // Use the mouse position to place the circle.
     // Mouse in under button.  Should we put the cirlce in the middle?
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
-                                                                this.Viewer.LastMouseY);
+    widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
+        this.Layer.LastMouseX,
+        this.Layer.LastMouseY);
 }
 
 AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
-    var widget = this.ActivateButton(button, RectWidget);
+    var widget = this.ActivateButton(button, SA.RectWidget);
     // DJ: Make sure the rect is around the circle
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
-                                                                this.Viewer.LastMouseY);
+    widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
+        this.Layer.LastMouseX,
+        this.Layer.LastMouseY);
 };
 
 AnnotationWidget.prototype.NewGrid = function() {
     var button = this.GridButton;
-    var widget = this.ActivateButton(button, GridWidget);
-    var cam = this.Viewer.GetCamera();
+    var widget = this.ActivateButton(button, SA.GridWidget);
+    var cam = this.Layer.GetCamera();
     var fp = cam.GetFocalPoint();
     // Square grid elements determined by height
     var height = cam.GetHeight() * 0.75;
@@ -12463,24 +12283,21 @@ AnnotationWidget.prototype.NewGrid = function() {
     var size = height / yDim;
     var width = cam.GetWidth() * 0.75;
     var xDim = Math.floor(width/size);
-    widget.Shape.Origin = [fp[0], fp[1], 0.0];
-    widget.Shape.Dimensions = [xDim, yDim];
-    widget.Shape.Width = widget.Shape.Height = size;
-    widget.Shape.Orientation = cam.GetRotation();
-    widget.Shape.UpdateBuffers();
-    this.Viewer.DeactivateWidget(widget);
+    widget.Grid.Origin = [fp[0], fp[1], 0.0];
+    widget.Grid.Orientation = cam.GetRotation();
+    this.Layer.DeactivateWidget(widget);
 };
 
 AnnotationWidget.prototype.NewFill = function() {
     var button = this.FillButton;
-    var widget = this.ActivateButton(button, FillWidget);
+    var widget = this.ActivateButton(button, SA.FillWidget);
     widget.Initialize();
 }
 
 
 // Boilerplate code that was in every "newWidget" method.
-AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
-    var widget = this.Viewer.ActiveWidget;
+AnnotationWidget.prototype.ActivateButton = function(button, WidgetFunction) {
+    var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         if  (button.Pressed) {
             // The user pressed the button again (while it was active).
@@ -12494,8 +12311,8 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
     button.addClass("sa-active");
 
     this.SetVisibility(ANNOTATION_ON);
-    widget = new WidgetType(this.Viewer, true);
-    this.Viewer.ActiveWidget = widget;
+    widget = new WidgetFunction(this.Layer, true);
+    this.Layer.ActivateWidget(widget);
 
     // Button remains "pressed" until the circle deactivates.
     widget.DeactivateCallback = 
@@ -12509,7 +12326,7 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
 
 
 AnnotationWidget.prototype.DetectSections = function() {
-    var widget = this.Viewer.ActiveWidget;
+    var widget = this.Layer.GetActiveWidget();
     var button = this.SectionsButton;
     if ( widget ) {
         if  (button.Pressed) {
@@ -12525,8 +12342,9 @@ AnnotationWidget.prototype.DetectSections = function() {
 
     // See if a SectionsWidget already exists.
     var widget = null;
-    for (var i = 0; i < this.Viewer.GetNumberOfWidgets() && widget == null; ++i) {
-        var w = this.Viewer.GetWidget(i);
+    var widgets = this.Layer.GetWidgets();
+    for (var i = 0; i < widgets.length && widget == null; ++i) {
+        var w = widgets[i];
         //if (w instanceOf SectionsWidget) {
         if (w.Type == "sections") {
             widget = w;
@@ -12534,10 +12352,10 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SectionsWidget(this.Viewer, false);
+        widget = new SectionsWidget(this.Layer, false);
         widget.ComputeSections();
         if (widget.IsEmpty()) {
-            widget.RemoveFromViewer();
+            this.Layer.RemoveWidget(widget);
             button.removeClass('sa-active');
             button.Pressed = false;
             return;
@@ -12552,64 +12370,6 @@ AnnotationWidget.prototype.DetectSections = function() {
             button.Pressed = false;
         }
 }
-// I have a couple thoughts:
-// - Hangout / viewer
-// Show a list of peoples viewers on bottom.
-// User can click on one to slave their viewer to the other person.
-// Consistent with screen share in Google hangout.
-// Similar to Steve's idea: one viewer is yours, the other is the slave.
-
-// - Google docs model
-// Everyone sees the same viewer.
-// Cursors show as different colors.
-// App decides who is controlling the viewer (one at a time).
-// Save a list of favorites, or session so views can be switched quickly.
-// Person controlliung can undo, go back in history if someone changed.
-
-
-// - Combination
-// Google docs.  Everyone has there own viewer, but see annotation and cursor of others.
-// You can slave your window to another person to also synchronize your camera / cache.
-// The workspace is a session.  Anyone can add views like bookmarks and switch
-// views easily.
-// Have a chat window like google docs.
-
-
-function ConferenceWidget () {
-    var self = this; // trick to set methods in callbacks.
-    
-    if ( ! MOBILE_DEVICE) {
-        this.Tab = new Tab(SA.ImagePathUrl+"conference1.png", "conferenceTab");
-        this.Tab.Div
-            .addClass("sa-view-conference-div");
-        // Needs to be a child of view panel to fill 100%.
-        this.Tab.Panel
-            .appendTo(VIEW_PANEL)
-            .addClass("sa-view-conference-panel");
-        //this.View = new View();
-
-
-
-    }
-}
-
-ConferenceWidget.prototype.TogglePanel = function() {
-    this.Panel.toggle();
-    if (this.Panel.is(":visible")) {
-        this.TabButton.addClass("sa-active");
-    } else {
-        // Should we deactivate any active widget tool?
-        this.TabButton.removeClass("sa-active");
-    }
-}
-
-
-
-
-
-
-
-
 // This "widget" implements undo and redo as well as saving states in the database for a recording of a session.
 // I save the recording state as a cookie so that the user can change slides or even sessions.
 // I am going to have a separate recording collection.
@@ -12705,24 +12465,27 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
         return;
     }
 
-
     this.OverviewBounds = viewer.GetOverViewBounds();
 
+    this.OverviewBounds = viewer.GetOverViewBounds();
     this.Image = cache.Image;
     this.Camera = viewer.GetCamera().Serialize();
 
-    this.AnnotationVisibility = viewer.GetAnnotationVisibility();
+    this.AnnotationVisibility = viewer.GetAnnotationLayer().GetVisibility();
     this.Annotations = [];
-    for (var i = 0; i < viewer.GetNumberOfWidgets(); ++i) {
-        this.Annotations.push(viewer.GetWidget(i).Serialize());
+
+    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    for (var i = 0; i < widgets.length; ++i) {
+        this.Annotations.push(widgets[i].Serialize());
     }
 }
 
 // For stacks.  A reduced version of copy view. 
 ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     this.Annotations = [];
-    for (var i = 0; i < viewer.GetNumberOfWidgets; ++i) {
-        var o = viewer.GetWidget(i).Serialize();
+    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    for (var i = 0; i < widgets.length; ++i) {
+        var o = widgets[i].Serialize();
         if (o) {
             this.Annotations.push(o);
         }
@@ -12788,14 +12551,15 @@ ViewerRecord.prototype.Apply = function (viewer) {
     if (viewer.AnnotationWidget && this.AnnotationVisibility != undefined) {
         viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
     }
-    if (this.Annotations != undefined) {
+    if (this.Annotations != undefined && viewer.AnnotationLayer) {
         // TODO: Fix this.  Keep actual widgets in the records / notes.
-        // For now lets just do the easy thing and recreate all the annotations.
+        // For now lets just do the easy thing and recreate all the
+        // annotations.
+        viewer.AnnotationLayer.Reset();
         for (var i = 0; i < this.Annotations.length; ++i) {
-            var widget = viewer.LoadWidget(this.Annotations[i]);
-            // Until we do the above todo.  This is the messy way of removing
-            // empty widgets (widgets that did not load properly).
-            if (widget.Type == "sections" && widget.IsEmpty()) {
+            var widget = viewer.AnnotationLayer.LoadWidget(this.Annotations[i]);
+            if (! widget) {
+                // Get rid of corrupt widgets that do not load properly
                 this.Annotations.splice(i,1);
                 --i;
             }
@@ -13769,8 +13533,6 @@ FavoritesBar.prototype.SaveFavorite = function() {
     button.addClass("sa-inactive");
     setTimeout(function(){ button.removeClass("sa-inactive");},
                500); // one half second
-
-    //ShowImage(CreateThumbnailImage(110));
 }
 
 FavoritesBar.prototype.LoadFavorites = function () {
@@ -13908,59 +13670,60 @@ function MobileAnnotationWidget() {
 
 
 MobileAnnotationWidget.prototype.CircleCallback = function() {
-  console.log("New circle");
+    console.log("New circle");
 
-  // Hard code only a single view for now.
-  this.Viewer = VIEWERS[0];
+    // Hard code only a single view for now.
+    this.Layer = VIEWERS[0].AnnotationLayer;
 
-  if ( this.Viewer.ActiveWidget != undefined && widget ) {
-    this.Viewer.ActiveWidget.Deactivate();
-  }
-  var widget = new CircleWidget(this.Viewer, false);
-  var cam = this.Viewer.GetCamera();
-  var x = cam.FocalPoint[0];
-  var y = cam.FocalPoint[1];
+    if ( this.Layer.ActiveWidget != undefined && widget ) {
+        this.Layer.ActiveWidget.Deactivate();
+    }
+    var widget = new CircleWidget(this.Layer, false);
+    var cam = this.Layer.GetCamera();
+    var x = cam.FocalPoint[0];
+    var y = cam.FocalPoint[1];
 
-  widget.Shape.Origin = [x, y];
-  widget.Shape.Radius = cam.Height / 4.0;
-  widget.Shape.UpdateBuffers();
-  eventuallyRender();
+    widget.Shape.Origin = [x, y];
+    widget.Shape.Radius = cam.Height / 4.0;
+    widget.Shape.UpdateBuffers();
+    eventuallyRender();
 
-  //this.Viewer.ActiveWidget = widget;
-  this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
+    this.Layer.SetVisibility(true);
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-  this.Viewer = VIEWERS[0];
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
+    this.Layer = VIEWERS[0].AnnotationLayer;
+    var widget = this.Layer.ActiveWidget;
+    if ( widget ) {
+        widget.Deactivate();
+    }
 
-  this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
-  var widget = new TextWidget(this.Viewer, "");
-  var cam = this.Viewer.GetCamera();
-  var x = cam.FocalPoint[0];
-  var y = cam.FocalPoint[1];
-  widget.Text.Anchor[0] = x;
-  widget.Text.Anchor[1] = y;
-  eventuallyRender();
+    this.Layer.SetVisibility(true);
+    var widget = new TextWidget(this.Layer, "");
+    var cam = this.Layer.GetCamera();
+    var x = cam.FocalPoint[0];
+    var y = cam.FocalPoint[1];
+    widget.Text.Anchor[0] = x;
+    widget.Text.Anchor[1] = y;
+    this.Layer.EventuallyDraw();
 
-  this.Viewer.ActiveWidget = widget;
+    this.Layer.ActivateWidget(widget);
 
-  // The dialog is used to set the initial text.
-  widget.ShowPropertiesDialog();
+    // The dialog is used to set the initial text.
+    widget.ShowPropertiesDialog();
 }
 
+// Show the tool gui.
 MobileAnnotationWidget.prototype.SetVisibility = function(v) {
-  this.Visibility = v;
-  if (v) {
-    this.Div.show();
-  } else {
-    this.Div.hide();
-  }
+    this.Visibility = v;
+    if (v) {
+        this.Div.show();
+    } else {
+        this.Div.hide();
+    }
 }
 
+// Toggle the tool gui.
 MobileAnnotationWidget.prototype.ToggleVisibility = function() {
     this.SetVisibility( ! this.Visibility);
     if (FAVORITES_WIDGET) { 
@@ -13986,6 +13749,10 @@ MobileAnnotationWidget.prototype.ToggleVisibility = function() {
 // Also, I would like this to have its own instance variable in
 // the viewerRecord.
 
+
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
 
 function StackSectionWidget (viewer) {
     var self = this;
@@ -14533,6 +14300,9 @@ StackSectionWidget.prototype.Decimate = function() {
 }
 
 
+    SA.StackSectionWidget = StackSectionWidget;
+
+})();
 
 
 //==============================================================================
@@ -14557,6 +14327,12 @@ StackSectionWidget.prototype.Decimate = function() {
 // I do not like the following behavior:
 // Real widgets are always in the viewer.
 // Widgets waiting in notes are serialized.
+
+
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
 function SectionsWidget (viewer, newFlag) {
     if (viewer == null) {
         return;
@@ -15146,6 +14922,9 @@ SectionsWidget.prototype.MergeCloseSections = function(dist) {
     }
 }
 
+    SA.SectionsWidget = SectionsWidget;
+
+})();
 
 
 //==============================================================================
@@ -15349,7 +15128,7 @@ saElement.prototype.ActiveOff = function () {
 
 saElement.prototype.InitializeDialog = function () {
     var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
     this.Dialog.Title.text('Properties');
     // Open callbacks allow default values to be set in the dialog.
     this.DialogInitializeFunctions = [];
@@ -17132,7 +16911,7 @@ saTextEditor.prototype.InsertUrlLink = function() {
 
     if ( ! this.UrlDialog) {
         var self = this;
-        var dialog = new Dialog(
+        var dialog = new SA.Dialog(
             function() {
                 self.InsertUrlLinkAccept();
             });
@@ -17586,7 +17365,7 @@ jQuery.prototype.saLightBoxViewer = function(args) {
 // Internal helper.
 function saGetDialog(domElement, showCallback, applyCallback) {
     if ( ! domElement.saDialog) {
-        var helper = new Dialog(function () {saDialogApplyCallback(domElement);});
+        var helper = new SA.Dialog(function () {saDialogApplyCallback(domElement);});
         if ( ! helper.ShowCallbacks) { helper.ShowCallbacks = []; }
         if ( ! helper.ApplyCallbacks) { helper.ApplyCallbacks = []; }
         saAddButton(domElement, SA.ImagePathUrl+"Menu.jpg", "properties",
@@ -18024,6 +17803,27 @@ jQuery.prototype.saRecordViewer = function() {
             this[i].saViewer.Record(note, idx);
         }
     }
+}
+
+
+
+
+
+//==============================================================================
+// JQuery items are not responding to resize events.  This fixes the
+// problem by using window resize event for all
+// NOTE: This depends on saFullSize callbacks.
+jQuery.prototype.saOnResize = function(callback) {
+    this.addClass('sa-resize');
+    for (var i = 0; i < this.length; ++i) {
+        this[i].onresize = callback;
+    }
+
+    return this;
+}
+
+jQuery.prototype.saTriggerResize = function() {
+     $(window).trigger('resize');
 }
 
 
@@ -18712,7 +18512,7 @@ function ResizePanel(parent) {
         .attr('draggable','false')
         .on("dragstart", function() {return false;});
 
-    this.OpenNoteWindowButton = $('<img>')
+    this.OpenButton = $('<img>')
         .appendTo(this.MainDiv)
         .css({'position': 'absolute',
               'height': '20px',
@@ -18731,7 +18531,7 @@ function ResizePanel(parent) {
             return false;});
 
     // I have no idea why the position right does not work.
-    this.CloseNoteWindowButton = $('<img>')
+    this.CloseButton = $('<img>')
         .appendTo(this.MainDiv)
         .css({'position': 'absolute',
               'height': '20px',
@@ -18752,7 +18552,7 @@ function ResizePanel(parent) {
     this.Visibility = true;
     this.Dragging = false;
 
-    this.ResizeNoteWindowEdge = $('<div>')
+    this.ResizeEdge = $('<div>')
         .appendTo(parent)
         .css({'position': 'absolute',
               'height': '100%',
@@ -18805,84 +18605,89 @@ ResizePanel.prototype.SetWidth = function(width) {
     this.Width = width;
     this.PanelDiv.css({'width': this.Width+'px'});
     this.MainDiv.css({'left' : this.Width+'px'});
-    this.ResizeNoteWindowEdge.css({'left' : (this.Width-2)+'px'});
+    this.ResizeEdge.css({'left' : (this.Width-2)+'px'});
 
-    // TODO: Get rid of this hack.
+    // Needed for viewers to sync canvas size.
     $(window).trigger('resize');
 }
 
 ResizePanel.prototype.AnimateNotesWindow = function() {
-    var timeStep = new Date().getTime() - this.AnimationLastTime;
-    if (timeStep > this.AnimationDuration) {
+    var animationTime = new Date().getTime() - this.AnimationStartTime;
+    if (animationTime > this.AnimationDuration || this.AnimationDuration <= 0) {
         // end the animation.
         this.SetWidth(this.AnimationTarget);
-        // Hack to recompute viewports
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
 
         if (this.Visibility) {
-            this.CloseNoteWindowButton.show();
-            this.OpenNoteWindowButton.hide();
+            this.CloseButton.show();
+            this.OpenButton.hide();
             this.PanelDiv.fadeIn();
         } else {
-            this.CloseNoteWindowButton.hide();
-            this.OpenNoteWindowButton.show();
+            this.CloseButton.hide();
+            this.OpenButton.show();
         }
+        clearInterval(this.AnimationId);
+        delete this.AnimationId;
+        delete this.AnimationStartTime;
+        delete this.AnimationDuration;
+        delete this.AnimationTarget;
+        
         return;
     }
 
-    var k = timeStep / this.AnimationDuration;
+    var k = animationTime / this.AnimationDuration;
 
     // update
-    this.AnimationDuration *= (1.0-k);
     this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
 
     var self = this;
-    requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
 // Open and close the panel
-ResizePanel.prototype.SetVisibility = function(visibility) {
+ResizePanel.prototype.SetVisibility = function(visibility, duration) {
+    if (duration === undefined) { duration = 1000.0;}
     if (this.Visibility == visibility) { return; }
     this.Visibility = visibility;
 
+    this.AnimationCurrent = this.Width;
     if (this.Visibility) {
-        this.AnimationCurrent = this.Width;
         this.AnimationTarget = 353;
     } else {
         this.PanelDiv.hide();
-        this.AnimationCurrent = this.Width;
         this.AnimationTarget = 0;
     }
+
+    this.AnimationDuration = duration;
+    this.AnimationStartTime = new Date().getTime();
+    // NOTE: tiles are not requestAnimFrame does not let the image tiles get drawn.
+    // Do the same animation with setInterval
+    var self = this;
     this.AnimationLastTime = new Date().getTime();
-    this.AnimationDuration = 1000.0;
-    this.AnimateNotesWindow();
+    this.AnimationId = setInterval(function(){self.AnimateNotesWindow(); }, 10);
 }
 
 // Show / hide the panel and handles.
 // I keep the "visibility" state and restore it.
 ResizePanel.prototype.Show = function() {
     this.Visibility = true;
-    this.ResizeNoteWindowEdge.show();
+    this.ResizeEdge.show();
     if (this.Visibility) {
         this.Visibility = false; // hack
         this.SetVisibility(true);
     } else {
-        this.OpenNoteWindowButton.show();
+        this.OpenButton.show();
     }
 }
 
 ResizePanel.prototype.Hide = function() {
     this.Visibility = false;
     // Do not use "SetVisibility" because we need to instantly close the panel.
+    // arg:duration = 0 works but is not perfect.
     this.PanelDiv.hide();
     this.SetWidth(0);
-    this.OpenNoteWindowButton.hide();
-    this.CloseNoteWindowButton.hide();
-    this.ResizeNoteWindowEdge.hide();
+    this.OpenButton.hide();
+    this.CloseButton.hide();
+    this.ResizeEdge.hide();
 
-    //Hack to recompute viewports
-    // TODO: Get rid of this hack.
     $(window).trigger('resize');
 }
 
@@ -22225,6 +22030,11 @@ function Camera () {
     this.ViewportHeight = 100;
 }
 
+// Spacing of pixels of the screen.
+Camera.prototype.GetSpacing = function() {
+    return this.GetHeight() / this.ViewportHeight;
+}
+
 Camera.prototype.DeepCopy = function (inCam) {
     if (inCam.ZRange) { this.ZRange = inCam.ZRange.slice(0); }
     this.Roll = inCam.Roll;
@@ -26843,93 +26653,97 @@ function getHighResHagFishContours2(data) {
 
 
 
-function Dialog(callback) {
-    if ( ! SA.DialogOverlay) {
-        SA.DialogOverlay = $('<div>')
-        .appendTo('body')
-        .css({
-            'position':'fixed',
-            'left':'0px',
-            'width': '100%',
-            'background-color':'#AAA',
-            'opacity':'0.4',
-            'z-index':'1010'})
-            .saFullHeight()
-            .hide();
+(function () {
+    "use strict";
+
+    function Dialog(callback) {
+        if ( ! SA.DialogOverlay) {
+            SA.DialogOverlay = $('<div>')
+                .appendTo('body')
+                .css({
+                    'position':'fixed',
+                    'left':'0px',
+                    'width': '100%',
+                    'background-color':'#AAA',
+                    'opacity':'0.4',
+                    'z-index':'1010'})
+                .saFullHeight()
+                .hide();
+        }
+
+        this.Dialog =
+            $('<div>')
+            .appendTo('body')
+            .css({'z-index':'1011'})
+            .addClass("sa-view-dialog-div");
+
+        this.Row1 = $('<div>')
+            .addClass("sa-view-dialog-title")
+            .appendTo(this.Dialog)
+            .css({'width':'100%',
+                  'height':'2.25em',
+                  'box-sizing': 'border-box'});
+        this.Title = $('<div>')
+            .appendTo(this.Row1)
+            .css({'float':'left'})
+            .addClass("sa-view-dialog-title")
+            .text("Title");
+        this.CloseButton = $('<div>')
+            .appendTo(this.Row1)
+            .css({'float':'right'})
+            .addClass("sa-view-dialog-close")
+            .text("Close");
+
+        this.Body =
+            $('<div>')
+            .appendTo(this.Dialog)
+            .css({'width':'100%',
+                  'box-sizing': 'border-box',
+                  'margin-bottom':'30px'});
+
+        this.ApplyButtonDiv = $('<div>')
+            .appendTo(this.Dialog)
+            .addClass("sa-view-dialog-apply-div");
+        this.ApplyButton = $('<button>')
+            .appendTo(this.ApplyButtonDiv)
+            .addClass("sa-view-dialog-apply-button")
+            .text("Apply");
+
+        // Closure to pass a stupid parameter to the callback
+        var self = this;
+        (function () {
+            // Return true needed to hide the spectrum color picker.
+            self.CloseButton.click(function (e) {self.Hide(); return true;});
+            self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return true;});
+        })();
     }
 
-    this.Dialog =
-        $('<div>')
-        .appendTo('body')
-        .css({'z-index':'1011'})
-        .addClass("sa-view-dialog-div");
+    Dialog.prototype.Show = function(modal) {
+        var self = this;
+        SA.DialogOverlay.show();
+        this.Dialog.fadeIn(300);
 
-    this.Row1 = $('<div>')
-        .addClass("sa-view-dialog-title")
-        .appendTo(this.Dialog)
-        .css({'width':'100%',
-              'height':'2.25em',
-              'box-sizing': 'border-box'});
-    this.Title = $('<div>')
-        .appendTo(this.Row1)
-        .css({'float':'left'})
-        .addClass("sa-view-dialog-title")
-        .text("Title");
-    this.CloseButton = $('<div>')
-        .appendTo(this.Row1)
-        .css({'float':'right'})
-        .addClass("sa-view-dialog-close")
-        .text("Close");
+        if (modal) {
+            SA.DialogOverlay.off('click.dialog');
+        } else {
+            SA.DialogOverlay.on(
+                'click.dialog',
+                function (e) { self.Hide(); });
+        }
+        SA.ContentEditableHasFocus = true; // blocks viewer events.
+    }
 
-  this.Body =
-    $('<div>')
-        .appendTo(this.Dialog)
-        .css({'width':'100%',
-              'box-sizing': 'border-box',
-              'margin-bottom':'30px'});
-
-    this.ApplyButtonDiv = $('<div>')
-        .appendTo(this.Dialog)
-        .addClass("sa-view-dialog-apply-div");
-    this.ApplyButton = $('<button>')
-        .appendTo(this.ApplyButtonDiv)
-        .addClass("sa-view-dialog-apply-button")
-        .text("Apply");
-
-    // Closure to pass a stupid parameter to the callback
-    var self = this;
-    (function () {
-        // Return true needed to hide the spectrum color picker.
-        self.CloseButton.click(function (e) {self.Hide(); return true;});
-        self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return true;});
-    })();
-
-}
-
-
-Dialog.prototype.Show = function(modal) {
-    var self = this;
-    SA.DialogOverlay.show();
-    this.Dialog.fadeIn(300);
-
-    if (modal) {
+    Dialog.prototype.Hide = function () {
         SA.DialogOverlay.off('click.dialog');
-    } else {
-        SA.DialogOverlay.on(
-            'click.dialog',
-            function (e) { self.Hide(); });
+        SA.DialogOverlay.hide();
+        this.Dialog.fadeOut(300);
+        SA.ContentEditableHasFocus = false;
     }
-    SA.ContentEditableHasFocus = true; // blocks viewer events.
-}
-
-Dialog.prototype.Hide = function () {
-    SA.DialogOverlay.off('click.dialog');
-    SA.DialogOverlay.hide();
-    this.Dialog.fadeOut(300);
-    SA.ContentEditableHasFocus = false;
-} 
 
 
+    SA.Dialog = Dialog;
+
+})();
 // I want to avoid adding a Cache instance variable.
 // I need to create the temporary object to hold pointers
 // to both the cache and the tile which we are waiting for
@@ -27338,8 +27152,6 @@ Tile.prototype.DeleteTexture = function () {
 // I am adding a levels with grids to index tiles in addition
 // to the tree.  Eventually I want to get rid fo the tree.
 // I am trying to get rid of the roots now.
-
-
 
 // A stripped down source object.
 // A source object must have a getTileUrl method.
@@ -28370,12 +28182,28 @@ function View (parent) {
     this.OutlineCamMatrix = mat4.create();
 
     this.CanvasDiv = parent;
+    if ( parent) {
+        this.CanvasDiv = parent;
+    } else {
+        this.CanvasDiv = $('<div>');
+    }
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
     if ( ! GL) {
         this.Context2d = this.Canvas[0].getContext("2d");
     }
+
+    this.Canvas
+        .appendTo(this.CanvasDiv)
+        .css({'position':'absolute',
+              'left'    : '0%',
+              'top'     : '0%',
+              'width'   :'100%',
+              'height'  :'100%'});
+
+    this.CanvasDiv
+        .addClass("sa-view-canvas-div");
 }
 
 // Try to remove all global and circular references to this view.
@@ -28396,9 +28224,13 @@ View.prototype.Delete = function() {
     delete this.Canvas;
 }
 
+View.prototype.GetCamera = function() {
+    return this.Camera;
+}
+
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
-View.prototype.InitializeViewport = function(viewport, layer, hide) {
+View.prototype.InitializeViewport = function(viewport) {
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
@@ -28409,25 +28241,10 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.Viewport = viewport;
     this.Camera.SetViewport(viewport);
 
-    // 2d canvas
-    // Add a new canvas.
-    if ( ! this.CanvasDiv) {
-        this.CanvasDiv = $('<div>');
-    }
     // TODO: Get Rid of this.
-    this.CanvasDiv
-        .addClass('view');
+    //this.CanvasDiv
+    //    .addClass('view');
 
-    this.CanvasDiv
-        .addClass("sa-view-canvas-div");
-
-    this.Canvas
-        .appendTo(this.CanvasDiv)
-        .css({'width':'100%',
-              'height':'100%'});
-    // Css is not enough.  Canvas needs these for rendering.
-    this.Canvas.attr("width", viewport[2]);
-    this.Canvas.attr("height", viewport[3]);
 }
 
 
@@ -28499,6 +28316,7 @@ View.prototype.UpdateCanvasSize = function() {
     // There is no reason, the camera needs to know the
     // the position of the cameraDiv.
     this.Camera.SetViewport(this.Viewport);
+
     return true;
 }
 
@@ -28586,6 +28404,12 @@ View.prototype.DrawShapes = function () {
     }
 }
 
+View.prototype.Clear = function () {
+    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
+    // TODO: get width and height from the canvas.
+    this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+}
+
 // I want only the annotation to create a mask image.
 var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
@@ -28604,8 +28428,7 @@ View.prototype.DrawTiles = function () {
         }
         return this.Section.Draw(this, GL);
     } else {
-        this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
-        this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+        this.Clear();
         // Clear the canvas to start drawing.
         this.Context2d.fillStyle="#ffffff";
         //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
@@ -28853,6 +28676,367 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 
 
 
+// -Separating annotations from the viewer. They have their own canvas / layer now.
+// -This is more like a view than a viewer.
+// -Viewer still handles stack correlations crosses.
+// -This object does not bind events, but does have handle methods called by
+//  the viewer.  We could change this if the annotationsLayer received
+//  events before the viewer.
+// -Leave the copyright stuff in the viewer too.  It is not rendered in the canvas.
+// -AnnotationWidget (the panel for choosing an annotation to add) is
+//  separate from this class.
+// -I will need to fix saving images from the canvas.  Saving large imag
+//  should still work. Use this for everything.
+// -This class does not handle annotation visibility (part of annotationWidget).
+
+(function () {
+    "use strict";
+
+    // Pass in the viewer div.
+    // TODO: Pass the camera into the draw method.  It is shared here.
+    function AnnotationLayer (viewerDiv, viewerCamera) {
+        var self = this;
+        this.Parent = parent;
+        //parent.addClass('sa-viewer');
+
+        // TODO: Abstract the view to a layer somehow.
+        this.AnnotationView = new View(viewerDiv);
+        this.AnnotationView.Canvas
+            .saOnResize(function() {self.UpdateCanvasSize();});
+
+        // TODO: Get rid of this.
+        this.AnnotationView.InitializeViewport([0,0,100,100]);
+        //this.AnnotationView.OutlineColor = [0,0,0];
+        // Uses the same camera.
+        this.AnnotationView.Camera = viewerCamera;
+
+        this.WidgetList = [];
+        this.ActiveWidget = null;
+
+        this.Visibility = true;
+        // Scale widget is unique. Deal with it separately so it is not
+        // saved with the notes.
+        this.ScaleWidget = new SA.ScaleWidget(this, false);
+    }
+
+    // Try to remove all global references to this viewer.
+    AnnotationLayer.prototype.Delete = function () {
+        this.AnnotationView.Delete();
+    }
+
+    AnnotationLayer.prototype.GetVisibility = function () {
+        return this.Visibility;
+    }
+    AnnotationLayer.prototype.SetVisibility = function (vis) {
+        this.Visibility = vis;
+        this.EventuallyDraw();
+    }
+
+    // I might get rid of the view and make this a subclass.
+    AnnotationLayer.prototype.GetCamera = function () {
+        return this.AnnotationView.GetCamera();
+    }
+    AnnotationLayer.prototype.GetViewport = function () {
+        return this.AnnotationView.Viewport;
+    }
+    AnnotationLayer.prototype.UpdateCanvasSize = function () {
+        this.AnnotationView.UpdateCanvasSize();
+    }
+    AnnotationLayer.prototype.Clear = function () {
+        this.AnnotationView.Clear();
+    }
+    // Is Div to ambiguous?
+    AnnotationLayer.prototype.GetCanvasDiv = function () {
+        return this.AnnotationView.CanvasDiv;
+    }
+    // Get the current scale factor between pixels and world units.
+    AnnotationLayer.prototype.GetPixelsPerUnit = function() {
+        return this.AnnotationView.GetPixelsPerUnit();
+    }
+
+
+    // the view arg is necessary for rendering into a separate canvas for
+    // saving large images.
+    AnnotationLayer.prototype.Draw = function (view) {
+        view = view || this.AnnotationView;
+        view.Clear();
+        if ( ! this.Visibility) { return;}
+        for(var i = 0; i < this.WidgetList.length; ++i) {
+            // The last parameter is obsolete (visiblity mode)
+            this.WidgetList[i].Draw(view, 2);
+        }
+        if (this.ScaleWidget) {
+            this.ScaleWidget.Draw(view);
+        }
+    }
+
+    // To compress draw events.
+    AnnotationLayer.prototype.EventuallyDraw = function() {
+        if ( ! this.RenderPending) {
+            this.RenderPending = true;
+            var self = this;
+            requestAnimFrame(
+                function() {
+                    self.RenderPending = false;
+                    self.Draw();
+                });
+        }
+    }
+    
+    // Load a widget from a json object (origin MongoDB).
+    AnnotationLayer.prototype.LoadWidget = function(obj) {
+        var widget;
+        switch(obj.type){
+        case "lasso":
+            widget = new SA.LassoWidget(this, false);
+            break;
+        case "pencil":
+            widget = new SA.PencilWidget(this, false);
+            break;
+        case "text":
+            widget = new SA.TextWidget(this, "");
+            break;
+        case "circle":
+            widget = new SA.CircleWidget(this, false);
+            break;
+        case "polyline":
+            widget = new SA.PolylineWidget(this, false);
+            break;
+        case "stack_section":
+            widget = new SA.StackSectionWidget(this);
+            break;
+        case "sections":
+            widget = new SA.SectionsWidget(this);
+            break;
+        case "rect":
+            widget = new SA.RectWidget(this, false);
+            break;
+        case "grid":
+            widget = new SA.GridWidget(this, false);
+            break;
+        }
+        widget.Load(obj);
+        // TODO: Get rid of this hack.
+        // This is the messy way of detecting widgets that did not load
+        // properly.
+        if (widget.Type == "sections" && widget.IsEmpty()) {
+            return undefined;
+        }
+
+        // We may want to load without adding.
+        //this.AddWidget(widget);
+
+        return widget;
+    }
+
+    // I expect only the widget SetActive to call these method.
+    // A widget cannot call this if another widget is active.
+    // The widget deals with its own activation and deactivation.
+    AnnotationLayer.prototype.ActivateWidget = function(widget) {
+        if (this.ActiveWidget == widget) {
+            return;
+        }
+        this.ActiveWidget = widget;
+        widget.SetActive(true);
+    }
+    AnnotationLayer.prototype.DeactivateWidget = function(widget) {
+        if (this.ActiveWidget != widget || widget == null) {
+            // Do nothing if the widget is not active.
+            return;
+        }
+        // Incase the widget changed the cursor.  Change it back.
+        this.GetCanvasDiv().css({'cursor':'default'});
+        this.ActiveWidget = null;
+        widget.SetActive(false);
+    }
+    AnnotationLayer.prototype.GetActiveWidget = function() {
+        return this.ActiveWidget;
+    }
+
+    // Return to initial state.
+    AnnotationLayer.prototype.Reset = function() {
+        this.WidgetList = [];
+    }
+
+    // TODO: Try to get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleTouchStart = function(event) {
+        // Code from a conflict
+        // Touch was not activating widgets on the ipad.
+        // Show text on hover.
+        if (this.Visibility) {
+            for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
+                this.MouseX = this.Touches[touchIdx][0];
+                this.MouseY = this.Touches[touchIdx][1];
+                this.ComputeMouseWorld(event);
+                for (var i = 0; i < this.WidgetList.length; ++i) {
+                    if ( ! this.WidgetList[i].GetActive() &&
+                         this.WidgetList[i].CheckActive(event)) {
+                        this.ActivateWidget(this.WidgetList[i]);
+                        return true;
+                    }
+                }
+            }
+        }
+        // end conflict
+
+        for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if ( ! this.WidgetList[i].GetActive() &&
+                     this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return true;
+                }
+            }
+        }
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleTouchPan = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleTouchPan) {
+            return this.ActiveWidget.HandleTouchPan(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleTouchPinch = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleTouchPinch) {
+            return this.ActiveWidget.HandleTouchPinch(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleTouchEnd = function(event, viewer) {
+
+        if (this.ActiveWidget && this.ActiveWidget.HandleTouchEnd) {
+            return this.ActiveWidget.HandleTouchEnd(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleMouseDown = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleMouseDown) {
+            return this.ActiveWidget.HandleMouseDown(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleDoubleClick = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleDoubleClick) {
+            return this.ActiveWidget.HandleDoubleClick(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleMouseUp = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleMouseUp) {
+            return this.ActiveWidget.HandleMouseUp(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleMouseMove = function(event, viewer) {
+        if (this.ActiveWidget) {
+            if (this.ActiveWidget.HandleMouseMove) {
+                this.ActiveWidget.HandleMouseMove(event, viewer);
+            }
+        } else {
+            if ( ! viewer.FireFoxWhich) {
+                this.CheckActive(event);
+            }
+        }
+
+        // An active widget should stop propagation even if it does not
+        // respond to the event.
+        return ! this.ActiveWidget;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleMouseWheel = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleMouseWheel) {
+            return this.ActiveWidget.HandleMouseWheel(event, viewer);
+        }
+        return ! this.ActiveWidget;
+        return true;
+    }
+
+    // TODO: Get rid of the viewer argument.
+    AnnotationLayer.prototype.HandleKeyDown = function(event, viewer) {
+        if (this.ActiveWidget && this.ActiveWidget.HandleKeyDown) {
+            return this.ActiveWidget.HandleKeyDown(event, viewer);
+        }
+        return ! this.ActiveWidget;
+    }
+
+    // Called on mouse motion with no button pressed.
+    // Looks for widgets under the cursor to make active.
+    // Returns true if a widget is active.
+    AnnotationLayer.prototype.CheckActive = function(event) {
+        if (this.ActiveWidget) {
+            return this.ActiveWidget.CheckActive(event);
+        } else {
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if (this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return true; // trying to keep the browser from selecting images
+                }
+            }
+        }
+        return false;
+    }
+
+    AnnotationLayer.prototype.GetNumberOfWidgets = function() {
+        return this.WidgetList.length;
+    }
+
+
+    AnnotationLayer.prototype.GetWidget = function(i) {
+        return this.WidgetList[i];
+    }
+
+    // Legacy
+    AnnotationLayer.prototype.GetWidgets = function() {
+        return this.WidgetList;
+    }
+
+    AnnotationLayer.prototype.AddWidget = function(widget) {
+        widget.Layer = this;
+        this.WidgetList.push(widget);
+        if (SA.NotesWidget) {
+            // Hack.
+            SA.NotesWidget.MarkAsModified();
+        }
+    }
+
+    AnnotationLayer.prototype.RemoveWidget = function(widget) {
+        if (widget.Layer == null) {
+            return;
+        }
+        widget.Layer = null;
+        var idx = this.WidgetList.indexOf(widget);
+        if(idx!=-1) {
+            this.WidgetList.splice(idx, 1);
+        }
+        if (SA.NotesWidget) {
+            // Hack.
+            SA.NotesWidget.MarkAsModified();
+        }
+    }
+
+    SA.AnnotationLayer = AnnotationLayer;
+})();
+
 //==============================================================================
 
 // TODO: Fix
@@ -28885,7 +29069,12 @@ function Viewer (parent) {
         .css({'position':'relative',
               'width':'100%',
               'height':'100%',
-              'box-sizing':'border-box'});
+              'box-sizing':'border-box'})
+        .addClass('sa-resize');
+    this.Div.saOnResize(
+        function() {
+            self.UpdateSize();
+        });
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
@@ -28910,10 +29099,12 @@ function Viewer (parent) {
     this.TranslateTarget = [0.0,0.0];
 
     this.MainView = new View(this.Div);
-    this.MainView.InitializeViewport(viewport, 1);
+    this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
+
+    this.AnnotationLayer = new SA.AnnotationLayer(this.Div, this.MainView.Camera);
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
@@ -28922,7 +29113,7 @@ function Viewer (parent) {
                              viewport[2]*0.18, viewport[3]*0.18];
         this.OverViewDiv = $('<div>').appendTo(this.Div);
         this.OverView = new View(this.OverViewDiv);
-	      this.OverView.InitializeViewport(this.OverViewport, 1);
+	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -28953,13 +29144,6 @@ function Viewer (parent) {
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
     
-    this.AnnotationVisibility = ANNOTATION_ON;
-    this.WidgetList = [];
-    this.ScaleWidget = new ScaleWidget(this, false);
-
-    this.ActiveWidget = null;
-
-
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
@@ -29079,9 +29263,12 @@ Viewer.prototype.Delete = function () {
     delete this.Div;
     delete this.InteractionListeners;
     delete this.RotateIcon;
-    delete this.WidgetList;
     delete this.StackCorrelations;
     delete this.CopyrightWrapper;
+}
+
+Viewer.prototype.GetAnnotationLayer = function () {
+    return this.AnnotationLayer;
 }
 
 // Abstracting saViewer  for viewer and dualViewWidget.
@@ -29091,6 +29278,7 @@ Viewer.prototype.Record = function (note, viewIdx) {
     note.ViewerRecords[viewIdx].CopyViewer(this);
 }
 
+// TODO: MAke the annotation layer optional.
 // I am moving some of the saViewer code into this viewer object because
 // I am trying to abstract the single viewer used for the HTML presentation
 // note and the full dual view / stack note.
@@ -29286,7 +29474,11 @@ Viewer.prototype.RollMove = function (e) {
 // TODO: Get rid of viewer::SetViewport.
 // onresize callback.  Canvas width and height and the camera need
 // to be synchronized with the canvas div.
-Viewer.prototype.UpdateSize = function (e) {
+Viewer.prototype.UpdateSize = function () {
+    if ( ! this.MainView) {
+        return;
+    }
+
     if (this.MainView.UpdateCanvasSize() ) {
         this.EventuallyRender();
     }
@@ -29465,7 +29657,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     // Clone the main view.
     var view = new View();
-    view.InitializeViewport(viewport, 1, true);
+    view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -29513,12 +29705,8 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     if ( ! view.DrawTiles() ) {
         console.log("Sanity check failed. Not all tiles were available.");
     }
-    if (this.AnnotationVisibility) {
-        this.MainView.DrawShapes();
-        for(i=0; i < this.WidgetList.length; ++i) {
-            this.WidgetList[i].Draw(view, this.AnnotationVisibility);
-        }
-    }
+    this.MainView.DrawShapes();
+    this.AnnotationLayer.Draw(view);
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
     if (stack) {
@@ -29536,34 +29724,34 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     finishedCallback();
 }
 
- // This method waits until all tiles are loaded before saving.
- var SAVE_FINISH_CALLBACK;
- Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
-     var self = this;
-     AddFinishedLoadingCallback(
-         function () {
-             self.SaveImage(fileName); 
-             if (finishedCallback) {
-                 finishedCallback();
-             }
-         }
-     );
-     this.EventuallyRender(false);
- }
+// This method waits until all tiles are loaded before saving.
+var SAVE_FINISH_CALLBACK;
+Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
+    var self = this;
+    AddFinishedLoadingCallback(
+        function () {
+            self.SaveImage(fileName);
+            if (finishedCallback) {
+                finishedCallback();
+            }
+        }
+    );
+    this.EventuallyRender(false);
+}
 
 
- // Not used anymore.  Incorpoarated in SaveLargeImage
- // delete these.
- // Save a bunch of stack images ----
- Viewer.prototype.SaveStackImages = function(fileNameRoot) {
-     var self = this;
-     AddFinishedLoadingCallback(
-         function () {
-             self.SaveStackImage(fileNameRoot); 
-         }
-     );
-     this.EventuallyRender(false);
- }
+// Not used anymore.  Incorpoarated in SaveLargeImage
+// delete these.
+// Save a bunch of stack images ----
+Viewer.prototype.SaveStackImages = function(fileNameRoot) {
+    var self = this;
+    AddFinishedLoadingCallback(
+        function () {
+            self.SaveStackImage(fileNameRoot);
+        }
+    );
+    this.EventuallyRender(false);
+}
 
 Viewer.prototype.SaveStackImage = function(fileNameRoot) {
     var self = this;
@@ -29582,17 +29770,6 @@ Viewer.prototype.SaveStackImage = function(fileNameRoot) {
 }
 //-----
 
-
-
-Viewer.prototype.GetAnnotationVisibility = function() {
-    return this.AnnotationVisibility;
-}
-
-Viewer.prototype.SetAnnotationVisibility = function(vis) {
-    this.AnnotationVisibility = vis;
-}
-
-
 Viewer.prototype.SetOverViewBounds = function(bounds) {
     this.OverViewBounds = bounds;
     if (this.OverView) {
@@ -29606,34 +29783,34 @@ Viewer.prototype.SetOverViewBounds = function(bounds) {
     }
 }
 
- Viewer.prototype.GetOverViewBounds = function() {
-     if (this.OverViewBounds) {
-         return this.OverViewBounds;
-     }
-     var cache = this.GetCache();
-     if (cache && cache.Image) {
-         if (cache.Image.bounds) {
-             return cache.Image.bounds;
-         }
-         if (cache.Image.dimensions) {
-             var dims = cache.Image.dimensions;
-             return [0, dims[0], 0, dims[1]];
-         }
-     }
-     // Depreciated code.
-     if (this.OverView) {
-         var cam = this.OverView.Camera;
-         var halfHeight = cam.GetHeight() / 2;
-         var halfWidth = cam.GetWidth() / 2;
-         this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
-                                cam.FocalPoint[0] + halfWidth,
-                                cam.FocalPoint[1] - halfHeight,
-                                cam.FocalPoint[1] + halfHeight];
-         return this.OverViewBounds;
-     }
-     // This method is called once too soon.  There is no image, and mobile devices have no overview.
-     return [0,10000,0,10000];
- }
+Viewer.prototype.GetOverViewBounds = function() {
+    if (this.OverViewBounds) {
+        return this.OverViewBounds;
+    }
+    var cache = this.GetCache();
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            return cache.Image.bounds;
+        }
+        if (cache.Image.dimensions) {
+            var dims = cache.Image.dimensions;
+            return [0, dims[0], 0, dims[1]];
+        }
+    }
+    // Depreciated code.
+    if (this.OverView) {
+        var cam = this.OverView.Camera;
+        var halfHeight = cam.GetHeight() / 2;
+        var halfWidth = cam.GetWidth() / 2;
+        this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
+                               cam.FocalPoint[0] + halfWidth,
+                               cam.FocalPoint[1] - halfHeight,
+                               cam.FocalPoint[1] + halfHeight];
+        return this.OverViewBounds;
+    }
+    // This method is called once too soon.  There is no image, and mobile devices have no overview.
+    return [0,10000,0,10000];
+}
 
 
 Viewer.prototype.SetSection = function(section) {
@@ -29648,47 +29825,47 @@ Viewer.prototype.SetSection = function(section) {
 }
 
 
- // Change the source / cache after a viewer has been created.
- Viewer.prototype.SetCache = function(cache) {
-     if (cache && cache.Image) {
-         if (cache.Image.bounds) {
-             this.SetOverViewBounds(cache.Image.bounds);
-         }
+// Change the source / cache after a viewer has been created.
+Viewer.prototype.SetCache = function(cache) {
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            this.SetOverViewBounds(cache.Image.bounds);
+        }
 
-         if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
-         }
-         this.CopyrightWrapper
-             .html(cache.Image.copyright);
-     }
+        if (cache.Image.copyright == undefined) {
+            cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
+        }
+        this.CopyrightWrapper
+            .html(cache.Image.copyright);
+    }
 
-     this.MainView.SetCache(cache);
-     if (this.OverView) {
-         this.OverView.SetCache(cache);
-         if (cache) {
-             var bds = cache.GetBounds();
-             if (bds) {
-                 this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
-                                                      (bds[2] + bds[3]) / 2]);
-                 var height = (bds[3]-bds[2]);
-                 // See if the view is constrained by the width.
-                 var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
-                 if (height2 > height) {
-                     height = height2;
-                 }
-                 this.OverView.Camera.SetHeight(height);
-                 this.OverView.Camera.ComputeMatrix();
-             }
-         }
-     }
-     // Change the overview to fit the new image dimensions.
-     // TODO: Get rid of this hack.
-     $(window).trigger('resize');
- }
+    this.MainView.SetCache(cache);
+    if (this.OverView) {
+        this.OverView.SetCache(cache);
+        if (cache) {
+            var bds = cache.GetBounds();
+            if (bds) {
+                this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
+                                                     (bds[2] + bds[3]) / 2]);
+                var height = (bds[3]-bds[2]);
+                // See if the view is constrained by the width.
+                var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+                if (height2 > height) {
+                    height = height2;
+                }
+                this.OverView.Camera.SetHeight(height);
+                this.OverView.Camera.ComputeMatrix();
+            }
+        }
+    }
+    // Change the overview to fit the new image dimensions.
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+}
 
- Viewer.prototype.GetCache = function() {
-     return this.MainView.GetCache();
- }
+Viewer.prototype.GetCache = function() {
+    return this.MainView.GetCache();
+}
 
 // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
@@ -29795,12 +29972,6 @@ Viewer.prototype.GetCamera = function() {
     return this.MainView.Camera;
 }
 
-Viewer.prototype.GetSpacing = function() {
-    var cam = this.GetCamera();
-    var viewport = this.GetViewport();
-    return cam.GetHeight() / viewport[3];
-}
-
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
     if (this.AnimateDuration > 0.0) {
@@ -29887,103 +30058,9 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
-Viewer.prototype.GetNumberOfWidgets = function() {
-    return this.WidgetList.length;
-}
-
-
-Viewer.prototype.GetWidget = function(i) {
-    return this.WidgetList[i];
-}
-
-Viewer.prototype.AddWidget = function(widget) {
-    widget.Viewer = this;
-    this.WidgetList.push(widget);
-    if (SA.NotesWidget) {
-        // Hack.
-        SA.NotesWidget.MarkAsModified();
-    }
-}
-
-Viewer.prototype.RemoveWidget = function(widget) {
-    if (widget.Viewer == null) {
-        return;
-    }
-    widget.Viewer = null;
-    var idx = this.WidgetList.indexOf(widget);
-    if(idx!=-1) {
-        this.WidgetList.splice(idx, 1);
-    }
-    if (SA.NotesWidget) {
-        // Hack.
-        SA.NotesWidget.MarkAsModified();
-    }
-}
-
-
-
-// Load a widget from a json object (origin MongoDB).
-Viewer.prototype.LoadWidget = function(obj) {
-    var widget;
-    switch(obj.type){
-    case "lasso":
-        widget = new LassoWidget(this, false);
-        break;
-    case "pencil":
-        widget = new PencilWidget(this, false);
-        break;
-    case "text":
-        widget = new TextWidget(this, "");
-        break;
-    case "circle":
-        widget = new CircleWidget(this, false);
-         break;
-    case "polyline":
-        widget = new PolylineWidget(this, false);
-        break;
-    case "stack_section":
-        widget = new StackSectionWidget(this);
-        break;
-    case "sections":
-        widget = new SectionsWidget(this);
-        break;
-    case "rect":
-        widget = new RectWidget(this, false);
-        break;
-    case "grid":
-        widget = new GridWidget(this, false);
-        break;
-    }
-    widget.Load(obj);
-    return widget;
-}
-
-// I am doing a dance because I expect widget SetActive to call this,
-// but this calls widget SetActive.
-// The widget is the only object to call these methods.
-// A widget cannot call this if another widget is active.
-// The widget deals with its own activation and deactivation.
-Viewer.prototype.ActivateWidget = function(widget) {
-    if (this.ActiveWidget == widget) {
-        return;
-    }
-    this.ActiveWidget = widget;
-}
-
-Viewer.prototype.DeactivateWidget = function(widget) {
-    if (this.ActiveWidget != widget || widget == null) {
-        // Do nothing if the widget is not active.
-        return;
-    }
-    this.ActiveWidget = null;
-}
-
-
-
 Viewer.prototype.DegToRad = function(degrees) {
     return degrees * Math.PI / 180;
 }
-
 
 Viewer.prototype.Draw = function() {
     // I do not think this is actaully necessary.
@@ -30015,6 +30092,13 @@ Viewer.prototype.Draw = function() {
         GL.enable(GL.DEPTH_TEST);
     }
 
+    if ( this.AnnotationLayer) {
+        this.AnnotationLayer.Clear();
+    }
+
+    // If we are still waiting for tiles to load, schedule another render.
+    // This works fine, but results in many renders while waiting.
+    // TODO: Consider having the tile load callback scheduling the next render.
     if ( ! this.MainView.DrawTiles() ) {
         this.EventuallyRender();
     }
@@ -30025,15 +30109,10 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawTiles();
         this.OverView.DrawOutline(true);
     }
-    if (this.AnnotationVisibility) {
-        if (this.ScaleWidget) {
-            this.ScaleWidget.Draw(this.MainView);
-        }
-        this.MainView.DrawShapes();
-        for(i in this.WidgetList){
-            this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
-        }
-    }
+
+    // This is not used anymore
+    this.MainView.DrawShapes();
+    this.AnnotationLayer.Draw();
 
     // Draw a rectangle in the overview representing the camera's view.
     if (this.OverView) {
@@ -30070,7 +30149,9 @@ Viewer.prototype.Draw = function() {
 // Makes the viewer clean to setup a new slide...
 Viewer.prototype.Reset = function() {
     this.SetCache(null);
-    this.WidgetList = [];
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.Reset();
+    }
     this.MainView.ShapeList = [];
 }
 
@@ -30323,19 +30404,14 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // See if any widget became active.
-    if (this.AnnotationVisibility) {
-        for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
-            this.MouseX = this.Touches[touchIdx][0];
-            this.MouseY = this.Touches[touchIdx][1];
-            this.ComputeMouseWorld(event);
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if ( ! this.WidgetList[i].GetActive() &&
-                     this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return true;
-                }
-            }
-        }
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility()) {
+        // TODO:
+        // I do not like storing these ivars in this object.
+        // I think the widgets rely on them being in the layer.
+        this.MouseX = event.Touches[touchIdx][0];
+        this.MouseY = event.Touches[touchIdx][1];
+        this.MouseWorld = this.ComputeMouseWorld(event);
+        return this.AnnotationLayer.HandleTouchStart(event,viewer);
     }
 
     return false;
@@ -30384,9 +30460,9 @@ Viewer.prototype.HandleTouchPan = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != undefined) {
-        this.ActiveWidget.HandleTouchPan(event);
-        return;
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchPan(event, this)) {
+        return false;
     }
 
     // I see an odd intermittent camera matrix problem
@@ -30537,10 +30613,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     scale = s1/ s0;
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        event.PinchScale = scale;
-        this.ActiveWidget.HandleTouchPinch(event);
-        return;
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchPinch(event, this)) {
+        return false;
     }
 
     // scale is around the mid point .....
@@ -30571,6 +30646,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 Viewer.prototype.HandleTouchEnd = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
+    // Code from a conflict
     var t = new Date().getTime();
     this.LastTime = this.Time;
     this.Time = t;
@@ -30603,6 +30679,18 @@ Viewer.prototype.HandleTouchEnd = function(event) {
         //this.UpdateZoomGui();
         this.HandleMomentum();
     }
+    // end conflict
+
+
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && 
+        this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchEnd(event, this)) {
+        return false;
+    }
+
+    //this.UpdateZoomGui();
+    this.HandleMomentum(event);
 }
 
 Viewer.prototype.HandleMomentum = function() {
@@ -30733,8 +30821,9 @@ Viewer.prototype.HandleMouseDown = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        return this.ActiveWidget.HandleMouseDown(event);
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseDown(event, this)) {
+        return false;
     }
 
     // Choose what interaction will be performed.
@@ -30757,8 +30846,11 @@ Viewer.prototype.HandleMouseDown = function(event) {
 
 Viewer.prototype.HandleDoubleClick = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (this.ActiveWidget != null) {
-        return this.ActiveWidget.HandleDoubleClick(event);
+
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleDoubleClick(event, this)) {
+        return false;
     }
 
     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
@@ -30788,9 +30880,9 @@ Viewer.prototype.HandleMouseUp = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleMouseUp(event);
-        return false; // trying to keep the browser from selecting images
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseUp(event, this)) {
+        return false;
     }
 
     if (this.InteractionState != INTERACTION_NONE) {
@@ -30810,13 +30902,23 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
     // This could be obsolete because we never pass this event to another object.
     event.worldX = this.MouseWorld[0];
     event.worldY= this.MouseWorld[1];
+    // NOTE: DANGER!  user could change this pointer.
+    return this.MouseWorld;
 }
 
 Viewer.prototype.HandleMouseMove = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
-    event.preventDefault(); // Keep browser from selecting images.
-    if ( ! this.RecordMouseMove(event)) { return; }
+    // The event position is relative to the target which can be a tab on
+    // top of the canvas.  Just skip these events.
+    if ($(event.target).width() != $(event.currentTarget).width()) {
+        return true;
+    }
+
+
+    // TODO: Get rid of this. Should be done with image properties.
+    //event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return true; }
     this.ComputeMouseWorld(event);
 
     // I think we need to deal with the move here because the mouse can
@@ -30832,24 +30934,14 @@ Viewer.prototype.HandleMouseMove = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleMouseMove(event);
-        return false; // trying to keep the browser from selecting images
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseMove(event, this)) {
+        return false;
     }
 
-    //if (event.which == 0) { // Firefox does not set which for motion events.
-    if ( ! this.FireFoxWhich) {
-        // See if any widget became active.
-        if (this.AnnotationVisibility) {
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if (this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return false; // trying to keep the browser from selecting images
-                }
-            }
-        }
-
-        return false; // trying to keep the browser from selecting images
+    if (this.InteractionState == INTERACTION_NONE) {
+        // Allow the ResizePanel drag to process the events.
+        return true;
     }
 
     var x = event.offsetX;
@@ -30878,6 +30970,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
         this.ZoomTarget = this.MainView.Camera.GetHeight();
         this.UpdateCamera();
     } else if (this.InteractionState == INTERACTION_DRAG) {
+
         // Translate
         // Convert to view [-0.5,0.5] coordinate system.
         // Note: the origin gets subtracted out in delta above.
@@ -30896,16 +30989,16 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // The only interaction that does not go through animate camera.
     this.TriggerInteraction();
     this.EventuallyRender(true);
-    return false; // trying to keep the browser from selecting images
+    return false; 
 }
 
 Viewer.prototype.HandleMouseWheel = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-            return false;
-        }
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseWheel(event, this)) {
+        return false;
     }
 
     if ( ! event.offsetX) {
@@ -30955,7 +31048,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
         if ( ! SAVING_IMAGE) {
-            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE = new SA.Dialog();
             SAVING_IMAGE.Title.text('Saving');
             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
             SAVING_IMAGE.WaitingImage = $('<img>')
@@ -31015,10 +31108,10 @@ Viewer.prototype.HandleKeyDown = function(event) {
     }
 
     //----------------------
-    if (this.ActiveWidget != null) {
-        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-            return false;
-        }
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleKeyDown(event, this)) {
+        return false;
     }
 
     if (String.fromCharCode(event.keyCode) == 'R') {
@@ -31098,7 +31191,7 @@ Viewer.prototype.GetPixelsPerUnit = function() {
     return this.MainView.GetPixelsPerUnit();
 }
 
-// Covert a point from world coordiante system to viewer coordinate system (units pixels).
+// Convert a point from world coordiante system to viewer coordinate system (units pixels).
 Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
     var cam = this.MainView.Camera;
     return cam.ConvertPointWorldToViewer(x, y);
@@ -31148,137 +31241,137 @@ function colorNameToHex(color)
 
 
 
- //==============================================================================
- // OverView slide widget stuff.
+//==============================================================================
+// OverView slide widget stuff.
 
- Viewer.prototype.OverViewCheckActive = function(event) {
-     if ( ! this.OverView) {
-         return false;
-     }
-     var x = event.offsetX;
-     var y = event.offsetY;
-     // Half height and width
-     var hw = this.OverViewport[2]/2;
-     var hh = this.OverViewport[3]/2;
-     // Center of the overview.
-     var cx = this.OverViewport[0]+hw;
-     var cy = this.OverViewport[1]+hh;
+Viewer.prototype.OverViewCheckActive = function(event) {
+    if ( ! this.OverView) {
+        return false;
+    }
+    var x = event.offsetX;
+    var y = event.offsetY;
+    // Half height and width
+    var hw = this.OverViewport[2]/2;
+    var hh = this.OverViewport[3]/2;
+    // Center of the overview.
+    var cx = this.OverViewport[0]+hw;
+    var cy = this.OverViewport[1]+hh;
 
-     x = x-cx;
-     y = y-cy;
-     // Rotate into overview slide coordinates.
-     var roll = this.MainView.Camera.Roll;
-     var c = Math.cos(roll);
-     var s = Math.sin(roll);
-     var nx = Math.abs(c*x+s*y);
-     var ny = Math.abs(c*y-s*x);
-     if ((Math.abs(hw-nx) < 5 && ny < hh) ||
-         (Math.abs(hh-ny) < 5 && nx < hw)) {
-         this.OverViewActive = true;
-         this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
-     } else {
-         this.OverViewActive = false;
-         this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
-     }
-     //return this.OverViewActive;
- }
-
-
+    x = x-cx;
+    y = y-cy;
+    // Rotate into overview slide coordinates.
+    var roll = this.MainView.Camera.Roll;
+    var c = Math.cos(roll);
+    var s = Math.sin(roll);
+    var nx = Math.abs(c*x+s*y);
+    var ny = Math.abs(c*y-s*x);
+    if ((Math.abs(hw-nx) < 5 && ny < hh) ||
+        (Math.abs(hh-ny) < 5 && nx < hw)) {
+        this.OverViewActive = true;
+        this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
+    } else {
+        this.OverViewActive = false;
+        this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
+    }
+    //return this.OverViewActive;
+}
 
 
 
- // Interaction events that change the main camera.
 
 
- // Resize of overview window will be drag with left mouse.
- // Reposition camera with left click (no drag).
- // Removing drag camera in overview.
-
- // TODO: Make the overview slide a widget.
- Viewer.prototype.HandleOverViewMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) { return;}
-
-     this.InteractionState = INTERACTION_OVERVIEW;
-
-     // Delay actions until we see if it is a drag or click.
-     this.OverviewEventX = event.pageX;
-     this.OverviewEventY = event.pageY;
-
-     return false;
- }
+// Interaction events that change the main camera.
 
 
- Viewer.prototype.HandleOverViewMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) { return;}
-     if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) 
-     {
-         this.InteractionState = INTERACTION_NONE;
-         return;
-     }
+// Resize of overview window will be drag with left mouse.
+// Reposition camera with left click (no drag).
+// Removing drag camera in overview.
 
-     // This target for animation is not implemented cleanly.
-     // This fixes a bug: OverView translated rotates camamera back to zero.
-     this.RollTarget = this.MainView.Camera.Roll;
+// TODO: Make the overview slide a widget.
+Viewer.prototype.HandleOverViewMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) { return;}
 
-     if (event.which == 1) {
-         var x = event.offsetX;
-         var y = event.offsetY;
-         if (x == undefined) {x = event.layerX;}
-         if (y == undefined) {y = event.layerY;}
-         // Transform to view's coordinate system.
-         this.OverViewPlaceCamera(x, y);
-     }
+    this.InteractionState = INTERACTION_OVERVIEW;
 
-     this.InteractionState = INTERACTION_NONE;
+    // Delay actions until we see if it is a drag or click.
+    this.OverviewEventX = event.pageX;
+    this.OverviewEventY = event.pageY;
 
-     return false;
- }
+    return false;
+}
 
- Viewer.prototype.HandleOverViewMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW) {
-         // Do not start dragging until the mouse has moved some distance.
-         if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
-             Math.abs(event.pageY - this.OverviewEventY) > 5) {
-             // Start dragging the overview window.
-             this.InteractionState = INTERACTION_OVERVIEW_DRAG;
-             var w = this.GetViewport()[2];
-             var p = Math.max(w-event.pageX,event.pageY);
-             this.OverViewScaleLast = p;
-         }
-         return false;
-     }
+Viewer.prototype.HandleOverViewMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) { return;}
+    if (this.InteractionState == INTERACTION_OVERVIEW_DRAG)
+    {
+        this.InteractionState = INTERACTION_NONE;
+        return;
+    }
 
-     // This consumes events even when I return true. Why?
-     if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
-         // Drag originated outside overview.
-         // Could be panning.
-         return true;
-     }
+    // This target for animation is not implemented cleanly.
+    // This fixes a bug: OverView translated rotates camamera back to zero.
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     // Drag to change overview size
-     var w = this.GetViewport()[2];
-     var p = Math.max(w-event.pageX,event.pageY);
-     var d = p/this.OverViewScaleLast;
-     this.OverViewScale *= d*d;
-     this.OverViewScaleLast = p;
-     if (p < 60) {
-         this.RotateIcon.hide();
-     } else {
-         this.RotateIcon.show();
-     }
+    if (event.which == 1) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        if (x == undefined) {x = event.layerX;}
+        if (y == undefined) {y = event.layerY;}
+        // Transform to view's coordinate system.
+        this.OverViewPlaceCamera(x, y);
+    }
 
-     // TODO: Get rid of this hack.
-     $(window).trigger('resize');
+    this.InteractionState = INTERACTION_NONE;
 
-     return false;
+    return false;
+}
+
+Viewer.prototype.HandleOverViewMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
+
+    if (this.InteractionState == INTERACTION_OVERVIEW) {
+        // Do not start dragging until the mouse has moved some distance.
+        if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
+            Math.abs(event.pageY - this.OverviewEventY) > 5) {
+            // Start dragging the overview window.
+            this.InteractionState = INTERACTION_OVERVIEW_DRAG;
+            var w = this.GetViewport()[2];
+            var p = Math.max(w-event.pageX,event.pageY);
+            this.OverViewScaleLast = p;
+        }
+        return false;
+    }
+
+    // This consumes events even when I return true. Why?
+    if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
+        // Drag originated outside overview.
+        // Could be panning.
+        return true;
+    }
+
+    // Drag to change overview size
+    var w = this.GetViewport()[2];
+    var p = Math.max(w-event.pageX,event.pageY);
+    var d = p/this.OverViewScaleLast;
+    this.OverViewScale *= d*d;
+    this.OverViewScaleLast = p;
+    if (p < 60) {
+        this.RotateIcon.hide();
+    } else {
+        this.RotateIcon.show();
+    }
+
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+
+    return false;
 }
 
 Viewer.prototype.HandleOverViewMouseWheel = function(event) {
@@ -34589,6 +34682,11 @@ function Camera () {
     this.ViewportHeight = 100;
 }
 
+// Spacing of pixels of the screen.
+Camera.prototype.GetSpacing = function() {
+    return this.GetHeight() / this.ViewportHeight;
+}
+
 Camera.prototype.DeepCopy = function (inCam) {
     if (inCam.ZRange) { this.ZRange = inCam.ZRange.slice(0); }
     this.Roll = inCam.Roll;
@@ -39207,93 +39305,97 @@ function getHighResHagFishContours2(data) {
 
 
 
-function Dialog(callback) {
-    if ( ! SA.DialogOverlay) {
-        SA.DialogOverlay = $('<div>')
-        .appendTo('body')
-        .css({
-            'position':'fixed',
-            'left':'0px',
-            'width': '100%',
-            'background-color':'#AAA',
-            'opacity':'0.4',
-            'z-index':'1010'})
-            .saFullHeight()
-            .hide();
+(function () {
+    "use strict";
+
+    function Dialog(callback) {
+        if ( ! SA.DialogOverlay) {
+            SA.DialogOverlay = $('<div>')
+                .appendTo('body')
+                .css({
+                    'position':'fixed',
+                    'left':'0px',
+                    'width': '100%',
+                    'background-color':'#AAA',
+                    'opacity':'0.4',
+                    'z-index':'1010'})
+                .saFullHeight()
+                .hide();
+        }
+
+        this.Dialog =
+            $('<div>')
+            .appendTo('body')
+            .css({'z-index':'1011'})
+            .addClass("sa-view-dialog-div");
+
+        this.Row1 = $('<div>')
+            .addClass("sa-view-dialog-title")
+            .appendTo(this.Dialog)
+            .css({'width':'100%',
+                  'height':'2.25em',
+                  'box-sizing': 'border-box'});
+        this.Title = $('<div>')
+            .appendTo(this.Row1)
+            .css({'float':'left'})
+            .addClass("sa-view-dialog-title")
+            .text("Title");
+        this.CloseButton = $('<div>')
+            .appendTo(this.Row1)
+            .css({'float':'right'})
+            .addClass("sa-view-dialog-close")
+            .text("Close");
+
+        this.Body =
+            $('<div>')
+            .appendTo(this.Dialog)
+            .css({'width':'100%',
+                  'box-sizing': 'border-box',
+                  'margin-bottom':'30px'});
+
+        this.ApplyButtonDiv = $('<div>')
+            .appendTo(this.Dialog)
+            .addClass("sa-view-dialog-apply-div");
+        this.ApplyButton = $('<button>')
+            .appendTo(this.ApplyButtonDiv)
+            .addClass("sa-view-dialog-apply-button")
+            .text("Apply");
+
+        // Closure to pass a stupid parameter to the callback
+        var self = this;
+        (function () {
+            // Return true needed to hide the spectrum color picker.
+            self.CloseButton.click(function (e) {self.Hide(); return true;});
+            self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return true;});
+        })();
     }
 
-    this.Dialog =
-        $('<div>')
-        .appendTo('body')
-        .css({'z-index':'1011'})
-        .addClass("sa-view-dialog-div");
+    Dialog.prototype.Show = function(modal) {
+        var self = this;
+        SA.DialogOverlay.show();
+        this.Dialog.fadeIn(300);
 
-    this.Row1 = $('<div>')
-        .addClass("sa-view-dialog-title")
-        .appendTo(this.Dialog)
-        .css({'width':'100%',
-              'height':'2.25em',
-              'box-sizing': 'border-box'});
-    this.Title = $('<div>')
-        .appendTo(this.Row1)
-        .css({'float':'left'})
-        .addClass("sa-view-dialog-title")
-        .text("Title");
-    this.CloseButton = $('<div>')
-        .appendTo(this.Row1)
-        .css({'float':'right'})
-        .addClass("sa-view-dialog-close")
-        .text("Close");
+        if (modal) {
+            SA.DialogOverlay.off('click.dialog');
+        } else {
+            SA.DialogOverlay.on(
+                'click.dialog',
+                function (e) { self.Hide(); });
+        }
+        SA.ContentEditableHasFocus = true; // blocks viewer events.
+    }
 
-  this.Body =
-    $('<div>')
-        .appendTo(this.Dialog)
-        .css({'width':'100%',
-              'box-sizing': 'border-box',
-              'margin-bottom':'30px'});
-
-    this.ApplyButtonDiv = $('<div>')
-        .appendTo(this.Dialog)
-        .addClass("sa-view-dialog-apply-div");
-    this.ApplyButton = $('<button>')
-        .appendTo(this.ApplyButtonDiv)
-        .addClass("sa-view-dialog-apply-button")
-        .text("Apply");
-
-    // Closure to pass a stupid parameter to the callback
-    var self = this;
-    (function () {
-        // Return true needed to hide the spectrum color picker.
-        self.CloseButton.click(function (e) {self.Hide(); return true;});
-        self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return true;});
-    })();
-
-}
-
-
-Dialog.prototype.Show = function(modal) {
-    var self = this;
-    SA.DialogOverlay.show();
-    this.Dialog.fadeIn(300);
-
-    if (modal) {
+    Dialog.prototype.Hide = function () {
         SA.DialogOverlay.off('click.dialog');
-    } else {
-        SA.DialogOverlay.on(
-            'click.dialog',
-            function (e) { self.Hide(); });
+        SA.DialogOverlay.hide();
+        this.Dialog.fadeOut(300);
+        SA.ContentEditableHasFocus = false;
     }
-    SA.ContentEditableHasFocus = true; // blocks viewer events.
-}
-
-Dialog.prototype.Hide = function () {
-    SA.DialogOverlay.off('click.dialog');
-    SA.DialogOverlay.hide();
-    this.Dialog.fadeOut(300);
-    SA.ContentEditableHasFocus = false;
-} 
 
 
+    SA.Dialog = Dialog;
+
+})();
 // I want to avoid adding a Cache instance variable.
 // I need to create the temporary object to hold pointers
 // to both the cache and the tile which we are waiting for
@@ -39702,8 +39804,6 @@ Tile.prototype.DeleteTexture = function () {
 // I am adding a levels with grids to index tiles in addition
 // to the tree.  Eventually I want to get rid fo the tree.
 // I am trying to get rid of the roots now.
-
-
 
 // A stripped down source object.
 // A source object must have a getTileUrl method.
@@ -40734,12 +40834,28 @@ function View (parent) {
     this.OutlineCamMatrix = mat4.create();
 
     this.CanvasDiv = parent;
+    if ( parent) {
+        this.CanvasDiv = parent;
+    } else {
+        this.CanvasDiv = $('<div>');
+    }
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
     if ( ! GL) {
         this.Context2d = this.Canvas[0].getContext("2d");
     }
+
+    this.Canvas
+        .appendTo(this.CanvasDiv)
+        .css({'position':'absolute',
+              'left'    : '0%',
+              'top'     : '0%',
+              'width'   :'100%',
+              'height'  :'100%'});
+
+    this.CanvasDiv
+        .addClass("sa-view-canvas-div");
 }
 
 // Try to remove all global and circular references to this view.
@@ -40760,9 +40876,13 @@ View.prototype.Delete = function() {
     delete this.Canvas;
 }
 
+View.prototype.GetCamera = function() {
+    return this.Camera;
+}
+
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
-View.prototype.InitializeViewport = function(viewport, layer, hide) {
+View.prototype.InitializeViewport = function(viewport) {
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
@@ -40773,25 +40893,10 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.Viewport = viewport;
     this.Camera.SetViewport(viewport);
 
-    // 2d canvas
-    // Add a new canvas.
-    if ( ! this.CanvasDiv) {
-        this.CanvasDiv = $('<div>');
-    }
     // TODO: Get Rid of this.
-    this.CanvasDiv
-        .addClass('view');
+    //this.CanvasDiv
+    //    .addClass('view');
 
-    this.CanvasDiv
-        .addClass("sa-view-canvas-div");
-
-    this.Canvas
-        .appendTo(this.CanvasDiv)
-        .css({'width':'100%',
-              'height':'100%'});
-    // Css is not enough.  Canvas needs these for rendering.
-    this.Canvas.attr("width", viewport[2]);
-    this.Canvas.attr("height", viewport[3]);
 }
 
 
@@ -40863,6 +40968,7 @@ View.prototype.UpdateCanvasSize = function() {
     // There is no reason, the camera needs to know the
     // the position of the cameraDiv.
     this.Camera.SetViewport(this.Viewport);
+
     return true;
 }
 
@@ -40950,6 +41056,12 @@ View.prototype.DrawShapes = function () {
     }
 }
 
+View.prototype.Clear = function () {
+    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
+    // TODO: get width and height from the canvas.
+    this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+}
+
 // I want only the annotation to create a mask image.
 var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
@@ -40968,8 +41080,7 @@ View.prototype.DrawTiles = function () {
         }
         return this.Section.Draw(this, GL);
     } else {
-        this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
-        this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+        this.Clear();
         // Clear the canvas to start drawing.
         this.Context2d.fillStyle="#ffffff";
         //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
@@ -41249,7 +41360,12 @@ function Viewer (parent) {
         .css({'position':'relative',
               'width':'100%',
               'height':'100%',
-              'box-sizing':'border-box'});
+              'box-sizing':'border-box'})
+        .addClass('sa-resize');
+    this.Div.saOnResize(
+        function() {
+            self.UpdateSize();
+        });
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
@@ -41274,10 +41390,12 @@ function Viewer (parent) {
     this.TranslateTarget = [0.0,0.0];
 
     this.MainView = new View(this.Div);
-    this.MainView.InitializeViewport(viewport, 1);
+    this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
+
+    this.AnnotationLayer = new SA.AnnotationLayer(this.Div, this.MainView.Camera);
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
@@ -41286,7 +41404,7 @@ function Viewer (parent) {
                              viewport[2]*0.18, viewport[3]*0.18];
         this.OverViewDiv = $('<div>').appendTo(this.Div);
         this.OverView = new View(this.OverViewDiv);
-	      this.OverView.InitializeViewport(this.OverViewport, 1);
+	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -41317,13 +41435,6 @@ function Viewer (parent) {
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
     
-    this.AnnotationVisibility = ANNOTATION_ON;
-    this.WidgetList = [];
-    this.ScaleWidget = new ScaleWidget(this, false);
-
-    this.ActiveWidget = null;
-
-
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
@@ -41443,9 +41554,12 @@ Viewer.prototype.Delete = function () {
     delete this.Div;
     delete this.InteractionListeners;
     delete this.RotateIcon;
-    delete this.WidgetList;
     delete this.StackCorrelations;
     delete this.CopyrightWrapper;
+}
+
+Viewer.prototype.GetAnnotationLayer = function () {
+    return this.AnnotationLayer;
 }
 
 // Abstracting saViewer  for viewer and dualViewWidget.
@@ -41455,6 +41569,7 @@ Viewer.prototype.Record = function (note, viewIdx) {
     note.ViewerRecords[viewIdx].CopyViewer(this);
 }
 
+// TODO: MAke the annotation layer optional.
 // I am moving some of the saViewer code into this viewer object because
 // I am trying to abstract the single viewer used for the HTML presentation
 // note and the full dual view / stack note.
@@ -41650,7 +41765,11 @@ Viewer.prototype.RollMove = function (e) {
 // TODO: Get rid of viewer::SetViewport.
 // onresize callback.  Canvas width and height and the camera need
 // to be synchronized with the canvas div.
-Viewer.prototype.UpdateSize = function (e) {
+Viewer.prototype.UpdateSize = function () {
+    if ( ! this.MainView) {
+        return;
+    }
+
     if (this.MainView.UpdateCanvasSize() ) {
         this.EventuallyRender();
     }
@@ -41829,7 +41948,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     // Clone the main view.
     var view = new View();
-    view.InitializeViewport(viewport, 1, true);
+    view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -41877,12 +41996,8 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     if ( ! view.DrawTiles() ) {
         console.log("Sanity check failed. Not all tiles were available.");
     }
-    if (this.AnnotationVisibility) {
-        this.MainView.DrawShapes();
-        for(i=0; i < this.WidgetList.length; ++i) {
-            this.WidgetList[i].Draw(view, this.AnnotationVisibility);
-        }
-    }
+    this.MainView.DrawShapes();
+    this.AnnotationLayer.Draw(view);
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
     if (stack) {
@@ -41900,34 +42015,34 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     finishedCallback();
 }
 
- // This method waits until all tiles are loaded before saving.
- var SAVE_FINISH_CALLBACK;
- Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
-     var self = this;
-     AddFinishedLoadingCallback(
-         function () {
-             self.SaveImage(fileName); 
-             if (finishedCallback) {
-                 finishedCallback();
-             }
-         }
-     );
-     this.EventuallyRender(false);
- }
+// This method waits until all tiles are loaded before saving.
+var SAVE_FINISH_CALLBACK;
+Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
+    var self = this;
+    AddFinishedLoadingCallback(
+        function () {
+            self.SaveImage(fileName);
+            if (finishedCallback) {
+                finishedCallback();
+            }
+        }
+    );
+    this.EventuallyRender(false);
+}
 
 
- // Not used anymore.  Incorpoarated in SaveLargeImage
- // delete these.
- // Save a bunch of stack images ----
- Viewer.prototype.SaveStackImages = function(fileNameRoot) {
-     var self = this;
-     AddFinishedLoadingCallback(
-         function () {
-             self.SaveStackImage(fileNameRoot); 
-         }
-     );
-     this.EventuallyRender(false);
- }
+// Not used anymore.  Incorpoarated in SaveLargeImage
+// delete these.
+// Save a bunch of stack images ----
+Viewer.prototype.SaveStackImages = function(fileNameRoot) {
+    var self = this;
+    AddFinishedLoadingCallback(
+        function () {
+            self.SaveStackImage(fileNameRoot);
+        }
+    );
+    this.EventuallyRender(false);
+}
 
 Viewer.prototype.SaveStackImage = function(fileNameRoot) {
     var self = this;
@@ -41946,17 +42061,6 @@ Viewer.prototype.SaveStackImage = function(fileNameRoot) {
 }
 //-----
 
-
-
-Viewer.prototype.GetAnnotationVisibility = function() {
-    return this.AnnotationVisibility;
-}
-
-Viewer.prototype.SetAnnotationVisibility = function(vis) {
-    this.AnnotationVisibility = vis;
-}
-
-
 Viewer.prototype.SetOverViewBounds = function(bounds) {
     this.OverViewBounds = bounds;
     if (this.OverView) {
@@ -41970,34 +42074,34 @@ Viewer.prototype.SetOverViewBounds = function(bounds) {
     }
 }
 
- Viewer.prototype.GetOverViewBounds = function() {
-     if (this.OverViewBounds) {
-         return this.OverViewBounds;
-     }
-     var cache = this.GetCache();
-     if (cache && cache.Image) {
-         if (cache.Image.bounds) {
-             return cache.Image.bounds;
-         }
-         if (cache.Image.dimensions) {
-             var dims = cache.Image.dimensions;
-             return [0, dims[0], 0, dims[1]];
-         }
-     }
-     // Depreciated code.
-     if (this.OverView) {
-         var cam = this.OverView.Camera;
-         var halfHeight = cam.GetHeight() / 2;
-         var halfWidth = cam.GetWidth() / 2;
-         this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
-                                cam.FocalPoint[0] + halfWidth,
-                                cam.FocalPoint[1] - halfHeight,
-                                cam.FocalPoint[1] + halfHeight];
-         return this.OverViewBounds;
-     }
-     // This method is called once too soon.  There is no image, and mobile devices have no overview.
-     return [0,10000,0,10000];
- }
+Viewer.prototype.GetOverViewBounds = function() {
+    if (this.OverViewBounds) {
+        return this.OverViewBounds;
+    }
+    var cache = this.GetCache();
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            return cache.Image.bounds;
+        }
+        if (cache.Image.dimensions) {
+            var dims = cache.Image.dimensions;
+            return [0, dims[0], 0, dims[1]];
+        }
+    }
+    // Depreciated code.
+    if (this.OverView) {
+        var cam = this.OverView.Camera;
+        var halfHeight = cam.GetHeight() / 2;
+        var halfWidth = cam.GetWidth() / 2;
+        this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
+                               cam.FocalPoint[0] + halfWidth,
+                               cam.FocalPoint[1] - halfHeight,
+                               cam.FocalPoint[1] + halfHeight];
+        return this.OverViewBounds;
+    }
+    // This method is called once too soon.  There is no image, and mobile devices have no overview.
+    return [0,10000,0,10000];
+}
 
 
 Viewer.prototype.SetSection = function(section) {
@@ -42012,47 +42116,47 @@ Viewer.prototype.SetSection = function(section) {
 }
 
 
- // Change the source / cache after a viewer has been created.
- Viewer.prototype.SetCache = function(cache) {
-     if (cache && cache.Image) {
-         if (cache.Image.bounds) {
-             this.SetOverViewBounds(cache.Image.bounds);
-         }
+// Change the source / cache after a viewer has been created.
+Viewer.prototype.SetCache = function(cache) {
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            this.SetOverViewBounds(cache.Image.bounds);
+        }
 
-         if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
-         }
-         this.CopyrightWrapper
-             .html(cache.Image.copyright);
-     }
+        if (cache.Image.copyright == undefined) {
+            cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
+        }
+        this.CopyrightWrapper
+            .html(cache.Image.copyright);
+    }
 
-     this.MainView.SetCache(cache);
-     if (this.OverView) {
-         this.OverView.SetCache(cache);
-         if (cache) {
-             var bds = cache.GetBounds();
-             if (bds) {
-                 this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
-                                                      (bds[2] + bds[3]) / 2]);
-                 var height = (bds[3]-bds[2]);
-                 // See if the view is constrained by the width.
-                 var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
-                 if (height2 > height) {
-                     height = height2;
-                 }
-                 this.OverView.Camera.SetHeight(height);
-                 this.OverView.Camera.ComputeMatrix();
-             }
-         }
-     }
-     // Change the overview to fit the new image dimensions.
-     // TODO: Get rid of this hack.
-     $(window).trigger('resize');
- }
+    this.MainView.SetCache(cache);
+    if (this.OverView) {
+        this.OverView.SetCache(cache);
+        if (cache) {
+            var bds = cache.GetBounds();
+            if (bds) {
+                this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
+                                                     (bds[2] + bds[3]) / 2]);
+                var height = (bds[3]-bds[2]);
+                // See if the view is constrained by the width.
+                var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+                if (height2 > height) {
+                    height = height2;
+                }
+                this.OverView.Camera.SetHeight(height);
+                this.OverView.Camera.ComputeMatrix();
+            }
+        }
+    }
+    // Change the overview to fit the new image dimensions.
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+}
 
- Viewer.prototype.GetCache = function() {
-     return this.MainView.GetCache();
- }
+Viewer.prototype.GetCache = function() {
+    return this.MainView.GetCache();
+}
 
 // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
@@ -42159,12 +42263,6 @@ Viewer.prototype.GetCamera = function() {
     return this.MainView.Camera;
 }
 
-Viewer.prototype.GetSpacing = function() {
-    var cam = this.GetCamera();
-    var viewport = this.GetViewport();
-    return cam.GetHeight() / viewport[3];
-}
-
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
     if (this.AnimateDuration > 0.0) {
@@ -42251,103 +42349,9 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
-Viewer.prototype.GetNumberOfWidgets = function() {
-    return this.WidgetList.length;
-}
-
-
-Viewer.prototype.GetWidget = function(i) {
-    return this.WidgetList[i];
-}
-
-Viewer.prototype.AddWidget = function(widget) {
-    widget.Viewer = this;
-    this.WidgetList.push(widget);
-    if (SA.NotesWidget) {
-        // Hack.
-        SA.NotesWidget.MarkAsModified();
-    }
-}
-
-Viewer.prototype.RemoveWidget = function(widget) {
-    if (widget.Viewer == null) {
-        return;
-    }
-    widget.Viewer = null;
-    var idx = this.WidgetList.indexOf(widget);
-    if(idx!=-1) {
-        this.WidgetList.splice(idx, 1);
-    }
-    if (SA.NotesWidget) {
-        // Hack.
-        SA.NotesWidget.MarkAsModified();
-    }
-}
-
-
-
-// Load a widget from a json object (origin MongoDB).
-Viewer.prototype.LoadWidget = function(obj) {
-    var widget;
-    switch(obj.type){
-    case "lasso":
-        widget = new LassoWidget(this, false);
-        break;
-    case "pencil":
-        widget = new PencilWidget(this, false);
-        break;
-    case "text":
-        widget = new TextWidget(this, "");
-        break;
-    case "circle":
-        widget = new CircleWidget(this, false);
-         break;
-    case "polyline":
-        widget = new PolylineWidget(this, false);
-        break;
-    case "stack_section":
-        widget = new StackSectionWidget(this);
-        break;
-    case "sections":
-        widget = new SectionsWidget(this);
-        break;
-    case "rect":
-        widget = new RectWidget(this, false);
-        break;
-    case "grid":
-        widget = new GridWidget(this, false);
-        break;
-    }
-    widget.Load(obj);
-    return widget;
-}
-
-// I am doing a dance because I expect widget SetActive to call this,
-// but this calls widget SetActive.
-// The widget is the only object to call these methods.
-// A widget cannot call this if another widget is active.
-// The widget deals with its own activation and deactivation.
-Viewer.prototype.ActivateWidget = function(widget) {
-    if (this.ActiveWidget == widget) {
-        return;
-    }
-    this.ActiveWidget = widget;
-}
-
-Viewer.prototype.DeactivateWidget = function(widget) {
-    if (this.ActiveWidget != widget || widget == null) {
-        // Do nothing if the widget is not active.
-        return;
-    }
-    this.ActiveWidget = null;
-}
-
-
-
 Viewer.prototype.DegToRad = function(degrees) {
     return degrees * Math.PI / 180;
 }
-
 
 Viewer.prototype.Draw = function() {
     // I do not think this is actaully necessary.
@@ -42379,6 +42383,13 @@ Viewer.prototype.Draw = function() {
         GL.enable(GL.DEPTH_TEST);
     }
 
+    if ( this.AnnotationLayer) {
+        this.AnnotationLayer.Clear();
+    }
+
+    // If we are still waiting for tiles to load, schedule another render.
+    // This works fine, but results in many renders while waiting.
+    // TODO: Consider having the tile load callback scheduling the next render.
     if ( ! this.MainView.DrawTiles() ) {
         this.EventuallyRender();
     }
@@ -42389,15 +42400,10 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawTiles();
         this.OverView.DrawOutline(true);
     }
-    if (this.AnnotationVisibility) {
-        if (this.ScaleWidget) {
-            this.ScaleWidget.Draw(this.MainView);
-        }
-        this.MainView.DrawShapes();
-        for(i in this.WidgetList){
-            this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
-        }
-    }
+
+    // This is not used anymore
+    this.MainView.DrawShapes();
+    this.AnnotationLayer.Draw();
 
     // Draw a rectangle in the overview representing the camera's view.
     if (this.OverView) {
@@ -42434,7 +42440,9 @@ Viewer.prototype.Draw = function() {
 // Makes the viewer clean to setup a new slide...
 Viewer.prototype.Reset = function() {
     this.SetCache(null);
-    this.WidgetList = [];
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.Reset();
+    }
     this.MainView.ShapeList = [];
 }
 
@@ -42687,19 +42695,14 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // See if any widget became active.
-    if (this.AnnotationVisibility) {
-        for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
-            this.MouseX = this.Touches[touchIdx][0];
-            this.MouseY = this.Touches[touchIdx][1];
-            this.ComputeMouseWorld(event);
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if ( ! this.WidgetList[i].GetActive() &&
-                     this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return true;
-                }
-            }
-        }
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility()) {
+        // TODO:
+        // I do not like storing these ivars in this object.
+        // I think the widgets rely on them being in the layer.
+        this.MouseX = event.Touches[touchIdx][0];
+        this.MouseY = event.Touches[touchIdx][1];
+        this.MouseWorld = this.ComputeMouseWorld(event);
+        return this.AnnotationLayer.HandleTouchStart(event,viewer);
     }
 
     return false;
@@ -42748,9 +42751,9 @@ Viewer.prototype.HandleTouchPan = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != undefined) {
-        this.ActiveWidget.HandleTouchPan(event);
-        return;
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchPan(event, this)) {
+        return false;
     }
 
     // I see an odd intermittent camera matrix problem
@@ -42901,10 +42904,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     scale = s1/ s0;
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        event.PinchScale = scale;
-        this.ActiveWidget.HandleTouchPinch(event);
-        return;
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchPinch(event, this)) {
+        return false;
     }
 
     // scale is around the mid point .....
@@ -42935,6 +42937,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 Viewer.prototype.HandleTouchEnd = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
+    // Code from a conflict
     var t = new Date().getTime();
     this.LastTime = this.Time;
     this.Time = t;
@@ -42967,6 +42970,18 @@ Viewer.prototype.HandleTouchEnd = function(event) {
         //this.UpdateZoomGui();
         this.HandleMomentum();
     }
+    // end conflict
+
+
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && 
+        this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchEnd(event, this)) {
+        return false;
+    }
+
+    //this.UpdateZoomGui();
+    this.HandleMomentum(event);
 }
 
 Viewer.prototype.HandleMomentum = function() {
@@ -43097,8 +43112,9 @@ Viewer.prototype.HandleMouseDown = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        return this.ActiveWidget.HandleMouseDown(event);
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseDown(event, this)) {
+        return false;
     }
 
     // Choose what interaction will be performed.
@@ -43121,8 +43137,11 @@ Viewer.prototype.HandleMouseDown = function(event) {
 
 Viewer.prototype.HandleDoubleClick = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (this.ActiveWidget != null) {
-        return this.ActiveWidget.HandleDoubleClick(event);
+
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleDoubleClick(event, this)) {
+        return false;
     }
 
     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
@@ -43152,9 +43171,9 @@ Viewer.prototype.HandleMouseUp = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleMouseUp(event);
-        return false; // trying to keep the browser from selecting images
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseUp(event, this)) {
+        return false;
     }
 
     if (this.InteractionState != INTERACTION_NONE) {
@@ -43174,13 +43193,23 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
     // This could be obsolete because we never pass this event to another object.
     event.worldX = this.MouseWorld[0];
     event.worldY= this.MouseWorld[1];
+    // NOTE: DANGER!  user could change this pointer.
+    return this.MouseWorld;
 }
 
 Viewer.prototype.HandleMouseMove = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
-    event.preventDefault(); // Keep browser from selecting images.
-    if ( ! this.RecordMouseMove(event)) { return; }
+    // The event position is relative to the target which can be a tab on
+    // top of the canvas.  Just skip these events.
+    if ($(event.target).width() != $(event.currentTarget).width()) {
+        return true;
+    }
+
+
+    // TODO: Get rid of this. Should be done with image properties.
+    //event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return true; }
     this.ComputeMouseWorld(event);
 
     // I think we need to deal with the move here because the mouse can
@@ -43196,24 +43225,14 @@ Viewer.prototype.HandleMouseMove = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleMouseMove(event);
-        return false; // trying to keep the browser from selecting images
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseMove(event, this)) {
+        return false;
     }
 
-    //if (event.which == 0) { // Firefox does not set which for motion events.
-    if ( ! this.FireFoxWhich) {
-        // See if any widget became active.
-        if (this.AnnotationVisibility) {
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if (this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return false; // trying to keep the browser from selecting images
-                }
-            }
-        }
-
-        return false; // trying to keep the browser from selecting images
+    if (this.InteractionState == INTERACTION_NONE) {
+        // Allow the ResizePanel drag to process the events.
+        return true;
     }
 
     var x = event.offsetX;
@@ -43242,6 +43261,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
         this.ZoomTarget = this.MainView.Camera.GetHeight();
         this.UpdateCamera();
     } else if (this.InteractionState == INTERACTION_DRAG) {
+
         // Translate
         // Convert to view [-0.5,0.5] coordinate system.
         // Note: the origin gets subtracted out in delta above.
@@ -43260,16 +43280,16 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // The only interaction that does not go through animate camera.
     this.TriggerInteraction();
     this.EventuallyRender(true);
-    return false; // trying to keep the browser from selecting images
+    return false; 
 }
 
 Viewer.prototype.HandleMouseWheel = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-            return false;
-        }
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseWheel(event, this)) {
+        return false;
     }
 
     if ( ! event.offsetX) {
@@ -43319,7 +43339,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
         if ( ! SAVING_IMAGE) {
-            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE = new SA.Dialog();
             SAVING_IMAGE.Title.text('Saving');
             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
             SAVING_IMAGE.WaitingImage = $('<img>')
@@ -43379,10 +43399,10 @@ Viewer.prototype.HandleKeyDown = function(event) {
     }
 
     //----------------------
-    if (this.ActiveWidget != null) {
-        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-            return false;
-        }
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleKeyDown(event, this)) {
+        return false;
     }
 
     if (String.fromCharCode(event.keyCode) == 'R') {
@@ -43462,7 +43482,7 @@ Viewer.prototype.GetPixelsPerUnit = function() {
     return this.MainView.GetPixelsPerUnit();
 }
 
-// Covert a point from world coordiante system to viewer coordinate system (units pixels).
+// Convert a point from world coordiante system to viewer coordinate system (units pixels).
 Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
     var cam = this.MainView.Camera;
     return cam.ConvertPointWorldToViewer(x, y);
@@ -43512,137 +43532,137 @@ function colorNameToHex(color)
 
 
 
- //==============================================================================
- // OverView slide widget stuff.
+//==============================================================================
+// OverView slide widget stuff.
 
- Viewer.prototype.OverViewCheckActive = function(event) {
-     if ( ! this.OverView) {
-         return false;
-     }
-     var x = event.offsetX;
-     var y = event.offsetY;
-     // Half height and width
-     var hw = this.OverViewport[2]/2;
-     var hh = this.OverViewport[3]/2;
-     // Center of the overview.
-     var cx = this.OverViewport[0]+hw;
-     var cy = this.OverViewport[1]+hh;
+Viewer.prototype.OverViewCheckActive = function(event) {
+    if ( ! this.OverView) {
+        return false;
+    }
+    var x = event.offsetX;
+    var y = event.offsetY;
+    // Half height and width
+    var hw = this.OverViewport[2]/2;
+    var hh = this.OverViewport[3]/2;
+    // Center of the overview.
+    var cx = this.OverViewport[0]+hw;
+    var cy = this.OverViewport[1]+hh;
 
-     x = x-cx;
-     y = y-cy;
-     // Rotate into overview slide coordinates.
-     var roll = this.MainView.Camera.Roll;
-     var c = Math.cos(roll);
-     var s = Math.sin(roll);
-     var nx = Math.abs(c*x+s*y);
-     var ny = Math.abs(c*y-s*x);
-     if ((Math.abs(hw-nx) < 5 && ny < hh) ||
-         (Math.abs(hh-ny) < 5 && nx < hw)) {
-         this.OverViewActive = true;
-         this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
-     } else {
-         this.OverViewActive = false;
-         this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
-     }
-     //return this.OverViewActive;
- }
-
-
+    x = x-cx;
+    y = y-cy;
+    // Rotate into overview slide coordinates.
+    var roll = this.MainView.Camera.Roll;
+    var c = Math.cos(roll);
+    var s = Math.sin(roll);
+    var nx = Math.abs(c*x+s*y);
+    var ny = Math.abs(c*y-s*x);
+    if ((Math.abs(hw-nx) < 5 && ny < hh) ||
+        (Math.abs(hh-ny) < 5 && nx < hw)) {
+        this.OverViewActive = true;
+        this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
+    } else {
+        this.OverViewActive = false;
+        this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
+    }
+    //return this.OverViewActive;
+}
 
 
 
- // Interaction events that change the main camera.
 
 
- // Resize of overview window will be drag with left mouse.
- // Reposition camera with left click (no drag).
- // Removing drag camera in overview.
-
- // TODO: Make the overview slide a widget.
- Viewer.prototype.HandleOverViewMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) { return;}
-
-     this.InteractionState = INTERACTION_OVERVIEW;
-
-     // Delay actions until we see if it is a drag or click.
-     this.OverviewEventX = event.pageX;
-     this.OverviewEventY = event.pageY;
-
-     return false;
- }
+// Interaction events that change the main camera.
 
 
- Viewer.prototype.HandleOverViewMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) { return;}
-     if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) 
-     {
-         this.InteractionState = INTERACTION_NONE;
-         return;
-     }
+// Resize of overview window will be drag with left mouse.
+// Reposition camera with left click (no drag).
+// Removing drag camera in overview.
 
-     // This target for animation is not implemented cleanly.
-     // This fixes a bug: OverView translated rotates camamera back to zero.
-     this.RollTarget = this.MainView.Camera.Roll;
+// TODO: Make the overview slide a widget.
+Viewer.prototype.HandleOverViewMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) { return;}
 
-     if (event.which == 1) {
-         var x = event.offsetX;
-         var y = event.offsetY;
-         if (x == undefined) {x = event.layerX;}
-         if (y == undefined) {y = event.layerY;}
-         // Transform to view's coordinate system.
-         this.OverViewPlaceCamera(x, y);
-     }
+    this.InteractionState = INTERACTION_OVERVIEW;
 
-     this.InteractionState = INTERACTION_NONE;
+    // Delay actions until we see if it is a drag or click.
+    this.OverviewEventX = event.pageX;
+    this.OverviewEventY = event.pageY;
 
-     return false;
- }
+    return false;
+}
 
- Viewer.prototype.HandleOverViewMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW) {
-         // Do not start dragging until the mouse has moved some distance.
-         if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
-             Math.abs(event.pageY - this.OverviewEventY) > 5) {
-             // Start dragging the overview window.
-             this.InteractionState = INTERACTION_OVERVIEW_DRAG;
-             var w = this.GetViewport()[2];
-             var p = Math.max(w-event.pageX,event.pageY);
-             this.OverViewScaleLast = p;
-         }
-         return false;
-     }
+Viewer.prototype.HandleOverViewMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) { return;}
+    if (this.InteractionState == INTERACTION_OVERVIEW_DRAG)
+    {
+        this.InteractionState = INTERACTION_NONE;
+        return;
+    }
 
-     // This consumes events even when I return true. Why?
-     if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
-         // Drag originated outside overview.
-         // Could be panning.
-         return true;
-     }
+    // This target for animation is not implemented cleanly.
+    // This fixes a bug: OverView translated rotates camamera back to zero.
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     // Drag to change overview size
-     var w = this.GetViewport()[2];
-     var p = Math.max(w-event.pageX,event.pageY);
-     var d = p/this.OverViewScaleLast;
-     this.OverViewScale *= d*d;
-     this.OverViewScaleLast = p;
-     if (p < 60) {
-         this.RotateIcon.hide();
-     } else {
-         this.RotateIcon.show();
-     }
+    if (event.which == 1) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        if (x == undefined) {x = event.layerX;}
+        if (y == undefined) {y = event.layerY;}
+        // Transform to view's coordinate system.
+        this.OverViewPlaceCamera(x, y);
+    }
 
-     // TODO: Get rid of this hack.
-     $(window).trigger('resize');
+    this.InteractionState = INTERACTION_NONE;
 
-     return false;
+    return false;
+}
+
+Viewer.prototype.HandleOverViewMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
+
+    if (this.InteractionState == INTERACTION_OVERVIEW) {
+        // Do not start dragging until the mouse has moved some distance.
+        if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
+            Math.abs(event.pageY - this.OverviewEventY) > 5) {
+            // Start dragging the overview window.
+            this.InteractionState = INTERACTION_OVERVIEW_DRAG;
+            var w = this.GetViewport()[2];
+            var p = Math.max(w-event.pageX,event.pageY);
+            this.OverViewScaleLast = p;
+        }
+        return false;
+    }
+
+    // This consumes events even when I return true. Why?
+    if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
+        // Drag originated outside overview.
+        // Could be panning.
+        return true;
+    }
+
+    // Drag to change overview size
+    var w = this.GetViewport()[2];
+    var p = Math.max(w-event.pageX,event.pageY);
+    var d = p/this.OverViewScaleLast;
+    this.OverViewScale *= d*d;
+    this.OverViewScaleLast = p;
+    if (p < 60) {
+        this.RotateIcon.hide();
+    } else {
+        this.RotateIcon.show();
+    }
+
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+
+    return false;
 }
 
 Viewer.prototype.HandleOverViewMouseWheel = function(event) {
@@ -44406,417 +44426,422 @@ CutoutWidget.prototype.SetActive = function(active) {
 // Multiple text object should share the same texture.
 // Add symbols -=+[]{},.<>'";: .....
 
+(function () {
+    "use strict";
 
-var LINE_SPACING = 1.3;
-
-
-// I need an array to map ascii to my letter index.
-// a = 97
-var ASCII_LOOKUP =
-    [[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //0
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //5
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //10
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //15
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //20
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //25
-     [0,413,50,98],[0,413,50,98],[900,17,30,98],[791,119,28,95],[0,413,50,98], //30 32 = ' ' 33="!"
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //35
-     [260,18,32,97],[292,18,32,97],[0,413,50,98],[0,413,50,98],[635,120,25,36], //40 40="(" 41=")" 44=','
-     [783,17,37,57],[662,121,25,34],[687,121,46,96],[822,214,58,98],[881,214,50,98], //45 45="-" 46="." 47="/" 48 = 01
-     [932,214,56,98],[0,114,53,98],[54,114,54,98],[109,114,54,98],[164,114,57,98], //50 = 23456
-     [222,114,49,98],[272,114,57,98],[330,114,56,98],[554,18,25,76],[579,121,28,73], //55 = 789 (387 ') 58=":" 59=";"
-     [0,413,50,98],[412,120,62,69],[0,413,50,98],[733,10,53,106],[0,413,50,98], //60 61 = "=" 63="?"
-     [263,314,67,98],[331,314,55,98],[387,314,59,98],[447,314,66,98],[514,314,52,98], //65 = ABCDE
-     [566,314,49,98],[616,314,67,98],[684,314,67,98],[752,314,24,98],[777,314,36,98], //70 = FGHIJ
-     [814,314,58,98],[873,314,45,98],[919,314,88,98],[0,214,66,98],[69,214,72,98], //75 = KLMNO
-     [142,214,54,98],[197,214,76,98],[274,214,53,98],[328,214,49,98],[378,214,55,98], //80 = PQRST
-     [434,214,66,98],[501,214,63,98],[565,214,96,98],[662,214,55,98],[718,214,53,98], //85 = UVWXY
-     [772,214,49,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //90 = Z
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[51,413,56,98],[108,413,50,98], //95 97 = abc
-     [154,413,50,98],[210,413,50,98],[263,413,39,98],[301,413,50,98],[350,413,54,98], //100 = defgh
-     [406,413,22,98],[427,413,34,98],[458,413,50,98],[508,413,24,98],[532,413,88,98], //105 = ijklm
-     [619,413,57,98],[675,413,60,98],[734,413,57,98],[790,413,57,98],[847,413,40,98], //110 = nopqr
-     [886,413,42,98],[925,413,41,98],[966,413,56,98],[0,314,49,98],[50,314,77,98], //115 = stuvw
-     [127,314,48,98],[173,314,52,98],[224,314,42,98],[0,413,50,98],[0,413,50,98], //120 = xyz
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //125
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //130
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //135
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //140
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //145
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //150
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //155
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //160
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //165
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //170
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //175
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //180
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //185
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //198
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //195
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //200
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //205
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //210
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //215
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //220
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //225
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //230
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //235
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //240
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //245
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //250
-     [0,413,50,98]];
+    var LINE_SPACING = 1.3;
 
 
-// All text object use the same texture map.
+    // I need an array to map ascii to my letter index.
+    // a = 97
+    var ASCII_LOOKUP =
+        [[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //0
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //5
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //10
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //15
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //20
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //25
+         [0,413,50,98],[0,413,50,98],[900,17,30,98],[791,119,28,95],[0,413,50,98], //30 32 = ' ' 33="!"
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //35
+         [260,18,32,97],[292,18,32,97],[0,413,50,98],[0,413,50,98],[635,120,25,36], //40 40="(" 41=")" 44=','
+         [783,17,37,57],[662,121,25,34],[687,121,46,96],[822,214,58,98],[881,214,50,98], //45 45="-" 46="." 47="/" 48 = 01
+         [932,214,56,98],[0,114,53,98],[54,114,54,98],[109,114,54,98],[164,114,57,98], //50 = 23456
+         [222,114,49,98],[272,114,57,98],[330,114,56,98],[554,18,25,76],[579,121,28,73], //55 = 789 (387 ') 58=":" 59=";"
+         [0,413,50,98],[412,120,62,69],[0,413,50,98],[733,10,53,106],[0,413,50,98], //60 61 = "=" 63="?"
+         [263,314,67,98],[331,314,55,98],[387,314,59,98],[447,314,66,98],[514,314,52,98], //65 = ABCDE
+         [566,314,49,98],[616,314,67,98],[684,314,67,98],[752,314,24,98],[777,314,36,98], //70 = FGHIJ
+         [814,314,58,98],[873,314,45,98],[919,314,88,98],[0,214,66,98],[69,214,72,98], //75 = KLMNO
+         [142,214,54,98],[197,214,76,98],[274,214,53,98],[328,214,49,98],[378,214,55,98], //80 = PQRST
+         [434,214,66,98],[501,214,63,98],[565,214,96,98],[662,214,55,98],[718,214,53,98], //85 = UVWXY
+         [772,214,49,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //90 = Z
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[51,413,56,98],[108,413,50,98], //95 97 = abc
+         [154,413,50,98],[210,413,50,98],[263,413,39,98],[301,413,50,98],[350,413,54,98], //100 = defgh
+         [406,413,22,98],[427,413,34,98],[458,413,50,98],[508,413,24,98],[532,413,88,98], //105 = ijklm
+         [619,413,57,98],[675,413,60,98],[734,413,57,98],[790,413,57,98],[847,413,40,98], //110 = nopqr
+         [886,413,42,98],[925,413,41,98],[966,413,56,98],[0,314,49,98],[50,314,77,98], //115 = stuvw
+         [127,314,48,98],[173,314,52,98],[224,314,42,98],[0,413,50,98],[0,413,50,98], //120 = xyz
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //125
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //130
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //135
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //140
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //145
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //150
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //155
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //160
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //165
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //170
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //175
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //180
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //185
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //198
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //195
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //200
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //205
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //210
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //215
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //220
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //225
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //230
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //235
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //240
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //245
+         [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //250
+         [0,413,50,98]];
 
-function GetTextureLoadedFunction (text) {
-  return function () {text.HandleLoadedTexture();}
-}
 
-function TextError () {
-  alert("Could not load font");
-}
+    // All text object use the same texture map.
 
-function Text() {
-    // All text objects sare the same texture map.
-    //if (TEXT_TEXTURE == undefined ) {
-    //}
-    if (GL) {
-        this.TextureLoaded = false;
-        this.Texture = GL.createTexture();
-        this.Image = new Image();
-        this.Image.onload = GetTextureLoadedFunction(this);
-        //this.Image.onerror = TextError(); // Always fires for some reason.
-        // This starts the loading.
-        this.Image.src = SA.ImagePathUrl +"letters.gif";
+    function GetTextureLoadedFunction (text) {
+        return function () {text.HandleLoadedTexture();}
     }
-    this.Color = [0.5, 1.0, 1.0];
-    this.Size = 12; // Height in pixels
 
-    // Position of the anchor in the world coordinate system.
-    this.Position = [100,100];
-    this.Orientation = 0.0; // in degrees, counter clockwise, 0 is left
+    function TextError () {
+        alert("Could not load font");
+    }
 
-    // The anchor point and position are the same point.
-    // Position is in world coordinates.
-    // Anchor is in pixel coordinates of text (buffers).
-    // In pixel(text) coordinate system
-    this.Anchor = [0,0];
-    this.Active = false;
+    function Text() {
+        // All text objects sare the same texture map.
+        //if (TEXT_TEXTURE == undefined ) {
+        //}
+        if (GL) {
+            this.TextureLoaded = false;
+            this.Texture = GL.createTexture();
+            this.Image = new Image();
+            this.Image.onload = GetTextureLoadedFunction(this);
+            //this.Image.onerror = TextError(); // Always fires for some reason.
+            // This starts the loading.
+            this.Image.src = SA.ImagePathUrl +"letters.gif";
+        }
+        this.Color = [0.5, 1.0, 1.0];
+        this.Size = 12; // Height in pixels
 
-    //this.String = "Hello World";
-    //this.String = "0123456789";
-    this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
+        // Position of the anchor in the world coordinate system.
+        this.Position = [100,100];
+        this.Orientation = 0.0; // in degrees, counter clockwise, 0 is left
 
-    // Pixel bounds are in text box coordiante system.
-    this.PixelBounds = [0,0,0,0];
+        // The anchor point and position are the same point.
+        // Position is in world coordinates.
+        // Anchor is in pixel coordinates of text (buffers).
+        // In pixel(text) coordinate system
+        this.Anchor = [0,0];
+        this.Active = false;
+
+        //this.String = "Hello World";
+        //this.String = "0123456789";
+        this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
+
+        // Pixel bounds are in text box coordiante system.
+        this.PixelBounds = [0,0,0,0];
   
-    this.BackgroundFlag = false;
-};
+        this.BackgroundFlag = false;
+    };
 
-Text.prototype.destructor=function() {
-  // Get rid of the buffers?
-}
-
-// TODO: Although this only used for the webL renderer, we should really
-// Hava a callback and let the application (or widget) call eventually render.
-Text.prototype.HandleLoadedTexture = function() {
-  if (GL) {
-    var texture = this.Texture;
-    GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-    GL.bindTexture(GL.TEXTURE_2D, texture);
-    GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
-    GL.generateMipmap(GL.TEXTURE_2D);
-    GL.bindTexture(GL.TEXTURE_2D, null);
-    this.TextureLoaded = true;
-  }
-  eventuallyRender();
-}
-
-Text.prototype.Draw = function (view) {
-    // Place the anchor of the text.
-    // First transform the world anchor to view.
-    var x = this.Position[0];
-    var y = this.Position[1];
-    if (this.PositionCoordinateSystem != Shape.VIEWER) {
-        var m = view.Camera.Matrix;
-        x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
-        y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
-        // convert view to pixels (view coordinate system).
-        x = view.Viewport[2]*(0.5*(1.0+x));
-        y = view.Viewport[3]*(0.5*(1.0-y));
+    Text.prototype.destructor=function() {
+        // Get rid of the buffers?
     }
+
+    // TODO: Although this only used for the webL renderer, we should really
+    // Hava a callback and let the application (or widget) call eventually render.
+    Text.prototype.HandleLoadedTexture = function() {
+        if (GL) {
+            var texture = this.Texture;
+            GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
+            GL.bindTexture(GL.TEXTURE_2D, texture);
+            GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
+            GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+            GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
+            GL.generateMipmap(GL.TEXTURE_2D);
+            GL.bindTexture(GL.TEXTURE_2D, null);
+            this.TextureLoaded = true;
+        }
+        eventuallyRender();
+    }
+
+    Text.prototype.Draw = function (view) {
+        // Place the anchor of the text.
+        // First transform the world anchor to view.
+        var x = this.Position[0];
+        var y = this.Position[1];
+        if (this.PositionCoordinateSystem != SA.Shape.VIEWER) {
+            var m = view.Camera.Matrix;
+            x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
+            y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
+            // convert view to pixels (view coordinate system).
+            x = view.Viewport[2]*(0.5*(1.0+x));
+            y = view.Viewport[3]*(0.5*(1.0-y));
+        }
   
-    // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
-    if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
-        this.Anchor = [-50, 0];
+        // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
+        if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
+            this.Anchor = [-50, 0];
+        }
+
+        if (GL) {
+            if (this.TextureLoaded == false) {
+                return;
+            }
+            if (this.Matrix == undefined) {
+                this.UpdateBuffers();
+                this.Matrix = mat4.create();
+                mat4.identity(this.Matrix);
+            }
+            var program = textProgram;
+            GL.useProgram(program);
+
+            //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
+            //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
+            //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
+            //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
+            GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+            GL.enable(GL.BLEND);
+            //GL.disable(GL.DEPTH_TEST);
+
+            // These are the same for every tile.
+            // Vertex points (shifted by tiles matrix)
+            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            // Needed for outline ??? For some reason, DrawOutline did not work
+            // without this call first.
+            GL.vertexAttribPointer(program.vertexPositionAttribute,
+                                   this.VertexPositionBuffer.itemSize,
+                                   GL.FLOAT, false, 0, 0);     // Texture coordinates
+            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+            GL.vertexAttribPointer(program.textureCoordAttribute,
+                                   this.VertexTextureCoordBuffer.itemSize,
+                                   GL.FLOAT, false, 0, 0);
+            // Cell Connectivity
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+            // Color of text
+            if (this.Active) {
+                GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+            } else {
+                GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            }
+            // Draw characters.
+            GL.viewport(view.Viewport[0], view.Viewport[1],
+                        view.Viewport[2], view.Viewport[3]);
+
+            var viewFrontZ = view.Camera.ZRange[0]+0.01;
+
+            // Lets use the camera to change coordinate system to pixels.
+            // TODO: Put this camera in the view or viewer to avoid creating one each render.
+            var camMatrix = mat4.create();
+            mat4.identity(camMatrix);
+            camMatrix[0] = 2.0 / view.Viewport[2];
+            camMatrix[12] = -1.0;
+            camMatrix[5] = -2.0 / view.Viewport[3];
+            camMatrix[13] = 1.0;
+            camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
+            GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+
+            // Translate the anchor to x,y
+            this.Matrix[12] = x - this.Anchor[0];
+            this.Matrix[13] = y - this.Anchor[1];
+            GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+            GL.activeTexture(GL.TEXTURE0);
+            GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+            GL.uniform1i(program.samplerUniform, 0);
+
+            GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
+        } else {
+            // (x,y) is the screen position of the text.
+            // Canvas text location is lower left of first letter.
+            var strArray = this.String.split("\n");
+            // Move (x,y) from tip of the arrow to the upper left of the text box.
+            var ctx = view.Context2d;
+            ctx.save();
+            var radians = this.Orientation * Math.PI / 180;
+            var s = Math.sin(radians);
+            var c = Math.cos(radians);
+            ctx.setTransform(c,-s,s,c,x,y);
+            x = - this.Anchor[0];
+            y = - this.Anchor[1];
+
+            ctx.font = this.Size+'pt Calibri';
+            var width = this.PixelBounds[1];
+            var height = this.PixelBounds[3];
+            // Draw the background text box.
+            if(this.BackgroundFlag){
+                //ctx.fillStyle = '#fff';
+                //ctx.strokeStyle = '#000';
+                //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
+                roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
+            }
+
+            // Choose the color for the text.
+            if (this.Active) {
+                ctx.fillStyle = '#FF0';
+            } else {
+                ctx.fillStyle = ConvertColorToHex(this.Color);
+            }
+
+            // Convert (x,y) from upper left of textbox to lower left of first character.
+            y = y + this.Size;
+            // Draw the lines of the text.
+            for (var i = 0; i < strArray.length; ++i) {
+                ctx.fillText(strArray[i], x, y)
+                // Move to the lower left of the next line.
+                y = y + this.Size*LINE_SPACING;
+            }
+
+            ctx.stroke();
+            ctx.restore();
+        }
     }
 
-    if (GL) {
-        if (this.TextureLoaded == false) {
+    function roundRect(ctx, x, y, width, height, radius) {
+        /*if (typeof stroke == "undefined" ) {
+          stroke = true;
+          }*/
+        if (typeof radius === "undefined") {
+            radius = 5;
+        }
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#666';
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+
+    Text.prototype.UpdateBuffers = function() {
+        if ( ! GL) { 
+            // Canvas.  Compute pixel bounds.
+            var strArray = this.String.split("\n");
+            var height = this.Size * LINE_SPACING * strArray.length;
+            var width = 0;
+            // Hack: use a global viewer because I do not have the viewer.
+            // Maybe it should be passed in as an argument, or store the context
+            // as an instance variable.
+            var ctx = TEXT_VIEW_HACK.Context2d;
+            ctx.save();
+            ctx.setTransform(1,0,0,1,0,0);
+            ctx.font = this.Size+'pt Calibri';
+            // Compute the width of the text box.
+            for (var i = 0; i < strArray.length; ++i) {
+                var lineWidth = ctx.measureText(strArray[i]).width;
+                if (lineWidth > width) { width = lineWidth; }
+            }
+            this.PixelBounds = [0, width, 0, height];
+            ctx.restore();
             return;
         }
-        if (this.Matrix == undefined) {
-            this.UpdateBuffers();
-            this.Matrix = mat4.create();
-            mat4.identity(this.Matrix);
+        // Create a textured quad for each letter.
+        var vertexPositionData = [];
+        var textureCoordData = [];
+        var cellData = [];
+        // 128 for power of 2, but 98 to top of characters.
+        var top = 98.0 / 128.0; // Top texture coordinate value
+        var charLeft = 0;
+        var charTop = 0;
+        var ptId = 0;
+        this.PixelBounds = [0,0,0,this.Size];
+
+        for (var i = 0; i < this.String.length; ++i) {
+            var idx = this.String.charCodeAt(i);
+            if (idx == 10 || idx == 13) { // newline
+                charLeft = 0;
+                charTop += this.Size;
+            } else {
+                var port = ASCII_LOOKUP[idx];
+                // Convert to texture coordinate values.
+                var tLeft =   port[0] / 1024.0;
+                var tRight = (port[0]+port[2]) / 1024.0;
+                var tBottom = port[1] / 512.0;
+                var tTop =   (port[1]+port[3]) / 512.0;
+                // To place vertices
+                var charRight = charLeft + port[2]*this.Size / 98.0;
+                var charBottom = charTop + port[3]*this.Size / 98.0;
+
+                // Accumulate bounds;
+                if (this.PixelBounds[0] > charLeft)   {this.PixelBounds[0] = charLeft;}
+                if (this.PixelBounds[1] < charRight)  {this.PixelBounds[1] = charRight;}
+                if (this.PixelBounds[2] > charTop)    {this.PixelBounds[2] = charTop;}
+                if (this.PixelBounds[3] < charBottom) {this.PixelBounds[3] = charBottom;}
+
+                // Make 4 points, We could share points.
+                textureCoordData.push(tLeft);
+                textureCoordData.push(tBottom);
+                vertexPositionData.push(charLeft);
+                vertexPositionData.push(charBottom);
+                vertexPositionData.push(0.0);
+
+                textureCoordData.push(tRight);
+                textureCoordData.push(tBottom);
+                vertexPositionData.push(charRight);
+                vertexPositionData.push(charBottom);
+                vertexPositionData.push(0.0);
+
+                textureCoordData.push(tLeft);
+                textureCoordData.push(tTop);
+                vertexPositionData.push(charLeft);
+                vertexPositionData.push(charTop);
+                vertexPositionData.push(0.0);
+
+                textureCoordData.push(tRight);
+                textureCoordData.push(tTop);
+                vertexPositionData.push(charRight);
+                vertexPositionData.push(charTop);
+                vertexPositionData.push(0.0);
+
+                charLeft = charRight;
+
+                // Now create the cell.
+                cellData.push(0 + ptId);
+                cellData.push(1 + ptId);
+                cellData.push(2 + ptId);
+
+                cellData.push(2 + ptId);
+                cellData.push(1 + ptId);
+                cellData.push(3 + ptId);
+                ptId += 4;
+            }
         }
-        var program = textProgram;
-        GL.useProgram(program);
 
-        //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
-        //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
-        //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
-        //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
-        GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-        GL.enable(GL.BLEND);
-        //GL.disable(GL.DEPTH_TEST);
-
-        // These are the same for every tile.
-        // Vertex points (shifted by tiles matrix)
-        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-        // Needed for outline ??? For some reason, DrawOutline did not work
-        // without this call first.
-        GL.vertexAttribPointer(program.vertexPositionAttribute,
-                               this.VertexPositionBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);     // Texture coordinates
+        this.VertexTextureCoordBuffer = GL.createBuffer();
         GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-        GL.vertexAttribPointer(program.textureCoordAttribute,
-                               this.VertexTextureCoordBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);
-        // Cell Connectivity
+        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+        this.VertexTextureCoordBuffer.itemSize = 2;
+        this.VertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+
+        this.VertexPositionBuffer = GL.createBuffer();
+        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+        this.VertexPositionBuffer.itemSize = 3;
+        this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+
+        this.CellBuffer = GL.createBuffer();
         GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-
-        // Color of text
-        if (this.Active) {
-            GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
-        } else {
-            GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
-        }
-        // Draw characters.
-        GL.viewport(view.Viewport[0], view.Viewport[1],
-                    view.Viewport[2], view.Viewport[3]);
-
-        var viewFrontZ = view.Camera.ZRange[0]+0.01;
-
-        // Lets use the camera to change coordinate system to pixels.
-        // TODO: Put this camera in the view or viewer to avoid creating one each render.
-        var camMatrix = mat4.create();
-        mat4.identity(camMatrix);
-        camMatrix[0] = 2.0 / view.Viewport[2];
-        camMatrix[12] = -1.0;
-        camMatrix[5] = -2.0 / view.Viewport[3];
-        camMatrix[13] = 1.0;
-        camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
-        GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
-
-        // Translate the anchor to x,y
-        this.Matrix[12] = x - this.Anchor[0];
-        this.Matrix[13] = y - this.Anchor[1];
-        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
-
-        GL.activeTexture(GL.TEXTURE0);
-        GL.bindTexture(GL.TEXTURE_2D, this.Texture);
-        GL.uniform1i(program.samplerUniform, 0);
-
-        GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
-    } else {
-        // (x,y) is the screen position of the text.
-        // Canvas text location is lower left of first letter.
-        var strArray = this.String.split("\n");
-        // Move (x,y) from tip of the arrow to the upper left of the text box.
-        var ctx = view.Context2d;
-        ctx.save();
-        var radians = this.Orientation * Math.PI / 180;
-        var s = Math.sin(radians);
-        var c = Math.cos(radians);
-        ctx.setTransform(c,-s,s,c,x,y);
-        x = - this.Anchor[0];
-        y = - this.Anchor[1];
-
-        ctx.font = this.Size+'pt Calibri';
-        var width = this.PixelBounds[1];
-        var height = this.PixelBounds[3];
-        // Draw the background text box.
-        if(this.BackgroundFlag){
-            //ctx.fillStyle = '#fff';
-            //ctx.strokeStyle = '#000';
-            //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
-            roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
-        }
-
-        // Choose the color for the text.
-        if (this.Active) {
-            ctx.fillStyle = '#FF0';
-        } else {
-            ctx.fillStyle = ConvertColorToHex(this.Color);
-        }
-
-        // Convert (x,y) from upper left of textbox to lower left of first character.
-        y = y + this.Size;
-        // Draw the lines of the text.
-        for (var i = 0; i < strArray.length; ++i) {
-            ctx.fillText(strArray[i], x, y)
-            // Move to the lower left of the next line.
-            y = y + this.Size*LINE_SPACING;
-        }
-
-        ctx.stroke();
-        ctx.restore();
+        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+        this.CellBuffer.itemSize = 1;
+        this.CellBuffer.numItems = cellData.length;
     }
-}
 
-function roundRect(ctx, x, y, width, height, radius) {
-  /*if (typeof stroke == "undefined" ) {
-    stroke = true;
-  }*/
-  if (typeof radius === "undefined") {
-    radius = 5;
-  }
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#666';
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.fill();
-}
+    Text.prototype.HandleMouseMove = function(event, dx,dy) {
+        // convert the position to screen pixel coordinates.
+        viewer = event.CurrentViewer;
 
-
-
-Text.prototype.UpdateBuffers = function() {
-  if ( ! GL) { 
-    // Canvas.  Compute pixel bounds.
-    var strArray = this.String.split("\n");
-    var height = this.Size * LINE_SPACING * strArray.length;
-    var width = 0;
-    // Hack: use a global viewer because I do not have the viewer.
-    // Maybe it should be passed in as an argument, or store the context
-    // as an instance variable.
-    var ctx = TEXT_VIEW_HACK.Context2d;
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.font = this.Size+'pt Calibri';
-    // Compute the width of the text box.
-    for (var i = 0; i < strArray.length; ++i) {
-      var lineWidth = ctx.measureText(strArray[i]).width;
-      if (lineWidth > width) { width = lineWidth; }
+        return false;
     }
-    this.PixelBounds = [0, width, 0, height];
-    ctx.restore();
-    return; 
-  }
-  // Create a textured quad for each letter.
-  var vertexPositionData = [];
-  var textureCoordData = [];
-  var cellData = [];
-  // 128 for power of 2, but 98 to top of characters.
-  var top = 98.0 / 128.0; // Top texture coordinate value
-  var charLeft = 0;
-  var charTop = 0;
-  var ptId = 0;
-  this.PixelBounds = [0,0,0,this.Size];
 
-  for (var i = 0; i < this.String.length; ++i) {
-    var idx = this.String.charCodeAt(i);
-    if (idx == 10 || idx == 13) { // newline
-      charLeft = 0;
-      charTop += this.Size;
-    } else {
-      var port = ASCII_LOOKUP[idx];
-      // Convert to texture coordinate values.
-      var tLeft =   port[0] / 1024.0;
-      var tRight = (port[0]+port[2]) / 1024.0;
-      var tBottom = port[1] / 512.0;
-      var tTop =   (port[1]+port[3]) / 512.0;
-      // To place vertices
-      var charRight = charLeft + port[2]*this.Size / 98.0;
-      var charBottom = charTop + port[3]*this.Size / 98.0;
-
-      // Accumulate bounds;
-      if (this.PixelBounds[0] > charLeft)   {this.PixelBounds[0] = charLeft;}
-      if (this.PixelBounds[1] < charRight)  {this.PixelBounds[1] = charRight;}
-      if (this.PixelBounds[2] > charTop)    {this.PixelBounds[2] = charTop;}
-      if (this.PixelBounds[3] < charBottom) {this.PixelBounds[3] = charBottom;}
-
-      // Make 4 points, We could share points.
-      textureCoordData.push(tLeft);
-      textureCoordData.push(tBottom);
-      vertexPositionData.push(charLeft);
-      vertexPositionData.push(charBottom);
-      vertexPositionData.push(0.0);
-
-      textureCoordData.push(tRight);
-      textureCoordData.push(tBottom);
-      vertexPositionData.push(charRight);
-      vertexPositionData.push(charBottom);
-      vertexPositionData.push(0.0);
-
-      textureCoordData.push(tLeft);
-      textureCoordData.push(tTop);
-      vertexPositionData.push(charLeft);
-      vertexPositionData.push(charTop);
-      vertexPositionData.push(0.0);
-
-      textureCoordData.push(tRight);
-      textureCoordData.push(tTop);
-      vertexPositionData.push(charRight);
-      vertexPositionData.push(charTop);
-      vertexPositionData.push(0.0);
-
-      charLeft = charRight;
-
-      // Now create the cell.
-      cellData.push(0 + ptId);
-      cellData.push(1 + ptId);
-      cellData.push(2 + ptId);
-
-      cellData.push(2 + ptId);
-      cellData.push(1 + ptId);
-      cellData.push(3 + ptId);
-      ptId += 4;
+    Text.prototype.SetColor = function (c) {
+        this.Color = ConvertColor(c);
     }
-  }
 
-  this.VertexTextureCoordBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
-  this.VertexTextureCoordBuffer.itemSize = 2;
-  this.VertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+    SA.Text = Text;
 
-  this.VertexPositionBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
-  this.VertexPositionBuffer.itemSize = 3;
-  this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+})();
 
-  this.CellBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-  this.CellBuffer.itemSize = 1;
-  this.CellBuffer.numItems = cellData.length;
-}
-
-Text.prototype.HandleMouseMove = function(event, dx,dy) {
-  // convert the position to screen pixel coordinates.
-  viewer = event.CurrentViewer;
-
-  return false;
-}
-
-Text.prototype.SetColor = function (c) {
-  this.Color = ConvertColor(c);
-}
 
 
 
@@ -44836,1952 +44861,2125 @@ Text.prototype.SetColor = function (c) {
 
 //==============================================================================
 
-var DEBUG;
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
 
-var TEXT_WIDGET_WAITING = 0;
-var TEXT_WIDGET_ACTIVE = 1;
-var TEXT_WIDGET_DRAG = 2; // Drag text with position
-var TEXT_WIDGET_DRAG_TEXT = 3; // Drag text but leave the position the same.
-var TEXT_WIDGET_PROPERTIES_DIALOG = 4;
+    var DEBUG;
 
-function TextWidget (viewer, string) {
-    DEBUG = this;
-    if (viewer == null) {
-        return null;
-    }
-    
-    if ( typeof string != "string") { string = "";} 
+    var TEXT_WIDGET_WAITING = 0;
+    var TEXT_WIDGET_ACTIVE = 1;
+    var TEXT_WIDGET_ACTIVE_TEXT = 2;
+    var TEXT_WIDGET_DRAG = 3; // Drag text with position
+    var TEXT_WIDGET_DRAG_TEXT = 4; // Drag text but leave the position the same.
+    var TEXT_WIDGET_PROPERTIES_DIALOG = 5;
 
-
-  // create and cuystomize the dialog properties popup.
-    var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
-    this.Dialog.Title.text('Text Annotation Editor');
-    this.Dialog.Body.css({'margin':'1em 2em'});
-  
-    this.Dialog.TextInput =
-        $('<textarea>')
-        .appendTo(this.Dialog.Body)
-        .css({'width': '100%'});
-  
-    this.Dialog.FontDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.FontLabel = 
-        $('<div>')
-        .appendTo(this.Dialog.FontDiv)
-        .text("Font (px):")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.FontInput =
-        $('<input type="number">')
-        .appendTo(this.Dialog.FontDiv)
-        .val('12')
-        .css({'display':'table-cell'});
-
-    this.Dialog.ColorDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.ColorLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ColorDiv)
-        .text("Color:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.ColorInput =
-        $('<input type="color">')
-        .appendTo(this.Dialog.ColorDiv)
-        .val('#30ff00')
-        .css({'display':'table-cell'});
-  
-    this.Dialog.VisibilityModeDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.VisibilityModeLabel =
-        $('<div>')
-        .appendTo(this.Dialog.VisibilityModeDiv)
-        .text("Visibility:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.VisibilityModeInputButtons =
-        $('<div>')
-        .appendTo(this.Dialog.VisibilityModeDiv)
-    //.text("VisibilityMode")
-        .attr('checked', 'false')
-        .css({'display': 'table-cell'});
-      
-    this.Dialog.VisibilityModeInputs = []; 
-    this.Dialog.VisibilityModeInputs[0] = 
-        $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
-        .appendTo(this.Dialog.VisibilityModeInputButtons)
-        .attr('checked', 'false')
-
-    $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
-
-    this.Dialog.VisibilityModeInputs[1] = 
-        $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
-        .appendTo(this.Dialog.VisibilityModeInputButtons)
-        .attr('checked', 'false')
-
-    $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
-
-    this.Dialog.VisibilityModeInputs[2] = 
-        $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
-        .appendTo(this.Dialog.VisibilityModeInputButtons)
-        .attr('checked', 'true')
-
-    this.Dialog.BackgroundDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.BackgroundLabel =
-        $('<div>')
-        .appendTo(this.Dialog.BackgroundDiv)
-        .text("Background:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.BackgroundInput =
-        $('<input type="checkbox">')
-        .appendTo(this.Dialog.BackgroundDiv)
-    //.text("Background")
-        .attr('checked', 'true')
-        .css({'display': 'table-cell'});
-
-    // Create the hover popup for deleting and showing properties dialog.
-    this.Viewer = viewer;
-    this.Popup = new WidgetPopup(this);
-    // Text widgets are created with the dialog open (to set the string).
-    // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
-    this.State = TEXT_WIDGET_WAITING;
-    this.CursorLocation = 0; // REMOVE
-
-    var cam = this.Viewer.MainView.Camera;
-
-    this.Text = new Text();
-    this.Text.String = string;
-    this.Text.UpdateBuffers(); // Needed to get the bounds.
-    this.Text.Color = [0.0, 0.0, 1.0];
-    this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
-                        0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
-
-    // I would like to setup the ancoh in the middle of the screen,
-    // And have the Anchor in the middle of the text.
-    this.Text.Position = [cam.FocalPoint[0], cam.FocalPoint[1]];
-
-    // The anchor shape could be put into the text widget, but I might want a thumb tack anchor.
-    this.Arrow = new Arrow();
-    this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
-    this.Arrow.Length = 50;
-    this.Arrow.Width = 10;
-    this.Arrow.UpdateBuffers();
-    this.Arrow.Visibility = true;
-    this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
-    this.Arrow.FillColor = [0,0,1];
-    this.Arrow.OutlineColor = [1,1,0];
-    this.Arrow.ZOffset = 0.2;
-    this.Arrow.UpdateBuffers();
-
-    viewer.AddWidget(this);
-    this.ActiveReason = 1;
-
-    // It is odd the way the Anchor is set.  Leave the above for now.
-    this.SetTextOffset(50,0);
-
-    // Get default properties.
-    this.VisibilityMode = 2;
-    this.Text.BackgroundFlag = true;
-    this.Dialog.BackgroundInput.prop('checked', true);
-    var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
-    if (localStorage.TextWidgetDefaults) {
-        var defaults = JSON.parse(localStorage.TextWidgetDefaults);
-        if (defaults.Color) {
-            hexcolor = ConvertColorToHex(defaults.Color);
+    function TextWidget (layer, string) {
+        DEBUG = this;
+        if (layer == null) {
+            return null;
         }
-        if (defaults.FontSize) {
-            // font size was wrongly saved as a string.
-            this.Text.Size = parseFloat(defaults.FontSize);
-        }
-        if (defaults.BackgroundFlag !== undefined) {
-            this.Text.BackgroundFlag = defaults.BackgroundFlag;
-        }
-        if (defaults.VisibilityMode !== undefined) {
-            this.SetVisibilityMode(defaults.VisibilityMode);
-        }
-    }
-    this.Text.Color = hexcolor;
-    this.Arrow.SetFillColor(hexcolor);
-    this.Arrow.ChooseOutlineColor();
 
-    // Lets save the zoom level (sort of).
-    // Load will overwrite this for existing annotations.
-    // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize();
-}
+        if ( typeof string != "string") { string = "";} 
 
-// Three state visibility so text can be hidden during calss questions.
-// The combined visibilities is confusing.
-// Global text visibility is passed in as argument.
-// Local visiblity mode is the hover state of this text. (0 text only, 1: hover, 2: both on).
-TextWidget.prototype.Draw = function(view, visibility) {
-  if (visibility != ANNOTATION_OFF && this.VisibilityMode != 0) {
-    this.Arrow.Draw(view);
-  }
-  if (visibility == ANNOTATION_ON) {
-    if (this.VisibilityMode != 1 || this.State != TEXT_WIDGET_WAITING) {
-      this.Text.Draw(view);
-      this.Text.Visibility = true;
-    } else {
-      this.Text.Visibility = false;
-    }
-  }
-}
+        // create and cuystomize the dialog properties popup.
+        var self = this;
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog.Title.text('Text Annotation Editor');
+        this.Dialog.Body.css({'margin':'1em 2em'});
 
-TextWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    this.Viewer.RemoveWidget(this);
-}
+        this.Dialog.TextInput =
+            $('<textarea>')
+            .appendTo(this.Dialog.Body)
+            .css({'width': '87%'});
 
+        this.Dialog.FontDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.FontLabel = 
+            $('<div>')
+            .appendTo(this.Dialog.FontDiv)
+            .text("Font (px):")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.FontInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.FontDiv)
+            .val('12')
+            .css({'display':'table-cell'});
 
-TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-    this.Load(data);
-    // Place the tip of the arrow at the mose location.
-    this.Text.Position[0] = mouseWorldPt[0];
-    this.Text.Position[1] = mouseWorldPt[1];
-    this.UpdateArrow();
-    this.Viewer.EventuallyRender(true);
-    if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
-}
+        this.Dialog.ColorDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.ColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ColorDiv)
+            .text("Color:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.ColorInput =
+            $('<input type="color">')
+            .appendTo(this.Dialog.ColorDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell'});
 
+        this.Dialog.VisibilityModeDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.VisibilityModeLabel =
+            $('<div>')
+            .appendTo(this.Dialog.VisibilityModeDiv)
+            .text("Visibility:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.VisibilityModeInputButtons =
+            $('<div>')
+            .appendTo(this.Dialog.VisibilityModeDiv)
+        //.text("VisibilityMode")
+            .attr('checked', 'false')
+            .css({'display': 'table-cell'});
 
-TextWidget.prototype.Serialize = function() {
-  if(this.Text === undefined){ return null; }
-  var obj = new Object();
-  obj.type = "text";
-  obj.color = this.Text.Color;
-  obj.size = this.Text.Size;
-  obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
-  obj.position = this.Text.Position;
-  obj.string = this.Text.String;
-  obj.visibility = this.VisibilityMode;
-  obj.backgroundFlag = this.Text.BackgroundFlag;
-  obj.creation_camera = this.CreationCamera;
-  return obj;
-}
+        this.Dialog.VisibilityModeInputs = []; 
+        this.Dialog.VisibilityModeInputs[0] = 
+            $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
+            .appendTo(this.Dialog.VisibilityModeInputButtons)
+            .attr('checked', 'false')
 
-// Load a widget from a json object (origin MongoDB).
-TextWidget.prototype.Load = function(obj) {
-  var string = obj.string;
-  // Some empty strings got in my database.  I connot delete them from the gui.
-  if (obj.string && obj.string == "") {
-    this.RemoveFromViewer();
-    return;
-  }
+        $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
 
-  this.Text.String = obj.string;
-  var rgb = [parseFloat(obj.color[0]),
-             parseFloat(obj.color[1]),
-             parseFloat(obj.color[2])];
-  this.Text.Color = rgb;
-  this.Text.Size = parseFloat(obj.size);
-  if (obj.backgroundFlag != undefined) {
-    this.Text.BackgroundFlag = obj.backgroundFlag;
-  }
-  this.Text.Position = [parseFloat(obj.position[0]),
-                         parseFloat(obj.position[1]),
-                         parseFloat(obj.position[2])];
-  this.Arrow.Origin = this.Text.Position;
+        this.Dialog.VisibilityModeInputs[1] = 
+            $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
+            .appendTo(this.Dialog.VisibilityModeInputButtons)
+            .attr('checked', 'false')
 
-  // I added offest and I have to deal with entries that do not have it.
-  if (obj.offset) { // how to try / catch in javascript?
-    this.SetTextOffset(parseFloat(obj.offset[0]),
-                       parseFloat(obj.offset[1]));
-  }
+        $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
 
-  // How zoomed in was the view when the annotation was created.
-  if (obj.creation_camera !== undefined) {
-    this.CreationCamera = obj.creation_camera;
-  }
+        this.Dialog.VisibilityModeInputs[2] = 
+            $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
+            .appendTo(this.Dialog.VisibilityModeInputButtons)
+            .attr('checked', 'true')
 
-  if (obj.anchorVisibility !== undefined) {
-    // Old schema.
-    if (obj.anchorVisibility) {
-      this.SetVisibilityMode(1);
-    } else {
-      this.SetVisibilityMode(0);
-    }
-  } else if (obj.visibility !== undefined) {
-    this.SetVisibilityMode(obj.visibility)
-  }
+        this.Dialog.BackgroundDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.BackgroundLabel =
+            $('<div>')
+            .appendTo(this.Dialog.BackgroundDiv)
+            .text("Background:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.BackgroundInput =
+            $('<input type="checkbox">')
+            .appendTo(this.Dialog.BackgroundDiv)
+        //.text("Background")
+            .attr('checked', 'true')
+            .css({'display': 'table-cell'});
 
-  this.Arrow.SetFillColor(rgb);
-  this.Arrow.ChooseOutlineColor();
+        // Create the hover popup for deleting and showing properties dialog.
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        // Text widgets are created with the dialog open (to set the string).
+        // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
+        this.State = TEXT_WIDGET_WAITING;
+        this.CursorLocation = 0; // REMOVE
 
-  this.Text.UpdateBuffers();
-  this.UpdateArrow();
-}
+        var cam = this.Layer.GetCamera();
 
-// When the arrow is visible, the text is offset from the position (tip of arrow).
-TextWidget.prototype.SetTextOffset = function(x, y) {
-  this.SavedTextAnchor = [-x, -y];
-  this.Text.Anchor = this.SavedTextAnchor.slice(0);
-  this.UpdateArrow();
-}
+        this.Text = new SA.Text();
+        this.Text.String = string;
+        this.Text.UpdateBuffers(); // Needed to get the bounds.
+        this.Text.Color = [0.0, 0.0, 1.0];
+        this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
+                            0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
 
+        // I would like to setup the ancoh in the middle of the screen,
+        // And have the Anchor in the middle of the text.
+        this.Text.Position = [cam.FocalPoint[0], cam.FocalPoint[1]];
 
-// When the arrow is visible, the text is offset from the position (tip of arrow).
-TextWidget.prototype.SetPosition = function(x, y) {
-  this.Text.Position = [x, y];
-  this.Arrow.Origin = this.Text.Position;
-}
-
-
-// Anchor is in the middle of the bounds when the shape is not visible.
-TextWidget.prototype.SetVisibilityMode = function(mode) {
-    if (this.VisibilityMode == mode) { return; }
-    this.VisibilityMode = mode;
-    
-    if (mode == 2 || mode == 1) { // turn glyph on
-        if (this.SavedTextAnchor == undefined) {
-            this.SavedTextAnchor = [-30, 0];
-        }
-        this.Text.Anchor = this.SavedTextAnchor.slice(0);
+        // The anchor shape could be put into the text widget, but I might want a thumb tack anchor.
+        this.Arrow = new SA.Arrow();
+        this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
+        this.Arrow.Length = 50;
+        this.Arrow.Width = 10;
+        this.Arrow.UpdateBuffers();
         this.Arrow.Visibility = true;
-        this.Arrow.Origin = this.Text.Position;
-        this.UpdateArrow();
-    } else if(mode == 0) { // turn glyph off
-        // save the old anchor incase glyph is turned back on.
-        this.SavedTextAnchor = this.Text.Anchor.slice(0);
-        // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
-        this.Text.UpdateBuffers(); // computes pixel bounds.
-        this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
-        this.Arrow.Visibility = false;
-    }
-    this.Viewer.EventuallyRender(true);
-}
+        this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
+        this.Arrow.FillColor = [0,0,1];
+        this.Arrow.OutlineColor = [1,1,0];
+        this.Arrow.ZOffset = 0.2;
+        this.Arrow.UpdateBuffers();
 
-// Change orientation and length of arrow based on the anchor location.
-TextWidget.prototype.UpdateArrow = function() {
-  // Compute the middle of the text bounds.
-  var xMid = 0.5 * (this.Text.PixelBounds[0] + this.Text.PixelBounds[1]);
-  var yMid = 0.5 * (this.Text.PixelBounds[2] + this.Text.PixelBounds[3]);
-  var xRad = 0.5 * (this.Text.PixelBounds[1] - this.Text.PixelBounds[0]);
-  var yRad = 0.5 * (this.Text.PixelBounds[3] - this.Text.PixelBounds[2]);
+        layer.AddWidget(this);
+        this.ActiveReason = 1;
 
-  // Compute the angle of the arrow.
-  var dx = this.Text.Anchor[0]-xMid;
-  var dy = this.Text.Anchor[1]-yMid;
-  this.Arrow.Orientation = -(180.0 + Math.atan2(dy, dx) * 180.0 / Math.PI);
-  // Compute the length of the arrow.
-  var length = Math.sqrt(dx*dx + dy*dy);
-  // Find the intersection of the vector and the bounding box.
-  var min = length;
-  if (dy != 0) {
-    var d = Math.abs(length * yRad / dy);
-    if (min > d) { min = d; }
-  }
-  if (dx != 0) {
-    var d = Math.abs(length * xRad / dx);
-    if (min > d) { min = d; }
-  }
-  length = length - min - 5;
-  if (length < 5) { length = 5;}
-  this.Arrow.Length = length;
-  this.Arrow.UpdateBuffers();
-}
+        // It is odd the way the Anchor is set.  Leave the above for now.
+        this.SetTextOffset(50,0);
 
-TextWidget.prototype.HandleMouseWheel = function(event) {
-    // TODO: Scale the size of the text.
-    return false;
-}
-
-TextWidget.prototype.HandleKeyPress = function(event) {
-  // The dialog consumes all key events.
-  if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
-      return false;
-  }
-
-  // Copy
-  if (event.keyCode == 67 && event.ctrlKey) {
-    // control-c for copy
-    // The extra identifier is not needed for widgets, but will be
-    // needed if we have some other object on the clipboard.
-    var clip = {Type:"TextWidget", Data: this.Serialize()};
-    localStorage.ClipBoard = JSON.stringify(clip);
-    return false;
-  }
-
-  return true;
-}
-
-
-TextWidget.prototype.HandleDoubleClick = function(event) {
-    return false
-}
-
-TextWidget.prototype.HandleMouseDown = function(event) {
-    if (event.which == 1) {
-        if (this.State == TEXT_WIDGET_ACTIVE) {
-            if (this.Arrow.Visibility && this.ActiveReason == 0) {
-                this.State = TEXT_WIDGET_DRAG_TEXT;
-            } else {
-                this.State = TEXT_WIDGET_DRAG;
+        // Get default properties.
+        this.VisibilityMode = 2;
+        this.Text.BackgroundFlag = true;
+        this.Dialog.BackgroundInput.prop('checked', true);
+        var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+        if (localStorage.TextWidgetDefaults) {
+            var defaults = JSON.parse(localStorage.TextWidgetDefaults);
+            if (defaults.Color) {
+                hexcolor = ConvertColorToHex(defaults.Color);
             }
-            this.Viewer.EventuallyRender(false);
+            if (defaults.FontSize) {
+                // font size was wrongly saved as a string.
+                this.Text.Size = parseFloat(defaults.FontSize);
+            }
+            if (defaults.BackgroundFlag !== undefined) {
+                this.Text.BackgroundFlag = defaults.BackgroundFlag;
+            }
+            if (defaults.VisibilityMode !== undefined) {
+                this.SetVisibilityMode(defaults.VisibilityMode);
+            }
         }
-        return true;
-    }
-    return false;
-}
+        this.Text.Color = hexcolor;
+        this.Arrow.SetFillColor(hexcolor);
+        this.Arrow.ChooseOutlineColor();
 
-// returns false when it is finished doing its work.
-TextWidget.prototype.HandleMouseUp = function(event) {
-    if (event.which == 1) {
-        if (this.State == TEXT_WIDGET_DRAG ||
-            this.State == TEXT_WIDGET_DRAG_TEXT) {
-            RecordState();
-        }
-        this.State = TEXT_WIDGET_ACTIVE;
-        return true;
-    }
-    
-    if (this.State == TEXT_WIDGET_ACTIVE && event.which == 3) {
-        // Right mouse was pressed.
-        // Pop up the properties dialog.
-        // Which one should we popup?
-        // Add a ShowProperties method to the widget. (With the magic of javascript).
-        this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
-        this.ShowPropertiesDialog();
-        return true;
+        // Lets save the zoom level (sort of).
+        // Load will overwrite this for existing annotations.
+        // This will allow us to expand annotations into notes.
+        this.CreationCamera = layer.GetCamera().Serialize();
     }
 
-    return false;
-}
-
-
-// I need to convert mouse screen point to coordinates of text buffer
-// to see if the mouse position is in the bounds of the text.
-// Screen y vector point down (up is negative).
-// Text coordinate system will match canvas text: origin upper left, Y point down.
-TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
-    var textOriginScreenPixelPosition = this.Viewer.ConvertPointWorldToViewer(this.Text.Position[0],this.Text.Position[1]);
-    x = (x - textOriginScreenPixelPosition[0]) + this.Text.Anchor[0];
-    y = (y - textOriginScreenPixelPosition[1]) + this.Text.Anchor[1];
-    
-    return [x,y];
-}
-
-TextWidget.prototype.HandleMouseMove = function(event) {
-    if (this.State == TEXT_WIDGET_DRAG) {
-        if (SA.NotesWidget) {
-            // Hack.
-            SA.NotesWidget.MarkAsModified();
+    // Three state visibility so text can be hidden during calss questions.
+    // The combined visibilities is confusing.
+    // Global text visibility is passed in as argument.
+    // Local visiblity mode is the hover state of this text. (0 text only, 1: hover, 2: both on).
+    TextWidget.prototype.Draw = function(view, visibility) {
+        if (visibility != ANNOTATION_OFF && this.VisibilityMode != 0) {
+            this.Arrow.Draw(view);
         }
-        w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
-                                                   this.Viewer.LastMouseY);
-        w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-        // This is the translation.
-        var dx = w1[0] - w0[0];
-        var dy = w1[1] - w0[1];
-
-        this.Text.Position[0] += dx;
-        this.Text.Position[1] += dy;
-        this.Arrow.Origin = this.Text.Position;
-        this.PlacePopup();
-        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
-        this.Viewer.EventuallyRender(true);
-        return true;
+        if (visibility == ANNOTATION_ON) {
+            if (this.VisibilityMode != 1 || this.State != TEXT_WIDGET_WAITING) {
+                this.Text.Draw(view);
+                this.Text.Visibility = true;
+            } else {
+                this.Text.Visibility = false;
+            }
+        }
     }
-    if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
-        if (SA.NotesWidget) {
-            // Hack.
-            SA.NotesWidget.MarkAsModified();
+
+    TextWidget.prototype.RemoveFromViewer = function() {
+        if (this.Viewer == null) {
+            return;
         }
-        this.Text.Anchor[0] -= this.Viewer.MouseDeltaX;
-        this.Text.Anchor[1] -= this.Viewer.MouseDeltaY;
+        this.Viewer.RemoveWidget(this);
+    }
+
+    TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
+        this.Load(data);
+        // Place the tip of the arrow at the mose location.
+        this.Text.Position[0] = mouseWorldPt[0];
+        this.Text.Position[1] = mouseWorldPt[1];
         this.UpdateArrow();
-        this.PlacePopup();
-        this.Viewer.EventuallyRender(true);
+        this.Layer.EventuallyDraw();
         if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+    }
+
+
+    TextWidget.prototype.Serialize = function() {
+        if(this.Text === undefined){ return null; }
+        var obj = new Object();
+        obj.type = "text";
+        obj.color = this.Text.Color;
+        obj.size = this.Text.Size;
+        obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
+        obj.position = this.Text.Position;
+        obj.string = this.Text.String;
+        obj.visibility = this.VisibilityMode;
+        obj.backgroundFlag = this.Text.BackgroundFlag;
+        obj.creation_camera = this.CreationCamera;
+        return obj;
+    }
+
+    // Load a widget from a json object (origin MongoDB).
+    TextWidget.prototype.Load = function(obj) {
+        var string = obj.string;
+        // Some empty strings got in my database.  I connot delete them from the gui.
+        if (obj.string && obj.string == "") {
+            this.Layer.RemoveWidget(this);
+            return;
+        }
+
+        this.Text.String = obj.string;
+        var rgb = [parseFloat(obj.color[0]),
+                   parseFloat(obj.color[1]),
+                   parseFloat(obj.color[2])];
+        this.Text.Color = rgb;
+        this.Text.Size = parseFloat(obj.size);
+        if (obj.backgroundFlag != undefined) {
+            this.Text.BackgroundFlag = obj.backgroundFlag;
+        }
+        this.Text.Position = [parseFloat(obj.position[0]),
+                              parseFloat(obj.position[1]),
+                              parseFloat(obj.position[2])];
+        this.Arrow.Origin = this.Text.Position;
+
+        // I added offest and I have to deal with entries that do not have it.
+        if (obj.offset) { // how to try / catch in javascript?
+            this.SetTextOffset(parseFloat(obj.offset[0]),
+                               parseFloat(obj.offset[1]));
+        }
+
+        // How zoomed in was the view when the annotation was created.
+        if (obj.creation_camera !== undefined) {
+            this.CreationCamera = obj.creation_camera;
+        }
+
+        if (obj.anchorVisibility !== undefined) {
+            // Old schema.
+            if (obj.anchorVisibility) {
+                this.SetVisibilityMode(1);
+            } else {
+                this.SetVisibilityMode(0);
+            }
+        } else if (obj.visibility !== undefined) {
+            this.SetVisibilityMode(obj.visibility)
+        }
+
+        this.Arrow.SetFillColor(rgb);
+        this.Arrow.ChooseOutlineColor();
+
+        this.Text.UpdateBuffers();
+        this.UpdateArrow();
+    }
+
+    // When the arrow is visible, the text is offset from the position (tip of arrow).
+    TextWidget.prototype.SetTextOffset = function(x, y) {
+        this.SavedTextAnchor = [-x, -y];
+        this.Text.Anchor = this.SavedTextAnchor.slice(0);
+        this.UpdateArrow();
+    }
+
+
+    // When the arrow is visible, the text is offset from the position (tip of arrow).
+    TextWidget.prototype.SetPosition = function(x, y) {
+        this.Text.Position = [x, y];
+        this.Arrow.Origin = this.Text.Position;
+    }
+
+    
+    // Anchor is in the middle of the bounds when the shape is not visible.
+    TextWidget.prototype.SetVisibilityMode = function(mode) {
+        if (this.VisibilityMode == mode) { return; }
+        this.VisibilityMode = mode;
+
+        if (mode == 2 || mode == 1) { // turn glyph on
+            if (this.SavedTextAnchor == undefined) {
+                this.SavedTextAnchor = [-30, 0];
+            }
+            this.Text.Anchor = this.SavedTextAnchor.slice(0);
+            this.Arrow.Visibility = true;
+            this.Arrow.Origin = this.Text.Position;
+            this.UpdateArrow();
+        } else if(mode == 0) { // turn glyph off
+            // save the old anchor incase glyph is turned back on.
+            this.SavedTextAnchor = this.Text.Anchor.slice(0);
+            // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
+            this.Text.UpdateBuffers(); // computes pixel bounds.
+            this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
+            this.Arrow.Visibility = false;
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    // Change orientation and length of arrow based on the anchor location.
+    TextWidget.prototype.UpdateArrow = function() {
+        // Compute the middle of the text bounds.
+        var xMid = 0.5 * (this.Text.PixelBounds[0] + this.Text.PixelBounds[1]);
+        var yMid = 0.5 * (this.Text.PixelBounds[2] + this.Text.PixelBounds[3]);
+        var xRad = 0.5 * (this.Text.PixelBounds[1] - this.Text.PixelBounds[0]);
+        var yRad = 0.5 * (this.Text.PixelBounds[3] - this.Text.PixelBounds[2]);
+
+        // Compute the angle of the arrow.
+        var dx = this.Text.Anchor[0]-xMid;
+        var dy = this.Text.Anchor[1]-yMid;
+        this.Arrow.Orientation = -(180.0 + Math.atan2(dy, dx) * 180.0 / Math.PI);
+        // Compute the length of the arrow.
+        var length = Math.sqrt(dx*dx + dy*dy);
+        // Find the intersection of the vector and the bounding box.
+        var min = length;
+        if (dy != 0) {
+            var d = Math.abs(length * yRad / dy);
+            if (min > d) { min = d; }
+        }
+        if (dx != 0) {
+            var d = Math.abs(length * xRad / dx);
+            if (min > d) { min = d; }
+        }
+        length = length - min - 5;
+        if (length < 5) { length = 5;}
+        this.Arrow.Length = length;
+        this.Arrow.UpdateBuffers();
+    }
+
+    TextWidget.prototype.HandleMouseWheel = function(event) {
+        // TODO: Scale the size of the text.
+        return false;
+    }
+
+    TextWidget.prototype.HandleKeyDown = function(event) {
+        // The dialog consumes all key events.
+        if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
+            return false;
+        }
+
+        // Copy
+        if (event.keyCode == 67 && event.ctrlKey) {
+            // control-c for copy
+            // The extra identifier is not needed for widgets, but will be
+            // needed if we have some other object on the clipboard.
+            var clip = {Type:"TextWidget", Data: this.Serialize()};
+            localStorage.ClipBoard = JSON.stringify(clip);
+            return false;
+        }
+
         return true;
     }
-    // We do not want to deactivate the widget while the properties dialog is showing.
-    if (this.State != TEXT_WIDGET_PROPERTIES_DIALOG) {
-        return this.CheckActive(event);
+
+    TextWidget.prototype.HandleDoubleClick = function(event) {
+        this.ShowPropertiesDialog();
+        return false;
     }
-    return true;
-}
 
+    TextWidget.prototype.HandleMouseDown = function(event) {
+        if (event.which == 1) {
+            if (this.State == TEXT_WIDGET_ACTIVE) {
+                this.State = TEXT_WIDGET_DRAG;
+            } else if (this.State == TEXT_WIDGET_ACTIVE_TEXT) {
+                this.State = TEXT_WIDGET_DRAG_TEXT;
+            }
+            return false;
+        }
+        return true;
+    }
 
+    // returns false when it is finished doing its work.
+    TextWidget.prototype.HandleMouseUp = function(event) {
+        if (event.which == 1) {
+            if (this.State == TEXT_WIDGET_DRAG) {
+                this.State = TEXT_WIDGET_ACTIVE;
+                RecordState();
+            } else if (this.State == TEXT_WIDGET_DRAG_TEXT) {
+                this.State = TEXT_WIDGET_ACTIVE_TEXT;
+                RecordState();
+            }
+            return false;
+        }
 
+        if (event.which == 3) {
+            if (this.State == TEXT_WIDGET_ACTIVE ||
+                this.State == TEXT_WIDGET_ACTIVE_TEXT) {
+                // Right mouse was pressed.
+                // Pop up the properties dialog.
+                // Which one should we popup?
+                // Add a ShowProperties method to the widget. (With the magic of javascript).
+                this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+                this.ShowPropertiesDialog();
+                return false;
+            }
+        }
 
+        return true;
+    }
 
-TextWidget.prototype.HandleTouchPan = function(event) {
-    // We should probably have a handle touch start too.
-    // Touch start calls CheckActive() ...
-    if (this.State == TEXT_WIDGET_ACTIVE) {
-        if (this.Arrow.Visibility && this.ActiveReason == 0) {
-            this.State = TEXT_WIDGET_DRAG_TEXT;
-        } else {
+    // I need to convert mouse screen point to coordinates of text buffer
+    // to see if the mouse position is in the bounds of the text.
+    // Screen y vector point down (up is negative).
+    // Text coordinate system will match canvas text: origin upper left, Y point down.
+    TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
+        var cam = this.Layer.GetCamera();
+        var textOriginScreenPixelPosition =
+            cam.ConvertPointWorldToViewer(this.Text.Position[0],this.Text.Position[1]);
+        x = (x - textOriginScreenPixelPosition[0]) + this.Text.Anchor[0];
+        y = (y - textOriginScreenPixelPosition[1]) + this.Text.Anchor[1];
+
+        return [x,y];
+    }
+
+    TextWidget.prototype.HandleMouseMove = function(event, viewer) {
+        if (this.State == TEXT_WIDGET_DRAG) {
+            if (SA.NotesWidget) {
+                // Hack.
+                SA.NotesWidget.MarkAsModified();
+            }
+            var cam = this.Layer.GetCamera();
+            // TODO: Get rid of viewer depenancy.
+            w0 = cam.ConvertPointViewerToWorld(viewer.LastMouseX,
+                                               viewer.LastMouseY);
+            w1 = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+            // This is the translation.
+            var dx = w1[0] - w0[0];
+            var dy = w1[1] - w0[1];
+
+            this.Text.Position[0] += dx;
+            this.Text.Position[1] += dy;
+            this.Arrow.Origin = this.Text.Position;
+            this.PlacePopup();
+            if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+            this.Layer.EventuallyDraw();
+            return false;
+        }
+        if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
+            if (SA.NotesWidget) {
+                // Hack.
+                SA.NotesWidget.MarkAsModified();
+            }
+            // TODO: Get the Mouse Deltas out of the layer.
+            this.Text.Anchor[0] -= viewer.MouseDeltaX;
+            this.Text.Anchor[1] -= viewer.MouseDeltaY;
+            this.UpdateArrow();
+            this.PlacePopup();
+            this.Layer.EventuallyDraw();
+            if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+            return false;
+        }
+        // We do not want to deactivate the widget while the properties dialog is showing.
+        if (this.State != TEXT_WIDGET_PROPERTIES_DIALOG) {
+            return this.CheckActive(event);
+        }
+        return true;
+    }
+
+    TextWidget.prototype.HandleTouchPan = function(event, viewer) {
+        // We should probably have a handle touch start too.
+        // Touch start calls CheckActive() ...
+        if (this.State == TEXT_WIDGET_ACTIVE) {
             this.State = TEXT_WIDGET_DRAG;
+        } else if (this.State == TEXT_WIDGET_ACTIVE_TEXT) {
+            this.State = TEXT_WIDGET_DRAG_TEXT;
+        }
+
+        // TODO: Get rid of viewer dependency
+        viewer.MouseDeltaX = viewer.MouseX - viewer.LastMouseX;
+        viewer.MouseDeltaY = viewer.MouseY - viewer.LastMouseY;
+        this.HandleMouseMove(event);
+        return false;
+    }
+
+    TextWidget.prototype.HandleTouchEnd = function(event) {
+        this.State = TEXT_WIDGET_ACTIVE;
+        this.SetActive(false);
+        return false;
+    }
+
+    TextWidget.prototype.CheckActive = function(event) {
+        var tMouse = this.ScreenPixelToTextPixelPoint(event.offsetX, event.offsetY);
+
+        // First check anchor
+        // then check to see if the point is no the bounds of the text.
+
+        if (this.Arrow.Visibility && this.Arrow.PointInShape(tMouse[0]-this.Text.Anchor[0], tMouse[1]-this.Text.Anchor[1])) {
+            // Doulbe hack. // Does not get highlighted because widget already active.
+            this.Arrow.Active = true;
+            this.Layer.EventuallyDraw();
+            this.SetActive(true, TEXT_WIDGET_ACTIVE);
+            return true;
+        }
+        if (this.Text.Visibility) {
+            // Only check the text if it is visible.
+            if (tMouse[0] > this.Text.PixelBounds[0] && tMouse[0] < this.Text.PixelBounds[1] &&
+                tMouse[1] > this.Text.PixelBounds[2] && tMouse[1] < this.Text.PixelBounds[3]) {
+                this.SetActive(true, TEXT_WIDGET_ACTIVE_TEXT);
+                return true;
+            }
+        }
+
+        this.SetActive(false);
+        return false;
+    }
+
+    TextWidget.prototype.GetActive = function() {
+        if (this.State == TEXT_WIDGET_ACTIVE || this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
+            return true;
+        }
+        return false;
+    }
+
+    TextWidget.prototype.Deactivate = function() {
+        this.Popup.StartHideTimer();
+        this.State = TEXT_WIDGET_WAITING;
+        this.Text.Active = false;
+        this.Arrow.Active = false;
+        this.Layer.DeactivateWidget(this);
+        if (this.DeactivateCallback) {
+            this.DeactivateCallback();
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    TextWidget.prototype.SetActive = function(flag, reason) {
+        reason = reason || TEXT_WIDGET_ACTIVE;
+        if ( ! flag) {
+            reason = TEXT_WIDGET_WAITING;
+        }
+
+        if (reason == this.State) {
+            return;
+        }
+
+        this.State = reason;
+
+        if (reason == TEXT_WIDGET_ACTIVE) {
+            this.Text.Active = false;
+            this.Arrow.Active = true;
+            this.Layer.ActivateWidget(this);
+            this.PlacePopup();
+            this.Layer.EventuallyDraw();
+        } else if (reason == TEXT_WIDGET_ACTIVE_TEXT) {
+            this.Text.Active = true;
+            this.Arrow.Active = false;
+            this.Layer.ActivateWidget(this);
+            this.PlacePopup();
+            this.Layer.EventuallyDraw();
+        } else if (reason == TEXT_WIDGET_WAITING) {
+            this.Deactivate();
         }
     }
-    this.Viewer.MouseDeltaX = this.Viewer.MouseX - this.Viewer.LastMouseX;
-    this.Viewer.MouseDeltaY = this.Viewer.MouseY - this.Viewer.LastMouseY;
-    this.HandleMouseMove(event);
-}
-TextWidget.prototype.HandleTouchPinch = function(event) {
-}
-TextWidget.prototype.HandleTouchEnd = function(event) {
-    this.State = TEXT_WIDGET_ACTIVE;
-    this.SetActive(false);
-}
 
+    //This also shows the popup if it is not visible already.
+    TextWidget.prototype.PlacePopup = function () {
+        var x = this.Text.Position[0];
+        var y = this.Text.Position[1];
+        var pt = this.Layer.GetCamera().ConvertPointWorldToViewer(x, y);
 
+        pt[0] += (this.Text.PixelBounds[1] - this.Text.Anchor[0]);
+        pt[1] -= (this.Text.Anchor[1] + 10);
 
-TextWidget.prototype.CheckActive = function(event) {
-  var tMouse = this.ScreenPixelToTextPixelPoint(event.offsetX, event.offsetY);
-
-  // First check anchor
-  // thencheck to see if the point is no the bounds of the text.
-
-  if (this.Arrow.Visibility && this.Arrow.PointInShape(tMouse[0]-this.Text.Anchor[0], tMouse[1]-this.Text.Anchor[1])) {
-    this.ActiveReason = 1; // Hackish
-    // Doulbe hack. // Does not get highlighted because widget already active.
-    this.Arrow.Active = true; this.Viewer.EventuallyRender(false);
-    this.SetActive(true);
-    return true;
-  }
-  if (this.Text.Visibility) {
-    // Only check the text if it is visible.
-    if (tMouse[0] > this.Text.PixelBounds[0] && tMouse[0] < this.Text.PixelBounds[1] &&
-        tMouse[1] > this.Text.PixelBounds[2] && tMouse[1] < this.Text.PixelBounds[3]) {
-      this.ActiveReason = 0;
-      this.SetActive(true);
-      return true;
-    }
-  }
-  this.SetActive(false);
-  return false;
-}
-
-TextWidget.prototype.GetActive = function() {
-  if (this.State == TEXT_WIDGET_ACTIVE || this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
-    return true;
-  }
-  return false;
-}
-
-TextWidget.prototype.Deactivate = function() {
-    this.Popup.StartHideTimer();
-    this.State = TEXT_WIDGET_WAITING;
-    this.Text.Active = false;
-    this.Arrow.Active = false;
-    this.Viewer.DeactivateWidget(this);
-    if (this.DeactivateCallback) {
-        this.DeactivateCallback();
-    }
-    this.Viewer.EventuallyRender(false);
-}
-
-TextWidget.prototype.SetActive = function(flag) {
-  // Dialog state is tricky because the widget is still active.
-  // SetActive is used to clear the dialog state.
-  if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
-    this.State == TEXT_WIDGET_ACTIVE;
-  }
-
-  if (flag == this.GetActive()) {
-    return;
-  }
-
-  if (flag) {
-    this.State = TEXT_WIDGET_ACTIVE;
-    if (this.ActiveReason == 1) {
-      this.Text.Active = false;
-      this.Arrow.Active = true;
-    } else {
-      this.Text.Active = true;
-      this.Arrow.Active = false;
-    }
-    this.Viewer.ActivateWidget(this);
-    this.PlacePopup();
-    this.Viewer.EventuallyRender(false);
-  } else {
-    this.Deactivate();
-  }
-}
-
-//This also shows the popup if it is not visible already.
-TextWidget.prototype.PlacePopup = function () {
-  var x = this.Text.Position[0];
-  var y = this.Text.Position[1];
-  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
-
-  pt[0] += (this.Text.PixelBounds[1] - this.Text.Anchor[0]);
-  pt[1] -= (this.Text.Anchor[1] + 10);
-
-  this.Popup.Show(pt[0],pt[1]);
-}
-
-// Can we bind the dialog apply callback to an objects method?
-TextWidget.prototype.ShowPropertiesDialog = function () {
-    this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
-    this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
-    this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
-    this.Dialog.TextInput.val(this.Text.String);
-    this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
-
-    this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
-
-    this.Dialog.Show(true);
-    this.Dialog.TextInput.focus();
-}
-
-TextWidget.prototype.DialogApplyCallback = function () {
-    this.SetActive(false);
-    this.ApplyLineBreaks();
-
-    var string = this.Dialog.TextInput.val();
-    // remove any trailing white space.
-    string = string.trim();
-    if (string == "") {
-        alert("Empty String");
-        return;
+        this.Popup.Show(pt[0],pt[1]);
     }
 
-    var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
-    var fontSize = this.Dialog.FontInput.val();
-    this.Text.String = string;
-    this.Text.Size = parseFloat(fontSize);
-    this.Text.UpdateBuffers();
+    // Can we bind the dialog apply callback to an objects method?
+    TextWidget.prototype.ShowPropertiesDialog = function () {
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
+        this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
+        this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
+        this.Dialog.TextInput.val(this.Text.String);
+        this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
 
-    if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
-        this.SetVisibilityMode(0);
-    } else if(this.Dialog.VisibilityModeInputs[1].prop("checked")){
-        this.SetVisibilityMode(1);
-    } else {
-        this.SetVisibilityMode(2);
+        this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+
+        this.Dialog.Show(true);
+        this.Dialog.TextInput.focus();
     }
-    var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
-    this.Text.SetColor(hexcolor);
-    this.Arrow.SetFillColor(hexcolor);
-    this.Arrow.ChooseOutlineColor();
+    TextWidget.prototype.DialogApplyCallback = function () {
+        this.SetActive(false);
+        this.ApplyLineBreaks();
 
-    this.Text.BackgroundFlag = backgroundFlag;
+        var string = this.Dialog.TextInput.val();
+        // remove any trailing white space.
+        string = string.trim();
+        if (string == "") {
+            alert("Empty String");
+            return;
+        }
 
-    localStorage.TextWidgetDefaults = JSON.stringify(
-        {Color         : hexcolor,
-         FontSize      : this.Text.Size,
-         VisibilityMode: this.VisibilityMode,
-         BackgroundFlag: backgroundFlag});
+        var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+        var fontSize = this.Dialog.FontInput.val();
+        this.Text.String = string;
+        this.Text.Size = parseFloat(fontSize);
+        this.Text.UpdateBuffers();
 
-    RecordState();
+        if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
+            this.SetVisibilityMode(0);
+        } else if(this.Dialog.VisibilityModeInputs[1].prop("checked")){
+            this.SetVisibilityMode(1);
+        } else {
+            this.SetVisibilityMode(2);
+        }
+        var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
-    this.Viewer.EventuallyRender(true);
-    if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
-}
+        this.Text.SetColor(hexcolor);
+        this.Arrow.SetFillColor(hexcolor);
+        this.Arrow.ChooseOutlineColor();
 
-//Function to apply line breaks to textarea text.
-TextWidget.prototype.ApplyLineBreaks = function() {
-    var oTextarea = this.Dialog.TextInput[0];
+        this.Text.BackgroundFlag = backgroundFlag;
+
+        localStorage.TextWidgetDefaults = JSON.stringify(
+            {Color         : hexcolor,
+             FontSize      : this.Text.Size,
+             VisibilityMode: this.VisibilityMode,
+             BackgroundFlag: backgroundFlag});
+
+        RecordState();
+
+        this.Layer.EventuallyDraw();
+        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+    }
+
+    //Function to apply line breaks to textarea text.
+    TextWidget.prototype.ApplyLineBreaks = function() {
+        var oTextarea = this.Dialog.TextInput[0];
+
+        /*
+          if (oTextarea.wrap) {
+          oTextarea.setAttribute("wrap", "off");
+          } else {
+          oTextarea.setAttribute("wrap", "off");
+          var newArea = oTextarea.cloneNode(true);
+          newArea.value = oTextarea.value;
+          oTextarea.parentNode.replaceChild(newArea, oTextarea);
+          oTextarea = newArea;
+          }
+        */
+
+        oTextarea.setAttribute("wrap", "off");
+        var strRawValue = oTextarea.value;
+        oTextarea.value = "";
+        var nEmptyWidth = oTextarea.scrollWidth;
+        var nLastWrappingIndex = -1;
+        for (var i = 0; i < strRawValue.length; i++) {
+            var curChar = strRawValue.charAt(i);
+            if (curChar == ' ' || curChar == '-' || curChar == '+')
+                nLastWrappingIndex = i;
+            oTextarea.value += curChar;
+            if (oTextarea.scrollWidth > nEmptyWidth) {
+                var buffer = "";
+                if (nLastWrappingIndex >= 0) {
+                    for (var j = nLastWrappingIndex + 1; j < i; j++)
+                        buffer += strRawValue.charAt(j);
+                    nLastWrappingIndex = -1;
+                }
+                buffer += curChar;
+                oTextarea.value = oTextarea.value.substr(0, oTextarea.value.length - buffer.length);
+                oTextarea.value += "\n" + buffer;
+            }
+        }
+        oTextarea.setAttribute("wrap", "");
+    }
+
+
+    SA.TextWidget = TextWidget;
+
+})();
+
+
+
+// Polyline. one line witn multiple segments.
+
+(function () {
+    "use strict";
+
+    function Polyline() {
+        SA.Shape.call(this);
+        this.Origin = [0.0,0.0]; // Center in world coordinates.
+        this.Points = [];
+        this.Closed = false;
+        this.Bounds = [0,-1,0,-1];
+    };
+    Polyline.prototype = new SA.Shape;
+
+
+    //Polyline.prototype.destructor=function() {
+        // Get rid of the buffers?
+    //}
+
+    Polyline.prototype.SetLineWidth = function(lineWidth) {
+        this.LineWidth = lineWidth;
+    }
+
+    Polyline.prototype.GetLineWidth = function() {
+        return this.LineWidth;
+    }
+
+    Polyline.prototype.GetEdgeLength = function(edgeIdx) {
+        if (edgeIdx < 0 || edgeIdx > this.Points.length-2) {
+            return 0;
+        }
+        var dx = this.Points[edgeIdx+1][0] - this.Points[edgeIdx][0];
+        var dy = this.Points[edgeIdx+1][1] - this.Points[edgeIdx][1];
+
+        return Math.sqrt(dx*dx + dy*dy);
+    }
+
+    Polyline.prototype.GetNumberOfPoints = function() {
+        return this.Points.length;
+    }
+
+    // Internal bounds will ignore origin and orientation.
+    Polyline.prototype.GetBounds = function () {
+        var bounds = this.Bounds.slide(0);
+        bounds[0] += this.Origin[0];
+        bounds[1] += this.Origin[0];
+        bounds[2] += this.Origin[1];
+        bounds[3] += this.Origin[1];
+        return bounds;
+    }
+
+    // Returns 0 if is does not overlap at all.
+    // Returns 1 if part of the section is in the bounds.
+    // Returns 2 if all of the section is in the bounds.
+    Polyline.prototype.ContainedInBounds = function(bds) {
+        // Need to get world bounds.
+        var myBds = this.GetBounds();
+
+        // Polyline does not cache bounds, so just look to the points.
+        if (bds[1] < myBds[0] || bds[0] > myBds[1] ||
+            bds[3] < myBds[2] || bds[2] > myBds[3]) {
+            return 0;
+        }
+        if (bds[1] >= myBds[0] && bds[0] <= myBds[1] &&
+            bds[3] >= myBds[2] && bds[2] <= myBds[3]) {
+            return 2;
+        }
+        return 1;
+    }
+
+    Polyline.prototype.SetOrigin = function(origin) {
+        this.Origin = origin.slice(0);
+    }
+
+    // Adds origin to points and sets origin to 0.
+    Polyline.prototype.ResetOrigin = function() {
+        for (var i = 0; i < this.Points.length; ++i) {
+            var pt = this.Points[i];
+            pt[0] += this.Origin[0];
+            pt[1] += this.Origin[1];
+        }
+        this.Origin[0] = 0;
+        this.Origin[1] = 0;
+        this.UpdateBuffers();
+    }
+
+
+    // Returns -1 if the point is not on a vertex.
+    // Returns the index of the vertex is the point is within dist of a the
+    // vertex.
+    Polyline.prototype.PointOnVertex = function(pt, dist) {
+        dist = dist * dist;
+        for (var i = 0; i < this.Points.length; ++i) {
+            var dx = this.Points[i][0] - pt[0];
+            var dy = this.Points[i][1] - pt[1];
+            if (dx*dx + dy*dy < dist) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Returns undefined if the point is not on the shape.
+    // Otherwise returns the indexes of the segment touched [i0, i1, k].
+    Polyline.prototype.PointOnShape = function(pt, dist) {
+        // Make a copy of the point (array).
+        pt = pt.slice(0);
+        pt[0] -= this.Origin[0];
+        pt[1] -= this.Origin[1];
+        // NOTE: bounds already includes lineWidth
+        if (pt[0]+dist < this.Bounds[0] || pt[0]-dist > this.Bounds[1] ||
+            pt[1]+dist < this.Bounds[2] || pt[1]-dist > this.Bounds[3]) {
+            return undefined;
+        }
+        // Check for mouse touching an edge.
+        for (var i = 1; i < this.Points.length; ++i) {
+            var k = this.IntersectPointLine(pt, this.Points[i-1],
+                                            this.Points[i], dist);
+            if (k !== undefined) {
+                return [i-1,i, k];
+            }
+        }
+        if (this.Closed) {
+            var k = this.IntersectPointLine(pt, this.Points[this.Points.length-1],
+                                            this.Points[0], dist);
+            if (k !== undefined) {
+                return [this.Points.length-1, 0, k];
+            }
+        }
+        return undefined;
+    }
+
+    // Find a world location of a popup point given a camera.
+    Polyline.prototype.FindPopupPoint = function(cam) {
+        if (this.Points.length == 0) { return; }
+        var roll = cam.Roll;
+        var s = Math.sin(roll + (Math.PI*0.25));
+        var c = Math.cos(roll + (Math.PI*0.25));
+        var bestPt = this.Points[0];
+        var bestProjection = (c*bestPt[0])-(s*bestPt[1]);
+        for (var i = 1; i < this.Points.length; ++i) {
+            var pt = this.Points[i];
+            var projection = (c*pt[0])-(s*pt[1]);
+            if (projection > bestProjection) {
+                bestProjection = projection;
+                bestPt = pt;
+            }
+        }
+        bestPt[0] += this.Origin[0];
+        bestPt[1] += this.Origin[1];
+        return bestPt;
+    }
+
+    Polyline.prototype.MergePoints = function (thresh) {
+        thresh = thresh * thresh;
+        var modified = false;
+        for (var i = 1; i < this.Points.length; ++i) {
+            var dx = this.Points[i][0] - this.Points[i-1][0];
+            var dy = this.Points[i][1] - this.Points[i-1][1];
+            if (dx*dx + dy*dy < thresh) {
+                // The two points are close. Remove the point.
+                this.Points.splice(i,1);
+                // Removing elements from the array we are iterating over.
+                --i;
+                modified = true;
+            }
+        }
+        if (modified) {
+            this.UpdateBuffers();
+        }
+    }
+
+    // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
+    // Pass in the spacing as a hint to get rid of aliasing.
+    Polyline.prototype.Decimate = function (spacing) {
+        // Keep looping over the line removing points until the line does not change.
+        var modified = true;
+        while (modified) {
+            modified = false;
+            var newPoints = [];
+            newPoints.push(this.Points[0]);
+            // Window of four points.
+            var i = 3;
+            while (i < this.Points.length) {
+                var p0 = this.Points[i];
+                var p1 = this.Points[i-1];
+                var p2 = this.Points[i-2];
+                var p3 = this.Points[i-3];
+                // Compute the average of the center two.
+                var cx = (p1[0] + p2[0]) * 0.5;
+                var cy = (p1[1] + p2[1]) * 0.5;
+                // Find the perendicular normal.
+                var nx = (p0[1] - p3[1]);
+                var ny = -(p0[0] - p3[0]);
+                var mag = Math.sqrt(nx*nx + ny*ny);
+                nx = nx / mag;
+                ny = ny / mag;
+                mag = Math.abs(nx*(cx-this.Points[i-3][0]) + ny*(cy-this.Points[i-3][1]));
+                // Mag metric does not distinguish between line and a stroke that double backs on itself.
+                // Make sure the two point being merged are between the outer points 0 and 3.
+                var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
+                var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
+                if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
+                    // Replace the two points with their average.
+                    newPoints.push([cx, cy]);
+                    modified = true;
+                    // Skip the next point the window will have one old merged point,
+                    // but that is ok because it is just used as reference and not altered.
+                    i += 2;
+                } else {
+                    //  No modification.  Just move the window one.
+                    newPoints.push(this.Points[i-2]);
+                    ++i;
+                }
+            }
+            // Copy the remaing point / 2 points
+            i = i-2;
+            while (i < this.Points.length) {
+                newPoints.push(this.Points[i]);
+                ++i;
+            }
+            this.Points = newPoints;
+        }
+        this.UpdateBuffers();
+    }
+
+    Polyline.prototype.AddPointToBounds = function(pt, radius) {
+        if (pt[0]-radius < this.Bounds[0]) {
+            this.Bounds[0] = pt[0]-radius;
+        }
+        if (pt[0]+radius > this.Bounds[1]) {
+            this.Bounds[1] = pt[0]+radius;
+        }
+
+        if (pt[1]-radius < this.Bounds[2]) {
+            this.Bounds[2] = pt[1]-radius;
+        }
+        if (pt[1]+radius > this.Bounds[3]) {
+            this.Bounds[3] = pt[1]+radius;
+        }
+    }
+
+    // NOTE: Line thickness is handled by style in canvas.
+    // I think the GL version that uses triangles is broken.
+    Polyline.prototype.UpdateBuffers = function() {
+        var points = this.Points.slice(0);
+        if (this.Closed && points.length > 2) {
+            points.push(points[0]);
+        }
+        this.PointBuffer = [];
+        var cellData = [];
+        var lineCellData = [];
+        this.Matrix = mat4.create();
+        mat4.identity(this.Matrix);
+
+        if (this.Points.length == 0) { return; }
+        // xMin,xMax, yMin,yMax
+        this.Bounds = [points[0][0],points[0][0],points[0][1],points[0][1]];
+
+        if (this.LineWidth == 0 || !GL ) {
+            for (var i = 0; i < points.length; ++i) {
+                this.PointBuffer.push(points[i][0]);
+                this.PointBuffer.push(points[i][1]);
+                this.PointBuffer.push(0.0);
+                this.AddPointToBounds(points[i], 0);
+            }
+            // Not used for line width == 0.
+            for (var i = 2; i < points.length; ++i) {
+                cellData.push(0);
+                cellData.push(i-1);
+                cellData.push(i);
+            }
+        } else {
+            // Compute a list normals for middle points.
+            var edgeNormals = [];
+            var mag;
+            var x;
+            var y;
+            var end = points.length-1;
+            // Compute the edge normals.
+            for (var i = 0; i < end; ++i) {
+                x = points[i+1][0] - points[i][0];
+                y = points[i+1][1] - points[i][1];
+                mag = Math.sqrt(x*x + y*y);
+                edgeNormals.push([-y/mag,x/mag]);
+            }
+
+            if ( end > 0 ) {
+                var half = this.LineWidth / 2.0;
+                // 4 corners per point
+                var dx = edgeNormals[0][0]*half;
+                var dy = edgeNormals[0][1]*half;
+                this.PointBuffer.push(points[0][0] - dx);
+                this.PointBuffer.push(points[0][1] - dy);
+                this.PointBuffer.push(0.0);
+                this.PointBuffer.push(points[0][0] + dx);
+                this.PointBuffer.push(points[0][1] + dy);
+                this.PointBuffer.push(0.0);
+                this.AddPointToBounds(points[i], half);
+                for (var i = 1; i < end; ++i) {
+                    this.PointBuffer.push(points[i][0] - dx);
+                    this.PointBuffer.push(points[i][1] - dy);
+                    this.PointBuffer.push(0.0);
+                    this.PointBuffer.push(points[i][0] + dx);
+                    this.PointBuffer.push(points[i][1] + dy);
+                    this.PointBuffer.push(0.0);
+                    dx = edgeNormals[i][0]*half;
+                    dy = edgeNormals[i][1]*half;
+                    this.PointBuffer.push(points[i][0] - dx);
+                    this.PointBuffer.push(points[i][1] - dy);
+                    this.PointBuffer.push(0.0);
+                    this.PointBuffer.push(points[i][0] + dx);
+                    this.PointBuffer.push(points[i][1] + dy);
+                    this.PointBuffer.push(0.0);
+                }
+                this.PointBuffer.push(points[end][0] - dx);
+                this.PointBuffer.push(points[end][1] - dy);
+                this.PointBuffer.push(0.0);
+                this.PointBuffer.push(points[end][0] + dx);
+                this.PointBuffer.push(points[end][1] + dy);
+                this.PointBuffer.push(0.0);
+            }
+            // Generate the triangles for a thick line
+            for (var i = 0; i < end; ++i) {
+                lineCellData.push(0 + 4*i);
+                lineCellData.push(1 + 4*i);
+                lineCellData.push(3 + 4*i);
+                lineCellData.push(0 + 4*i);
+                lineCellData.push(3 + 4*i);
+                lineCellData.push(2 + 4*i);
+            }
+
+            // Not used.
+            for (var i = 2; i < points.length; ++i) {
+                cellData.push(0);
+                cellData.push((2*i)-1);
+                cellData.push(2*i);
+            }
+        }
+
+        if (GL) {
+            this.VertexPositionBuffer = GL.createBuffer();
+            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+            this.VertexPositionBuffer.itemSize = 3;
+            this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
+
+            this.CellBuffer = GL.createBuffer();
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer.itemSize = 1;
+            this.CellBuffer.numItems = cellData.length;
+
+            if (this.LineWidth != 0) {
+                this.LineCellBuffer = GL.createBuffer();
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+                this.LineCellBuffer.itemSize = 1;
+                this.LineCellBuffer.numItems = lineCellData.length;
+            }
+        }
+    }
+
+
+    // GLOBAL To Position the orientatation of the edge.
+    var EDGE_COUNT = 0;
+    var EDGE_ANGLE = (2*Math.PI) * 0/24;
+    var EDGE_OFFSET = 0; // In screen pixels.
+    var EDGE_ROOT = "edge";
+    var EDGE_DELAY = 200;
+    // Saves images centered at spots on the edge.
+    // Roll is set to put the edge horizontal.
+    // Step is in screen pixel units
+    // Count is the starting index for file name generation.
+    Polyline.prototype.SampleEdge = function(viewer, dim, step, count, callback) {
+        var cam = viewer.GetCamera();
+        var scale = cam.GetHeight() / cam.ViewportHeight;
+        // Convert the step from screen pixels to world.
+        step *= scale;
+        var cache = viewer.GetCache();
+        var dimensions = [dim,dim];
+        // Distance between edge p0 to next sample point.
+        var remaining = step/2;
+        // Recursive to serialize asynchronous cutouts.
+        this.RecursiveSampleEdge(this.Points.length-1,0,remaining,step,count,
+                                 cache,dimensions,scale, callback);
+    }
+    Polyline.prototype.RecursiveSampleEdge = function(i0,i1,remaining,step,count,
+                                                      cache,dimensions,scale, callback) {
+        var pt0 = this.Points[i0];
+        var pt1 = this.Points[i1];
+        // Compute the length of the edge.
+        var dx = pt1[0]-pt0[0];
+        var dy = pt1[1]-pt0[1];
+        var length = Math.sqrt(dx*dx +dy*dy);
+        // Take steps along the edge (size 'step')
+        if (remaining > length) {
+            // We passed over this edge. Move to the next edge.
+            remaining = remaining - length;
+            i0 = i1;
+            i1 += 1;
+            // Test for terminating condition.
+            if (i1 < this.Points.length) {
+                this.RecursiveSampleEdge(i0,i1,remaining,step, count,
+                                         cache,dimensions,scale, callback);
+            } else {
+                (callback)();
+            }
+        } else {
+            var self = this;
+            // Compute the sample point and tangent on this edge.
+            var edgeAngle = -Math.atan2(dy,dx) + EDGE_ANGLE;
+            var k = remaining / length;
+            var x = pt0[0] + k*(pt1[0]-pt0[0]);
+            var y = pt0[1] + k*(pt1[1]-pt0[1]);
+            // Normal (should be out if loop is clockwise).
+            var nx = -dy;
+            var ny = dx;
+            var mag = Math.sqrt(nx*nx + ny*ny);
+            nx = (nx / mag) * EDGE_OFFSET * scale;
+            ny = (ny / mag) * EDGE_OFFSET * scale;
+
+            // Save an image at this sample point.
+            GetCutoutImage(cache,dimensions,[x+nx,y+ny],scale,
+                           edgeAngle,EDGE_ROOT+count+".png",
+                           function() {
+                               setTimeout(
+                                   function () {
+                                       ++count;
+                                       EDGE_COUNT = count;
+                                       remaining += step;
+                                       self.RecursiveSampleEdge(i0,i1,remaining,step,count,
+                                                                cache,dimensions,scale,callback);
+                                   }, EDGE_DELAY);
+                           });
+        }
+    }
+
+
+    Polyline.prototype.SetActive = function(flag) {
+        this.Active = flag;
+    }
+
+
+    SA.Polyline = Polyline;
+
+})();
+// Two behaviors: 
+// 1: Single click and drag causes a vertex to follow the
+// mouse. A new vertex is inserted if the click was on an edge.  If a
+// vertex is dropped on top of its neighbor, the are merged.
+// 2: WHen the widget is first created or double cliccked, it goes into
+// drawing mode.  A vertex follows the cursor with no buttons pressed.
+// A single click causes another vertex to be added.  Double click ends the
+// draing state.
+
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
+    var VERTEX_RADIUS = 8;
+    var EDGE_RADIUS = 4;
+
+    // These need to be cleaned up.
+    // Drawing started with 0 points or drawing restarted.
+    var DRAWING = 0;
+    // Drawing mode: Mouse is up and the new point is following the mouse.
+    var DRAWING_EDGE = 1;
+    // Not active.
+    var WAITING = 2;
+    // Waiting but receiving events.  The circle handle is active.
+    var DRAGGING = 3; // Mouse is down and a vertex is following the mouse.
+    var ACTIVE = 5;
+    // Dialog is active.
+    var PROPERTIES_DIALOG = 6;
+
+
+    function PolylineWidget (layer, newFlag) {
+        if (layer === undefined) {
+            return;
+        }
+
+        // Circle is to show an active vertex.
+        this.Circle = new SA.Circle();
+        this.Polyline = new SA.Polyline();
+
+        this.InitializeDialog();
+
+        // Get default properties.
+        this.LineWidth = 10.0;
+        this.Polyline.Closed = false;
+        if (localStorage.PolylineWidgetDefaults) {
+            var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
+            if (defaults.Color) {
+                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+            }
+            // Remebering closed flag seems arbitrary.  User can complete
+            // the loop if they want it closed. Leaving it open allow
+            // restart too.
+            //if (defaults.ClosedLoop !== undefined) {
+            //    this.Polyline.Closed = defaults.ClosedLoop;
+            //}
+            if (defaults.LineWidth) {
+                this.LineWidth = defaults.LineWidth;
+                this.Dialog.LineWidthInput.val(this.LineWidth);
+            }
+        }
+
+        this.Circle.FillColor = [1.0, 1.0, 0.2];
+        this.Circle.OutlineColor = [0.0,0.0,0.0];
+        this.Circle.FixedSize = false;
+        this.Circle.ZOffset = -0.05;
+
+        this.Polyline.OutlineColor = [0.0, 0.0, 0.0];
+        this.Polyline.SetOutlineColor(this.Dialog.ColorInput.val());
+        this.Polyline.FixedSize = false;
+
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        var cam = layer.GetCamera();
+
+        this.Layer.AddWidget(this);
+
+        // Set line thickness using layer. (5 pixels).
+        // The Line width of the shape switches to 0 (single line)
+        // when the actual line with is too thin.
+        this.Polyline.LineWidth =this.LineWidth;
+        this.Circle.Radius = this.LineWidth;
+        this.Circle.UpdateBuffers();
+
+        // ActiveVertex and Edge are for placing the circle handle.
+        this.ActiveVertex = -1;
+        this.ActiveEdge = undefined;
+        // Which vertec is being dragged.
+        this.DrawingVertex = -1;
+
+        if (newFlag) {
+            this.State = DRAWING;
+            this.SetCursorToDrawing();
+            //this.Polyline.Active = true;
+            this.Layer.ActivateWidget(this);
+        } else {
+            this.State = WAITING;
+            this.Circle.Visibility = false;
+        }
+
+        // Lets save the zoom level (sort of).
+        // Load will overwrite this for existing annotations.
+        // This will allow us to expand annotations into notes.
+        this.CreationCamera = layer.GetCamera().Serialize();
+
+        // Set to be the width of a pixel.
+        this.MinLine = 1.0;
+
+        this.Layer.EventuallyDraw(false);
+    }
+
+
+    PolylineWidget.prototype.InitializeDialog = function() {
+        var self = this;
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        // Customize dialog for a lasso.
+        this.Dialog.Title.text('Lasso Annotation Editor');
+        this.Dialog.Body.css({'margin':'1em 2em'});
+        // Color
+        this.Dialog.ColorDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.ColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ColorDiv)
+            .text("Color:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.ColorInput =
+            $('<input type="color">')
+            .appendTo(this.Dialog.ColorDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell'});
+
+        // closed check
+        this.Dialog.ClosedDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.ClosedLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ClosedDiv)
+            .text("Closed:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.ClosedInput =
+            $('<input type="checkbox">')
+            .appendTo(this.Dialog.ClosedDiv)
+            .attr('checked', 'false')
+            .css({'display': 'table-cell'});
+
+        // Line Width
+        this.Dialog.LineWidthDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.LineWidthLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .text("Line Width:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.LineWidthInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .css({'display':'table-cell'})
+            .keypress(function(event) { return event.keyCode != 13; });
+
+        // Length
+        this.Dialog.LengthDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.LengthLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LengthDiv)
+            .text("Length:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.Length =
+            $('<div>')
+            .appendTo(this.Dialog.LengthDiv)
+            .css({'display':'table-cell'});
+
+        // Area
+        this.Dialog.AreaDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.AreaLabel =
+            $('<div>')
+            .appendTo(this.Dialog.AreaDiv)
+            .text("Area:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.Area =
+            $('<div>')
+            .appendTo(this.Dialog.AreaDiv)
+            .css({'display':'table-cell'});
+    }
+
+    PolylineWidget.prototype.Draw = function(view) {
+        // When the line is too thin, we can see nothing.
+        // Change it to line drawing.
+        var cam = this.Layer.GetCamera();
+        this.MinLine = cam.GetSpacing();
+        if (this.LineWidth < this.MinLine) {
+            // Too thin. Use a single line.
+            this.Polyline.LineWidth = 0;
+        } else {
+            this.Polyline.LineWidth = this.LineWidth;
+        }
+
+        this.Polyline.Draw(view);
+        this.Circle.Draw(view);
+    }
+
+    PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
+        this.Load(data);
+        // Place the widget over the mouse.
+        // This is more difficult than the circle.  Compute the shift.
+        var bounds = this.Polyline.GetBounds();
+        if ( ! bounds) {
+            console.log("Warining: Pasting empty polyline");
+            return;
+        }
+        var xOffset = mouseWorldPt[0] - (bounds[0]+bounds[1])/2;
+        var yOffset = mouseWorldPt[1] - (bounds[2]+bounds[3])/2;
+        for (var i = 0; i < this.Polyline.GetNumberOfPoints(); ++i) {
+            this.Polyline.Points[i][0] += xOffset;
+            this.Polyline.Points[i][1] += yOffset;
+        }
+        this.Polyline.UpdateBuffers();
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+
+        this.Layer.EventuallyDraw(true);
+    }
+
+    PolylineWidget.prototype.Serialize = function() {
+        if(this.Polyline === undefined){ return null; }
+        var obj = new Object();
+        obj.type = "polyline";
+        obj.outlinecolor = this.Polyline.OutlineColor;
+        obj.linewidth = this.LineWidth;
+        // Copy the points to avoid array reference bug.
+        obj.points = [];
+        for (var i = 0; i < this.Polyline.GetNumberOfPoints(); ++i) {
+            obj.points.push([this.Polyline.Points[i][0], this.Polyline.Points[i][1]]);
+        }
+
+        obj.creation_camera = this.CreationCamera;
+        obj.closedloop = this.Polyline.Closed;
+
+        return obj;
+    }
+
+    // Load a widget from a json object (origin MongoDB).
+    // Object already json decoded.
+    PolylineWidget.prototype.Load = function(obj) {
+        this.Polyline.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+        this.Polyline.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+        this.Polyline.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        this.LineWidth = parseFloat(obj.linewidth);
+        this.Polyline.LineWidth = this.LineWidth;
+        this.Polyline.Points = [];
+        for(var n=0; n < obj.points.length; n++){
+            this.Polyline.Points[n] = [parseFloat(obj.points[n][0]),
+                                    parseFloat(obj.points[n][1])];
+        }
+        this.Polyline.Closed = obj.closedloop;
+        this.Polyline.UpdateBuffers();
+
+        // How zoomed in was the view when the annotation was created.
+        if (obj.view_height !== undefined) {
+            this.CreationCamera = obj.creation_camera;
+        }
+    }
+
+    PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
+        return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
+    }
+
+    PolylineWidget.prototype.HandleKeyDown = function(event) {
+        // Copy
+        if (event.keyCode == 67 && event.ctrlKey) {
+            // control-c for copy
+            // The extra identifier is not needed for widgets, but will be
+            // needed if we have some other object on the clipboard.
+            var clip = {Type:"PolylineWidget", Data: this.Serialize()};
+            localStorage.ClipBoard = JSON.stringify(clip);
+            return false;
+        }
+
+        // escape key (or space or enter) to turn off drawing
+        if (event.keyCode == 27 || event.keyCode == 32 || event.keyCode == 13) {
+            // Last resort.  ESC key always deactivates the widget.
+            // Deactivate.
+            this.Layer.DeactivateWidget(this);
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            RecordState();
+            return false;
+        }
+
+        return true;
+    }
+    PolylineWidget.prototype.HandleDoubleClick = function(event) {
+        if (this.State == DRAWING || this.State == DRAWING_EDGE) {
+            this.Polyline.MergePoints(this.Circle.Radius);
+            this.Layer.DeactivateWidget(this);
+            return false;
+        }
+        // Handle: Restart drawing mode. Any point on the line can be used.
+        if (this.State == ACTIVE) {
+            var x = event.offsetX;
+            var y = event.offsetY;
+            var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+            // Active => Double click starts drawing again.
+            if (this.ActiveVertex != -1) {
+                this.Polyline.Points[this.ActiveVertex] = pt;
+                this.DrawingVertex = this.ActiveVertex;
+                this.ActiveVertex = -1;
+            } else if (this.ActiveEdge) {
+                // Insert a new point in the edge.
+                // mouse down gets called before this and does this.
+                // TODO: Fix it so mouse down/up do not get called on
+                // double click.
+                this.Polyline.Points.splice(this.ActiveEdge[1],0,pt);
+                this.DrawingVertex = this.ActiveEdge[1];
+                this.ActiveEdge = undefined;
+            } else {
+                // Sanity check:
+                console.log("No vertex or edge is active.");
+                return false;
+            }
+            this.Polyline.UpdateBuffers();
+            this.SetCursorToDrawing();
+            // Transition to drawing edge when we know which way the user
+            // is dragging.
+            this.State = DRAWING;
+            this.Layer.EventuallyDraw(false);
+            return false;
+        }
+    }
+
+    // Because of double click:
+    // Mouse should do nothing. Mouse move and mouse up should cause all
+    // the changes.
+    PolylineWidget.prototype.HandleMouseDown = function(event) {
+
+        // Only chnage handle properties.  Nothing permanent changes with mousedown.
+        if (event.which == 1 && this.State == ACTIVE) {
+            //User has started dragging a point with the mouse down.
+            this.Popup.Hide();
+            // Change the circle color to the line color when dragging.
+            this.Circle.FillColor = this.Polyline.OutlineColor;
+            this.Circle.Active = false;
+        }
+
+        return false;
+    }
+
+    // Returns false when it is finished doing its work.
+    PolylineWidget.prototype.HandleMouseUp = function(event) {
+
+        // Shop dialog with right click.  I could have a menu appear.
+        if (event.which == 3) {
+            // Right mouse was pressed.
+            // Pop up the properties dialog.
+            this.State = PROPERTIES_DIALOG;
+            this.ShowPropertiesDialog();
+            return false;
+        }
+
+        if (event.which != 1) {
+            return false;
+        }
+
+        if (this.State == ACTIVE) {
+            // Dragging a vertex just ended.
+            // Handle merging points when user drags a vertex onto another.
+            this.Polyline.MergePoints(this.Circle.Radius);
+            // TODO: Manage modidfied more consistently.
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            RecordState();
+            return false;
+        }
+
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+
+        if (this.State == DRAWING) {
+            // handle the case where we restarted drawing and clicked again
+            // before moving the mouse. (triple click).  Do nothing.
+            if (this.Polyline.GetNumberOfPoints() > 0) {
+                return false;
+            }
+            // First point after creation. We delayed adding the first
+            // point so add it now.
+            this.Polyline.Points.push(pt);
+            // Not really necessary because DRAWING_EDGE case resets it.
+            this.DrawingVertex = this.Polyline.GetNumberOfPoints() -1;
+            this.State = DRAWING_EDGE;
+        }
+        if (this.State == DRAWING_EDGE) {
+            // Check to see if the loop was closed.
+            if (this.Polyline.GetNumberOfPoints() > 2 && this.ActiveVertex == 0) {
+                // The user clicked on the first vertex. End the line.
+                // Remove the temporary point at end used for drawing.
+                this.Polyline.Points.pop();
+                this.Polyline.Closed = true;
+                this.Layer.DeactivateWidget(this);
+                RecordState();
+                return false;
+            }
+            // Insert another point to drag around.
+            this.DrawingVertex += 1;
+            this.Polyline.Points.splice(this.DrawingVertex,0,pt);
+            this.Polyline.UpdateBuffers();
+            this.Layer.EventuallyDraw(true);
+            return false;
+        }
+        return false;
+    }
+
+
+    //  Preconditions: State == ACTIVE, Mouse 1 is down.
+    // ActiveVertex != 1 or ActiveEdge == [p0,p1,k]
+    PolylineWidget.prototype.HandleDrag = function(pt) {
+        if (this.ActiveEdge) {
+            // User is dragging an edge point that has not been
+            // created yet.
+            var pt0 = this.Polyline.Points[this.ActiveEdge[0]];
+            var pt1 = this.Polyline.Points[this.ActiveEdge[1]];
+            var x = pt0[0] + this.ActiveEdge[2]*(pt1[0]-pt0[0]);
+            var y = pt0[1] + this.ActiveEdge[2]*(pt1[1]-pt0[1]);
+            this.Polyline.Points.splice(this.ActiveEdge[1],0,[x,y]);
+            this.ActiveVertex = this.ActiveEdge[1];
+            this.ActiveEdge = undefined;
+            this.HighlightVertex(this.ActiveVertex);
+            // When dragging, circle is the same color as the line.
+            this.Circle.Active = false;
+        }
+        if ( this.ActiveVertex == -1) {
+            // Sanity check.
+            return false;
+        }
+        // If a vertex is dragged onto its neighbor, indicate that
+        // the vertexes will be merged. Change the color of the
+        // circle to active as an indicator.
+        this.Circle.Active = false;
+        this.Polyline.Points[this.ActiveVertex] = pt;
+        if (this.ActiveVertex > 0 &&
+            this.Polyline.GetEdgeLength(this.ActiveVertex-1) < this.Circle.Radius) {
+            this.Circle.Active = true;
+            // Snap to the neighbor. Deep copy the point
+            pt = this.Polyline.Points[this.ActiveVertex-1].slice(0);
+        }
+        if (this.ActiveVertex < this.Polyline.GetNumberOfPoints()-1 &&
+            this.Polyline.GetEdgeLength(this.ActiveVertex) < this.Circle.Radius) {
+            this.Circle.Active = true;
+            // Snap to the neighbor. Deep copy the point
+            pt = this.Polyline.Points[this.ActiveVertex+1].slice(0);
+        }
+        // Move the vertex with the mouse.
+        this.Polyline.Points[this.ActiveVertex] = pt;
+        // Move the hightlight circle with the vertex.
+        this.Circle.Origin = pt;
+        this.Polyline.UpdateBuffers();
+
+        // TODO: Fix this hack.
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        this.Layer.EventuallyDraw(true);
+    }
+
+
+    // precondition : State == DRAWING
+    // postcondition: State == DRAWING_EDGE
+    // Handle a bunch of cases.  First created, restart at ends or middle.
+    PolylineWidget.prototype.StartDrawing = function(pt) {
+        // If the widget was just created do nothing.
+        if (this.Polyline.GetNumberOfPoints() == 0) {
+            return;
+        }
+        // If we are the begining, Reverse the points.
+        if (this.DrawingVertex == 0) {
+            this.Polyline.Points.reverse();
+            this.DrawingVertex = this.Polyline.GetNumberOfPoints()-1;
+        }
+        // If we are at the end.  Add a point.
+        if (this.DrawingVertex == this.Polyline.GetNumberOfPoints() -1) {
+            this.Polyline.Points.push(pt);
+            this.DrawingVertex += 1;
+            this.State = DRAWING_EDGE;
+            return;
+        }
+        // If we are in the middle. Choose between the two edges.
+        var pt0 = this.Polyline.Points[this.DrawingVertex-1];
+        var pt1 = this.Polyline.Points[this.DrawingVertex];
+        var pt2 = this.Polyline.Points[this.DrawingVertex+1];
+        // Movement vector
+        var dx = pt[0] - pt1[0];
+        var dy = pt[1] - pt1[1];
+        // This is sort of a pain. Normalize the edges.
+        var e0 = [pt0[0]-pt1[0], pt0[1]-pt1[1]];
+        var dist0 = Math.sqrt(e0[0]*e0[0] + e0[1]*e0[1]);
+        dist0 = (dx*e0[0]+dy*e0[1]) / dist0;
+        var e1 = [pt2[0]-pt1[0], pt2[1]-pt1[1]];
+        var dist1 = Math.sqrt(e1[0]*e1[0] + e1[1]*e1[1]);
+        dist1= (dx*e1[0]+dy*e1[1]) / dist0;
+        // if the user is draggin backward, reverse the points.
+        if (dist0 > dist1) {
+            this.Polyline.Points.reverse();
+            this.DrawingVertex = this.Polyline.GetNumberOfPoints() - this.DrawingVertex - 1;
+        }
+        // Insert a point to continue drawing.
+        this.DrawingVertex += 1;
+        this.Polyline.Points.splice(this.DrawingVertex,0,pt);
+        this.State = DRAWING_EDGE;
+        return false;
+    }
+
+    PolylineWidget.prototype.HandleMouseMove = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+
+        if (this.State == DRAWING) {
+            this.StartDrawing(pt);
+            return false;
+        }
+        if (this.State == DRAWING_EDGE) {
+            // Move the active point to follor the cursor.
+            this.Polyline.Points[this.DrawingVertex] = pt;
+            this.Polyline.UpdateBuffers();
+
+            // This higlights the first vertex when a loop is possible.
+            var idx = this.Polyline.PointOnVertex(pt, this.Circle.Radius);
+            if (this.DrawingVertex == this.Polyline.GetNumberOfPoints()-1 && idx == 0) {
+                // Highlight first vertex to indicate potential loop closure.
+                this.HighlightVertex(0);
+            } else {
+                this.HighlightVertex(-1);
+            }
+            return false;
+        }
+
+        if (this.State == ACTIVE) {
+            if (event.which == 0) {
+                // Turn off the active vertex if the mouse moves away.
+                if ( ! this.CheckActive(event)) {
+                    this.Layer.DeactivateWidget(this);
+                } else {
+                    this.UpdateActiveCircle();
+                }
+                return false;
+            }
+            if (this.State == ACTIVE && event.which == 1) {
+                // We are in the middle of dragging a vertex (not in
+                // drawing mode). Leave the circle highlighted.
+                // Use ActiveVertex instead of DrawingVertex which is used
+                // for drawing mode.
+                this.HandleDrag(pt);
+            }
+        }
+    }
+
+
+    // Just returns true and false.  It saves either ActiveVertex or
+    // ActiveEdge if true. Otherwise, it has no side effects.
+    PolylineWidget.prototype.CheckActive = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+        var dist;
+
+        this.ActiveEdge = undefined;
+
+        // Check for mouse touching a vertex circle.
+        dist = VERTEX_RADIUS / this.Layer.GetPixelsPerUnit();
+        dist = Math.max(dist, this.Polyline.GetLineWidth());
+        this.ActiveVertex = this.Polyline.PointOnVertex(pt, dist);
+
+        if (this.State == DRAWING_EDGE) { 
+            // TODO:  The same logic is in mouse move.  Decide which to remove.
+            // Only allow the first vertex to be active (closing the loop).
+            if (this.Polyline.GetNumberOfPoints() < 2 ||
+                this.ActiveVertex != 0) {
+                this.ActiveVertex = -1;
+                return false;
+            }
+            return true;
+        }
+
+        if (this.ActiveVertex == -1) {
+            // Tolerance: 5 screen pixels.
+            dist = EDGE_RADIUS / this.Layer.GetPixelsPerUnit();
+            dist = Math.max(dist, this.Polyline.GetLineWidth()/2);
+            this.ActiveEdge = this.Polyline.PointOnShape(pt, dist);
+            if ( ! this.ActiveEdge) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // This does not handle the case where we want to highlight an edge
+    // point that has not been created yet.
+    PolylineWidget.prototype.HighlightVertex = function(vertexIdx) {
+        if (vertexIdx < 0 || vertexIdx >= this.Polyline.GetNumberOfPoints()) {
+            this.Circle.Visibility = false;
+        } else {
+            this.Circle.Visibility = true;
+            this.Circle.Active = true;
+            this.Circle.Radius = VERTEX_RADIUS / this.Layer.GetPixelsPerUnit();
+            this.CircleRadius = Math.max(this.CircleRadius,
+                                         this.Polyline.GetLineWidth() * 1.5);
+            this.Circle.UpdateBuffers();
+            this.Circle.Origin = this.Polyline.Points[vertexIdx];
+        }
+        this.ActiveVertex = vertexIdx;
+        this.Layer.EventuallyDraw(true);
+    }
+
+    // Use ActiveVertex and ActiveEdge iVars to place and size circle.
+    PolylineWidget.prototype.UpdateActiveCircle = function() {
+        if (this.ActiveVertex != -1) {
+            this.HighlightVertex(this.ActiveVertex);
+            return;
+        } else if (this.ActiveEdge) {
+            this.Circle.Visibility = true;
+            this.Circle.Active = true;
+            this.Circle.Radius = EDGE_RADIUS / this.Layer.GetPixelsPerUnit();
+            this.CircleRadius = Math.max(this.CircleRadius,
+                                         this.Polyline.GetLineWidth());
+            // Find the exact point on the edge (projection of
+            // cursor on the edge).
+            var pt0 = this.Polyline.Points[this.ActiveEdge[0]];
+            var pt1 = this.Polyline.Points[this.ActiveEdge[1]];
+            var x = pt0[0] + this.ActiveEdge[2]*(pt1[0]-pt0[0]);
+            var y = pt0[1] + this.ActiveEdge[2]*(pt1[1]-pt0[1]);
+            this.Circle.Origin = [x,y,0];
+            this.Circle.UpdateBuffers();
+        } else {
+            // Not active.
+            this.Circle.Visibility = false;
+            // We never hightlight the whold polyline now.
+            //this.Polyline.Active = false;
+        }
+        this.Layer.EventuallyDraw(false);
+    }
+
+    // Multiple active states. Active state is a bit confusing.
+    // Only one state (WAITING) does not receive events from the layer.
+    PolylineWidget.prototype.GetActive = function() {
+        if (this.State == WAITING) {
+            return false;
+        }
+        return true;
+    }
+
+    // Active means that the widget is receiving events.  It is
+    // "hot" and waiting to do something.  
+    // However, it is not active when in drawing mode.
+    // This draws a circle at the active spot.
+    // Vertexes are active for click and drag or double click into drawing
+    // mode. Edges are active to insert a new vertex and drag or double
+    // click to insert a new vertex and go into drawing mode.
+    PolylineWidget.prototype.SetActive = function(flag) {
+        if (flag == this.GetActive()) {
+            // Nothing has changed.  Do nothing.
+            return;
+        }
+
+        if (flag) {
+            this.State = ACTIVE;
+            this.UpdateActiveCircle();
+            this.PlacePopup();
+        } else {
+            this.Popup.StartHideTimer();
+            this.State = WAITING;
+            this.DrawingVertex = -1;
+            this.ActiveVertex = -1;
+            this.ActiveEdge = undefined;
+            this.Circle.Visibility = false;
+            if (this.DeactivateCallback) {
+                this.DeactivateCallback();
+            }
+            // Remove invisible lines (with 0 or 1 points).
+            if (this.Polyline.GetNumberOfPoints() < 2) {
+                if (this.Layer) {
+                    this.Layer.RemoveWidget(this);
+                }
+            }
+        }
+
+        this.Layer.EventuallyDraw(false);
+    }
+
+    PolylineWidget.prototype.SetCursorToDrawing = function() {
+        this.Popup.Hide();
+        this.Layer.GetCanvasDiv().css(
+            {'cursor':'url('+SA.ImagePathUrl+'dotCursor8.png) 4 4,crosshair'});
+        this.Layer.EventuallyDraw();
+    }
+
+
+    //This also shows the popup if it is not visible already.
+    PolylineWidget.prototype.PlacePopup = function () {
+        // The popup gets in the way when firt creating the line.
+        if (this.State == DRAWING_EDGE ||
+            this.State == DRAWING) {
+            return;
+        }
+
+        var pt = this.Polyline.FindPopupPoint(this.Layer.GetCamera());
+        pt = this.Layer.GetCamera().ConvertPointWorldToViewer(pt[0], pt[1]);
+
+        pt[0] += 20;
+        pt[1] -= 10;
+
+        this.Popup.Show(pt[0],pt[1]);
+    }
+
+    // Can we bind the dialog apply callback to an objects method?
+    var DIALOG_SELF;
+    PolylineWidget.prototype.ShowPropertiesDialog = function () {
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Polyline.OutlineColor));
+        this.Dialog.ClosedInput.prop('checked', this.Polyline.Closed);
+        this.Dialog.LineWidthInput.val((this.Polyline.LineWidth).toFixed(2));
+
+        var length = this.ComputeLength() * 0.25; // microns per pixel.
+        var lengthString = "";
+        if (this.Polyline.FixedSize) {
+            lengthString += length.toFixed(2);
+            lengthString += " px";
+        } else {
+            if (length > 1000) {
+                lengthString += (length/1000).toFixed(2) + " mm";
+            } else {
+                // Latin-1 00B5 is micro sign
+                lengthString += length.toFixed(2) + " \xB5m";
+            }
+        }
+        this.Dialog.Length.text(lengthString);
+
+        if (this.Polyline.Closed) {
+            this.Dialog.AreaDiv.show();
+            var area = this.ComputeArea() * 0.25 * 0.25;
+            var areaString = "";
+            if (this.Polyline.FixedSize) {
+                areaString += area.toFixed(2);
+                areaString += " pixels^2";
+            } else {
+                if (area > 1000000) {
+                    areaString += (area/1000000).toFixed(2) + " mm^2";
+                } else {
+                    // Latin-1 00B5 is micro sign
+                    areaString += area.toFixed(2) + " \xB5m^2";
+                }
+            }
+            this.Dialog.Area.text(areaString);
+        } else {
+            this.Dialog.AreaDiv.hide();
+        }
+        this.Dialog.Show(true);
+    }
+
+    PolylineWidget.prototype.DialogApplyCallback = function() {
+        var hexcolor = this.Dialog.ColorInput.val();
+        this.Polyline.SetOutlineColor(hexcolor);
+        this.Polyline.Closed = this.Dialog.ClosedInput.prop("checked");
+
+        // Cannot use the shap line width because it is set to zero (single pixel)
+        // it the dialog value is too thin.
+        this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Polyline.UpdateBuffers();
+        this.SetActive(false);
+        RecordState();
+        this.Layer.EventuallyDraw(false);
+
+        localStorage.PolylineWidgetDefaults = JSON.stringify(
+            {Color: hexcolor,
+             ClosedLoop: this.Polyline.Closed,
+             LineWidth: this.LineWidth});
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+    }
+
+    // Note, self intersection can cause unexpected areas.
+    // i.e looping around a point twice ...
+    PolylineWidget.prototype.ComputeArea = function() {
+        if (this.Polyline.GetNumberOfPoints() == 0) {
+            return 0.0;
+        }
+
+        // Compute the center. It should be more numerically stable.
+        // I could just choose the first point as the origin.
+        var cx = 0;
+        var cy = 0;
+        for (var j = 0; j < this.Polyline.GetNumberOfPoints(); ++j) {
+            cx += this.Polyline.Points[j][0];
+            cy += this.Polyline.Points[j][1];
+        }
+        cx = cx / this.Polyline.GetNumberOfPoints();
+        cy = cy / this.Polyline.GetNumberOfPoints();
+
+        var area = 0.0;
+        // Iterate over triangles adding the area of each
+        var last = this.Polyline.GetNumberOfPoints()-1;
+        var vx1 = this.Polyline.Points[last][0] - cx;
+        var vy1 = this.Polyline.Points[last][1] - cy;
+        // First and last point form another triangle (they are not the same).
+        for (var j = 0; j < this.Polyline.GetNumberOfPoints(); ++j) {
+            // Area of triangle is 1/2 magnitude of cross product.
+            var vx2 = vx1;
+            var vy2 = vy1;
+            vx1 = this.Polyline.Points[j][0] - cx;
+            vy1 = this.Polyline.Points[j][1] - cy;
+            area += (vx1*vy2) - (vx2*vy1);
+        }
+
+        // Handle both left hand loops and right hand loops.
+        if (area < 0) {
+            area = -area;
+        }
+        return area;
+    }
+
+    // Note, self intersection can cause unexpected areas.
+    // i.e looping around a point twice ...
+    PolylineWidget.prototype.ComputeLength = function() {
+        if (this.Polyline.GetNumberOfPoints() < 2) {
+            return 0.0;
+        }
+
+        var length = 0;
+        var x0 = this.Polyline.Points[0][0];
+        var y0 = this.Polyline.Points[0][1];
+        for (var j = 1; j < this.Polyline.GetNumberOfPoints(); ++j) {
+            var x1 = this.Polyline.Points[j][0];
+            var y1 = this.Polyline.Points[j][1];
+            var dx = x1-x0;
+            var dy = y1-y0;
+            x0 = x1;
+            y0 = y1;
+            length += Math.sqrt(dx*dx + dy*dy);
+        }
+
+        return length;
+    }
+
+    // This differentiates the inside of the polygion from the outside.
+    // It is used to sample points in a segmented region.
+    // Not actively used (more for experimentation for now).
+    PolylineWidget.prototype.PointInside = function(ox,oy) {
+        if (this.Polyline.Closed == false) {
+            return false;
+        }
+        var x,y;
+        var max = this.Polyline.GetNumberOfPoints() - 1;
+        var xPos = 0;
+        var xNeg = 0;
+        //var yCount = 0;
+        var pt0 = this.Polyline.Points[max];
+        pt0 = [pt0[0]-ox, pt0[1]-oy];
+        for (var idx = 0; idx <= max; ++idx) {
+            var pt1 = this.Polyline.Points[idx];
+            pt1 = [pt1[0]-ox, pt1[1]-oy];
+            var k;
+            k = (pt1[1] - pt0[1]);
+            if ( k != 0 ) {
+                k = -pt0[1] / k;
+                if ( k > 0 && k <= 1) {
+                    // Edge crosses the axis.  Find the intersection.
+                    x = pt0[0] + k*(pt1[0]-pt0[0]);
+                    if (x > 0) { xPos += 1; }
+                    if (x < 0) { xNeg += 1; }
+                }
+            }
+            pt0 = pt1;
+        }
+
+        if ((xPos % 2) && (xNeg % 2)) {
+            return true
+        }
+        return false;
+    }
+
+    // TODO: This will not work with Layer.  Move this to the viewer or a
+    // helper object.
+    // Save images with centers inside the polyline.
+    PolylineWidget.prototype.Sample = function(dim, spacing, skip, root, count) {
+        var bds = this.Polyline.GetBounds();
+        var ctx = this.Layer.Context2d;
+        for (var y = bds[2]; y < bds[3]; y += skip) {
+            for (var x = bds[0]; x < bds[1]; x += skip) {
+                if (this.PointInside(x,y)) {
+                    ip = this.Layer.GetCamera().ConvertPointWorldToViewer(x,y);
+                    ip[0] = Math.round(ip[0] - dim/2);
+                    ip[1] = Math.round(ip[1] - dim/2);
+                    var data = ctx.getImageData(ip[0],ip[1],dim,dim);
+                    DownloadImageData(data, root+"_"+count+".png");
+                    ++count;
+                }
+            }
+        }
+    }
+
+
+    // Save images with centers inside the polyline.
+    PolylineWidget.prototype.SampleStack = function(dim, spacing, skip, root, count) {
+        var cache = LAYERS[0].GetCache();
+        var bds = this.Polyline.GetBounds();
+        for (var y = bds[2]; y < bds[3]; y += skip) {
+            for (var x = bds[0]; x < bds[1]; x += skip) {
+                if (this.PointInside(x,y)) {
+                    GetCutoutimage(cache, dim, [x,y], spacing, 0, null,
+                                   function (data) {
+                                       DownloadImageData(data, root+"_"+count+".png");
+                                       ++count;
+                                   });
+                }
+            }
+        }
+    }
+
+    // Save images with centers inside the polyline.
+    PolylineWidget.prototype.DownloadStack = function(x, y, dim, spacing, root) {
+        var cache = LAYERS[0].GetCache();
+        for (var i = 0; i < 3; ++i) {
+            levelSpacing = spacing << i;
+            GetCutoutImage(cache, dim, [x,y], levelSpacing, 0, root+i+".png", null);
+        }
+    }
 
     /*
-    if (oTextarea.wrap) {
-        oTextarea.setAttribute("wrap", "off");
-    } else {
-        oTextarea.setAttribute("wrap", "off");
-        var newArea = oTextarea.cloneNode(true);
-        newArea.value = oTextarea.value;
-        oTextarea.parentNode.replaceChild(newArea, oTextarea);
-        oTextarea = newArea;
+    // Saves images centered at spots on the edge.
+    // Roll is set to put the edge horizontal.
+    // Step is in screen pixel units
+    PolylineWidget.prototype.SampleEdge = function(dim, step, count, callback) {
+    this.Polyline.SampleEdge(this.Layer,dim,step,count,callback);
+    }
+
+    function DownloadTheano(widgetIdx, angleIdx) {
+    EDGE_ANGLE = 2*Math.PI * angleIdx / 24;
+    LAYERS[0].WidgetList[widgetIdx].SampleEdge(
+    64,4,EDGE_COUNT,
+    function () {
+    setTimeout(function(){ DownloadTheano2(widgetIdx, angleIdx); }, 1000);
+    });
+    }
+
+    function DownloadTheano2(widgetIdx, angleIdx) {
+    ++angleIdx;
+    if (angleIdx >= 24) {
+    angleIdx = 0;
+    ++widgetIdx;
+    }
+    if (widgetIdx < LAYERS[0].WidgetList.length) {
+    DownloadTheano(widgetIdx, angleIdx);
+    }
     }
     */
 
-    oTextarea.setAttribute("wrap", "off");
-    var strRawValue = oTextarea.value;
-    oTextarea.value = "";
-    var nEmptyWidth = oTextarea.scrollWidth;
-    var nLastWrappingIndex = -1;
-    for (var i = 0; i < strRawValue.length; i++) {
-        var curChar = strRawValue.charAt(i);
-        if (curChar == ' ' || curChar == '-' || curChar == '+')
-            nLastWrappingIndex = i;
-        oTextarea.value += curChar;
-        if (oTextarea.scrollWidth > nEmptyWidth) {
-            var buffer = "";
-            if (nLastWrappingIndex >= 0) {
-                for (var j = nLastWrappingIndex + 1; j < i; j++)
-                    buffer += strRawValue.charAt(j);
-                nLastWrappingIndex = -1;
-            }
-            buffer += curChar;
-            oTextarea.value = oTextarea.value.substr(0, oTextarea.value.length - buffer.length);
-            oTextarea.value += "\n" + buffer;
-        }
-    }
-    oTextarea.setAttribute("wrap", "");
-}
 
+    SA.PolylineWidget = PolylineWidget;
 
-
-
-// Poly line
-
-function Polyline() {
-    Shape.call(this);
-    this.Origin = [0.0,0.0]; // Center in world coordinates.
-    this.Points = [];
-    this.Closed = false;
-};
-Polyline.prototype = new Shape;
-
-
-Polyline.prototype.destructor=function() {
-    // Get rid of the buffers?
-}
-
-Polyline.prototype.GetBounds = function () {
-    if (this.Points.length == 0) {
-        return [0,-1,0,-1];
-    }
-    var bds = [this.Points[0][0], this.Points[0][0],
-               this.Points[0][1], this.Points[0][1]];
-    for (var i = 1; i < this.Points.length; ++i) {
-        var pt = this.Points[i];
-        if (pt[0] < bds[0]) bds[0] = pt[0];
-        if (pt[0] > bds[1]) bds[1] = pt[0];
-        if (pt[1] < bds[2]) bds[2] = pt[1];
-        if (pt[1] > bds[3]) bds[3] = pt[1];
-    }
-    return bds;
-}
-
-
-
-// Returns 0 if is does not overlap at all.
-// Returns 1 if part of the section is in the bounds.
-// Returns 2 if all of the section is in the bounds.
-Polyline.prototype.ContainedInBounds = function(bds) {
-    // Polyline does not cache bounds, so just look to the points.
-
-    var pointsIn = false;
-    var pointsOut = false;
-    for (j = 0; j < this.Points.length; ++j) {
-        var pt = this.Points[j];
-        if (bds[0] < pt[0] && pt[0] < bds[1] &&
-            bds[2] < pt[1] && pt[1] < bds[3]) {
-            pointsIn = true;
-        } else {
-            pointsOut = true;
-        }
-        if (pointsIn && pointsOut) {
-            return 1;
-        }
-    }
-
-    if (pointsIn) {
-        return 2;
-    }
-    return 0;
-}
-
-
-// The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
-// Pass in the spacing as a hint to get rid of aliasing.
-Polyline.prototype.Decimate = function (spacing) {
-    // Keep looping over the line removing points until the line does not change.
-    var modified = true;
-    while (modified) {
-        modified = false;
-        var newPoints = [];
-        newPoints.push(this.Points[0]);
-        // Window of four points.
-        var i = 3;
-        while (i < this.Points.length) {
-            var p0 = this.Points[i];
-            var p1 = this.Points[i-1];
-            var p2 = this.Points[i-2];
-            var p3 = this.Points[i-3];
-            // Compute the average of the center two.
-            var cx = (p1[0] + p2[0]) * 0.5;
-            var cy = (p1[1] + p2[1]) * 0.5;
-            // Find the perendicular normal.
-            var nx = (p0[1] - p3[1]);
-            var ny = -(p0[0] - p3[0]);
-            var mag = Math.sqrt(nx*nx + ny*ny);
-            nx = nx / mag;
-            ny = ny / mag;
-            mag = Math.abs(nx*(cx-this.Points[i-3][0]) + ny*(cy-this.Points[i-3][1]));
-            // Mag metric does not distinguish between line and a stroke that double backs on itself.
-            // Make sure the two point being merged are between the outer points 0 and 3.
-            var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
-            var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
-            if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
-                // Replace the two points with their average.
-                newPoints.push([cx, cy]);
-                modified = true;
-                // Skip the next point the window will have one old merged point,
-                // but that is ok because it is just used as reference and not altered.
-                i += 2;
-            } else {
-                //  No modification.  Just move the window one.
-                newPoints.push(this.Points[i-2]);
-                ++i;
-            }
-        }
-        // Copy the remaing point / 2 points
-        i = i-2;
-        while (i < this.Points.length) {
-            newPoints.push(this.Points[i]);
-            ++i;
-        }
-        this.Points = newPoints;
-    }
-    this.UpdateBuffers();
-}
-
-
-
-
-Polyline.prototype.UpdateBuffers = function() {
-    var points = this.Points.slice(0);
-    if (this.Closed && points.length > 2) {
-        points.push(points[0]);
-    }
-
-    this.PointBuffer = [];
-    var cellData = [];
-    var lineCellData = [];
-
-    this.Matrix = mat4.create();
-    mat4.identity(this.Matrix);
-
-    if (this.LineWidth == 0 || !GL ) {
-        for (var i = 0; i < points.length; ++i) {
-            this.PointBuffer.push(points[i][0]);
-            this.PointBuffer.push(points[i][1]);
-            this.PointBuffer.push(0.0);
-        }
-        // Not used for line width == 0.
-        for (var i = 2; i < points.length; ++i) {
-            cellData.push(0);
-            cellData.push(i-1);
-            cellData.push(i);
-        }
-    } else {
-        // Compute a list normals for middle points.
-        var edgeNormals = [];
-        var mag;
-        var x;
-        var y;
-        var end = points.length-1;
-        // Compute the edge normals.
-        for (var i = 0; i < end; ++i) {
-            x = points[i+1][0] - points[i][0];
-            y = points[i+1][1] - points[i][1];
-            mag = Math.sqrt(x*x + y*y);
-            edgeNormals.push([-y/mag,x/mag]);
-        }
-
-        if ( end > 0 ) {
-            var half = this.LineWidth / 2.0;
-            // 4 corners per point
-            var dx = edgeNormals[0][0]*half;
-            var dy = edgeNormals[0][1]*half;
-            this.PointBuffer.push(points[0][0] - dx);
-            this.PointBuffer.push(points[0][1] - dy);
-            this.PointBuffer.push(0.0);
-            this.PointBuffer.push(points[0][0] + dx);
-            this.PointBuffer.push(points[0][1] + dy);
-            this.PointBuffer.push(0.0);
-            for (var i = 1; i < end; ++i) {
-                this.PointBuffer.push(points[i][0] - dx);
-                this.PointBuffer.push(points[i][1] - dy);
-                this.PointBuffer.push(0.0);
-                this.PointBuffer.push(points[i][0] + dx);
-                this.PointBuffer.push(points[i][1] + dy);
-                this.PointBuffer.push(0.0);
-                dx = edgeNormals[i][0]*half;
-                dy = edgeNormals[i][1]*half;
-                this.PointBuffer.push(points[i][0] - dx);
-                this.PointBuffer.push(points[i][1] - dy);
-                this.PointBuffer.push(0.0);
-                this.PointBuffer.push(points[i][0] + dx);
-                this.PointBuffer.push(points[i][1] + dy);
-                this.PointBuffer.push(0.0);
-            }
-            this.PointBuffer.push(points[end][0] - dx);
-            this.PointBuffer.push(points[end][1] - dy);
-            this.PointBuffer.push(0.0);
-            this.PointBuffer.push(points[end][0] + dx);
-            this.PointBuffer.push(points[end][1] + dy);
-            this.PointBuffer.push(0.0);
-        }
-        // Generate the triangles for a thick line
-        for (var i = 0; i < end; ++i) {
-            lineCellData.push(0 + 4*i);
-            lineCellData.push(1 + 4*i);
-            lineCellData.push(3 + 4*i);
-            lineCellData.push(0 + 4*i);
-            lineCellData.push(3 + 4*i);
-            lineCellData.push(2 + 4*i);
-        }
-
-        // Not used.
-        for (var i = 2; i < points.length; ++i) {
-            cellData.push(0);
-            cellData.push((2*i)-1);
-            cellData.push(2*i);
-        }
-    }
-
-    if (GL) {
-        this.VertexPositionBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
-        this.VertexPositionBuffer.itemSize = 3;
-        this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
-
-        this.CellBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-        this.CellBuffer.itemSize = 1;
-        this.CellBuffer.numItems = cellData.length;
-
-        if (this.LineWidth != 0) {
-            this.LineCellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
-            this.LineCellBuffer.itemSize = 1;
-            this.LineCellBuffer.numItems = lineCellData.length;
-        }
-    }
-}
-
-
-
-// GLOBAL To Position the orientatation of the edge.
-var EDGE_COUNT = 0;
-var EDGE_ANGLE = (2*Math.PI) * 0/24;
-var EDGE_OFFSET = 0; // In screen pixels.
-var EDGE_ROOT = "edge";
-var EDGE_DELAY = 200;
-// Saves images centered at spots on the edge.
-// Roll is set to put the edge horizontal.
-// Step is in screen pixel units
-// Count is the starting index for file name generation.
-Polyline.prototype.SampleEdge = function(viewer, dim, step, count, callback) {
-    var cam = viewer.GetCamera();
-    var scale = cam.GetHeight() / cam.ViewportHeight;
-    // Convert the step from screen pixels to world.
-    step *= scale;
-    var cache = viewer.GetCache();
-    var dimensions = [dim,dim];
-    // Distance between edge p0 to next sample point.
-    var remaining = step/2;
-    // Recursive to serialize asynchronous cutouts.
-    this.RecursiveSampleEdge(this.Points.length-1,0,remaining,step,count,
-                             cache,dimensions,scale, callback);
-}
-Polyline.prototype.RecursiveSampleEdge = function(i0,i1,remaining,step,count,
-                                                  cache,dimensions,scale, callback) {
-    var pt0 = this.Points[i0];
-    var pt1 = this.Points[i1];
-    // Compute the length of the edge.
-    var dx = pt1[0]-pt0[0];
-    var dy = pt1[1]-pt0[1];
-    var length = Math.sqrt(dx*dx +dy*dy);
-    // Take steps along the edge (size 'step')
-    if (remaining > length) {
-        // We passed over this edge. Move to the next edge.
-        remaining = remaining - length;
-        i0 = i1;
-        i1 += 1;
-        // Test for terminating condition.
-        if (i1 < this.Points.length) {
-            this.RecursiveSampleEdge(i0,i1,remaining,step, count,
-                                     cache,dimensions,scale, callback);
-        } else {
-            (callback)();
-        }
-    } else {
-        var self = this;
-        // Compute the sample point and tangent on this edge.
-        var edgeAngle = -Math.atan2(dy,dx) + EDGE_ANGLE;
-        var k = remaining / length;
-        var x = pt0[0] + k*(pt1[0]-pt0[0]);
-        var y = pt0[1] + k*(pt1[1]-pt0[1]);
-        // Normal (should be out if loop is clockwise).
-        var nx = -dy;
-        var ny = dx;
-        var mag = Math.sqrt(nx*nx + ny*ny);
-        nx = (nx / mag) * EDGE_OFFSET * scale;
-        ny = (ny / mag) * EDGE_OFFSET * scale;
-
-        // Save an image at this sample point.
-        GetCutoutImage(cache,dimensions,[x+nx,y+ny],scale,
-                       edgeAngle,EDGE_ROOT+count+".png",
-                       function() {
-                           setTimeout(
-                               function () {
-                                   ++count;
-                                   EDGE_COUNT = count;
-                                   remaining += step;
-                                   self.RecursiveSampleEdge(i0,i1,remaining,step,count,
-                                                            cache,dimensions,scale,callback);
-                               }, EDGE_DELAY);
-                       });
-    }
-}
-//==============================================================================
-// Mouse click places a point.
-// A small circle will be used to shaow an active vertex.
-// Widget starts with an active vertex (mouse up).
-// Mouse down->up places the vertex and deactivates it. A new deactive vertex is created.
-// Mouse drag at this point drages an edge from the last vertex.
-
-
-// Todo: Merge vertecies
-// Properties dialog for a point (or list).
-
-var POLYLINE_WIDGET_NEW = 0;
-var POLYLINE_WIDGET_NEW_EDGE = 1;
-var POLYLINE_WIDGET_WAITING = 2;
-var POLYLINE_WIDGET_VERTEX_ACTIVE = 3;
-var POLYLINE_WIDGET_MIDPOINT_ACTIVE = 4;
-var POLYLINE_WIDGET_ACTIVE = 5;
-var POLYLINE_WIDGET_PROPERTIES_DIALOG = 6;
-
-
-function PolylineWidget (viewer, newFlag) {
-    if (viewer === undefined) {
-        return;
-    }
-
-    // Circle is to show an active vertex.
-    this.Circle = new Circle();
-    this.Shape = new Polyline();
-
-    var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
-    // Customize dialog for a lasso.
-    this.Dialog.Title.text('Lasso Annotation Editor');
-    this.Dialog.Body.css({'margin':'1em 2em'});
-    // Color
-    this.Dialog.ColorDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.ColorLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ColorDiv)
-        .text("Color:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.ColorInput =
-        $('<input type="color">')
-        .appendTo(this.Dialog.ColorDiv)
-      .val('#30ff00')
-        .css({'display':'table-cell'});
-
-    // closed check
-    this.Dialog.ClosedDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.ClosedLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ClosedDiv)
-        .text("Closed:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.ClosedInput =
-        $('<input type="checkbox">')
-        .appendTo(this.Dialog.ClosedDiv)
-        .attr('checked', 'false')
-        .css({'display': 'table-cell'});
-
-    // Line Width
-    this.Dialog.LineWidthDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.LineWidthLabel =
-        $('<div>')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .text("Line Width:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.LineWidthInput =
-        $('<input type="number">')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .css({'display':'table-cell'})
-        .keypress(function(event) { return event.keyCode != 13; });
-
-    // Length
-    this.Dialog.LengthDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.LengthLabel =
-        $('<div>')
-        .appendTo(this.Dialog.LengthDiv)
-        .text("Length:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.Length =
-        $('<div>')
-        .appendTo(this.Dialog.LengthDiv)
-        .css({'display':'table-cell'});
-
-    // Area
-    this.Dialog.AreaDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.AreaLabel =
-        $('<div>')
-        .appendTo(this.Dialog.AreaDiv)
-        .text("Area:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.Area =
-        $('<div>')
-        .appendTo(this.Dialog.AreaDiv)
-        .css({'display':'table-cell'});
-
-    // Get default properties.
-    this.LineWidth = 10.0;
-    this.Shape.Closed = false;
-    if (localStorage.PolylineWidgetDefaults) {
-        var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
-        if (defaults.Color) {
-            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
-        }
-        if (defaults.ClosedLoop !== undefined) {
-            this.Shape.Closed = defaults.ClosedLoop;
-        }
-        if (defaults.LineWidth) {
-            this.LineWidth = defaults.LineWidth;
-            this.Dialog.LineWidthInput.val(this.LineWidth);
-        }
-    }
-
-    this.Circle.FillColor = [1.0, 1.0, 0.2];
-    this.Circle.OutlineColor = [0.0,0.0,0.0];
-    this.Circle.FixedSize = false;
-    this.Circle.ZOffset = -0.05;
-
-    this.Shape.OutlineColor = [0.0, 0.0, 0.0];
-    this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
-    this.Shape.FixedSize = false;
-
-    this.Viewer = viewer;
-    this.Popup = new WidgetPopup(this);
-    var cam = viewer.MainView.Camera;
-    var viewport = viewer.MainView.Viewport;
-
-    this.Viewer.AddWidget(this);
-
-    // Set line thickness using viewer. (5 pixels).
-    // The Line width of the shape switches to 0 (single line)
-    // when the actual line with is too thin.
-    this.Shape.LineWidth =this.LineWidth;
-    this.Circle.Radius = this.LineWidth;
-    this.Circle.UpdateBuffers();
-
-    if (newFlag) {
-        this.State = POLYLINE_WIDGET_NEW;
-        this.Shape.Active = true;
-        this.ActiveVertex = -1;
-        this.Viewer.ActivateWidget(this);
-    } else {
-        this.State = POLYLINE_WIDGET_WAITING;
-        this.Circle.Visibility = false;
-        this.ActiveVertex == -1;
-    }
-    this.ActiveMidpoint = -1;
-
-    // Set some default values for bounds.
-    var cam = viewer.GetCamera();
-    var radius = cam.Height / 4;
-    this.Bounds = [cam.FocalPoint[0]-radius, cam.FocalPoint[0]+radius,
-                   cam.FocalPoint[1]-radius, cam.FocalPoint[1]+radius];
-    this.UpdateCircleRadius();
-
-    // Lets save the zoom level (sort of).
-    // Load will overwrite this for existing annotations.
-    // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize();
-
-    // Set to be the width of a pixel.
-    this.MinLine = 1.0;
-
-    this.Viewer.EventuallyRender(false);
-}
-
-// This is called whenever the shape changes.
-PolylineWidget.prototype.UpdateBounds = function() {
-    if (this.Shape.Points.length < 2) { return; }
-    var xMin = this.Shape.Points[0][0];
-    var xMax = xMin;
-    var yMin = this.Shape.Points[0][1];
-    var yMax = yMin;
-    for (var i = 1; i < this.Shape.Points.length; ++i) {
-        var pt = this.Shape.Points[i];
-        xMin = Math.min(xMin, pt[0]);
-        xMax = Math.max(xMin, pt[0]);
-        yMin = Math.min(yMin, pt[1]);
-        yMax = Math.max(yMin, pt[1]);
-    }
-    this.Bounds = [xMin, xMax, yMin, yMax];
-}
-
-
-
-// Setting the circle radius based on line width does not work.
-// Choose maximum based on screen size and fraction of polyline bounds.
-PolylineWidget.prototype.UpdateCircleRadius = function() {
-    var height = this.Viewer.GetCamera().Height;
-    var radius = height / 200;
-    radius = Math.min(radius, (this.Bounds[3]-this.Bounds[2]) * 0.25);
-    radius = Math.max(radius, this.LineWidth);
-
-    this.Circle.Radius = radius;
-    this.Circle.UpdateBuffers();
-}
-
-
-PolylineWidget.prototype.Draw = function(view) {
-    // When the line is too thin, we can see nothing.
-    // Change it to line drawing.
-    var cam = this.Viewer.MainView.Camera;
-    var viewport = this.Viewer.MainView.Viewport;
-    this.MinLine = cam.Height/viewport[3];
-    if (this.LineWidth < this.MinLine) {
-      // Too thin. Use a single line.
-      this.Shape.LineWidth = 0;
-    } else {
-      this.Shape.LineWidth = this.LineWidth;
-    }
-
-    this.Shape.Draw(view);
-    this.Circle.Draw(view);
-}
-
-
-PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-    this.Load(data);
-    // Place the widget over the mouse.
-    // This is more difficult than the circle.  Compute the shift.
-    var xOffset = mouseWorldPt[0] - (this.Bounds[0]+this.Bounds[1])/2;
-    var yOffset = mouseWorldPt[1] - (this.Bounds[2]+this.Bounds[3])/2;
-    for (var i = 0; i < this.Shape.Points.length; ++i) {
-        this.Shape.Points[i][0] += xOffset;
-        this.Shape.Points[i][1] += yOffset;
-    }
-    this.UpdateBounds();
-    this.Shape.UpdateBuffers();
-    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-
-    this.Viewer.EventuallyRender(true);
-}
-
-PolylineWidget.prototype.Serialize = function() {
-    if(this.Shape === undefined){ return null; }
-    var obj = new Object();
-    obj.type = "polyline";
-    obj.outlinecolor = this.Shape.OutlineColor;
-    obj.linewidth = this.LineWidth;
-    // Copy the points to avoid array reference bug.
-    obj.points = [];
-    for (var i = 0; i < this.Shape.Points.length; ++i) {
-        obj.points.push([this.Shape.Points[i][0], this.Shape.Points[i][1]]);
-    }
-    this.UpdateBounds();
-
-    obj.creation_camera = this.CreationCamera;
-    obj.closedloop = this.Shape.Closed;
-
-    return obj;
-}
-
-// Load a widget from a json object (origin MongoDB).
-// Object already json decoded.
-PolylineWidget.prototype.Load = function(obj) {
-  this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-  this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-  this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-  this.LineWidth = parseFloat(obj.linewidth);
-  this.Shape.LineWidth = this.LineWidth;
-  this.Shape.Points = [];
-  for(var n=0; n < obj.points.length; n++){
-      this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
-                            parseFloat(obj.points[n][1])];
-  }
-  this.Shape.Closed = obj.closedloop;
-  this.UpdateBounds();
-  this.Shape.UpdateBuffers();
-
-  // How zoomed in was the view when the annotation was created.
-  if (obj.view_height !== undefined) {
-    this.CreationCamera = obj.creation_camera;
-  }
-}
-
-PolylineWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer) {
-        this.Viewer.RemoveWidget(this);
-    }
-}
-
-PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
-  return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
-}
-
-PolylineWidget.prototype.HandleMouseWheel = function(event) {
-    // TODO: Scale the thickness.
-    return false;
-}
-
-PolylineWidget.prototype.HandleKeyPress = function(event) {
-  // Copy
-  if (event.keyCode == 67 && event.ctrlKey) {
-    // control-c for copy
-    // The extra identifier is not needed for widgets, but will be
-    // needed if we have some other object on the clipboard.
-    var clip = {Type:"PolylineWidget", Data: this.Serialize()};
-    localStorage.ClipBoard = JSON.stringify(clip);
-    return false;
-  }
-
-  if (event.keyCode == 27) { // escape
-    // Last resort.  ESC key always deactivates the widget.
-    // Deactivate.
-    this.Deactivate();
-    RecordState();
-    return false;
-  }
-
-  return true;
-}
-
-PolylineWidget.prototype.HandleDoubleClick = function(event) {
-    this.Deactivate();
-    return true;
-}
-
-PolylineWidget.prototype.Deactivate = function() {
-    this.Popup.StartHideTimer();
-    this.State = POLYLINE_WIDGET_WAITING;
-    this.Viewer.DeactivateWidget(this);
-    this.Shape.Active = false;
-    this.ActivateVertex(-1);
-    if (this.DeactivateCallback) {
-        this.DeactivateCallback();
-    }
-
-    if (this.Shape.Points.length < 2) {
-        this.RemoveFromViewer();
-    }
-
-    this.Viewer.EventuallyRender(false);
-}
-
-// Mouse down does nothing. Mouse up causes all state changes.
-PolylineWidget.prototype.HandleMouseDown = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
-  var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-
-  if (this.State == POLYLINE_WIDGET_NEW) {
-    this.Shape.Points.push(pt);
-    this.Shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-    this.ActivateVertex(-1);
-    this.State = POLYLINE_WIDGET_NEW_EDGE;
-    this.UpdateBounds();
-    this.Viewer.EventuallyRender(false);
-    return;
-  }
-  if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-    if (this.ActiveVertex >= 0) { // The user clicked on an active vertex. End the line.
-      // Remove the temporary point at end used for drawining.
-      this.Shape.Points.pop();
-      if (this.ActiveVertex == 0) {
-        this.Shape.Closed = true;
-      }
-      this.Deactivate();
-      RecordState();
-      return;
-    }
-    this.Shape.Points.push(pt);
-    this.Shape.UpdateBuffers();
-    this.UpdateBounds();
-    this.Viewer.EventuallyRender(true);
-    return;
-  }
-
-  if (this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE) {
-    // Compute the midpoint.
-    var x, y;
-    if (this.ActiveMidpoint == 0) {
-      var numPoints = this.Shape.Points.length;
-      // The closed option is becoming a pain.
-      x = 0.5 * (this.Shape.Points[numPoints-1][0] + this.Shape.Points[0][0]);
-      y = 0.5 * (this.Shape.Points[numPoints-1][1] + this.Shape.Points[0][1]);
-    } else {
-      x = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][0] + this.Shape.Points[this.ActiveMidpoint][0]);
-      y = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][1] + this.Shape.Points[this.ActiveMidpoint][1]);
-    }
-    // Insert the midpoint in the loop.
-    this.Shape.Points.splice(this.ActiveMidpoint,0,[x,y]);
-    // Now set up dragging interaction on the new point.
-    this.ActivateVertex(this.ActiveMidpoint);
-    this.ActiveMidpoint = -1;
-    this.State = POLYLINE_WIDGET_VERTEX_ACTIVE; // Activate vertex probably does this.
-    }
-
-  if (this.State == POLYLINE_WIDGET_ACTIVE) {
-    this.LastMouseWorld = pt;
-  }
-}
-
-// Returns false when it is finished doing its work.
-PolylineWidget.prototype.HandleMouseUp = function(event) {
-  // Logic to remove a vertex. Drag it over a neighbor.
-  //if (this.State do this later.
-
-  // Old, but could be useful.
-  if (this.State == POLYLINE_WIDGET_ACTIVE && event.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    this.State = POLYLINE_WIDGET_PROPERTIES_DIALOG;
-    this.ShowPropertiesDialog();
-  }
-
-  if (event.which == 1) {
-    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
-        this.State == POLYLINE_WIDGET_ACTIVE) {
-      // Dragging a vertex or the whole polyline.
-      RecordState();
-    }
-  }
-
-}
-
-
-PolylineWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.offsetX;
-    var y = event.offsetY;
-    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-
-    if (this.State == POLYLINE_WIDGET_NEW) {
-        this.Circle.Origin = pt;
-        this.Viewer.EventuallyRender(true);
-        return;
-    }
-    if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-        var lastIdx = this.Shape.Points.length - 1;
-        this.Shape.Points[lastIdx] = pt;
-        this.Shape.UpdateBuffers();
-        this.UpdateBounds();
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-        var idx = this.WhichVertexShouldBeActive(pt);
-        // Only the first or last vertexes will stop the new line.
-        this.ActivateVertex(idx);
-        this.Viewer.EventuallyRender(true);
-        return;
-    }
-    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
-        this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE ||
-        this.State == POLYLINE_WIDGET_ACTIVE) {
-        if (event.which == 0) {
-            // Turn off the active vertex if the mouse moves away.
-            this.SetActive(this.CheckActive(event));
-            return;
-        }
-        if (this.State == POLYLINE_WIDGET_ACTIVE && event.which == 1) {
-            //drag the whole widget.
-            var dx = pt[0] - this.LastMouseWorld[0];
-            var dy = pt[1] - this.LastMouseWorld[1];
-            for (var i = 0; i < this.Shape.Points.length; ++i) {
-                this.Shape.Points[i][0] += dx;
-                this.Shape.Points[i][1] += dy;
-            }
-            this.LastMouseWorld = pt;
-            this.Shape.UpdateBuffers();
-            this.UpdateBounds();
-            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-            this.PlacePopup();
-            this.Viewer.EventuallyRender(true);
-            return;
-        }
-        if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.which == 1) {
-            //drag the vertex
-            this.Shape.Points[this.ActiveVertex] = pt;
-            this.Circle.Origin = pt;
-            this.Shape.UpdateBuffers();
-            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-            this.PlacePopup();
-            this.Viewer.EventuallyRender(true);
-        }
-    }
-}
-
-// pt is mouse in world coordinates.
-PolylineWidget.prototype.WhichVertexShouldBeActive = function(pt) {
-  if (this.State == POLYLINE_WIDGET_NEW) {
-    return -1;
-  }
-  this.UpdateCircleRadius();
-  var r2 = this.Circle.Radius * this.Circle.Radius;
-  if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-    var dx = pt[0] - this.Shape.Points[0][0];
-    var dy = pt[1] - this.Shape.Points[0][1];
-    var dist2 = dx*dx + dy*dy;
-    if (dist2 < r2) { return 0; }
-    var last = this.Shape.Points.length - 2;
-    if (last >= 0 ) {
-      var dx = pt[0] - this.Shape.Points[last][0];
-      var dy = pt[1] - this.Shape.Points[last][1];
-      var dist2 = dx*dx + dy*dy;
-      if (dist2 < r2) { return last; }
-    }
-    return -1;
-  }
-
-  if (this.State == POLYLINE_WIDGET_WAITING || this.State == POLYLINE_WIDGET_VERTEX_ACTIVE) {
-    // Check all the vertecies.
-    for (var i = 0; i < this.Shape.Points.length; ++i) {
-      var dx = pt[0] - this.Shape.Points[i][0];
-      var dy = pt[1] - this.Shape.Points[i][1];
-      var dist2 = dx*dx + dy*dy;
-      if (dist2 < r2) {
-        return i;
-      }
-    }
-  }
-
-  return -1;
-}
-
-
-
-PolylineWidget.prototype.HandleTouchPan = function(event) {
-}
-PolylineWidget.prototype.HandleTouchPinch = function(event) {
-}
-PolylineWidget.prototype.HandleTouchEnd = function(event) {
-}
-
-
-
-PolylineWidget.prototype.CheckActive = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
-  var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-
-  // First check if any vertices are active.
-  var idx = this.WhichVertexShouldBeActive(pt);
-  this.ActivateVertex(idx);
-  if (idx != -1) {
-    this.State = POLYLINE_WIDGET_VERTEX_ACTIVE;
-    return true;
-  }
-
-  // Check for the mouse over a midpoint.
-  this.UpdateCircleRadius();
-  var r2 = this.Circle.Radius * this.Circle.Radius;
-  var numPoints = this.Shape.Points.length;
-  for (idx = 0; idx < numPoints; ++idx) {
-    // Some juggling to detect the closing edget from end to 0.
-    if (idx == 0) {
-      if ( ! this.Shape.Closed) {
-        continue;
-      }
-      x = 0.5 *(this.Shape.Points[numPoints-1][0] + this.Shape.Points[idx][0]);
-      y = 0.5 *(this.Shape.Points[numPoints-1][1] + this.Shape.Points[idx][1]);
-    } else {
-      x = 0.5 *(this.Shape.Points[idx-1][0] + this.Shape.Points[idx][0]);
-      y = 0.5 *(this.Shape.Points[idx-1][1] + this.Shape.Points[idx][1]);
-    }
-    var dx = pt[0] - x;
-    var dy = pt[1] - y;
-    if ((dx*dx + dy*dy) <= r2) {
-      this.Circle.Visibility = true;
-      this.Circle.Origin = [x, y];
-      this.State = POLYLINE_WIDGET_MIDPOINT_ACTIVE;
-      this.Shape.Active = false;
-      this.ActiveMidpoint = idx;
-      this.PlacePopup();
-      return true;
-    }
-  }
-
-  // Check for mouse touching an edge.
-  var width = Math.max(this.MinLine * 4, this.LineWidth);
-  for (var i = 1; i < this.Shape.Points.length; ++i) {
-    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1],
-                                      this.Shape.Points[i], width)) {
-      this.State = POLYLINE_WIDGET_ACTIVE;
-      this.Shape.Active = true;
-      this.PlacePopup();
-      return true;
-    }
-  }
-  if (this.Shape.Closed) {
-    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[0],
-                                      this.Shape.Points[this.Shape.Points.length-1], width)) {
-      this.State = POLYLINE_WIDGET_ACTIVE;
-      this.Shape.Active = true;
-      this.PlacePopup();
-      return true;
-    }
-  }
-
-
-
-  return false;
-}
-
-// -1 => no active vertex.
-PolylineWidget.prototype.ActivateVertex = function(vIdx) {
-  if (vIdx >= this.Shape.Points.length) {
-    // Index out of bounds.
-    alert("PolylineWidget::ActivateVertex: index out of bounds");
-    return;
-  }
-  if (vIdx < 0) {
-    this.Circle.Visibility = false;
-    this.Viewer.EventuallyRender(false);
-  } else {
-    var cam = this.Viewer.MainView.Camera;
-    var viewport = this.Viewer.MainView.Viewport;
-    this.Circle.Radius = 5.0*cam.Height/viewport[3];
-    this.UpdateCircleRadius();
-    this.Circle.UpdateBuffers();
-    this.Circle.Visibility = true;
-    this.Circle.Origin = this.Shape.Points[vIdx];
-    this.PlacePopup();
-    this.Viewer.EventuallyRender(false);
-  }
-
-  this.ActiveVertex = vIdx;
-}
-
-// Multiple active states. Active state is a bit confusing.
-// Only one state (WAITING) does not receive events from the viewer.
-PolylineWidget.prototype.GetActive = function() {
-  if (this.State == POLYLINE_WIDGET_WAITING) {
-    return false;
-  }
-  return true;
-}
-
-// Active simply means that the widget is receiving events.
-// This widget can activate verticies, the whole polyline, or a middle vertex.
-PolylineWidget.prototype.SetActive = function(flag) {
-  if (flag == this.GetActive()) {
-    return;
-  }
-
-  if (flag) {
-    this.State = POLYLINE_WIDGET_ACTIVE;
-    this.Shape.Active = true;
-    this.Viewer.ActivateWidget(this);
-    this.PlacePopup();
-    this.Viewer.EventuallyRender(false);
-  } else {
-    this.Deactivate();
-  }
-}
-
-
-
-
-//This also shows the popup if it is not visible already.
-PolylineWidget.prototype.PlacePopup = function () {
-  // The popup gets in the way when firt creating the line.
-  if (this.State == POLYLINE_WIDGET_NEW_EDGE ||
-      this.State == POLYLINE_WIDGET_NEW) {
-    return;
-  }
-
-  var roll = this.Viewer.GetCamera().Roll;
-  var s = Math.sin(roll + (Math.PI*0.25));
-  var c = Math.cos(roll + (Math.PI*0.25));
-
-  if (this.Shape.Points.length < 1) { return; }
-  // Find the upper right most vertex.
-  var x = this.Shape.Points[0][0];
-  var y = this.Shape.Points[0][1];
-  var best = (c*x)-(s*y);
-  for (idx = 1; idx < this.Shape.Points.length; ++idx) {
-    var tx = this.Shape.Points[idx][0];
-    var ty = this.Shape.Points[idx][1];
-    var tmp = (c*tx)-(s*ty);
-    if (tmp > best) {
-      best = tmp;
-      x = tx;
-      y = ty;
-    }
-  }
-  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
-
-  pt[0] += 20;
-  pt[1] -= 10;
-
-  this.Popup.Show(pt[0],pt[1]);
-}
-
-
-// Can we bind the dialog apply callback to an objects method?
-var POLYLINE_WIDGET_DIALOG_SELF;
-PolylineWidget.prototype.ShowPropertiesDialog = function () {
-  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
-  this.Dialog.ClosedInput.prop('checked', this.Shape.Closed);
-  this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
-
-  var length = this.ComputeLength() * 0.25; // microns per pixel.
-  var lengthString = "";
-  if (this.Shape.FixedSize) {
-    lengthString += length.toFixed(2);
-    lengthString += " px";
-  } else {
-      if (length > 1000) {
-          lengthString += (length/1000).toFixed(2) + " mm";
-      } else {
-          // Latin-1 00B5 is micro sign
-          lengthString += length.toFixed(2) + " \xB5m";
-      }
-  }
-  this.Dialog.Length.text(lengthString);
-
-
-  if (this.Shape.Closed) {
-    this.Dialog.AreaDiv.show();
-    var area = this.ComputeArea() * 0.25 * 0.25;
-    var areaString = "";
-    if (this.Shape.FixedSize) {
-        areaString += area.toFixed(2);
-        areaString += " pixels^2";
-    } else {
-        if (area > 1000000) {
-            areaString += (area/1000000).toFixed(2) + " mm^2";
-        } else {
-            // Latin-1 00B5 is micro sign
-            areaString += area.toFixed(2) + " \xB5m^2";
-        }
-    }
-    this.Dialog.Area.text(areaString);
-  } else {
-    this.Dialog.AreaDiv.hide();
-  }
-  this.Dialog.Show(true);
-}
-
-PolylineWidget.prototype.DialogApplyCallback = function() {
-    var hexcolor = this.Dialog.ColorInput.val();
-    this.Shape.SetOutlineColor(hexcolor);
-    this.Shape.Closed = this.Dialog.ClosedInput.prop("checked");
-
-    // Cannot use the shap line width because it is set to zero (single pixel)
-    // it the dialog value is too thin.
-    this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-    this.Shape.UpdateBuffers();
-    this.SetActive(false);
-    RecordState();
-    this.Viewer.EventuallyRender(false);
-
-    localStorage.PolylineWidgetDefaults = JSON.stringify(
-        {Color: hexcolor,
-         ClosedLoop: this.Shape.Closed,
-         LineWidth: this.LineWidth});
-    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-}
-
-// Note, self intersection can cause unexpected areas.
-// i.e looping around a point twice ...
-PolylineWidget.prototype.ComputeArea = function() {
-    if (this.Shape.Points.length == 0) {
-        return 0.0;
-    }
-
-    // Compute the center. It should be more numerically stable.
-    // I could just choose the first point as the origin.
-    var cx = 0;
-    var cy = 0;
-    for (var j = 0; j < this.Shape.Points.length; ++j) {
-        cx += this.Shape.Points[j][0];
-        cy += this.Shape.Points[j][1];
-    }
-    cx = cx / this.Shape.Points.length;
-    cy = cy / this.Shape.Points.length;
-
-    var area = 0.0;
-    // Iterate over triangles adding the area of each
-    var last = this.Shape.Points.length-1;
-    var vx1 = this.Shape.Points[last][0] - cx;
-    var vy1 = this.Shape.Points[last][1] - cy;
-    // First and last point form another triangle (they are not the same).
-    for (var j = 0; j < this.Shape.Points.length; ++j) {
-        // Area of triangle is 1/2 magnitude of cross product.
-        var vx2 = vx1;
-        var vy2 = vy1;
-        vx1 = this.Shape.Points[j][0] - cx;
-        vy1 = this.Shape.Points[j][1] - cy;
-        area += (vx1*vy2) - (vx2*vy1);
-    }
-
-    // Handle both left hand loops and right hand loops.
-    if (area < 0) {
-        area = -area;
-    }
-    return area;
-}
-
-// Note, self intersection can cause unexpected areas.
-// i.e looping around a point twice ...
-PolylineWidget.prototype.ComputeLength = function() {
-    if (this.Shape.Points.length < 2) {
-        return 0.0;
-    }
-
-    var length = 0;
-    var x0 = this.Shape.Points[0][0];
-    var y0 = this.Shape.Points[0][1];
-    for (var j = 1; j < this.Shape.Points.length; ++j) {
-        var x1 = this.Shape.Points[j][0];
-        var y1 = this.Shape.Points[j][1];
-        var dx = x1-x0;
-        var dy = y1-y0;
-        x0 = x1;
-        y0 = y1;
-        length += Math.sqrt(dx*dx + dy*dy);
-    }
-
-    return length;
-}
-
-
-PolylineWidget.prototype.PointInside = function(ox,oy) {
-    if (this.Shape.Closed == false) {
-        return false;
-    }
-    var x,y;
-    var max = this.Shape.Points.length - 1;
-    var xPos = 0;
-    var xNeg = 0;
-    //var yCount = 0;
-    var pt0 = this.Shape.Points[max];
-    pt0 = [pt0[0]-ox, pt0[1]-oy];
-    for (var idx = 0; idx <= max; ++idx) {
-        var pt1 = this.Shape.Points[idx];
-        pt1 = [pt1[0]-ox, pt1[1]-oy];
-        var k;
-        k = (pt1[1] - pt0[1]);
-        if ( k != 0 ) {
-            k = -pt0[1] / k;
-            if ( k > 0 && k <= 1) {
-                // Edge crosses the axis.  Find the intersection.
-                x = pt0[0] + k*(pt1[0]-pt0[0]);
-                if (x > 0) { xPos += 1; }
-                if (x < 0) { xNeg += 1; }
-            }
-        }
-        pt0 = pt1;
-    }
-
-    if ((xPos % 2) && (xNeg % 2)) {
-        return true
-    }
-    return false;
-}
-
-// Save images with centers inside the polyline.
-PolylineWidget.prototype.Sample = function(dim, spacing, skip, root, count) {
-    var bds = this.Shape.GetBounds();
-    var ctx = this.Viewer.MainView.Context2d;
-    for (var y = bds[2]; y < bds[3]; y += skip) {
-        for (var x = bds[0]; x < bds[1]; x += skip) {
-            if (this.PointInside(x,y)) {
-                ip = this.Viewer.ConvertPointWorldToViewer(x,y);
-                ip[0] = Math.round(ip[0] - dim/2);
-                ip[1] = Math.round(ip[1] - dim/2);
-                var data = ctx.getImageData(ip[0],ip[1],dim,dim);
-                DownloadImageData(data, root+"_"+count+".png");
-                ++count;
-            }
-        }
-    }
-}
-
-
-// Save images with centers inside the polyline.
-PolylineWidget.prototype.SampleStack = function(dim, spacing, skip, root, count) {
-    var cache = VIEWERS[0].GetCache();
-    var bds = this.Shape.GetBounds();
-    for (var y = bds[2]; y < bds[3]; y += skip) {
-        for (var x = bds[0]; x < bds[1]; x += skip) {
-            if (this.PointInside(x,y)) {
-                GetCutoutimage(cache, dim, [x,y], spacing, 0, null,
-                               function (data) {
-                                   DownloadImageData(data, root+"_"+count+".png");
-                                   ++count;
-                               });
-            }
-        }
-    }
-}
-
-
-// Save images with centers inside the polyline.
-PolylineWidget.prototype.DownloadStack = function(x, y, dim, spacing, root) {
-    var cache = VIEWERS[0].GetCache();
-    for (var i = 0; i < 3; ++i) {
-        levelSpacing = spacing << i;
-        GetCutoutImage(cache, dim, [x,y], levelSpacing, 0, root+i+".png", null);
-    }
-}
-
-
-
-
-// Saves images centered at spots on the edge.
-// Roll is set to put the edge horizontal.
-// Step is in screen pixel units
-PolylineWidget.prototype.SampleEdge = function(dim, step, count, callback) {
-    this.Shape.SampleEdge(this.Viewer,dim,step,count,callback);
-}
-
-
-function DownloadTheano(widgetIdx, angleIdx) {
-    EDGE_ANGLE = 2*Math.PI * angleIdx / 24;
-    VIEWERS[0].GetWidget(widgetIdx).SampleEdge(
-        64,4,EDGE_COUNT,
-        function () {
-            setTimeout(function(){ DownloadTheano2(widgetIdx, angleIdx); }, 1000);
-        });
-}
-
-
-function DownloadTheano2(widgetIdx, angleIdx) {
-    ++angleIdx;
-    if (angleIdx >= 24) {
-        angleIdx = 0;
-        ++widgetIdx;
-    }
-    if (widgetIdx < VIEWERS[0].GetNumberOfWidgets()) {
-        DownloadTheano(widgetIdx, angleIdx);
-    }
-}
-
+})();
 //==============================================================================
 // Temporary drawing with a pencil.  It goes away as soon as the camera changes.
 // pencil icon (image as html) follows the cursor.
@@ -46797,690 +46995,783 @@ function DownloadTheano2(widgetIdx, angleIdx) {
 // Color (property window).
 
 
-var PENCIL_WIDGET_DRAWING = 0;
-var PENCIL_WIDGET_ACTIVE = 1;
-var PENCIL_WIDGET_WAITING = 2;
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
+    var DRAWING = 0;
+    // Active means highlighted.
+    var ACTIVE = 1;
+    var DRAG = 2;
+    var WAITING = 3;
 
 
-function PencilWidget (viewer, newFlag) {
-    if (viewer == null) {
-        return;
-    }
-
-    var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
-    // Customize dialog for a pencil.
-    this.Dialog.Title.text('Pencil Annotation Editor');
-    this.Dialog.Body.css({'margin':'1em 2em'});
-    // Color
-    this.Dialog.ColorDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.ColorLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ColorDiv)
-        .text("Color:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.ColorInput =
-        $('<input type="color">')
-        .appendTo(this.Dialog.ColorDiv)
-        .val('#30ff00')
-        .css({'display':'table-cell'});
-
-    // Line Width
-    this.Dialog.LineWidthDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
-    this.Dialog.LineWidthLabel =
-        $('<div>')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .text("Line Width:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
-    this.Dialog.LineWidthInput =
-        $('<input type="number">')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .css({'display':'table-cell'})
-        .keypress(function(event) { return event.keyCode != 13; });
-
-    this.LineWidth = 0;
-    if (localStorage.PencilWidgetDefaults) {
-        var defaults = JSON.parse(localStorage.PencilWidgetDefaults);
-        if (defaults.Color) {
-            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    function PencilWidget (layer, newFlag) {
+        if (layer == null) {
+            return;
         }
-        if (defaults.LineWidth) {
-            this.LineWidth = defaults.LineWidth;
-            this.Dialog.LineWidthInput.val(this.LineWidth);
+
+        var self = this;
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        // Customize dialog for a pencil.
+        this.Dialog.Title.text('Pencil Annotation Editor');
+        this.Dialog.Body.css({'margin':'1em 2em'});
+        // Color
+        this.Dialog.ColorDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.ColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ColorDiv)
+            .text("Color:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.ColorInput =
+            $('<input type="color">')
+            .appendTo(this.Dialog.ColorDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell'});
+
+        // Line Width
+        this.Dialog.LineWidthDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'display':'table-row'});
+        this.Dialog.LineWidthLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .text("Line Width:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        this.Dialog.LineWidthInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .css({'display':'table-cell'})
+            .keypress(function(event) { return event.keyCode != 13; });
+
+        this.LineWidth = 0;
+        if (localStorage.PencilWidgetDefaults) {
+            var defaults = JSON.parse(localStorage.PencilWidgetDefaults);
+            if (defaults.Color) {
+                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+            }
+            if (defaults.LineWidth) {
+                this.LineWidth = defaults.LineWidth;
+                this.Dialog.LineWidthInput.val(this.LineWidth);
+            }
+        }
+
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        this.Layer.AddWidget(this);
+
+        var self = this;
+        this.Shapes = new SA.ShapeGroup();
+        this.SetStateToDrawing();
+
+        if ( ! newFlag) {
+            this.State = WAITING;
+            this.Layer.GetCanvasDiv().css({'cursor':'default'});
+        }
+
+        // Lets save the zoom level (sort of).
+        // Load will overwrite this for existing annotations.
+        // This will allow us to expand annotations into notes.
+        this.CreationCamera = layer.GetCamera().Serialize();
+    }
+
+    PencilWidget.prototype.SetStateToDrawing = function() {
+        this.State = DRAWING;
+        // When drawing, the cursor is enough indication.
+        // We keep the lines the normal color. Yellow is too hard to see.
+        this.Shapes.SetActive(false);
+        this.Popup.Hide();
+        this.Layer.GetCanvasDiv().css(
+            {'cursor':'url('+SA.ImagePathUrl+'Pencil-icon.png) 0 24,crosshair'});
+        this.Layer.EventuallyDraw();
+    }
+
+    PencilWidget.prototype.Draw = function(view) {
+        this.Shapes.Draw(view);
+    }
+
+    PencilWidget.prototype.Serialize = function() {
+        var obj = new Object();
+        obj.type = "pencil";
+        obj.shapes = [];
+        for (var i = 0; i < this.Shapes.GetNumberOfShapes(); ++i) {
+            // NOTE: Assumes shape is a Polyline.
+            var shape = this.Shapes.GetShape(i);
+            var points = [];
+            for (var j = 0; j < shape.Points.length; ++j) {
+                points.push([shape.Points[j][0], shape.Points[j][1]]);
+            }
+            obj.shapes.push(points);
+        }
+        obj.creation_camera = this.CreationCamera;
+
+        return obj;
+    }
+
+    // Load a widget from a json object (origin MongoDB).
+    PencilWidget.prototype.Load = function(obj) {
+        for(var n=0; n < obj.shapes.length; n++){
+            var points = obj.shapes[n];
+            var shape = new SA.Polyline();
+            shape.SetOutlineColor(this.Dialog.ColorInput.val());
+            shape.FixedSize = false;
+            shape.LineWidth = this.LineWidth;
+            this.Shapes.AddShape(shape);
+            for (var m = 0; m < points.length; ++m) {
+                shape.Points[m] = [points[m][0], points[m][1]];
+            }
+            shape.UpdateBuffers();
+        }
+
+        // How zoomed in was the view when the annotation was created.
+        if (obj.view_height !== undefined) {
+            this.CreationCamera = obj.creation_camera;
         }
     }
 
-
-
-
-    this.Viewer = viewer;
-    this.Popup = new WidgetPopup(this);
-    this.AddWidget(this);
-
-    var self = this;
-    this.Shapes = [];
-    this.ActiveCenter = [0,0];
-    this.State = PENCIL_WIDGET_DRAWING;
-    this.Viewer.MainView.CanvasDiv.css(
-        {'cursor':'url('+SA.ImagePathUrl+'Pencil-icon.png) 0 24,crosshair'});
-
-    if ( ! newFlag) {
-        this.State = PENCIL_WIDGET_WAITING;
-        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
+    PencilWidget.prototype.Deactivate = function() {
+        this.Popup.StartHideTimer();
+        this.Layer.GetCanvasDiv().css({'cursor':'default'});
+        this.Layer.DeactivateWidget(this);
+        this.State = WAITING;
+        this.Shapes.SetActive(false);
+        if (this.DeactivateCallback) {
+            this.DeactivateCallback();
+        }
+        this.Layer.EventuallyDraw();
     }
 
-    // Lets save the zoom level (sort of).
-    // Load will overwrite this for existing annotations.
-    // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize();
-}
-
-
-PencilWidget.prototype.Draw = function(view) {
-  for (var i = 0; i < this.Shapes.length; ++i) {
-    this.Shapes[i].Draw(view);
-  }
-}
-
-
-PencilWidget.prototype.Serialize = function() {
-  var obj = new Object();
-  obj.type = "pencil";
-  obj.shapes = [];
-  for (var i = 0; i < this.Shapes.length; ++i) {
-    var shape = this.Shapes[i];
-    var points = [];
-    for (var j = 0; j < shape.Points.length; ++j) {
-      points.push([shape.Points[j][0], shape.Points[j][1]]);
+    PencilWidget.prototype.HandleKeyDown = function(event) {
+        if ( this.State == DRAWING) {
+            // escape key (or space or enter) to turn off drawing
+            if (event.keyCode == 27 || event.keyCode == 32 || event.keyCode == 13) {
+                this.Deactivate();
+                return false;
+            }
+        }
     }
-    obj.shapes.push(points);
-  }
-  obj.creation_camera = this.CreationCamera;
 
-  return obj;
-}
+    // Change the line width with the wheel.
+    PencilWidget.prototype.HandleMouseWheel = function(event) {
+        if ( this.State == DRAWING ||
+             this.State == ACTIVE) {
+            if (this.Shapes.GetNumberOfShapes() < 0) { return; }
+            var tmp = 0;
 
-// Load a widget from a json object (origin MongoDB).
-PencilWidget.prototype.Load = function(obj) {
-  for(var n=0; n < obj.shapes.length; n++){
-    var points = obj.shapes[n];
-    var shape = new Polyline();
-    shape.SetOutlineColor(this.Dialog.ColorInput.val());
-    shape.FixedSize = false;
-    shape.LineWidth = this.LineWidth;
-    this.Shapes.push(shape);
-    for (var m = 0; m < points.length; ++m) {
-      shape.Points[m] = [points[m][0], points[m][1]];
+            if (event.deltaY) {
+                tmp = event.deltaY;
+            } else if (event.wheelDelta) {
+                tmp = event.wheelDelta;
+            }
+
+            var minWidth = 1.0 / this.Layer.GetPixelsPerUnit();
+
+            // Wheel event seems to be in increments of 3.
+            // depreciated mousewheel had increments of 120....
+            var lineWidth = this.Shapes.GetLineWidth();
+            lineWidth = lineWidth || minWidth;
+            if (tmp > 0) {
+                lineWidth *= 1.1;
+            } else if (tmp < 0) {
+                lineWidth /= 1.1;
+            }
+            if (lineWidth <= minWidth) {
+                lineWidth = 0.0;
+            }
+            this.Dialog.LineWidthInput.val(lineWidth);
+            this.Shapes.SetLineWidth(lineWidth);
+            this.Shapes.UpdateBuffers();
+
+            this.Layer.EventuallyDraw();
+            return false;
+        }
+        return true;
     }
-    shape.UpdateBuffers();
-  }
 
-  // How zoomed in was the view when the annotation was created.
-  if (obj.view_height !== undefined) {
-    this.CreationCamera = obj.creation_camera;
-  }
-}
+    PencilWidget.prototype.HandleMouseDown = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
 
-PencilWidget.prototype.HandleMouseWheel = function(event) {
-    return false;
-}
+        if (event.which == 1) {
+            if (this.State == DRAWING) {
+                // Start drawing.
+                var shape = new SA.Polyline();
+                //shape.OutlineColor = [0.9, 1.0, 0.0];
+                shape.OutlineColor = [0.0, 0.0, 0.0];
+                shape.SetOutlineColor(this.Dialog.ColorInput.val());
+                shape.FixedSize = false;
+                shape.LineWidth = 0;
+                shape.LineWidth = this.Shapes.GetLineWidth();
+                this.Shapes.AddShape(shape);
 
-PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  return true;
-}
-
-PencilWidget.prototype.Deactivate = function() {
-    this.Popup.StartHideTimer();
-    this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
-    this.Viewer.DeactivateWidget(this);
-    this.State = PENCIL_WIDGET_WAITING;
-    for (var i = 0; i < this.Shapes.length; ++i) {
-        this.Shapes[i].Active = false;
+                var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+                shape.Points.push([pt[0], pt[1]]); // avoid same reference.
+            }
+            if (this.State == ACTIVE) {
+                // Anticipate dragging (might be double click)
+                var cam = this.Layer.GetCamera();
+                this.LastMouse = cam.ConvertPointViewerToWorld(x, y);
+            }
+        }
     }
-    if (this.DeactivateCallback) {
-        this.DeactivateCallback();
-    }
-    this.Viewer.EventuallyRender(false);
-}
 
-PencilWidget.prototype.HandleMouseDown = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
-    
-    if (event.which == 1) {
-        // Start drawing.
-        var shape = new Polyline();
-        //shape.OutlineColor = [0.9, 1.0, 0.0];
-        shape.OutlineColor = [0.0, 0.0, 0.0];
-        shape.SetOutlineColor(this.Dialog.ColorInput.val());
-        shape.FixedSize = false;
-        shape.LineWidth = 0;
-        this.Shapes.push(shape);
-        
-        var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-        shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-    }
-}
+    PencilWidget.prototype.HandleMouseUp = function(event) {
+        if (event.which == 3) {
+            // Right mouse was pressed.
+            // Pop up the properties dialog.
+            this.ShowPropertiesDialog();
+            return false;
+        }
+        // Middle mouse deactivates the widget.
+        if (event.which == 2) {
+            // Middle mouse was pressed.
+            this.Deactivate();
+            return false;
+        }
 
-PencilWidget.prototype.HandleMouseUp = function(event) {
-    if (event.which == 3) {
-        // Right mouse was pressed.
-        // Pop up the properties dialog.
-        this.ShowPropertiesDialog();
+        if (this.State == DRAG) {
+            // Set the origin back to zero (put it explicitely in points).
+            this.Shapes.ResetOrigin();
+            this.State = ACTIVE;
+        }
+
+        // A stroke has just been finished.
+        var last = this.Shapes.GetNumberOfShapes() - 1;
+        if (this.State == DRAWING && 
+            event.which == 1 && last >= 0) {
+            var spacing = this.Layer.GetCamera().GetSpacing();
+            // NOTE: This assume that the shapes are polylines.
+            //this.Decimate(this.Shapes.GetShape(last), spacing);
+            this.Shapes.GetShape(last).Decimate(spacing);
+            RecordState();
+        }
+        return false;
     }
-    // Middle mouse deactivates the widget.
-    if (event.which == 2) {
-        // Middle mouse was pressed.
-        this.Deactivate();
+
+    PencilWidget.prototype.HandleDoubleClick = function(event) {
+        if (this.State == DRAWING) {
+            this.Deactivate();
+            return false;
+        } 
+        if (this.State == ACTIVE) {
+            this.SetStateToDrawing();
+            return false;
+        }
+        return true;
     }
-    
-    // A stroke has just been finished.
-    if (event.which == 1 && this.Shapes.length > 0) {
-        var spacing = this.Viewer.GetSpacing();
-        this.Decimate(this.Shapes[this.Shapes.length - 1], spacing);
+
+    PencilWidget.prototype.HandleMouseMove = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+
+        if (event.which == 1 && this.State == DRAWING) {
+            var last = this.Shapes.GetNumberOfShapes() - 1;
+            var shape = this.Shapes.GetShape(last);
+            var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+            shape.Points.push([pt[0], pt[1]]); // avoid same reference.
+            shape.UpdateBuffers();
+            if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+            this.Layer.EventuallyDraw();
+            return false;
+        }
+
+        if (this.State == ACTIVE &&
+            event.which == 0) {
+            // Deactivate
+            this.SetActive(this.CheckActive(event));
+            return false;
+        }
+
+        if (this.State == ACTIVE && event.which == 1) {
+            this.State = DRAG;
+        }
+
+        if (this.State == DRAG) {
+            // Drag
+            this.State = DRAG;
+            this.Popup.Hide();
+            var cam = this.Layer.GetCamera();
+            var mouseWorld = cam.ConvertPointViewerToWorld(x, y);
+            var origin = this.Shapes.GetOrigin();
+            origin[0] += mouseWorld[0] - this.LastMouse[0];
+            origin[1] += mouseWorld[1] - this.LastMouse[1];
+            this.Shapes.SetOrigin(origin);
+            this.LastMouse = mouseWorld;
+            this.Layer.EventuallyDraw();
+            return false;
+        }
+    }
+
+    // This also shows the popup if it is not visible already.
+    PencilWidget.prototype.PlacePopup = function () {
+        var pt = this.Shapes.FindPopupPoint(this.Layer.GetCamera());
+        pt = this.Layer.GetCamera().ConvertPointWorldToViewer(pt[0], pt[1]);
+
+        pt[0] += 20;
+        pt[1] -= 10;
+
+        this.Popup.Show(pt[0],pt[1]);
+    }
+
+    PencilWidget.prototype.CheckActive = function(event) {
+        if (this.State == DRAWING) { return true; }
+        if (this.Shapes.GetNumberOfShapes() == 0) { return false; }
+
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+
+        var width = this.Shapes.GetLineWidth();
+        // Tolerance: 5 screen pixels.
+        var minWidth = 10.0 / this.Layer.GetPixelsPerUnit();
+        if (width < minWidth) { width = minWidth;}
+
+        var flag = this.Shapes.PointOnShape(pt, width);
+        if (this.State == ACTIVE && !flag) {
+            this.SetActive(flag);
+        } else if (this.State == WAITING && flag) {
+            this.PlacePopup();
+            this.SetActive(flag);
+        }
+        return flag;
+    }
+
+    // Setting to active always puts state into "active".
+    // It can move to other states and stay active.
+    PencilWidget.prototype.SetActive = function(flag) {
+        if (flag) {
+            if (this.State == ACTIVE) {
+                // Already active.  Do nothing.
+                return;
+            }
+            this.Layer.ActivateWidget(this);
+            this.State = ACTIVE;
+            this.Shapes.SetActive(true);
+            this.PlacePopup();
+            this.Layer.EventuallyDraw();
+        } else {
+            if (this.State != ACTIVE) {
+                // Not active.  Do nothing.
+                return;
+            }
+            this.Deactivate();
+            this.Layer.DeactivateWidget(this);
+        }
+    }
+
+    PencilWidget.prototype.GetActive = function() {
+        return this.State = ACTIVE;
+    }
+
+    PencilWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.Layer.RemoveWidget(this);
+        }
+        this.Layer = null;
+    }
+
+    // Can we bind the dialog apply callback to an objects method?
+    var DIALOG_SELF
+    PencilWidget.prototype.ShowPropertiesDialog = function () {
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes.GetOutlineColor()));
+        this.Dialog.LineWidthInput.val((this.Shapes.GetLineWidth()).toFixed(2));
+
+        this.Dialog.Show(true);
+    }
+
+    PencilWidget.prototype.DialogApplyCallback = function() {
+        var hexcolor = this.Dialog.ColorInput.val();
+        this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Shapes.SetOutlineColor(hexcolor);
+        this.Shapes.SetLineWidth(parseFloat(this.Dialog.LineWidthInput.val()));
+        this.Shapes.UpdateBuffers();
+        this.SetActive(false);
         RecordState();
-        this.ComputeActiveCenter();
-    }
-}
+        this.Layer.EventuallyDraw();
 
-PencilWidget.prototype.HandleDoubleClick = function(event) {
-    this.Deactivate();
-}
-
-PencilWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.offsetX;
-    var y = event.offsetY;
-
-    if (event.which == 1 && this.State == PENCIL_WIDGET_DRAWING) {
-        var shape = this.Shapes[this.Shapes.length-1];
-        var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-        shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-        shape.UpdateBuffers();
+        localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
+                                                            LineWidth: this.LineWidth});
         if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
-        this.Viewer.EventuallyRender(true);
-        return;
     }
-    
-    if (this.State == PENCIL_WIDGET_ACTIVE &&
-        event.which == 0) {
-        // Deactivate
-        this.SetActive(this.CheckActive(event));
-        return;
+
+    /*
+    // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
+    // Pass in the spacing as a hint to get rid of aliasing.
+    PencilWidget.prototype.Decimate = function(shape, spacing) {
+        // Keep looping over the line removing points until the line does not change.
+        var modified = true;
+        while (modified) {
+            modified = false;
+            var newPoints = [];
+            newPoints.push(shape.Points[0]);
+            // Window of four points.
+            var i = 3;
+            while (i < shape.Points.length) {
+                var p0 = shape.Points[i];
+                var p1 = shape.Points[i-1];
+                var p2 = shape.Points[i-2];
+                var p3 = shape.Points[i-3];
+                // Compute the average of the center two.
+                var cx = (p1[0] + p2[0]) * 0.5;
+                var cy = (p1[1] + p2[1]) * 0.5;
+                // Find the perendicular normal.
+                var nx = (p0[1] - p3[1]);
+                var ny = -(p0[0] - p3[0]);
+                var mag = Math.sqrt(nx*nx + ny*ny);
+                nx = nx / mag;
+                ny = ny / mag;
+                mag = Math.abs(nx*(cx-shape.Points[i-3][0]) + ny*(cy-shape.Points[i-3][1]));
+                // Mag metric does not distinguish between line and a stroke that double backs on itself.
+                // Make sure the two point being merged are between the outer points 0 and 3.
+                var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
+                var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
+                if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
+                    // Replace the two points with their average.
+                    newPoints.push([cx, cy]);
+                    modified = true;
+                    // Skip the next point the window will have one old merged point,
+                    // but that is ok because it is just used as reference and not altered.
+                    i += 2;
+                } else {
+                    //  No modification.  Just move the window one.
+                    newPoints.push(shape.Points[i-2]);
+                    ++i;
+                }
+            }
+            // Copy the remaing point / 2 points
+            i = i-2;
+            while (i < shape.Points.length) {
+                newPoints.push(shape.Points[i]);
+                ++i;
+            }
+            shape.Points = newPoints;
+        }
+
+        shape.UpdateBuffers();
     }
-}
+    */
 
-PencilWidget.prototype.ComputeActiveCenter = function() {
-  var count = 0;
-  var sx = 0.0;
-  var sy = 0.0;
-  for (var i = 0; i < this.Shapes.length; ++i) {
-    var shape = this.Shapes[i];
-    var points = [];
-    for (var j = 0; j < shape.Points.length; ++j) {
-      sx += shape.Points[j][0];
-      sy += shape.Points[j][1];
-    }
-    count += shape.Points.length;
-  }
+    SA.PencilWidget = PencilWidget;
 
-  this.ActiveCenter[0] = sx / count;
-  this.ActiveCenter[1] = sy / count;
-}
-
-//This also shows the popup if it is not visible already.
-PencilWidget.prototype.PlacePopup = function () {
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
-                                                 this.ActiveCenter[1]);
-  pt[0] += 40;
-  pt[1] -= 40;
-  this.Popup.Show(pt[0],pt[1]);
-}
-
-PencilWidget.prototype.CheckActive = function(event) {
-  if (this.State == PENCIL_WIDGET_DRAWING) { return; }
-
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
-                                                 this.ActiveCenter[1]);
-
-  var dx = event.offsetX - pt[0];
-  var dy = event.offsetY - pt[1];
-  var active = false;
-
-  if (dx*dx + dy*dy < 1600) {
-    active = true;
-  }
- this.SetActive(active);
- return active;
-}
-
-PencilWidget.prototype.GetActive = function() {
-  return false;
-}
-
-// Setting to active always puts state into "active".
-// It can move to other states and stay active.
-PencilWidget.prototype.SetActive = function(flag) {
-  if (flag) {
-    this.Viewer.ActivateWidget(this);
-    this.State = PENCIL_WIDGET_ACTIVE;
-    for (var i = 0; i < this.Shapes.length; ++i) {
-      this.Shapes[i].Active = true;
-    }
-    this.PlacePopup();
-    this.Viewer.EventuallyRender(false);
-  } else {
-    this.Deactivate();
-    this.Viewer.DeactivateWidget(this);
-  }
-}
-
-PencilWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer) {
-        this.Viewer.RemoveWidget(this);
-    }
-}
-
-// Can we bind the dialog apply callback to an objects method?
-var PENCIL_WIDGET_DIALOG_SELF
-PencilWidget.prototype.ShowPropertiesDialog = function () {
-  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes[0].OutlineColor));
-  this.Dialog.LineWidthInput.val((this.Shapes[0].LineWidth).toFixed(2));
-
-  this.Dialog.Show(true);
-}
-
-
-PencilWidget.prototype.DialogApplyCallback = function() {
-    var hexcolor = this.Dialog.ColorInput.val();
-    this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-    for (var i = 0; i < this.Shapes.length; ++i) {
-        this.Shapes[i].SetOutlineColor(hexcolor);
-        this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shapes[i].UpdateBuffers();
-    }
-    this.SetActive(false);
-    RecordState();
-    this.Viewer.EventuallyRender(true);
-
-    localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
-                                                        LineWidth: this.LineWidth});
-    if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
-}
-
-
-// The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
-// Pass in the spacing as a hint to get rid of aliasing.
-PencilWidget.prototype.Decimate = function(shape, spacing) {
-  // Keep looping over the line removing points until the line does not change.
-  var modified = true;
-  while (modified) {
-    modified = false;
-    var newPoints = [];
-    newPoints.push(shape.Points[0]);
-    // Window of four points.
-    var i = 3;
-    while (i < shape.Points.length) {
-      var p0 = shape.Points[i];
-      var p1 = shape.Points[i-1];
-      var p2 = shape.Points[i-2];
-      var p3 = shape.Points[i-3];
-      // Compute the average of the center two.
-      var cx = (p1[0] + p2[0]) * 0.5;
-      var cy = (p1[1] + p2[1]) * 0.5;
-      // Find the perendicular normal.
-      var nx = (p0[1] - p3[1]);
-      var ny = -(p0[0] - p3[0]);
-      var mag = Math.sqrt(nx*nx + ny*ny);
-      nx = nx / mag;
-      ny = ny / mag;
-      mag = Math.abs(nx*(cx-shape.Points[i-3][0]) + ny*(cy-shape.Points[i-3][1]));
-      // Mag metric does not distinguish between line and a stroke that double backs on itself.
-      // Make sure the two point being merged are between the outer points 0 and 3.
-      var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
-      var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
-      if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
-        // Replace the two points with their average.
-        newPoints.push([cx, cy]);
-        modified = true;
-        // Skip the next point the window will have one old merged point,
-        // but that is ok because it is just used as reference and not altered.
-        i += 2;
-      } else {
-        //  No modification.  Just move the window one.
-        newPoints.push(shape.Points[i-2]);
-        ++i;
-      }
-    }
-    // Copy the remaing point / 2 points
-    i = i-2;
-    while (i < shape.Points.length) {
-      newPoints.push(shape.Points[i]);
-      ++i;
-    }
-    shape.Points = newPoints;
-  }
-
-  shape.UpdateBuffers();
-}
-
-
-
+})();
 //==============================================================================
 // Segmentation / fill.  But should I change it into a contour at the end?
 
+(function () {
+    "use strict";
 
-var FILL_WIDGET_DRAWING = 0;
-var FILL_WIDGET_ACTIVE = 1;
-var FILL_WIDGET_WAITING = 2;
-
-
-function FillWidget (viewer, newFlag) {
-    if (viewer == null) {
-        return;
-    }
-
-    // I am not sure what to do for the fill because
-    // I plan to change it to a contour.
-
-    this.Dialog = new Dialog(this);
-    // Customize dialog for a lasso.
-    this.Dialog.Title.text('Fill Annotation Editor');
-    this.Dialog.Body.css({'margin':'1em 2em'});
-    // Color
-    this.Dialog.ColorDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-fill-div");
-    this.Dialog.ColorLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ColorDiv)
-        .text("Color:")
-        .addClass("sa-view-fill-label");
-    this.Dialog.ColorInput =
-        $('<input type="color">')
-        .appendTo(this.Dialog.ColorDiv)
-        .val('#30ff00')
-        .addClass("sa-view-fill-input");
-
-    // Line Width
-    this.Dialog.LineWidthDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-fill-div");
-    this.Dialog.LineWidthLabel =
-        $('<div>')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .text("Line Width:")
-        .addClass("sa-view-fill-label");
-    this.Dialog.LineWidthInput =
-        $('<input type="number">')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .addClass("sa-view-fill-input")
-        .keypress(function(event) { return event.keyCode != 13; });
-
-    this.Popup = new WidgetPopup(this);
-    this.Viewer = viewer;
-    this.Viewer.AddWidget(this);
-
-    this.Cursor = $('<img>').appendTo('body')
-        .addClass("sa-view-fill-cursor")
-        .attr('type','image')
-        .attr('src',SA.ImagePathUrl+"brush1.jpg");
-
-    var self = this;
-    // I am trying to stop images from getting move events and displaying a circle/slash.
-    // This did not work.  preventDefault did not either.
-    //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
-    //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
-    //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
-    //.preventDefault();
-
-    this.ActiveCenter = [0,0];
-
-    this.State = FILL_WIDGET_DRAWING;
-    if ( ! newFlag) {
-        this.State = FILL_WIDGET_WAITING;
-    }
-
-    // Lets save the zoom level (sort of).
-    // Load will overwrite this for existing annotations.
-    // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize;
-}
-
-// This is expensive, so initialize explicitely outside the constructor.
-FillWidget.prototype.Initialize = function(view) {
-    // Now for the segmtation initialization.
-    this.Segmentation = new Segmentation(this.Viewer);
-}
-
-FillWidget.prototype.Draw = function(view) {
-    this.Segmentation.ImageAnnotation.Draw(view);
-}
+    var FILL_WIDGET_DRAWING = 0;
+    var FILL_WIDGET_ACTIVE = 1;
+    var FILL_WIDGET_WAITING = 2;
 
 
-// I do not know what we are saving yet.
-FillWidget.prototype.Serialize = function() {
-/*
-    var obj = new Object();
-    obj.type = "pencil";
-    obj.shapes = [];
-    for (var i = 0; i < this.Shapes.length; ++i) {
-        var shape = this.Shapes[i];
-        var points = [];
-        for (var j = 0; j < shape.Points.length; ++j) {
-            points.push([shape.Points[j][0], shape.Points[j][1]]);
+    function FillWidget (viewer, newFlag) {
+        if (viewer == null) {
+            return;
         }
-        obj.shapes.push(points);
+
+        // I am not sure what to do for the fill because
+        // I plan to change it to a contour.
+
+        this.Dialog = new SA.Dialog(this);
+        // Customize dialog for a lasso.
+        this.Dialog.Title.text('Fill Annotation Editor');
+        this.Dialog.Body.css({'margin':'1em 2em'});
+        // Color
+        this.Dialog.ColorDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-fill-div");
+        this.Dialog.ColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ColorDiv)
+            .text("Color:")
+            .addClass("sa-view-fill-label");
+        this.Dialog.ColorInput =
+            $('<input type="color">')
+            .appendTo(this.Dialog.ColorDiv)
+            .val('#30ff00')
+            .addClass("sa-view-fill-input");
+
+        // Line Width
+        this.Dialog.LineWidthDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-fill-div");
+        this.Dialog.LineWidthLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .text("Line Width:")
+            .addClass("sa-view-fill-label");
+        this.Dialog.LineWidthInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .addClass("sa-view-fill-input")
+            .keypress(function(event) { return event.keyCode != 13; });
+
+        this.Popup = new SA.WidgetPopup(this);
+        this.Viewer = viewer;
+        this.Viewer.AddWidget(this);
+
+        this.Cursor = $('<img>').appendTo('body')
+            .addClass("sa-view-fill-cursor")
+            .attr('type','image')
+            .attr('src',SA.ImagePathUrl+"brush1.jpg");
+
+        var self = this;
+        // I am trying to stop images from getting move events and displaying a circle/slash.
+        // This did not work.  preventDefault did not either.
+        //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
+        //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
+        //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
+        //.preventDefault();
+
+        this.ActiveCenter = [0,0];
+
+        this.State = FILL_WIDGET_DRAWING;
+        if ( ! newFlag) {
+            this.State = FILL_WIDGET_WAITING;
+        }
+
+        // Lets save the zoom level (sort of).
+        // Load will overwrite this for existing annotations.
+        // This will allow us to expand annotations into notes.
+        this.CreationCamera = viewer.GetCamera().Serialize;
     }
-    obj.creation_camera = this.CreationCamera;
-    
-    return obj;
-*/
-}
 
-// Load a widget from a json object (origin MongoDB).
-FillWidget.prototype.Load = function(obj) {
-    /*
-      for(var n=0; n < obj.shapes.length; n++){
-      var points = obj.shapes[n];
-      var shape = new Polyline();
-      shape.OutlineColor = [0.9, 1.0, 0.0];
-      shape.FixedSize = false;
-    shape.LineWidth = 0;
-    this.Shapes.push(shape);
-    for (var m = 0; m < points.length; ++m) {
-      shape.Points[m] = [points[m][0], points[m][1]];
+    // This is expensive, so initialize explicitely outside the constructor.
+    FillWidget.prototype.Initialize = function(view) {
+        // Now for the segmentation initialization.
+        this.Segmentation = new Segmentation(this.Viewer);
     }
-    shape.UpdateBuffers();
-  }
 
-  // How zoomed in was the view when the annotation was created.
-  if (obj.view_height !== undefined) {
-    this.CreationCamera = obj.creation_camera;
-  }
-*/
-}
-
-FillWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  return false;
-}
-
-FillWidget.prototype.Deactivate = function() {
-    this.Popup.StartHideTimer();
-    this.Viewer.DeactivateWidget(this);
-    this.State = FILL_WIDGET_WAITING;
-    if (this.DeactivateCallback) {
-        this.DeactivateCallback();
+    FillWidget.prototype.Draw = function(view) {
+        this.Segmentation.ImageAnnotation.Draw(view);
     }
-    eventuallyRender();
-}
 
-FillWidget.prototype.HandleMouseDown = function(event) {
-    var x = this.Viewer.MouseX;
-    var y = this.Viewer.MouseY;
+    // I do not know what we are saving yet.
+    FillWidget.prototype.Serialize = function() {
+        /*
+          var obj = new Object();
+          obj.type = "pencil";
+          obj.shapes = [];
+          for (var i = 0; i < this.Shapes.length; ++i) {
+          var shape = this.Shapes[i];
+          var points = [];
+          for (var j = 0; j < shape.Points.length; ++j) {
+          points.push([shape.Points[j][0], shape.Points[j][1]]);
+          }
+          obj.shapes.push(points);
+          }
+          obj.creation_camera = this.CreationCamera;
 
-    if (event.which == 1) {
-        var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
-        this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
-        this.Cursor.show();
-        this.Segmentation.AddPositive(ptWorld);
+          return obj;
+        */
     }
-    if (event.which == 3) {
-        var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
-        this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
-        this.Cursor.show();
-        this.Segmentation.AddNegative(ptWorld);
+
+    // Load a widget from a json object (origin MongoDB).
+    FillWidget.prototype.Load = function(obj) {
+        /*
+          for(var n=0; n < obj.shapes.length; n++){
+          var points = obj.shapes[n];
+          var shape = new SA.Polyline();
+          shape.OutlineColor = [0.9, 1.0, 0.0];
+          shape.FixedSize = false;
+          shape.LineWidth = 0;
+          this.Shapes.push(shape);
+          for (var m = 0; m < points.length; ++m) {
+          shape.Points[m] = [points[m][0], points[m][1]];
+          }
+          shape.UpdateBuffers();
+          }
+
+          // How zoomed in was the view when the annotation was created.
+          if (obj.view_height !== undefined) {
+          this.CreationCamera = obj.creation_camera;
+          }
+        */
     }
-}
 
-FillWidget.prototype.HandleMouseUp = function(event) {
-  // Middle mouse deactivates the widget.
-  if (event.which == 2) {
-    // Middle mouse was pressed.
-    this.Deactivate();
-  }
+    FillWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+        return false;
+    }
 
-  // A stroke has just been finished.
-  if (event.which == 1 || event.which == 3) {
-      this.Cursor.hide();
-      this.Segmentation.Update();
-      this.Segmentation.Draw();
-      eventuallyRender();
-  }
-}
+    FillWidget.prototype.Deactivate = function() {
+        this.Popup.StartHideTimer();
+        this.Viewer.DeactivateWidget(this);
+        this.State = FILL_WIDGET_WAITING;
+        if (this.DeactivateCallback) {
+            this.DeactivateCallback();
+        }
+        eventuallyRender();
+    }
 
-FillWidget.prototype.HandleDoubleClick = function(event) {
-}
+    FillWidget.prototype.HandleMouseDown = function(event) {
+        var x = this.Viewer.MouseX;
+        var y = this.Viewer.MouseY;
 
-FillWidget.prototype.HandleMouseMove = function(event) {
-    var x = this.Viewer.MouseX;
-    var y = this.Viewer.MouseY;
-
-    // Move the paint bucket icon to follow the mouse.
-    this.Cursor.css({'left': (x+4), 'top': (y-32)});
-
-    if (this.Viewer.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
-        if (event.which == 1 ) {
+        if (event.which == 1) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
+            this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
+            this.Cursor.show();
             this.Segmentation.AddPositive(ptWorld);
         }
-        if (event.which == 3 ) {
+        if (event.which == 3) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
+            this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
+            this.Cursor.show();
             this.Segmentation.AddNegative(ptWorld);
         }
-
-        return;
     }
-}
 
-FillWidget.prototype.ComputeActiveCenter = function() {
-/*
-  var count = 0;
-  var sx = 0.0;
-  var sy = 0.0;
-  for (var i = 0; i < this.Shapes.length; ++i) {
-    var shape = this.Shapes[i];
-    var points = [];
-    for (var j = 0; j < shape.Points.length; ++j) {
-      sx += shape.Points[j][0];
-      sy += shape.Points[j][1];
-    }
-    count += shape.Points.length;
-  }
-
-  this.ActiveCenter[0] = sx / count;
-  this.ActiveCenter[1] = sy / count;
-*/
-}
-
-//This also shows the popup if it is not visible already.
-FillWidget.prototype.PlacePopup = function () {
-/*
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
-                                                 this.ActiveCenter[1]);
-  pt[0] += 40;
-  pt[1] -= 40;
-  this.Popup.Show(pt[0],pt[1]);
-*/
-}
-
-FillWidget.prototype.CheckActive = function(event) {
-/*
-  if (this.State == FILL_WIDGET_DRAWING) { return; }
-
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
-                                                 this.ActiveCenter[1]);
-
-  var dx = this.Viewer.MouseX - pt[0];
-  var dy = this.Viewer.MouseY - pt[1];
-  var active = false;
-
-  if (dx*dx + dy*dy < 1600) {
-    active = true;
-  }
- this.SetActive(active);
- return active;
-*/
-}
-
-FillWidget.prototype.GetActive = function() {
-    return false;
-}
-
-// Setting to active always puts state into "active".
-// It can move to other states and stay active.
-FillWidget.prototype.SetActive = function(flag) {
-    if (flag) {
-        this.Viewer.ActivateWidget(this);
-        this.State = FILL_WIDGET_ACTIVE;
-        for (var i = 0; i < this.Shapes.length; ++i) {
-            this.Shapes[i].Active = true;
+    FillWidget.prototype.HandleMouseUp = function(event) {
+        // Middle mouse deactivates the widget.
+        if (event.which == 2) {
+            // Middle mouse was pressed.
+            this.Deactivate();
         }
-        this.PlacePopup();
+
+        // A stroke has just been finished.
+        if (event.which == 1 || event.which == 3) {
+            this.Cursor.hide();
+            this.Segmentation.Update();
+            this.Segmentation.Draw();
+            eventuallyRender();
+        }
+    }
+
+    FillWidget.prototype.HandleDoubleClick = function(event) {
+    }
+
+    FillWidget.prototype.HandleMouseMove = function(event) {
+        var x = this.Viewer.MouseX;
+        var y = this.Viewer.MouseY;
+
+        // Move the paint bucket icon to follow the mouse.
+        this.Cursor.css({'left': (x+4), 'top': (y-32)});
+
+        if (this.Viewer.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
+            if (event.which == 1 ) {
+                var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
+                this.Segmentation.AddPositive(ptWorld);
+            }
+            if (event.which == 3 ) {
+                var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
+                this.Segmentation.AddNegative(ptWorld);
+            }
+
+            return;
+        }
+    }
+
+    FillWidget.prototype.ComputeActiveCenter = function() {
+        /*
+          var count = 0;
+          var sx = 0.0;
+          var sy = 0.0;
+          for (var i = 0; i < this.Shapes.length; ++i) {
+          var shape = this.Shapes[i];
+          var points = [];
+          for (var j = 0; j < shape.Points.length; ++j) {
+          sx += shape.Points[j][0];
+          sy += shape.Points[j][1];
+          }
+          count += shape.Points.length;
+          }
+
+          this.ActiveCenter[0] = sx / count;
+          this.ActiveCenter[1] = sy / count;
+        */
+    }
+
+    //This also shows the popup if it is not visible already.
+    FillWidget.prototype.PlacePopup = function () {
+        /*
+          var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
+          this.ActiveCenter[1]);
+          pt[0] += 40;
+          pt[1] -= 40;
+          this.Popup.Show(pt[0],pt[1]);
+        */
+    }
+
+    FillWidget.prototype.CheckActive = function(event) {
+        /*
+          if (this.State == FILL_WIDGET_DRAWING) { return; }
+
+          var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
+          this.ActiveCenter[1]);
+
+          var dx = this.Viewer.MouseX - pt[0];
+          var dy = this.Viewer.MouseY - pt[1];
+          var active = false;
+
+          if (dx*dx + dy*dy < 1600) {
+          active = true;
+          }
+          this.SetActive(active);
+          return active;
+        */
+    }
+
+    FillWidget.prototype.GetActive = function() {
+        return false;
+    }
+
+    // Setting to active always puts state into "active".
+    // It can move to other states and stay active.
+    FillWidget.prototype.SetActive = function(flag) {
+        if (flag) {
+            this.Viewer.ActivateWidget(this);
+            this.State = FILL_WIDGET_ACTIVE;
+            for (var i = 0; i < this.Shapes.length; ++i) {
+                this.Shapes[i].Active = true;
+            }
+            this.PlacePopup();
+            eventuallyRender();
+        } else {
+            this.Deactivate();
+            this.Viewer.DeactivateWidget(this);
+        }
+    }
+
+    FillWidget.prototype.RemoveFromViewer = function() {
+        if (this.Viewer) {
+            this.Viewer.RemoveWidget();
+        }
+    }
+
+    // Can we bind the dialog apply callback to an objects method?
+    var FILL_WIDGET_DIALOG_SELF
+    FillWidget.prototype.ShowPropertiesDialog = function () {
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes[0].OutlineColor));
+        this.Dialog.LineWidthInput.val((this.Shapes[0].LineWidth).toFixed(2));
+
+        this.Dialog.Show(true);
+    }
+
+
+    FillWidget.prototype.DialogApplyCallback = function() {
+        var hexcolor = this.Dialog.ColorInput.val();
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].SetOutlineColor(hexcolor);
+            this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+            this.Shapes[i].UpdateBuffers();
+        }
+        this.SetActive(false);
+        RecordState();
         eventuallyRender();
-    } else {
-        this.Deactivate();
-        this.Viewer.DeactivateWidget(this);
     }
-}
 
-FillWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer) {
-        this.Viewer.RemoveWidget();
-    }
-}
+    SA.FillWidget = FillWidget;
 
-// Can we bind the dialog apply callback to an objects method?
-var FILL_WIDGET_DIALOG_SELF
-FillWidget.prototype.ShowPropertiesDialog = function () {
-    this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes[0].OutlineColor));
-    this.Dialog.LineWidthInput.val((this.Shapes[0].LineWidth).toFixed(2));
-    
-    this.Dialog.Show(true);
-}
-
-
-FillWidget.prototype.DialogApplyCallback = function() {
-    var hexcolor = this.Dialog.ColorInput.val();
-    for (var i = 0; i < this.Shapes.length; ++i) {
-        this.Shapes[i].SetOutlineColor(hexcolor);
-        this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shapes[i].UpdateBuffers();
-    }
-    this.SetActive(false);
-    RecordState();
-    eventuallyRender();
-}
-
+})();
 
 
 
@@ -47490,703 +47781,768 @@ FillWidget.prototype.DialogApplyCallback = function() {
 // I plan to be abble to add or remove regions from the loop with multiple strokes.
 // It will be a state, just like the pencil widget is a state.
 
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
 
-var LASSO_WIDGET_DRAWING = 0;
-var LASSO_WIDGET_ACTIVE = 1;
-var LASSO_WIDGET_WAITING = 2;
+    var DRAWING = 0;
+    var ACTIVE = 1;
+    var WAITING = 2;
 
+    function LassoWidget (layer, newFlag) {
+        if (layer == null) {
+            return;
+        }
 
-function LassoWidget (viewer, newFlag) {
-    if (viewer == null) {
-        return;
+        var self = this;
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        // Customize dialog for a lasso.
+        this.Dialog.Title.text('Lasso Annotation Editor');
+        this.Dialog.Body.css({'margin':'1em 2em'});
+        // Color
+        this.Dialog.ColorDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.ColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ColorDiv)
+            .text("Color:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.ColorInput =
+            $('<input type="color">')
+            .appendTo(this.Dialog.ColorDiv)
+            .val('#30ff00')
+            .addClass("sa-view-annotation-modal-input");
+
+        // Line Width
+        this.Dialog.LineWidthDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.LineWidthLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .text("Line Width:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.LineWidthInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .addClass("sa-view-annotation-modal-input")
+            .keypress(function(event) { return event.keyCode != 13; });
+
+        // Area
+        this.Dialog.AreaDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.AreaLabel =
+            $('<div>')
+            .appendTo(this.Dialog.AreaDiv)
+            .text("Area:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.Area =
+            $('<div>')
+            .appendTo(this.Dialog.AreaDiv)
+            .addClass("sa-view-annotation-modal-input");
+
+        // Get default properties.
+        if (localStorage.LassoWidgetDefaults) {
+            var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
+            if (defaults.Color) {
+                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+            }
+            if (defaults.LineWidth) {
+                this.Dialog.LineWidthInput.val(defaults.LineWidth);
+            }
+        }
+
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        this.Layer.AddWidget(this);
+
+        var self = this;
+
+        this.Loop = new SA.Polyline();
+        this.Loop.OutlineColor = [0.0, 0.0, 0.0];
+        this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
+        this.Loop.FixedSize = false;
+        this.Loop.LineWidth = 0;
+        this.Loop.Closed = true;
+        this.Stroke = false;
+
+        this.ActiveCenter = [0,0];
+
+        if ( newFlag) {
+            this.SetStateToDrawing();
+        } else {
+            this.State = WAITING;
+        }
     }
 
-    var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
-    // Customize dialog for a lasso.
-    this.Dialog.Title.text('Lasso Annotation Editor');
-    this.Dialog.Body.css({'margin':'1em 2em'});
-    // Color
-    this.Dialog.ColorDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-annotation-modal-div");
-    this.Dialog.ColorLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ColorDiv)
-        .text("Color:")
-        .addClass("sa-view-annotation-modal-input-label");
-    this.Dialog.ColorInput =
-        $('<input type="color">')
-        .appendTo(this.Dialog.ColorDiv)
-        .val('#30ff00')
-        .addClass("sa-view-annotation-modal-input");
-
-    // Line Width
-    this.Dialog.LineWidthDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-annotation-modal-div");
-    this.Dialog.LineWidthLabel =
-        $('<div>')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .text("Line Width:")
-        .addClass("sa-view-annotation-modal-input-label");
-    this.Dialog.LineWidthInput =
-        $('<input type="number">')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .addClass("sa-view-annotation-modal-input")
-        .keypress(function(event) { return event.keyCode != 13; });
-
-    // Area
-    this.Dialog.AreaDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-annotation-modal-div");
-    this.Dialog.AreaLabel =
-        $('<div>')
-        .appendTo(this.Dialog.AreaDiv)
-        .text("Area:")
-        .addClass("sa-view-annotation-modal-input-label");
-    this.Dialog.Area =
-        $('<div>')
-        .appendTo(this.Dialog.AreaDiv)
-        .addClass("sa-view-annotation-modal-input");
-
-    // Get default properties.
-    if (localStorage.LassoWidgetDefaults) {
-        var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
-        if (defaults.Color) {
-            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
-        }
-        if (defaults.LineWidth) {
-            this.Dialog.LineWidthInput.val(defaults.LineWidth);
+    LassoWidget.prototype.Draw = function(view) {
+        this.Loop.Draw(view);
+        if (this.Stroke) {
+            this.Stroke.Draw(view);
         }
     }
 
-    this.Viewer = viewer;
-    this.Popup = new WidgetPopup(this);
-    this.Viewer.AddWidget(this);
+    LassoWidget.prototype.Serialize = function() {
+        var obj = new Object();
+        obj.type = "lasso";
+        obj.outlinecolor = this.Loop.OutlineColor;
+        obj.points = [];
+        for (var j = 0; j < this.Loop.Points.length; ++j) {
+            obj.points.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
+        }
+        obj.closedloop = true;
 
-    var self = this;
+        return obj;
+    }
 
-    this.Loop = new Polyline();
-    this.Loop.OutlineColor = [0.0, 0.0, 0.0];
-    this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
-    this.Loop.FixedSize = false;
-    this.Loop.LineWidth = 0;
-    this.Loop.Closed = true;
-    this.Stroke = false;
+    // Load a widget from a json object (origin MongoDB).
+    LassoWidget.prototype.Load = function(obj) {
+        if (obj.outlinecolor != undefined) {
+            this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+            this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+            this.Loop.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+            // will never happen
+            //if (this.Stroke) {
+            //    this.Stroke.OutlineColor = this.Loop.OutlineColor;
+            //}
+        }
+        var points = [];
+        if ( obj.points != undefined) {
+            points = obj.points;
+        }
+        if ( obj.shape != undefined) {
+            points = obj.shapes[0];
+        }
 
-    this.ActiveCenter = [0,0];
+        for(var n=0; n < points.length; n++){
+            this.Loop.Points[n] = [parseFloat(points[n][0]),
+                                   parseFloat(points[n][1])];
+        }
+        this.ComputeActiveCenter();
+        this.Loop.UpdateBuffers();
+    }
 
-    if ( newFlag) {
-        this.State = LASSO_WIDGET_DRAWING;
-        this.Viewer.MainView.CanvasDiv.css(
+    LassoWidget.prototype.HandleMouseWheel = function(event) {
+        if ( this.State == DRAWING ||
+             this.State == ACTIVE) {
+            if ( ! this.Loop) { return; }
+            var tmp = 0;
+
+            if (event.deltaY) {
+                tmp = event.deltaY;
+            } else if (event.wheelDelta) {
+                tmp = event.wheelDelta;
+            }
+
+            var minWidth = 1.0 / this.Layer.GetPixelsPerUnit();
+
+            // Wheel event seems to be in increments of 3.
+            // depreciated mousewheel had increments of 120....
+            var lineWidth = this.Loop.GetLineWidth();
+            lineWidth = lineWidth || minWidth;
+            if (tmp > 0) {
+                lineWidth *= 1.1;
+            } else if (tmp < 0) {
+                lineWidth /= 1.1;
+            }
+            if (lineWidth <= minWidth) {
+                lineWidth = 0.0;
+            }
+            this.Dialog.LineWidthInput.val(lineWidth);
+            this.Loop.SetLineWidth(lineWidth);
+            this.Loop.UpdateBuffers();
+
+            this.Layer.EventuallyDraw();
+            return false;
+        }
+        return true;
+    }
+
+    LassoWidget.prototype.Deactivate = function() {
+        this.Popup.StartHideTimer();
+        this.Layer.DeactivateWidget(this);
+        this.State = WAITING;
+        this.Loop.SetActive(false);
+        if (this.Stroke) {
+            this.Stroke.SetActive(false);
+        }
+        if (this.DeactivateCallback) {
+            this.DeactivateCallback();
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    LassoWidget.prototype.HandleKeyDown = function(event) {
+        if ( this.State == DRAWING) {
+            // escape key (or space or enter) to turn off drawing
+            if (event.keyCode == 27 || event.keyCode == 32 || event.keyCode == 13) {
+                this.Deactivate();
+                return false;
+            }
+        }
+    }
+
+    LassoWidget.prototype.HandleMouseDown = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+
+        if (event.which == 1) {
+            // Start drawing.
+            // Stroke is a temporary line for interaction.
+            // When interaction stops, it is converted/merged with loop.
+            this.Stroke = new SA.Polyline();
+            this.Stroke.OutlineColor = [0.0, 0.0, 0.0];
+            this.Stroke.SetOutlineColor(this.Loop.OutlineColor);
+            //this.Stroke.SetOutlineColor(this.Dialog.ColorInput.val());
+            this.Stroke.FixedSize = false;
+            this.Stroke.LineWidth = 0;
+
+            var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+            this.Stroke.Points = [];
+            this.Stroke.Points.push([pt[0], pt[1]]); // avoid same reference.
+        }
+    }
+
+    LassoWidget.prototype.HandleMouseUp = function(event) {
+        // Middle mouse deactivates the widget.
+        if (event.which == 2) {
+            // Middle mouse was pressed.
+            this.Deactivate();
+        }
+
+        // A stroke has just been finished.
+        if (event.which == 1 && this.State == DRAWING) {
+            var spacing = this.Layer.GetCamera().GetSpacing();
+            //this.Decimate(this.Stroke, spacing);
+            this.Stroke.Decimate(spacing);
+            if (this.Loop && this.Loop.Points.length > 0) {
+                this.CombineStroke();
+            } else {
+                this.Stroke.Closed = true;
+                this.Stroke.UpdateBuffers();
+                this.Loop = this.Stroke;
+                this.Stroke = false;
+            }
+            this.ComputeActiveCenter();
+            this.Layer.EventuallyDraw();
+
+            RecordState();
+        }
+    }
+
+    LassoWidget.prototype.HandleDoubleClick = function(event) {
+        if (this.State == DRAWING) {
+            this.Deactivate();
+            return false;
+        } 
+        if (this.State == ACTIVE) {
+            this.SetStateToDrawing();
+            return false;
+        }
+        return true;
+    }
+
+    LassoWidget.prototype.SetStateToDrawing = function() {
+        this.State = DRAWING;
+        // When drawing, the cursor is enough indication.
+        // We keep the lines the normal color. Yellow is too hard to see.
+        this.Loop.SetActive(false);
+        this.Popup.Hide();
+        this.Layer.GetCanvasDiv().css(
             {'cursor':'url('+SA.ImagePathUrl+'select_lasso.png) 5 30,crosshair'});
-    } else {
-        this.State = LASSO_WIDGET_WAITING;
+        this.Layer.EventuallyDraw();
     }
-}
 
+    LassoWidget.prototype.HandleMouseMove = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
 
-LassoWidget.prototype.Draw = function(view) {
-  this.Loop.Draw(view);
-  if (this.Stroke) {
-    this.Stroke.Draw(view);
-  }
-}
+        if (event.which == 1 && this.State == DRAWING) {
+            var shape = this.Stroke;
+            var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
+            shape.Points.push([pt[0], pt[1]]); // avoid same reference.
+            shape.UpdateBuffers();
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            this.Layer.EventuallyDraw();
+            return;
+        }
 
-
-LassoWidget.prototype.Serialize = function() {
-  var obj = new Object();
-  obj.type = "lasso";
-  obj.outlinecolor = this.Loop.OutlineColor;
-  obj.points = [];
-  for (var j = 0; j < this.Loop.Points.length; ++j) {
-    obj.points.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
-  }
-  obj.closedloop = true;
-
-  return obj;
-}
-
-// Load a widget from a json object (origin MongoDB).
-LassoWidget.prototype.Load = function(obj) {
-  if (obj.outlinecolor != undefined) {
-    this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-    this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-    this.Loop.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-    this.Stroke.OutlineColor = this.Loop.OutlineColor;
-  }
-  var points = [];
-  if ( obj.points != undefined) {
-    points = obj.points;
-  }
-  if ( obj.shape != undefined) {
-    points = obj.shapes[0];
-  }
-
-  for(var n=0; n < points.length; n++){
-      this.Loop.Points[n] = [parseFloat(points[n][0]),
-                             parseFloat(points[n][1])];
-  }
-  this.ComputeActiveCenter();
-  this.Loop.UpdateBuffers();
-}
-
-LassoWidget.prototype.HandleMouseWheel = function(event) {
-    // TODO: grow or shrink region.
-    return false;
-}
-
-LassoWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  return false;
-}
-
-LassoWidget.prototype.Deactivate = function() {
-    this.Popup.StartHideTimer();
-    this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
-    this.Viewer.DeactivateWidget(this);
-    this.State = LASSO_WIDGET_WAITING;
-    this.Loop.Active = false;
-    if (this.Stroke) {
-        this.Stroke.Active = false;
+        if (this.State == ACTIVE &&
+            event.which == 0) {
+            // Deactivate
+            this.SetActive(this.CheckActive(event));
+            return;
+        }
     }
-    if (this.DeactivateCallback) {
-        this.DeactivateCallback();
+
+    LassoWidget.prototype.ComputeActiveCenter = function() {
+        var count = 0;
+        var sx = 0.0;
+        var sy = 0.0;
+        var shape = this.Loop;
+        var points = [];
+        for (var j = 0; j < shape.Points.length; ++j) {
+            sx += shape.Points[j][0];
+            sy += shape.Points[j][1];
+        }
+
+        this.ActiveCenter[0] = sx / shape.Points.length;
+        this.ActiveCenter[1] = sy / shape.Points.length;
     }
-    this.Viewer.EventuallyRender(false);
-}
 
-LassoWidget.prototype.HandleMouseDown = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
+    // This also shows the popup if it is not visible already.
+    LassoWidget.prototype.PlacePopup = function () {
+        var pt = this.Loop.FindPopupPoint(this.Layer.GetCamera());
+        pt = this.Layer.GetCamera().ConvertPointWorldToViewer(pt[0], pt[1]);
 
-  if (event.which == 1) {
-    // Start drawing.
+        pt[0] += 20;
+        pt[1] -= 10;
 
-    // Stroke is a temporary line for interaction.
-    // When interaction stops, it is converted/merged with loop.
-    this.Stroke = new Polyline();
-    this.Stroke.OutlineColor = [0.0, 0.0, 0.0];
-    this.Stroke.SetOutlineColor(this.Dialog.ColorInput.val());
-    this.Stroke.FixedSize = false;
-    this.Stroke.LineWidth = 0;
-
-    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-    this.Stroke.Points = [];
-    this.Stroke.Points.push([pt[0], pt[1]]); // avoid same reference.
-  }
-}
-
-LassoWidget.prototype.HandleMouseUp = function(event) {
-  // Middle mouse deactivates the widget.
-  if (event.which == 2) {
-    // Middle mouse was pressed.
-    this.Deactivate();
-  }
-
-  // A stroke has just been finished.
-  if (event.which == 1) {
-    var spacing = this.Viewer.GetSpacing();
-    this.Decimate(this.Stroke, spacing);
-    if (this.Loop && this.Loop.Points.length > 0) {
-      this.CombineStroke(); 
-    } else {
-      this.Stroke.Closed = true;
-      this.Stroke.UpdateBuffers();
-      this.Loop = this.Stroke;
-      this.Stroke = false;
+        this.Popup.Show(pt[0],pt[1]);
     }
-    this.ComputeActiveCenter();
-    this.Viewer.EventuallyRender(false);
 
-    RecordState();
-  }
-}
+    // Just returns whether the widget thinks it should be active.
+    // Layer is responsible for seting it to active.
+    LassoWidget.prototype.CheckActive = function(event) {
+        if (this.State == DRAWING) { return; }
 
-LassoWidget.prototype.HandleDoubleClick = function(event) {
-  this.Deactivate();
-}
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
 
-LassoWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.offsetX;
-    var y = event.offsetY;
-    
-    if (event.which == 1 && this.State == LASSO_WIDGET_DRAWING) {
-        var shape = this.Stroke;
-        var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-        shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-        shape.UpdateBuffers();
+        var width = this.Loop.GetLineWidth() / 2;
+        // Tolerance: 5 screen pixels.
+        var minWidth = 10.0 / this.Layer.GetPixelsPerUnit();
+        if (width < minWidth) { width = minWidth;}
+
+        if (this.Loop.PointOnShape(pt, width)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    LassoWidget.prototype.GetActive = function() {
+        return this.State != WAITING;
+    }
+
+    // Setting to active always puts state into "active".
+    // It can move to other states and stay active.
+    LassoWidget.prototype.SetActive = function(flag) {
+        if (flag) {
+            if (this.State == WAITING ) {
+                this.State = ACTIVE;
+                this.Loop.SetActive(true);
+                this.PlacePopup();
+                this.Layer.EventuallyDraw();
+            }
+        } else {
+            if (this.State != WAITING) {
+                this.Deactivate();
+                this.Layer.DeactivateWidget(this);
+            }
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    // It would be nice to put this as a superclass method, or call the
+    // layer.RemoveWidget method instead.
+    LassoWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.RemoveWidget(this);
+        }
+    }
+
+    // Can we bind the dialog apply callback to an objects method?
+    LassoWidget.prototype.ShowPropertiesDialog = function () {
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Loop.OutlineColor));
+        this.Dialog.LineWidthInput.val((this.Loop.LineWidth).toFixed(2));
+
+        var area = this.ComputeArea();
+        var areaString = "" + area.toFixed(2);
+        if (this.Loop.FixedSize) {
+            areaString += " pixels^2";
+        } else {
+            areaString += " units^2";
+        }
+        this.Dialog.Area.text(areaString);
+        this.Dialog.Show(true);
+    }
+
+    LassoWidget.prototype.DialogApplyCallback = function() {
+        var hexcolor = this.Dialog.ColorInput.val();
+        this.Loop.SetOutlineColor(hexcolor);
+        this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Loop.UpdateBuffers();
+        this.SetActive(false);
+        RecordState();
+        this.Layer.EventuallyDraw();
+
+        localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-        this.Viewer.EventuallyRender(true);
-        return;
     }
 
-    if (this.State == LASSO_WIDGET_ACTIVE &&
-        event.which == 0) {
-        // Deactivate
-        this.SetActive(this.CheckActive(event));
-        return;
-    }
-}
-
-LassoWidget.prototype.ComputeActiveCenter = function() {
-  var count = 0;
-  var sx = 0.0;
-  var sy = 0.0;
-  var shape = this.Loop;
-  var points = [];
-  for (var j = 0; j < shape.Points.length; ++j) {
-    sx += shape.Points[j][0];
-    sy += shape.Points[j][1];
-  }
-
-  this.ActiveCenter[0] = sx / shape.Points.length;
-  this.ActiveCenter[1] = sy / shape.Points.length;
-}
-
-// This also shows the popup if it is not visible already.
-LassoWidget.prototype.PlacePopup = function () {
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
-                                                 this.ActiveCenter[1]);
-  pt[0] += 40;
-  pt[1] -= 40;
-  this.Popup.Show(pt[0],pt[1]);
-}
-
-LassoWidget.prototype.CheckActive = function(event) {
-  if (this.State == LASSO_WIDGET_DRAWING) { return; }
-
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
-                                                 this.ActiveCenter[1]);
-
-  var dx = event.offsetX - pt[0];
-  var dy = event.offsetY - pt[1];
-  var active = false;
-
-  if (dx*dx + dy*dy < 1600) {
-    active = true;
-  }
- this.SetActive(active);
- return active;
-}
-
-LassoWidget.prototype.GetActive = function() {
-  return false;
-}
-
-// Setting to active always puts state into "active".
-// It can move to other states and stay active.
-LassoWidget.prototype.SetActive = function(flag) {
-  if (flag) {
-    this.Viewer.ActivateWidget(this);
-    this.State = LASSO_WIDGET_ACTIVE;
-    this.Loop.Active = true;
-    this.PlacePopup();
-    this.Viewer.EventuallyRender(false);
-  } else {
-    this.Deactivate();
-    this.Viewer.DeactivateWidget(this);
-  }
-}
-
-LassoWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer) {
-        this.Viewer.RemoveWidget(this);
-    }
-}
-
-// Can we bind the dialog apply callback to an objects method?
-LassoWidget.prototype.ShowPropertiesDialog = function () {
-  this.Dialog.ColorInput.val(ConvertColorToHex(this.Loop.OutlineColor));
-
-  this.Dialog.LineWidthInput.val((this.Loop.LineWidth).toFixed(2));
-
-  var area = this.ComputeArea();
-  var areaString = "" + area.toFixed(2);
-  if (this.Loop.FixedSize) {
-    areaString += " pixels^2";
-  } else {
-    areaString += " units^2";
-  }
-  this.Dialog.Area.text(areaString);
-  this.Dialog.Show(true);
-}
-
-LassoWidget.prototype.DialogApplyCallback = function() {
-    var hexcolor = this.Dialog.ColorInput.val();
-    this.Loop.SetOutlineColor(hexcolor);
-    this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-    this.Loop.UpdateBuffers();
-    this.SetActive(false);
-    RecordState();
-    this.Viewer.EventuallyRender(false);
-
-    localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
-    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-}
-
-
-// The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
-// Pass in the spacing as a hint to get rid of aliasing.
-LassoWidget.prototype.Decimate = function(shape, spacing) {
-  // Keep looping over the line removing points until the line does not change.
-  var modified = true;
-    var sanityCheck = 0;
-  while (modified) {
-    modified = false;
-    var newPoints = [];
-    newPoints.push(shape.Points[0]);
-    // Window of four points.
-    var i = 3;
-    while (i < shape.Points.length) {
-      // Debugging a hang.  I do not think it occurs in decimate, but it might.
-      if (++sanityCheck > 100000) {
-        alert("Decimate is takeing too long.");
-        return;
-      }
-      var p0 = shape.Points[i];
-      var p1 = shape.Points[i-1];
-      var p2 = shape.Points[i-2];
-      var p3 = shape.Points[i-3];
-      // Compute the average of the center two.
-      var cx = (p1[0] + p2[0]) * 0.5;
-      var cy = (p1[1] + p2[1]) * 0.5;
-      // Find the perendicular normal.
-      var nx = (p0[1] - p3[1]);
-      var ny = -(p0[0] - p3[0]);
-      var mag = Math.sqrt(nx*nx + ny*ny);
-      nx = nx / mag;
-      ny = ny / mag;
-      mag = Math.abs(nx*(cx-shape.Points[i-3][0]) + ny*(cy-shape.Points[i-3][1]));
-      // Mag metric does not distinguish between line and a stroke that double backs on itself.
-      // Make sure the two point being merged are between the outer points 0 and 3.
-      var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
-      var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
-      if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
-        // Replace the two points with their average.
-        newPoints.push([cx, cy]);
-        modified = true;
-        // Skip the next point the window will have one old merged point,
-        // but that is ok because it is just used as reference and not altered.
-        i += 2;
-      } else {
-        //  No modification.  Just move the window one.
-        newPoints.push(shape.Points[i-2]);
-        ++i;
-      }
-    }
-    // Copy the remaing point / 2 points
-    i = i-2;
-    while (i < shape.Points.length) {
-      newPoints.push(shape.Points[i]);
-      ++i;
-    }
-    shape.Points = newPoints;
-  }
-
-  shape.UpdateBuffers();
-}
-
-
-
-LassoWidget.prototype.CombineStroke = function() {
-
-  // This algorithm was desinged to have the first point be the same as the last point.
-  // To generalize polylineWidgets and lassoWidgets, I changed this and put a closed 
-  // flag (which implicitely draws the last segment) in polyline.
-  // It is easier to temporarily add the extra point and them remove it, than change the algorithm.
-  this.Loop.Points.push(this.Loop.Points[0]);
-
-
-  // Find the first and last intersection points between stroke and loop.
-  var intersection0;
-  var intersection1;
-  for (var i = 1; i < this.Stroke.Points.length; ++i) {
-    var pt0 = this.Stroke.Points[i-1];
-    var pt1 = this.Stroke.Points[i];
-    var tmp = this.FindIntersection(pt0, pt1);     
-    if (tmp) {
-      // I need to insert the intersection in the stroke so
-      // one stroke segment does not intersect loop twice.
-      this.Stroke.Points.splice(i,0,tmp.Point);
-      if (intersection0 == undefined) {
-        intersection0 = tmp;
-        intersection0.StrokeIndex = i;
-      } else {
-        // If a point was added before first intersection,
-        // its index needs to be updated too.
-        if (tmp.LoopIndex < intersection0.LoopIndex) {
-          intersection0.LoopIndex += 1;
+    /*
+    // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
+    // Pass in the spacing as a hint to get rid of aliasing.
+    LassoWidget.prototype.Decimate = function(shape, spacing) {
+        // Keep looping over the line removing points until the line does not change.
+        var modified = true;
+        var sanityCheck = 0;
+        while (modified) {
+            modified = false;
+            var newPoints = [];
+            newPoints.push(shape.Points[0]);
+            // Window of four points.
+            var i = 3;
+            while (i < shape.Points.length) {
+                // Debugging a hang.  I do not think it occurs in decimate, but it might.
+                if (++sanityCheck > 100000) {
+                    alert("Decimate is takeing too long.");
+                    return;
+                }
+                var p0 = shape.Points[i];
+                var p1 = shape.Points[i-1];
+                var p2 = shape.Points[i-2];
+                var p3 = shape.Points[i-3];
+                // Compute the average of the center two.
+                var cx = (p1[0] + p2[0]) * 0.5;
+                var cy = (p1[1] + p2[1]) * 0.5;
+                // Find the perendicular normal.
+                var nx = (p0[1] - p3[1]);
+                var ny = -(p0[0] - p3[0]);
+                var mag = Math.sqrt(nx*nx + ny*ny);
+                nx = nx / mag;
+                ny = ny / mag;
+                mag = Math.abs(nx*(cx-shape.Points[i-3][0]) + ny*(cy-shape.Points[i-3][1]));
+                // Mag metric does not distinguish between line and a stroke that double backs on itself.
+                // Make sure the two point being merged are between the outer points 0 and 3.
+                var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
+                var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
+                if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
+                    // Replace the two points with their average.
+                    newPoints.push([cx, cy]);
+                    modified = true;
+                    // Skip the next point the window will have one old merged point,
+                    // but that is ok because it is just used as reference and not altered.
+                    i += 2;
+                } else {
+                    //  No modification.  Just move the window one.
+                    newPoints.push(shape.Points[i-2]);
+                    ++i;
+                }
+            }
+            // Copy the remaing point / 2 points
+            i = i-2;
+            while (i < shape.Points.length) {
+                newPoints.push(shape.Points[i]);
+                ++i;
+            }
+            shape.Points = newPoints;
         }
-        intersection1 = tmp;
-        intersection1.StrokeIndex = i;
-      }
+
+        shape.UpdateBuffers();
     }
-  }
+    */
+    LassoWidget.prototype.CombineStroke = function() {
+        // This algorithm was desinged to have the first point be the same as the last point.
+        // To generalize polylineWidgets and lassoWidgets, I changed this and put a closed 
+        // flag (which implicitely draws the last segment) in polyline.
+        // It is easier to temporarily add the extra point and them remove it, than change the algorithm.
+        this.Loop.Points.push(this.Loop.Points[0]);
 
-  var sanityCheck = 0;
-
-  // If we have two intersections, clip the loop with the stroke.
-  if (intersection1 != undefined) {
-    // We will have two parts.
-    // Build both loops keeing track of their lengths.
-    // Keep the longer part.
-    var points0 = [];
-    var len0 = 0.0;
-    var points1 = [];
-    var len1 = 0.0;
-    var i;
-    // Add the clipped stroke to both loops.
-    for (i = intersection0.StrokeIndex; i < intersection1.StrokeIndex; ++i) {
-      points0.push(this.Stroke.Points[i]);
-      points1.push(this.Stroke.Points[i]);
-    }
-    // Now the two new loops take different directions around the original loop.
-    // Decreasing
-    i = intersection1.LoopIndex;
-    while (i != intersection0.LoopIndex) {
-      if (++sanityCheck > 1000000) {
-        alert("Combine loop 1 is taking too long.");
-        return;
-      }
-      points0.push(this.Loop.Points[i]);
-      var dx = this.Loop.Points[i][0];
-      var dy = this.Loop.Points[i][1];
-      // decrement around loop.  First and last loop points are the same.
-      if (--i == 0) { i = this.Loop.Points.length - 1;}
-      // Integrate distance.
-      dx -= this.Loop.Points[i][0];
-      dy -= this.Loop.Points[i][1];
-      len0 += Math.sqrt(dx*dx + dy*dy);
-    }
-    // Duplicate the first point in the loop
-    points0.push(intersection0.Point);
-
-    // Increasing
-    i = intersection1.LoopIndex;
-    while (i != intersection0.LoopIndex) {
-      if (++sanityCheck > 1000000) {
-        alert("Combine loop 2 is taking too long.");
-        return;
-      }
-      points1.push(this.Loop.Points[i]);
-      var dx = this.Loop.Points[i][0];
-      var dy = this.Loop.Points[i][1];
-      //increment around loop.  First and last loop points are the same.
-      if (++i == this.Loop.Points.length - 1) { i = 0;}
-      // Integrate distance.
-      dx -= this.Loop.Points[i][0];
-      dy -= this.Loop.Points[i][1];
-      len1 += Math.sqrt(dx*dx + dy*dy);
-    }
-    // Duplicate the first point in the loop
-    points1.push(intersection0.Point);
-
-    if (len0 > len1) {
-      this.Loop.Points = points0;
-    } else {
-      this.Loop.Points = points1;
-    }
-
-    RecordState();
-  }
-
-  // Remove the extra point added at the begining of this method.
-  this.Loop.Points.pop();
-  this.Loop.UpdateBuffers();
-  this.ComputeActiveCenter();
-
-  this.Stroke = false;
-  this.Viewer.EventuallyRender(true);
-}
-
-
-// tranform all points so p0 is origin and p1 maps to (1,0)
-// Returns false if no intersection, 
-// If there is an intersection, it adds that point to the loop.
-// It returns {Point: newPt, LoopIndex: i} .
-LassoWidget.prototype.FindIntersection = function(p0, p1) {
-  var best = false;
-  var p = [(p1[0]-p0[0]), (p1[1]-p0[1])];
-  var mag = Math.sqrt(p[0]*p[0] + p[1]*p[1]);
-  if (mag < 0.0) { return false;}
-  p[0] = p[0] / mag;
-  p[1] = p[1] / mag;
-
-  var m0 = this.Loop.Points[0];
-  var n0 = [(m0[0]-p0[0])/mag, (m0[1]-p0[1])/mag];
-  var k0 = [(n0[0]*p[0]+n0[1]*p[1]), (n0[1]*p[0]-n0[0]*p[1])];
-
-  for (var i = 1; i < this.Loop.Points.length; ++i) {
-    var m1 = this.Loop.Points[i];
-    // Avoid an infinite loop inserting points.
-    if (p0 == m0 || p0 == m1) { continue;}
-    var n1 = [(m1[0]-p0[0])/mag, (m1[1]-p0[1])/mag];
-    var k1 = [(n1[0]*p[0]+n1[1]*p[1]), (n1[1]*p[0]-n1[0]*p[1])];
-    if ((k1[1] >= 0.0 && k0[1] <= 0.0) || (k1[1] <= 0.0 && k0[1] >= 0.0)) {
-      var k = k0[1] / (k0[1]-k1[1]);
-      var x = k0[0] + k*(k1[0]-k0[0]); 
-      if (x > 0 && x <=1) {
-        var newPt = [(m0[0]+k*(m1[0]-m0[0])), (m0[1]+k*(m1[1]-m0[1]))];  
-        if ( ! best || x < best.k) {
-          best = {Point: newPt, LoopIndex: i, k: x}; 
+        // Find the first and last intersection points between stroke and loop.
+        var intersection0;
+        var intersection1;
+        for (var i = 1; i < this.Stroke.Points.length; ++i) {
+            var pt0 = this.Stroke.Points[i-1];
+            var pt1 = this.Stroke.Points[i];
+            var tmp = this.FindIntersection(pt0, pt1);
+            if (tmp) {
+                // I need to insert the intersection in the stroke so
+                // one stroke segment does not intersect loop twice.
+                this.Stroke.Points.splice(i,0,tmp.Point);
+                if (intersection0 == undefined) {
+                    intersection0 = tmp;
+                    intersection0.StrokeIndex = i;
+                } else {
+                    // If a point was added before first intersection,
+                    // its index needs to be updated too.
+                    if (tmp.LoopIndex < intersection0.LoopIndex) {
+                        intersection0.LoopIndex += 1;
+                    }
+                    intersection1 = tmp;
+                    intersection1.StrokeIndex = i;
+                }
+            }
         }
-      }
+
+        var sanityCheck = 0;
+
+        // If we have two intersections, clip the loop with the stroke.
+        if (intersection1 != undefined) {
+            // We will have two parts.
+            // Build both loops keeing track of their lengths.
+            // Keep the longer part.
+            var points0 = [];
+            var len0 = 0.0;
+            var points1 = [];
+            var len1 = 0.0;
+            var i;
+            // Add the clipped stroke to both loops.
+            for (i = intersection0.StrokeIndex; i < intersection1.StrokeIndex; ++i) {
+                points0.push(this.Stroke.Points[i]);
+                points1.push(this.Stroke.Points[i]);
+            }
+            // Now the two new loops take different directions around the original loop.
+            // Decreasing
+            i = intersection1.LoopIndex;
+            while (i != intersection0.LoopIndex) {
+                if (++sanityCheck > 1000000) {
+                    alert("Combine loop 1 is taking too long.");
+                    return;
+                }
+                points0.push(this.Loop.Points[i]);
+                var dx = this.Loop.Points[i][0];
+                var dy = this.Loop.Points[i][1];
+                // decrement around loop.  First and last loop points are the same.
+                if (--i == 0) { i = this.Loop.Points.length - 1;}
+                // Integrate distance.
+                dx -= this.Loop.Points[i][0];
+                dy -= this.Loop.Points[i][1];
+                len0 += Math.sqrt(dx*dx + dy*dy);
+            }
+            // Duplicate the first point in the loop
+            points0.push(intersection0.Point);
+
+            // Increasing
+            i = intersection1.LoopIndex;
+            while (i != intersection0.LoopIndex) {
+                if (++sanityCheck > 1000000) {
+                    alert("Combine loop 2 is taking too long.");
+                    return;
+                }
+                points1.push(this.Loop.Points[i]);
+                var dx = this.Loop.Points[i][0];
+                var dy = this.Loop.Points[i][1];
+                //increment around loop.  First and last loop points are the same.
+                if (++i == this.Loop.Points.length - 1) { i = 0;}
+                // Integrate distance.
+                dx -= this.Loop.Points[i][0];
+                dy -= this.Loop.Points[i][1];
+                len1 += Math.sqrt(dx*dx + dy*dy);
+            }
+            // Duplicate the first point in the loop
+            points1.push(intersection0.Point);
+
+            if (len0 > len1) {
+                this.Loop.Points = points0;
+            } else {
+                this.Loop.Points = points1;
+            }
+
+            RecordState();
+        }
+
+        // Remove the extra point added at the begining of this method.
+        this.Loop.Points.pop();
+        this.Loop.UpdateBuffers();
+        this.ComputeActiveCenter();
+
+        this.Stroke = false;
+        this.Layer.EventuallyDraw();
     }
-    m0 = m1;
-    n0 = n1;
-    k0 = k1;
-  }
-  if (best) {
-    this.Loop.Points.splice(best.LoopIndex,0,best.Point);
-  }
-
-  return best;
-}
 
 
+    // tranform all points so p0 is origin and p1 maps to (1,0)
+    // Returns false if no intersection, 
+    // If there is an intersection, it adds that point to the loop.
+    // It returns {Point: newPt, LoopIndex: i} .
+    LassoWidget.prototype.FindIntersection = function(p0, p1) {
+        var best = false;
+        var p = [(p1[0]-p0[0]), (p1[1]-p0[1])];
+        var mag = Math.sqrt(p[0]*p[0] + p[1]*p[1]);
+        if (mag < 0.0) { return false;}
+        p[0] = p[0] / mag;
+        p[1] = p[1] / mag;
 
+        var m0 = this.Loop.Points[0];
+        var n0 = [(m0[0]-p0[0])/mag, (m0[1]-p0[1])/mag];
+        var k0 = [(n0[0]*p[0]+n0[1]*p[1]), (n0[1]*p[0]-n0[0]*p[1])];
 
-// This is not actually needed!  So it is not used.
-LassoWidget.prototype.IsPointInsideLoop = function(x, y) {
-  // Sum up angles.  Inside poitns will sum to 2pi, outside will sum to 0.
-  var angle = 0.0;
-  var pt0 = this.Loop.Points[this.Loop.length - 1];
-  for ( var i = 0; i < this.Loop.length; ++i)
-    {
-    var pt1 = this.Loop.Points[i];
-    var v0 = [pt0[0]-x, pt0[1]-y];
-    var v1 = [pt1[0]-x, pt1[1]-y];
-    var mag0 = Math.sqrt(v0[0]*v0[0] + v0[1]*v0[1]);
-    var mag1 = Math.sqrt(v1[0]*v1[0] + v1[1]*v1[1]);
-    angle += Math.arcsin((v0[0]*v1[1] - v0[1]*v1[0])/(mag0*mag1));
+        for (var i = 1; i < this.Loop.Points.length; ++i) {
+            var m1 = this.Loop.Points[i];
+            // Avoid an infinite loop inserting points.
+            if (p0 == m0 || p0 == m1) { continue;}
+            var n1 = [(m1[0]-p0[0])/mag, (m1[1]-p0[1])/mag];
+            var k1 = [(n1[0]*p[0]+n1[1]*p[1]), (n1[1]*p[0]-n1[0]*p[1])];
+            if ((k1[1] >= 0.0 && k0[1] <= 0.0) || (k1[1] <= 0.0 && k0[1] >= 0.0)) {
+                var k = k0[1] / (k0[1]-k1[1]);
+                var x = k0[0] + k*(k1[0]-k0[0]);
+                if (x > 0 && x <=1) {
+                    var newPt = [(m0[0]+k*(m1[0]-m0[0])), (m0[1]+k*(m1[1]-m0[1]))];
+                    if ( ! best || x < best.k) {
+                        best = {Point: newPt, LoopIndex: i, k: x};
+                    }
+                }
+            }
+            m0 = m1;
+            n0 = n1;
+            k0 = k1;
+        }
+        if (best) {
+            this.Loop.Points.splice(best.LoopIndex,0,best.Point);
+        }
+
+        return best;
     }
 
-  return (angle > 3.14 || angle < -3.14);
-}
+    // This is not actually needed!  So it is not used.
+    LassoWidget.prototype.IsPointInsideLoop = function(x, y) {
+        // Sum up angles.  Inside poitns will sum to 2pi, outside will sum to 0.
+        var angle = 0.0;
+        var pt0 = this.Loop.Points[this.Loop.length - 1];
+        for ( var i = 0; i < this.Loop.length; ++i)
+        {
+            var pt1 = this.Loop.Points[i];
+            var v0 = [pt0[0]-x, pt0[1]-y];
+            var v1 = [pt1[0]-x, pt1[1]-y];
+            var mag0 = Math.sqrt(v0[0]*v0[0] + v0[1]*v0[1]);
+            var mag1 = Math.sqrt(v1[0]*v1[0] + v1[1]*v1[1]);
+            angle += Math.arcsin((v0[0]*v1[1] - v0[1]*v1[0])/(mag0*mag1));
+        }
 
+        return (angle > 3.14 || angle < -3.14);
+    }
+    
+    LassoWidget.prototype.ComputeArea = function() {
+        var area = 0.0;
+        // Use the active center. It should be more numerical stable.
+        // Iterate over triangles
+        var vx1 = this.Loop.Points[0][0] - this.ActiveCenter[0];
+        var vy1 = this.Loop.Points[0][1] - this.ActiveCenter[1];
+        for (var j = 1; j < this.Loop.Points.length; ++j) {
+            // Area of triangle is 1/2 magnitude of cross product.
+            var vx2 = vx1;
+            var vy2 = vy1;
+            vx1 = this.Loop.Points[j][0] - this.ActiveCenter[0];
+            vy1 = this.Loop.Points[j][1] - this.ActiveCenter[1];
+            area += (vx1*vy2) - (vx2*vy1);
+        }
 
-LassoWidget.prototype.ComputeArea = function() {
-  var area = 0.0;
-  // Use the active center. It should be more numerical stable.
-  // Iterate over triangles
-  var vx1 = this.Loop.Points[0][0] - this.ActiveCenter[0];    
-  var vy1 = this.Loop.Points[0][1] - this.ActiveCenter[1];
-  for (var j = 1; j < this.Loop.Points.length; ++j) {
-    // Area of triangle is 1/2 magnitude of cross product.
-    var vx2 = vx1;
-    var vy2 = vy1;
-    vx1 = this.Loop.Points[j][0] - this.ActiveCenter[0];    
-    vy1 = this.Loop.Points[j][1] - this.ActiveCenter[1];
-    area += (vx1*vy2) - (vx2*vy1);
-  }
+        if (area < 0) {
+            area = -area;
+        }
+        return area;
+    }
 
-  if (area < 0) {
-    area = -area;
-  }
-  return area;
-}
+    
+    SA.LassoWidget = LassoWidget;
 
+})();
 //==============================================================================
 // A replacement for the right click option to get the properties menu.
 // This could be multi touch friendly.
 
+(function () {
+    "use strict";
 
-function WidgetPopup (widget) {
-    this.Widget = widget;
-    this.Visible = false;
-    this.HideTimerId = 0;
+    function WidgetPopup (widget) {
+        this.Widget = widget;
+        this.Visible = false;
+        this.HideTimerId = 0;
 
-    var parent = widget.Viewer.MainView.CanvasDiv;
+        var parent = widget.Layer.GetCanvasDiv();
 
-    // buttons to replace right click.
-    var self = this;
+        // buttons to replace right click.
+        var self = this;
 
-    // We cannot append this to the canvas, so just append
-    // it to the view panel, and add the viewport offset for now.
-    // I should probably create a div around the canvas.
-    // This is this only place I need viewport[0], [1] and I
-    // was thinking of getting rid of the viewport offset.
-    this.ButtonDiv =
-        $('<div>').appendTo(parent)
-        .hide()
-        .css({'position': 'absolute',
-              'z-index': '1'})
-        .mouseenter(function() { self.CancelHideTimer(); })
-        .mouseleave(function(){ self.StartHideTimer();});
-    this.DeleteButton = $('<img>').appendTo(this.ButtonDiv)
-        .css({'height': '20px'})
-        .attr('src',SA.ImagePathUrl+"deleteSmall.png")
-        .click(function(){self.DeleteCallback();});
-    this.PropertiesButton = $('<img>').appendTo(this.ButtonDiv)
-        .css({'height': '20px'})
-        .attr('src',SA.ImagePathUrl+"Menu.jpg")
-        .click(function(){self.PropertiesCallback();});
-}
-
-WidgetPopup.prototype.DeleteCallback = function() {
-    this.Widget.SetActive(false);
-    this.Hide();
-    // This has to be called before the viewer is removed (next call).
-    this.Widget.Viewer.EventuallyRender(true);
-    this.Widget.RemoveFromViewer();
-    RecordState();
-}
-
-WidgetPopup.prototype.PropertiesCallback = function() {
-  this.Hide();
-  this.Widget.ShowPropertiesDialog();
-}
-
-
-
-//------------------------------------------------------------------------------
-WidgetPopup.prototype.Show = function(x, y) {
-    // Have to add the viewport offset because I cannot use Canvas as
-    // parent.
-    //var viewport = this.Widget.Viewer.GetViewport();
-    //x += viewport[0];
-    //y += viewport[1];
-    this.CancelHideTimer(); // Just in case: Show trumps previous hide.
-    this.ButtonDiv.css({
-        'left' : x+'px',
-        'top'  : y+'px'})
-        .show();
-}
-
-// When some other event occurs, we want to hide the pop up quickly
-WidgetPopup.prototype.Hide = function() {
-  this.CancelHideTimer(); // Just in case: Show trumps previous hide.
-  this.ButtonDiv.hide();
-}
-
-WidgetPopup.prototype.StartHideTimer = function() {
-  if ( ! this.HideTimerId) {
-      var self = this;
-    
-    if(MOBILE_DEVICE) {
-      this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
-    } else {
-      this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);
+        // We cannot append this to the canvas, so just append
+        // it to the view panel, and add the viewport offset for now.
+        // I should probably create a div around the canvas.
+        // This is this only place I need viewport[0], [1] and I
+        // was thinking of getting rid of the viewport offset.
+        this.ButtonDiv =
+            $('<div>').appendTo(parent)
+            .hide()
+            .css({'position': 'absolute',
+                  'z-index': '1'})
+            .mouseenter(function() { self.CancelHideTimer(); })
+            .mouseleave(function(){ self.StartHideTimer();});
+        this.DeleteButton = $('<img>').appendTo(this.ButtonDiv)
+            .css({'height': '20px'})
+            .attr('src',SA.ImagePathUrl+"deleteSmall.png")
+            .click(function(){self.DeleteCallback();});
+        this.PropertiesButton = $('<img>').appendTo(this.ButtonDiv)
+            .css({'height': '20px'})
+            .attr('src',SA.ImagePathUrl+"Menu.jpg")
+            .click(function(){self.PropertiesCallback();});
     }
-  }
-}
 
-WidgetPopup.prototype.CancelHideTimer = function() {
-  if (this.HideTimerId) {
-    clearTimeout(this.HideTimerId);
-    this.HideTimerId = 0;
-  }
-}
+    WidgetPopup.prototype.DeleteCallback = function() {
+        this.Widget.SetActive(false);
+        this.Hide();
 
-WidgetPopup.prototype.HideTimerCallback = function() {
-  this.ButtonDiv.hide();
-  this.HideTimerId = 0;
-}
+        // Messy.  Maybe closure callback can keep track of the layer.
+        this.Widget.Layer.EventuallyDraw();
+        this.Widget.Layer.RemoveWidget(this.Widget);
 
+        RecordState();
+    }
+
+    WidgetPopup.prototype.PropertiesCallback = function() {
+        this.Hide();
+        this.Widget.ShowPropertiesDialog();
+    }
+
+
+    //------------------------------------------------------------------------------
+    WidgetPopup.prototype.Show = function(x, y) {
+        this.CancelHideTimer(); // Just in case: Show trumps previous hide.
+        this.ButtonDiv.css({
+            'left' : x+'px',
+            'top'  : y+'px'})
+            .show();
+    }
+
+    // When some other event occurs, we want to hide the pop up quickly
+    WidgetPopup.prototype.Hide = function() {
+        this.CancelHideTimer(); // Just in case: Show trumps previous hide.
+        this.ButtonDiv.hide();
+    }
+
+    WidgetPopup.prototype.StartHideTimer = function() {
+        if ( ! this.HideTimerId) {
+            var self = this;
+
+            if(MOBILE_DEVICE) {
+                this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
+            } else {
+                this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);
+            }
+        }
+    }
+
+    WidgetPopup.prototype.CancelHideTimer = function() {
+        if (this.HideTimerId) {
+            clearTimeout(this.HideTimerId);
+            this.HideTimerId = 0;
+        }
+    }
+
+    WidgetPopup.prototype.HideTimerCallback = function() {
+        this.ButtonDiv.hide();
+        this.HideTimerId = 0;
+    }
+
+    SA.WidgetPopup = WidgetPopup;
+
+})();
 
 
 
@@ -48502,7 +48858,11 @@ WidgetPopup.prototype.HideTimerCallback = function() {
     //    // The superclass does not implement this method.
     //}
 
-    Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
+    // Returns undefined if the point is not on the segment.
+    // Returns the interpolation index if it is touching the edge.
+    // NOTE: Confusion between undefined and 0. I could return -1 ...???...
+    // However -1 could mean extrapolation ....
+    Shape.prototype.IntersectPointLine = function(pt, end0, end1, dist) {
         // make end0 the origin.
         var x = pt[0] - end0[0];
         var y = pt[1] - end0[1];
@@ -48511,245 +48871,413 @@ WidgetPopup.prototype.HideTimerCallback = function() {
 
         // Rotate so the edge lies on the x axis.
         var length = Math.sqrt(vx*vx + vy*vy); // Avoid atan2 ... with clever use of complex numbers.
+        // Get the edge normal direction.
         vx = vx/length;
         vy = -vy/length;
+        // Rotate the coordinate system to put the edge on the x axis.
         var newX = (x*vx - y*vy);
         var newY = (x*vy + y*vx);
 
-        if (newX >= 0.0 && newX <= length) {
-            if (Math.abs(newY) < (thickness *0.5)) {
+        if (Math.abs(newY) > dist  ||
+            newX < 0 || newX > length) {
+            return undefined;
+        }
+        return newX / length;
+    }
+
+    SA.Shape = Shape;
+
+})();
+// Originally to hold a set of polylines for the pencil widget.
+
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
+    function ShapeGroup() {
+        this.Shapes = [];
+        this.Bounds = [0,-1,0,-1];
+    };
+
+    ShapeGroup.prototype.GetBounds = function () {
+        return this.Bounds;
+    }
+
+    // Returns 0 if is does not overlap at all.
+    // Returns 1 if part of the section is in the bounds.
+    // Returns 2 if all of the section is in the bounds.
+    ShapeGroup.prototype.ContainedInBounds = function(bds) {
+        if (this.Shapes.length == 0) { return 0;}
+        var retVal = this.Shapes[0].ContainedInBounds(bds);
+        for (var i = 1; i < this.Shapes.length; ++i) {
+            if (retVal == 1) {
+                // Both inside and outside. Nothing more to check.
+                return retVal;
+            }
+            var shapeVal = this.Shapes[i].ContainedInBounds(bds);
+            if (retVal == 0 && shapeVal != 0) {
+                retVal = 1;
+            }
+            if (retVal == 2 && shapeVal != 2) {
+                retVal = 1;
+            }
+        }
+        return retVal;
+    }
+
+    ShapeGroup.prototype.PointOnShape = function(pt, dist) {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            if (this.Shapes[i].PointOnShape(pt,dist)) {
                 return true;
             }
-            return false;
+        }
+        return false;
+    }
+
+    ShapeGroup.prototype.UpdateBuffers = function() {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes.UpdateBuffers();
         }
     }
 
-    window.Shape = Shape;
+    // Find a world location of a popup point given a camera.
+    ShapeGroup.prototype.FindPopupPoint = function(cam) {
+        if (this.Shapes.length == 0) { return; }
+        var roll = cam.Roll;
+        var s = Math.sin(roll + (Math.PI*0.25));
+        var c = Math.cos(roll + (Math.PI*0.25));
+        var bestPt = this.Shapes[0].FindPopupPoint(cam);
+        var bestProjection = (c*bestPt[0])-(s*bestPt[1]);
+        for (var i = 1; i < this.Shapes.length; ++i) {
+            var pt = this.Shapes[i].FindPopupPoint(cam);
+            var projection = (c*pt[0])-(s*pt[1]);
+            if (projection > bestProjection) {
+                bestProjection = projection;
+                bestPt = pt;
+            }
+        }
+        return bestPt;
+    }
 
+    ShapeGroup.prototype.Draw = function(view) {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].Draw(view);
+        }
+    }
+
+    ShapeGroup.prototype.AddShape = function(shape) {
+        this.Shapes.push(shape);
+    }
+
+    ShapeGroup.prototype.GetNumberOfShapes = function() {
+        return this.Shapes.length;
+    }
+
+    ShapeGroup.prototype.GetShape = function(index) {
+        return this.Shapes[index];
+    }
+
+    ShapeGroup.prototype.SetActive = function(flag) {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].SetActive(flag);
+        }        
+    }
+
+    ShapeGroup.prototype.SetLineWidth = function(lineWidth) {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].LineWidth = lineWidth;
+        }
+    }
+
+    // Just returns the first.
+    ShapeGroup.prototype.GetLineWidth = function() {
+        if (this.Shapes.length != 0) {
+            return this.Shapes[0].GetLineWidth();
+        }
+        return 0;
+    }
+
+    ShapeGroup.prototype.SetOutlineColor = function(color) {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].OutlineColor = color;
+        }
+    }
+
+    // Just returns the first.
+    ShapeGroup.prototype.GetOutlineColor = function() {
+        if (this.Shapes.length != 0) {
+            return this.Shapes[0].OutlineColor;
+        }
+        return [0,0,0];
+    }
+
+    ShapeGroup.prototype.SetOrigin = function(origin) {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            // Makes a copy of the array.
+            this.Shapes[i].SetOrigin(origin);
+        }
+    }
+
+    // Adds origin to points and sets origin to 0.
+    ShapeGroup.prototype.ResetOrigin = function() {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].ResetOrigin();
+        }
+    }
+    
+    // Just returns the first.
+    ShapeGroup.prototype.GetOrigin = function() {
+        if (this.Shapes.length != 0) {
+            return this.Shapes[0].Origin;
+        }
+        return [0,0,0];
+    }
+
+    ShapeGroup.prototype.UpdateBuffers = function() {
+        for (var i = 0; i < this.Shapes.length; ++i) {
+            this.Shapes[i].UpdateBuffers();
+        }
+    }
+
+
+    SA.ShapeGroup = ShapeGroup;
 })();
+
 // cross hairs was created as an anchor for text.
 // Just two lines that cross at a point.
 // I am not goint to support line width, or fillColor.
 // Shape seems to define lines in a loop, so I will create a loop for now.
 
+(function () {
+    "use strict";
 
-function CrossHairs() {
-  Shape.call(this);
-  this.Length = 50; // Length of the crosing lines
-  this.Width = 1; // Width of the cross hair lines.
-  this.Origin = [10000,10000]; // position in world coordinates.
-  this.FillColor    = [0,0,0];
-  this.OutlineColor = [1,1,1];
-  this.PointBuffer = [];
-};
-CrossHairs.prototype = new Shape;
+    function CrossHairs() {
+        SA.Shape.call(this);
+        this.Length = 50; // Length of the crosing lines
+        this.Width = 1; // Width of the cross hair lines.
+        this.Origin = [10000,10000]; // position in world coordinates.
+        this.FillColor    = [0,0,0];
+        this.OutlineColor = [1,1,1];
+        this.PointBuffer = [];
+    };
+    CrossHairs.prototype = new SA.Shape;
 
-CrossHairs.prototype.destructor=function() {
-  // Get rid of the buffers?
-}
+    CrossHairs.prototype.destructor=function() {
+        // Get rid of the buffers?
+    }
 
-CrossHairs.prototype.UpdateBuffers = function() {
-  this.PointBuffer = [];
-  var cellData = [];
-  var halfLength = (this.Length * 0.5) + 0.5;
-  var halfWidth = (this.Width * 0.5) + 0.5;
+    CrossHairs.prototype.UpdateBuffers = function() {
+        this.PointBuffer = [];
+        var cellData = [];
+        var halfLength = (this.Length * 0.5) + 0.5;
+        var halfWidth = (this.Width * 0.5) + 0.5;
 
-  this.Matrix = mat4.create();
-  mat4.identity(this.Matrix);
+        this.Matrix = mat4.create();
+        mat4.identity(this.Matrix);
 
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(-halfLength);
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfLength);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(-halfLength);
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfLength);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(halfLength);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(halfLength);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(halfLength);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(halfLength);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(halfLength);
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(halfLength);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(halfLength);
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(halfLength);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(halfWidth);
-  this.PointBuffer.push(-halfLength);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(halfWidth);
+        this.PointBuffer.push(-halfLength);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(-halfLength);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(-halfLength);
+        this.PointBuffer.push(0.0);
 
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(-halfWidth);
-  this.PointBuffer.push(0.0);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(-halfWidth);
+        this.PointBuffer.push(0.0);
 
-  cellData.push(1);
-  cellData.push(2);
-  cellData.push(7);
+        cellData.push(1);
+        cellData.push(2);
+        cellData.push(7);
 
-  cellData.push(1);
-  cellData.push(7);
-  cellData.push(8);
+        cellData.push(1);
+        cellData.push(7);
+        cellData.push(8);
 
-  cellData.push(4);
-  cellData.push(5);
-  cellData.push(10);
+        cellData.push(4);
+        cellData.push(5);
+        cellData.push(10);
 
-  cellData.push(4);
-  cellData.push(10);
-  cellData.push(11);
+        cellData.push(4);
+        cellData.push(10);
+        cellData.push(11);
 
-  if (GL) {
-    this.VertexPositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
-    this.VertexPositionBuffer.itemSize = 3;
-    this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
+        if (GL) {
+            this.VertexPositionBuffer = GL.createBuffer();
+            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+            this.VertexPositionBuffer.itemSize = 3;
+            this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-    this.CellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-    this.CellBuffer.itemSize = 1;
-    this.CellBuffer.numItems = cellData.length;
-  }
-}
-
-function Arrow() {
-    Shape.call(this);
-    this.Width = 10; // width of the shaft and size of the head
-    this.Length = 50; // Length of the arrow in pixels
-    this.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
-    this.Origin = [10000,10000]; // Tip position in world coordinates.
-    this.OutlineColor = [0,0,0];
-    this.ZOffset = -0.1;
-};
-Arrow.prototype = new Shape;
+            this.CellBuffer = GL.createBuffer();
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer.itemSize = 1;
+            this.CellBuffer.numItems = cellData.length;
+        }
+    }
 
 
-Arrow.prototype.destructor=function() {
-    // Get rid of the buffers?
-}
+    SA.CrossHairs = CrossHairs;
 
-// Point origin is anchor and units pixels.
-Arrow.prototype.PointInShape = function(x, y) {
-  // Rotate point so arrow lies along the x axis.
-  var tmp = -(this.Orientation * Math.PI / 180.0);
-  var ct = Math.cos(tmp);
-  var st = Math.sin(tmp);
-  xNew =  x*ct + y*st;
-  yNew = -x*st + y*ct;
-  tmp = this.Width / 2.0;
-  // Had to bump the y detection up by 3x because of unclickability on the iPad.
-  if (xNew > 0.0 && xNew < this.Length && yNew < tmp*3 && yNew > -tmp*3) {
-    return true;
-  }
-}
+})();
 
+(function () {
+    "use strict";
 
-Arrow.prototype.UpdateBuffers = function() {
-  this.PointBuffer = [];
-  var cellData = [];
-  var hw = this.Width * 0.5;
-  var w2 = this.Width * 2.0;
-
-  this.Matrix = mat4.create();
-  mat4.identity(this.Matrix);
-
-  this.PointBuffer.push(0.0);
-  this.PointBuffer.push(0.0);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(w2);
-  this.PointBuffer.push(this.Width);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(w2);
-  this.PointBuffer.push(hw);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(this.Length);
-  this.PointBuffer.push(hw);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(this.Length);
-  this.PointBuffer.push(-hw);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(w2);
-  this.PointBuffer.push(-hw);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(w2);
-  this.PointBuffer.push(-this.Width);
-  this.PointBuffer.push(0.0);
-
-  this.PointBuffer.push(0.0);
-  this.PointBuffer.push(0.0);
-  this.PointBuffer.push(0.0);
-
-  if (GL) {
-    // Now create the triangles
-    cellData.push(0);
-    cellData.push(1);
-    cellData.push(2);
-
-    cellData.push(0);
-    cellData.push(2);
-    cellData.push(5);
-
-    cellData.push(0);
-    cellData.push(5);
-    cellData.push(6);
-
-    cellData.push(2);
-    cellData.push(3);
-    cellData.push(4);
-
-    cellData.push(2);
-    cellData.push(4);
-    cellData.push(5);
-
-    this.VertexPositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
-    this.VertexPositionBuffer.itemSize = 3;
-    this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
-
-    this.CellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-    this.CellBuffer.itemSize = 1;
-    this.CellBuffer.numItems = cellData.length;
-  }
-}
+    function Arrow() {
+        SA.Shape.call(this);
+        this.Width = 10; // width of the shaft and size of the head
+        this.Length = 50; // Length of the arrow in pixels
+        this.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
+        this.Origin = [10000,10000]; // Tip position in world coordinates.
+        this.OutlineColor = [0,0,0];
+        this.ZOffset = -0.1;
+    };
+    Arrow.prototype = new SA.Shape;
 
 
+    Arrow.prototype.destructor=function() {
+        // Get rid of the buffers?
+    }
+
+    // Point origin is anchor and units pixels.
+    Arrow.prototype.PointInShape = function(x, y) {
+        // Rotate point so arrow lies along the x axis.
+        var tmp = -(this.Orientation * Math.PI / 180.0);
+        var ct = Math.cos(tmp);
+        var st = Math.sin(tmp);
+        xNew =  x*ct + y*st;
+        yNew = -x*st + y*ct;
+        tmp = this.Width / 2.0;
+        // Had to bump the y detection up by 3x because of unclickability on the iPad.
+        if (xNew > 0.0 && xNew < this.Length*1.3 && yNew < tmp*3 && yNew > -tmp*3) {
+            return true;
+        }
+    }
+
+
+    Arrow.prototype.UpdateBuffers = function() {
+        this.PointBuffer = [];
+        var cellData = [];
+        var hw = this.Width * 0.5;
+        var w2 = this.Width * 2.0;
+
+        this.Matrix = mat4.create();
+        mat4.identity(this.Matrix);
+
+        this.PointBuffer.push(0.0);
+        this.PointBuffer.push(0.0);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(w2);
+        this.PointBuffer.push(this.Width);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(w2);
+        this.PointBuffer.push(hw);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(this.Length);
+        this.PointBuffer.push(hw);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(this.Length);
+        this.PointBuffer.push(-hw);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(w2);
+        this.PointBuffer.push(-hw);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(w2);
+        this.PointBuffer.push(-this.Width);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(0.0);
+        this.PointBuffer.push(0.0);
+        this.PointBuffer.push(0.0);
+
+        if (GL) {
+            // Now create the triangles
+            cellData.push(0);
+            cellData.push(1);
+            cellData.push(2);
+
+            cellData.push(0);
+            cellData.push(2);
+            cellData.push(5);
+
+            cellData.push(0);
+            cellData.push(5);
+            cellData.push(6);
+
+            cellData.push(2);
+            cellData.push(3);
+            cellData.push(4);
+
+            cellData.push(2);
+            cellData.push(4);
+            cellData.push(5);
+
+            this.VertexPositionBuffer = GL.createBuffer();
+            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+            this.VertexPositionBuffer.itemSize = 3;
+            this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
+
+            this.CellBuffer = GL.createBuffer();
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer.itemSize = 1;
+            this.CellBuffer.numItems = cellData.length;
+        }
+    }
+
+    SA.Arrow = Arrow;
+
+})();
 //==============================================================================
 // This widget will first be setup to define an arrow.
 // Viewer will forward events to the arrow.
@@ -49097,547 +49625,577 @@ function ArrowPropertyDialogDelete() {
 (function () {
     "use strict";
 
-function Circle() {
-  Shape.call(this);
-  this.Radius = 10; // Radius in pixels
-  this.Origin = [10000,10000]; // Center in world coordinates.
-  this.OutlineColor = [0,0,0];
-  this.PointBuffer = [];
-};
-Circle.prototype = new Shape;
+    function Circle() {
+        SA.Shape.call(this);
+        this.Radius = 10; // Radius in pixels
+        this.Origin = [10000,10000]; // Center in world coordinates.
+        this.OutlineColor = [0,0,0];
+        this.PointBuffer = [];
+    };
+    Circle.prototype = new SA.Shape;
 
 
-
-Circle.prototype.destructor=function() {
-    // Get rid of the buffers?
-}
-
-Circle.prototype.UpdateBuffers = function() {
-    this.PointBuffer = [];
-    var cellData = [];
-    var lineCellData = [];
-    var numEdges = Math.floor(this.Radius/2)+10;
-    // NOTE: numEdges logic will not work in world coordinates.
-    // Limit numEdges to 180 to mitigate this issue.
-    if (numEdges > 50 || ! this.FixedSize ) {
-        numEdges = 50;
+    // I know javascript does not have desctuctors.
+    // I was thinking of calling this explicilty to hasten freeing of resources.
+    Circle.prototype.destructor=function() {
+        // Get rid of the buffers?
     }
 
-    this.Matrix = mat4.create();
-    mat4.identity(this.Matrix);
+    Circle.prototype.UpdateBuffers = function() {
+        this.PointBuffer = [];
+        var cellData = [];
+        var lineCellData = [];
+        var numEdges = Math.floor(this.Radius/2)+10;
+        // NOTE: numEdges logic will not work in world coordinates.
+        // Limit numEdges to 180 to mitigate this issue.
+        if (numEdges > 50 || ! this.FixedSize ) {
+            numEdges = 50;
+        }
 
-    if  (GL) {
-        if (this.LineWidth == 0) {
+        this.Matrix = mat4.create();
+        mat4.identity(this.Matrix);
+
+        if  (GL) {
+            if (this.LineWidth == 0) {
+                for (var i = 0; i <= numEdges; ++i) {
+                    var theta = i*2*3.14159265359/numEdges;
+                    this.PointBuffer.push(this.Radius*Math.cos(theta));
+                    this.PointBuffer.push(this.Radius*Math.sin(theta));
+                    this.PointBuffer.push(0.0);
+                }
+
+                // Now create the triangles
+                // It would be nice to have a center point,
+                // but this would mess up the outline.
+                for (var i = 2; i < numEdges; ++i) {
+                    cellData.push(0);
+                    cellData.push(i-1);
+                    cellData.push(i);
+                }
+
+                this.VertexPositionBuffer = GL.createBuffer();
+                GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+                GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+                this.VertexPositionBuffer.itemSize = 3;
+                this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
+
+                this.CellBuffer = GL.createBuffer();
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+                this.CellBuffer.itemSize = 1;
+                this.CellBuffer.numItems = cellData.length;
+            } else {
+                //var minRad = this.Radius - (this.LineWidth/2.0);
+                //var maxRad = this.Radius + (this.LineWidth/2.0);
+                var minRad = this.Radius;
+                var maxRad = this.Radius + this.LineWidth;
+                for (var i = 0; i <= numEdges; ++i) {
+                    var theta = i*2*3.14159265359/numEdges;
+                    this.PointBuffer.push(minRad*Math.cos(theta));
+                    this.PointBuffer.push(minRad*Math.sin(theta));
+                    this.PointBuffer.push(0.0);
+                    this.PointBuffer.push(maxRad*Math.cos(theta));
+                    this.PointBuffer.push(maxRad*Math.sin(theta));
+                    this.PointBuffer.push(0.0);
+                }
+                this.VertexPositionBuffer = GL.createBuffer();
+                GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+                GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+                this.VertexPositionBuffer.itemSize = 3;
+                this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
+
+                // Now create the fill triangles
+                // It would be nice to have a center point,
+                // but this would mess up the outline.
+                for (var i = 2; i < numEdges; ++i) {
+                    cellData.push(0);
+                    cellData.push((i-1)*2);
+                    cellData.push(i*2);
+                }
+                this.CellBuffer = GL.createBuffer();
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+                this.CellBuffer.itemSize = 1;
+                this.CellBuffer.numItems = cellData.length;
+
+                // Now the thick line
+                for (var i = 0; i < numEdges; ++i) {
+                    lineCellData.push(0 + i*2);
+                    lineCellData.push(1 + i*2);
+                    lineCellData.push(2 + i*2);
+                    lineCellData.push(1 + i*2);
+                    lineCellData.push(3 + i*2);
+                    lineCellData.push(2 + i*2);
+                }
+                this.LineCellBuffer = GL.createBuffer();
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+                this.LineCellBuffer.itemSize = 1;
+                this.LineCellBuffer.numItems = lineCellData.length;
+            }
+        } else {
             for (var i = 0; i <= numEdges; ++i) {
                 var theta = i*2*3.14159265359/numEdges;
                 this.PointBuffer.push(this.Radius*Math.cos(theta));
                 this.PointBuffer.push(this.Radius*Math.sin(theta));
                 this.PointBuffer.push(0.0);
             }
-
-            // Now create the triangles
-            // It would be nice to have a center point,
-            // but this would mess up the outline.
-            for (var i = 2; i < numEdges; ++i) {
-                cellData.push(0);
-                cellData.push(i-1);
-                cellData.push(i);
-            }
-
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
-            this.VertexPositionBuffer.itemSize = 3;
-            this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
-
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-            this.CellBuffer.itemSize = 1;
-            this.CellBuffer.numItems = cellData.length;
-        } else {
-            //var minRad = this.Radius - (this.LineWidth/2.0);
-            //var maxRad = this.Radius + (this.LineWidth/2.0);
-            var minRad = this.Radius;
-            var maxRad = this.Radius + this.LineWidth;
-            for (var i = 0; i <= numEdges; ++i) {
-                var theta = i*2*3.14159265359/numEdges;
-                this.PointBuffer.push(minRad*Math.cos(theta));
-                this.PointBuffer.push(minRad*Math.sin(theta));
-                this.PointBuffer.push(0.0);
-                this.PointBuffer.push(maxRad*Math.cos(theta));
-                this.PointBuffer.push(maxRad*Math.sin(theta));
-                this.PointBuffer.push(0.0);
-            }
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
-            this.VertexPositionBuffer.itemSize = 3;
-            this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
-
-            // Now create the fill triangles
-            // It would be nice to have a center point,
-            // but this would mess up the outline.
-            for (var i = 2; i < numEdges; ++i) {
-                cellData.push(0);
-                cellData.push((i-1)*2);
-                cellData.push(i*2);
-            }
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-            this.CellBuffer.itemSize = 1;
-            this.CellBuffer.numItems = cellData.length;
-
-            // Now the thick line
-            for (var i = 0; i < numEdges; ++i) {
-                lineCellData.push(0 + i*2);
-                lineCellData.push(1 + i*2);
-                lineCellData.push(2 + i*2);
-                lineCellData.push(1 + i*2);
-                lineCellData.push(3 + i*2);
-                lineCellData.push(2 + i*2);
-            }
-            this.LineCellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
-            this.LineCellBuffer.itemSize = 1;
-            this.LineCellBuffer.numItems = lineCellData.length;
-        }
-    } else {
-        for (var i = 0; i <= numEdges; ++i) {
-            var theta = i*2*3.14159265359/numEdges;
-            this.PointBuffer.push(this.Radius*Math.cos(theta));
-            this.PointBuffer.push(this.Radius*Math.sin(theta));
-            this.PointBuffer.push(0.0);
         }
     }
-}
 
-    window.Circle = Circle;
+    SA.Circle = Circle;
 
 })();
 
 (function () {
     "use strict";
 
-//==============================================================================
-// Mouse down defined the center.
-// Drag defines the radius.
+    //==============================================================================
+    // Mouse down defined the center.
+    // Drag defines the radius.
 
 
-// The circle has just been created and is following the mouse.
-// I can probably merge this state with drag. (mouse up vs down though)
-var CIRCLE_WIDGET_NEW = 0;
-var CIRCLE_WIDGET_DRAG = 1; // The whole arrow is being dragged.
-var CIRCLE_WIDGET_DRAG_RADIUS = 2;
-var CIRCLE_WIDGET_WAITING = 3; // The normal (resting) state.
-var CIRCLE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-var CIRCLE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    // The circle has just been created and is following the mouse.
+    // I can probably merge this state with drag. (mouse up vs down though)
+    var CIRCLE_WIDGET_NEW_HIDDEN = 0;
+    var CIRCLE_WIDGET_NEW_DRAGGING = 1;
+    var CIRCLE_WIDGET_DRAG = 2; // The whole arrow is being dragged.
+    var CIRCLE_WIDGET_DRAG_RADIUS = 3;
+    var CIRCLE_WIDGET_WAITING = 4; // The normal (resting) state.
+    var CIRCLE_WIDGET_ACTIVE = 5; // Mouse is over the widget and it is receiving events.
+    var CIRCLE_WIDGET_PROPERTIES_DIALOG = 6; // Properties dialog is up
 
-function CircleWidget (viewer, newFlag) {
-    var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
-    // Customize dialog for a circle.
-    this.Dialog.Title.text('Circle Annotation Editor');
-    this.Dialog.Body.css({'margin':'1em 2em'});
-    // Color
-    this.Dialog.ColorDiv =
-        $('<div>')
-        .css({'height':'24px'})
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-annotation-modal-div");
-    this.Dialog.ColorLabel =
-        $('<div>')
-        .appendTo(this.Dialog.ColorDiv)
-        .text("Color:")
-        .addClass("sa-view-annotation-modal-input-label");
-    this.Dialog.ColorInput =
-        $('<input type="color">')
-        .appendTo(this.Dialog.ColorDiv)
-        .val('#30ff00')
-        .addClass("sa-view-annotation-modal-input");
+    function CircleWidget (layer, newFlag) {
+        var self = this;
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        // Customize dialog for a circle.
+        this.Dialog.Title.text('Circle Annotation Editor');
+        this.Dialog.Body.css({'margin':'1em 2em'});
+        // Color
+        this.Dialog.ColorDiv =
+            $('<div>')
+            .css({'height':'24px'})
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.ColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.ColorDiv)
+            .text("Color:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.ColorInput =
+            $('<input type="color">')
+            .appendTo(this.Dialog.ColorDiv)
+            .val('#30ff00')
+            .addClass("sa-view-annotation-modal-input");
 
-    // Line Width
-    this.Dialog.LineWidthDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-annotation-modal-div");
-    this.Dialog.LineWidthLabel =
-        $('<div>')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .text("Line Width:")
-        .addClass("sa-view-annotation-modal-input-label");
-    this.Dialog.LineWidthInput =
-        $('<input type="number">')
-        .appendTo(this.Dialog.LineWidthDiv)
-        .addClass("sa-view-annotation-modal-input")
-        .keypress(function(event) { return event.keyCode != 13; });
+        // Line Width
+        this.Dialog.LineWidthDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.LineWidthLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .text("Line Width:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.LineWidthInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.LineWidthDiv)
+            .addClass("sa-view-annotation-modal-input")
+            .keypress(function(event) { return event.keyCode != 13; });
 
-    // Area
-    this.Dialog.AreaDiv =
-        $('<div>')
-        .appendTo(this.Dialog.Body)
-        .addClass("sa-view-annotation-modal-div");
-    this.Dialog.AreaLabel =
-        $('<div>')
-        .appendTo(this.Dialog.AreaDiv)
-        .text("Area:")
-        .addClass("sa-view-annotation-modal-input-label");
-    this.Dialog.Area =
-        $('<div>')
-        .appendTo(this.Dialog.AreaDiv)
-        .addClass("sa-view-annotation-modal-input");
+        // Area
+        this.Dialog.AreaDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.AreaLabel =
+            $('<div>')
+            .appendTo(this.Dialog.AreaDiv)
+            .text("Area:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.Area =
+            $('<div>')
+            .appendTo(this.Dialog.AreaDiv)
+            .addClass("sa-view-annotation-modal-input");
 
-    // Get default properties.
-    if (localStorage.CircleWidgetDefaults) {
-        var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
-        if (defaults.Color) {
-            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+        // Get default properties.
+        if (localStorage.CircleWidgetDefaults) {
+            var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
+            if (defaults.Color) {
+                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+            }
+            if (defaults.LineWidth) {
+                this.Dialog.LineWidthInput.val(defaults.LineWidth);
+            }
         }
-        if (defaults.LineWidth) {
-            this.Dialog.LineWidthInput.val(defaults.LineWidth);
+
+        this.Tolerance = 0.05;
+        if (MOBILE_DEVICE) {
+            this.Tolerance = 0.1;
+        }
+
+        if (layer == null) {
+            return;
+        }
+
+        // Lets save the zoom level (sort of).
+        // Load will overwrite this for existing annotations.
+        // This will allow us to expand annotations into notes.
+        this.CreationCamera = layer.GetCamera().Serialize();
+
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        var cam = layer.GetCamera();
+        var viewport = layer.GetViewport();
+        this.Shape = new SA.Circle();
+        this.Shape.Origin = [0,0];
+        this.Shape.OutlineColor = [0.0,0.0,0.0];
+        this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
+        this.Shape.Radius = 50*cam.Height/viewport[3];
+        this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
+        this.Shape.FixedSize = false;
+
+        this.Layer.AddWidget(this);
+
+        // Note: If the user clicks before the mouse is in the
+        // canvas, this will behave odd.
+
+        if (newFlag) {
+            this.State = CIRCLE_WIDGET_NEW_HIDDEN;
+            this.Layer.ActivateWidget(this);
+            return;
+        }
+
+        this.State = CIRCLE_WIDGET_WAITING;
+    }
+
+    CircleWidget.prototype.Draw = function(view) {
+        if ( this.State != CIRCLE_WIDGET_NEW_HIDDEN) {
+            this.Shape.Draw(view);
         }
     }
 
-    this.Tolerance = 0.05;
-    if (MOBILE_DEVICE) {
-        this.Tolerance = 0.1;
+    // This needs to be put in the Viewer.
+    //CircleWidget.prototype.RemoveFromViewer = function() {
+    //    if (this.Viewer) {
+    //        this.Viewer.RemoveWidget(this);
+    //    }
+    //}
+
+    //CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
+    //    this.Load(data);
+    //    // Place the widget over the mouse.
+    //    // This would be better as an argument.
+    //    this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+    //    this.Layer.EventuallyDraw();
+    //}
+
+    CircleWidget.prototype.Serialize = function() {
+        if(this.Shape === undefined){ return null; }
+        var obj = new Object();
+        obj.type = "circle";
+        obj.origin = this.Shape.Origin;
+        obj.outlinecolor = this.Shape.OutlineColor;
+        obj.radius = this.Shape.Radius;
+        obj.linewidth = this.Shape.LineWidth;
+        obj.creation_camera = this.CreationCamera;
+        return obj;
     }
 
-    if (viewer == null) {
-        return;
+    // Load a widget from a json object (origin MongoDB).
+    CircleWidget.prototype.Load = function(obj) {
+        this.Shape.Origin[0] = parseFloat(obj.origin[0]);
+        this.Shape.Origin[1] = parseFloat(obj.origin[1]);
+        this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+        this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+        this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        this.Shape.Radius = parseFloat(obj.radius);
+        this.Shape.LineWidth = parseFloat(obj.linewidth);
+        this.Shape.FixedSize = false;
+        this.Shape.UpdateBuffers();
+
+        // How zoomed in was the view when the annotation was created.
+        if (obj.creation_camera !== undefined) {
+            this.CreationCamera = obj.CreationCamera;
+        }
     }
 
-    // Lets save the zoom level (sort of).
-    // Load will overwrite this for existing annotations.
-    // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize();
-
-    this.Viewer = viewer;
-    this.Popup = new WidgetPopup(this);
-    var cam = viewer.MainView.Camera;
-    var viewport = viewer.MainView.Viewport;
-    this.Shape = new Circle();
-    this.Shape.Origin = [0,0];
-    this.Shape.OutlineColor = [0.0,0.0,0.0];
-    this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
-    this.Shape.Radius = 50*cam.Height/viewport[3];
-    this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
-    this.Shape.FixedSize = false;
-
-    this.Viewer.AddWidget(this);
-
-    // Note: If the user clicks before the mouse is in the
-    // canvas, this will behave odd.
-
-    if (newFlag) {
-        this.State = CIRCLE_WIDGET_NEW;
-        this.Viewer.ActivateWidget(this);
-        return;
-    }
-
-    this.State = CIRCLE_WIDGET_WAITING;
-}
-
-CircleWidget.prototype.Draw = function(view) {
-   this.Shape.Draw(view);
-}
-
-// This needs to be put in the Viewer.
-CircleWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer) {
-        this.Viewer.RemoveWidget(this);
-    }
-}
-
-CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-  this.Load(data);
-  // Place the widget over the mouse.
-  // This would be better as an argument.
-  this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
-  this.Viewer.EventuallyRender(true);
-}
-
-CircleWidget.prototype.Serialize = function() {
-  if(this.Shape === undefined){ return null; }
-  var obj = new Object();
-  obj.type = "circle";
-  obj.origin = this.Shape.Origin;
-  obj.outlinecolor = this.Shape.OutlineColor;
-  obj.radius = this.Shape.Radius;
-  obj.linewidth = this.Shape.LineWidth;
-  obj.creation_camera = this.CreationCamera;
-  return obj;
-}
-
-// Load a widget from a json object (origin MongoDB).
-CircleWidget.prototype.Load = function(obj) {
-  this.Shape.Origin[0] = parseFloat(obj.origin[0]);
-  this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-  this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-  this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-  this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-  this.Shape.Radius = parseFloat(obj.radius);
-  this.Shape.LineWidth = parseFloat(obj.linewidth);
-  this.Shape.FixedSize = false;
-  this.Shape.UpdateBuffers();
-
-  // How zoomed in was the view when the annotation was created.
-  if (obj.creation_camera !== undefined) {
-    this.CreationCamera = obj.CreationCamera;
-  }
-}
-
-CircleWidget.prototype.HandleMouseWheel = function(event) {
-    // TODO: Scale the radius.
-    return false;
-}
-
-CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  // The dialog consumes all key events.
-  if (this.State == CIRCLE_WIDGET_PROPERTIES_DIALOG) {
-      return false;
-  }
-
-  // Copy
-  if (event.keyCode == 67 && event.ctrlKey) {
-    // control-c for copy
-    // The extra identifier is not needed for widgets, but will be
-    // needed if we have some other object on the clipboard.
-    var clip = {Type:"CircleWidget", Data: this.Serialize()};
-    localStorage.ClipBoard = JSON.stringify(clip);
-    return false;
-  }
-
-  return true;
-}
-
-CircleWidget.prototype.HandleDoubleClick = function(event) {
-    return true;
-}
-
-CircleWidget.prototype.HandleMouseDown = function(event) {
-    if (event.which != 1) {
+    CircleWidget.prototype.HandleMouseWheel = function(event) {
+        // TODO: Scale the radius.
         return false;
     }
-    if (this.State == CIRCLE_WIDGET_NEW) {
-        // We need the viewer position of the circle center to drag radius.
-        this.OriginViewer =
-            this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], 
-                                                  this.Shape.Origin[1]);
-        this.State = CIRCLE_WIDGET_DRAG_RADIUS;
+
+    CircleWidget.prototype.HandleKeyDown = function(keyCode) {
+        // The dialog consumes all key events.
+        if (this.State == CIRCLE_WIDGET_PROPERTIES_DIALOG) {
+            return false;
+        }
+
+        // Copy
+        if (event.keyCode == 67 && event.ctrlKey) {
+            // control-c for copy
+            // The extra identifier is not needed for widgets, but will be
+            // needed if we have some other object on the clipboard.
+            var clip = {Type:"CircleWidget", Data: this.Serialize()};
+            localStorage.ClipBoard = JSON.stringify(clip);
+            return false;
+        }
+
+        return true;
     }
-    if (this.State == CIRCLE_WIDGET_ACTIVE) {
-        // Determine behavior from active radius.
-        if (this.NormalizedActiveDistance < 0.5) {
-            this.State = CIRCLE_WIDGET_DRAG;
-        } else {
+
+    CircleWidget.prototype.HandleDoubleClick = function(event) {
+        ShowPropertiesDialog();
+        return false;
+    }
+
+    CircleWidget.prototype.HandleMouseDown = function(event) {
+        if (event.which != 1) {
+            return false;
+        }
+        var cam = this.Layer.GetCamera();
+        if (this.State == CIRCLE_WIDGET_NEW_DRAGGING) {
+            // We need the viewer position of the circle center to drag radius.
             this.OriginViewer =
-                this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], 
-                                                      this.Shape.Origin[1]);
+                cam.ConvertPointWorldToViewer(this.Shape.Origin[0],
+                                              this.Shape.Origin[1]);
             this.State = CIRCLE_WIDGET_DRAG_RADIUS;
         }
+        if (this.State == CIRCLE_WIDGET_ACTIVE) {
+            // Determine behavior from active radius.
+            if (this.NormalizedActiveDistance < 0.5) {
+                this.State = CIRCLE_WIDGET_DRAG;
+            } else {
+                this.OriginViewer =
+                    cam.ConvertPointWorldToViewer(this.Shape.Origin[0],
+                                                  this.Shape.Origin[1]);
+                this.State = CIRCLE_WIDGET_DRAG_RADIUS;
+            }
+        }
+        return false;
     }
-    return true;
-}
 
-// returns false when it is finished doing its work.
-CircleWidget.prototype.HandleMouseUp = function(event) {
-    if ( this.State == CIRCLE_WIDGET_DRAG || this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
-        this.SetActive(false);
-        RecordState();
+    // returns false when it is finished doing its work.
+    CircleWidget.prototype.HandleMouseUp = function(event) {
+        if ( this.State == CIRCLE_WIDGET_DRAG ||
+             this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+            this.SetActive(false);
+            RecordState();
+        }
+        return false;
     }
-}
 
-CircleWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.offsetX;
-    var y = event.offsetY;
-    
-    if (event.which == 0 && this.State == CIRCLE_WIDGET_ACTIVE) {
-        this.CheckActive(event);
-        return;
+    CircleWidget.prototype.HandleMouseMove = function(event) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+
+        if (event.which == 0 && this.State == CIRCLE_WIDGET_ACTIVE) {
+            this.SetActive(this.CheckActive(event));
+            return false;
+        }
+
+        var cam = this.Layer.GetCamera();
+        if (this.State == CIRCLE_WIDGET_NEW_HIDDEN) {
+            this.State = CIRCLE_WIDGET_NEW_DRAGGING;
+        }
+        if (this.State == CIRCLE_WIDGET_NEW_DRAGGING || this.State == CIRCLE_WIDGET_DRAG) {
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            this.Shape.Origin = cam.ConvertPointViewerToWorld(x, y);
+            this.PlacePopup();
+            this.Layer.EventuallyDraw();
+        }
+
+        if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+            var viewport = this.Layer.GetViewport();
+            var cam = this.Layer.GetCamera();
+            var dx = x-this.OriginViewer[0];
+            var dy = y-this.OriginViewer[1];
+            // Change units from pixels to world.
+            this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
+            this.Shape.UpdateBuffers();
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            this.PlacePopup();
+            this.Layer.EventuallyDraw();
+        }
+
+        if (this.State == CIRCLE_WIDGET_WAITING) {
+            this.CheckActive(event);
+        }
+        return false;
     }
-    
-    if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-        this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
-        this.PlacePopup();
-        this.Viewer.EventuallyRender(true);
+
+    CircleWidget.prototype.HandleTouchPan = function(event) {
+        var cam = this.Layer.GetCamera();
+        // TODO: Last mouse should net be in layer.
+        w0 = cam.ConvertPointViewerToWorld(this.Layer.LastMouseX,
+                                           this.Layer.LastMouseY);
+        w1 = cam.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
+
+        // This is the translation.
+        var dx = w1[0] - w0[0];
+        var dy = w1[1] - w0[1];
+
+        this.Shape.Origin[0] += dx;
+        this.Shape.Origin[1] += dy;
+        this.Layer.EventuallyDraw();
+        return false;
     }
-    
-    if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
-        var viewport = this.Viewer.GetViewport();
-        var cam = this.Viewer.MainView.Camera;
-        var dx = x-this.OriginViewer[0];
-        var dy = y-this.OriginViewer[1];
-        // Change units from pixels to world.
-        this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
+
+    CircleWidget.prototype.HandleTouchPinch = function(event) {
+        this.Shape.Radius *= event.PinchScale;
         this.Shape.UpdateBuffers();
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-        this.PlacePopup();
-        this.Viewer.EventuallyRender(true);
+        this.Layer.EventuallyDraw();
+        return false;
     }
-    
-    if (this.State == CIRCLE_WIDGET_WAITING) {
-        this.CheckActive(event);
+
+    CircleWidget.prototype.HandleTouchEnd = function(event) {
+        this.SetActive(false);
+        return false
     }
-}
 
 
-CircleWidget.prototype.HandleTouchPan = function(event) {
-  w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
-                                             this.Viewer.LastMouseY);
-  w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
+    CircleWidget.prototype.CheckActive = function(event) {
+        if (this.State == CIRCLE_WIDGET_NEW_HIDDEN ||
+            this.State == CIRCLE_WIDGET_NEW_DRAGGING) {
+            return true;
+        }
 
-  // This is the translation.
-  var dx = w1[0] - w0[0];
-  var dy = w1[1] - w0[1];
+        var dx = event.offsetX;
+        var dy = event.offsetY;
 
-  this.Shape.Origin[0] += dx;
-  this.Shape.Origin[1] += dy;
-  this.Viewer.EventuallyRender(true);
-}
+        // change dx and dy to vector from center of circle.
+        if (this.FixedSize) {
+            dx = event.offsetX - this.Shape.Origin[0];
+            dy = event.offsetY - this.Shape.Origin[1];
+        } else {
+            dx = event.worldX - this.Shape.Origin[0];
+            dy = event.worldY - this.Shape.Origin[1];
+        }
 
-CircleWidget.prototype.HandleTouchPinch = function(event) {
-    this.Shape.Radius *= event.PinchScale;
-    this.Shape.UpdateBuffers();
-    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-    this.Viewer.EventuallyRender(true);
-}
+        var d = Math.sqrt(dx*dx + dy*dy)/this.Shape.Radius;
+        var active = false;
+        var lineWidth = this.Shape.LineWidth / this.Shape.Radius;
+        this.NormalizedActiveDistance = d;
 
-CircleWidget.prototype.HandleTouchEnd = function(event) {
-    this.SetActive(false);
-}
+        if (this.Shape.FillColor == undefined) { // Circle
+            if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance)) ||
+                d < (this.Tolerance+lineWidth)) {
+                active = true;
+            }
+        } else { // Disk
+            if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) ||
+                d < lineWidth) {
+                active = true;
+            }
+        }
 
-
-CircleWidget.prototype.CheckActive = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
-
-  // change dx and dy to vector from center of circle.
-  if (this.FixedSize) {
-    dx = event.offsetX - this.Shape.Origin[0];
-    dy = event.offsetY - this.Shape.Origin[1];
-  } else {
-    dx = event.worldX - this.Shape.Origin[0];
-    dy = event.worldY - this.Shape.Origin[1];
-  }
-
-  var d = Math.sqrt(dx*dx + dy*dy)/this.Shape.Radius;
-  var active = false;
-  var lineWidth = this.Shape.LineWidth / this.Shape.Radius;
-  this.NormalizedActiveDistance = d;
-
-  if (this.Shape.FillColor == undefined) { // Circle
-    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance)) ||
-         d < (this.Tolerance+lineWidth)) {
-      active = true;
+        return active;
     }
-  } else { // Disk
-    if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) ||
-        d < lineWidth) {
-      active = true;
+
+    // Multiple active states. Active state is a bit confusing.
+    CircleWidget.prototype.GetActive = function() {
+        if (this.State == CIRCLE_WIDGET_WAITING) {
+            return false;
+        }
+        return true;
     }
-  }
 
-  this.SetActive(active);
-  return active;
-}
+    CircleWidget.prototype.Deactivate = function() {
+        // If the circle button is clicked to deactivate the widget before
+        // it is placed, I want to delete it. (like cancel). I think this
+        // will do the trick.
+        if (this.State == CIRCLE_WIDGET_NEW_HIDDEN) {
+            this.Layer.RemoveWidget(this);
+            return;
+        }
 
-// Multiple active states. Active state is a bit confusing.
-CircleWidget.prototype.GetActive = function() {
-  if (this.State == CIRCLE_WIDGET_WAITING) {
-    return false;
-  }
-  return true;
-}
-
-CircleWidget.prototype.Deactivate = function() {
-    this.Popup.StartHideTimer();
-    this.State = CIRCLE_WIDGET_WAITING;
-    this.Shape.Active = false;
-    this.Viewer.DeactivateWidget(this);
-    if (this.DeactivateCallback) {
-        this.DeactivateCallback();
+        this.Popup.StartHideTimer();
+        this.State = CIRCLE_WIDGET_WAITING;
+        this.Shape.Active = false;
+        this.Layer.DeactivateWidget(this);
+        if (this.DeactivateCallback) {
+            this.DeactivateCallback();
+        }
+        this.Layer.EventuallyDraw();
     }
-    this.Viewer.EventuallyRender(false);
-}
 
-// Setting to active always puts state into "active".
-// It can move to other states and stay active.
-CircleWidget.prototype.SetActive = function(flag) {
-  if (flag == this.GetActive()) {
-    return;
-  }
+    // Setting to active always puts state into "active".
+    // It can move to other states and stay active.
+    CircleWidget.prototype.SetActive = function(flag) {
+        if (flag == this.GetActive()) {
+            return;
+        }
 
-  if (flag) {
-    this.State = CIRCLE_WIDGET_ACTIVE;
-    this.Shape.Active = true;
-    this.Viewer.ActivateWidget(this);
-    this.Viewer.EventuallyRender(false);
-    // Compute the location for the pop up and show it.
-    this.PlacePopup();
-  } else {
-    this.Deactivate();
-  }
-  this.Viewer.EventuallyRender(false);
-}
+        if (flag) {
+            this.State = CIRCLE_WIDGET_ACTIVE;
+            this.Shape.Active = true;
+            this.Layer.ActivateWidget(this);
+            this.Layer.EventuallyDraw();
+            // Compute the location for the pop up and show it.
+            this.PlacePopup();
+        } else {
+            this.Deactivate();
+        }
+        this.Layer.EventuallyDraw();
+    }
 
 
-//This also shows the popup if it is not visible already.
-CircleWidget.prototype.PlacePopup = function () {
-  // Compute the location for the pop up and show it.
-  var roll = this.Viewer.GetCamera().Roll;
-  var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
-  var y = this.Shape.Origin[1] - 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
-  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
-  this.Popup.Show(pt[0],pt[1]);
-}
+    //This also shows the popup if it is not visible already.
+    CircleWidget.prototype.PlacePopup = function () {
+        // Compute the location for the pop up and show it.
+        var cam = this.Layer.GetCamera();
+        var roll = cam.Roll;
+        var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
+        var y = this.Shape.Origin[1] - 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
+        var pt = cam.ConvertPointWorldToViewer(x, y);
+        this.Popup.Show(pt[0],pt[1]);
+    }
 
-// Can we bind the dialog apply callback to an objects method?
-var CIRCLE_WIDGET_DIALOG_SELF;
-CircleWidget.prototype.ShowPropertiesDialog = function () {
-  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+    // Can we bind the dialog apply callback to an objects method?
+    var CIRCLE_WIDGET_DIALOG_SELF;
+    CircleWidget.prototype.ShowPropertiesDialog = function () {
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
 
-  this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
+        this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius) * 0.25 * 0.25;
-  var areaString = "";
-  if (this.Shape.FixedSize) {
-      areaString += area.toFixed(2);
-      areaString += " pixels^2";
-  } else {
-      if (area > 1000000) {
-          areaString += (area/1000000).toFixed(2);
-          areaString += " mm^2";
-      } else {
-          areaString += area.toFixed(2);
-          areaString += " um^2";
-      }
-  }
-  this.Dialog.Area.text(areaString);
+        var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius) * 0.25 * 0.25;
+        var areaString = "";
+        if (this.Shape.FixedSize) {
+            areaString += area.toFixed(2);
+            areaString += " pixels^2";
+        } else {
+            if (area > 1000000) {
+                areaString += (area/1000000).toFixed(2);
+                areaString += " mm^2";
+            } else {
+                areaString += area.toFixed(2);
+                areaString += " um^2";
+            }
+        }
+        this.Dialog.Area.text(areaString);
 
-  this.Dialog.Show(true);
-}
+        this.Dialog.Show(true);
+    }
 
-CircleWidget.prototype.DialogApplyCallback = function() {
-    var hexcolor = this.Dialog.ColorInput.val();
-    this.Shape.SetOutlineColor(hexcolor);
-    this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-    this.Shape.UpdateBuffers();
-    this.SetActive(false);
-    RecordState();
+    CircleWidget.prototype.DialogApplyCallback = function() {
+        var hexcolor = this.Dialog.ColorInput.val();
+        this.Shape.SetOutlineColor(hexcolor);
+        this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Shape.UpdateBuffers();
+        this.SetActive(false);
+        RecordState();
 
-    // TODO: See if anything has changed.
-    this.Viewer.EventuallyRender(false);
+        // TODO: See if anything has changed.
+        this.Layer.EventuallyDraw();
 
-    localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
-    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-}
+        localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+    }
 
 
-    window.CircleWidget = CircleWidget;
+    SA.CircleWidget = CircleWidget;
 
 })();
 
@@ -49648,16 +50206,16 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     // Depends on the CIRCLE widget
     "use strict";
 
-    var RECT_WIDGET_NEW = 0;
-    var RECT_WIDGET_DRAG = 1; // The whole arrow is being dragged.
-    var RECT_WIDGET_DRAG_RADIUS = 2;
-    var RECT_WIDGET_WAITING = 3; // The normal (resting) state.
-    var RECT_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-    var RECT_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    var NEW = 0;
+    var DRAG = 1; // The whole arrow is being dragged.
+    var DRAG_RADIUS = 2;
+    var WAITING = 3; // The normal (resting) state.
+    var ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 5; // Properties dialog is up
 
 
     function Rect() {
-        Shape.call(this);
+        SA.Shape.call(this);
 
         this.Width = 20.0;
         this.Length = 50.0;
@@ -49668,7 +50226,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.PointBuffer = [];
     }
 
-    Rect.prototype = new Shape();
+    Rect.prototype = new SA.Shape();
 
     Rect.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -49705,7 +50263,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
 
     function RectWidget (viewer, newFlag) {
-      this.Dialog = new Dialog(this);
+      this.Dialog = new SA.Dialog(this);
       // Customize dialog for a circle.
       this.Dialog.Title.text('Rect Annotation Editor');
       // Color
@@ -49784,7 +50342,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
       this.CreationCamera = viewer.GetCamera().Serialize();
 
       this.Viewer = viewer;
-      this.Popup = new WidgetPopup(this);
+      this.Popup = new SA.WidgetPopup(this);
       var cam = viewer.MainView.Camera;
       var viewport = viewer.MainView.Viewport;
       this.Shape = new Rect();
@@ -49803,12 +50361,12 @@ CircleWidget.prototype.DialogApplyCallback = function() {
       // canvas, this will behave odd.
 
       if (newFlag) {
-        this.State = RECT_WIDGET_NEW;
+        this.State = NEW;
         this.Viewer.ActivateWidget(this);
         return;
       }
 
-      this.State = RECT_WIDGET_WAITING;
+      this.State = WAITING;
 
     }
 
@@ -49869,7 +50427,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     RectWidget.prototype.HandleKeyPress = function(keyCode, shift) {
       // The dialog consumes all key events.
-      if (this.State == RECT_WIDGET_PROPERTIES_DIALOG) {
+      if (this.State == PROPERTIES_DIALOG) {
           return false;
       }
 
@@ -49894,22 +50452,22 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         if (event.which != 1) {
             return false;
         }
-        if (this.State == RECT_WIDGET_NEW) {
+        if (this.State == NEW) {
             // We need the viewer position of the circle center to drag radius.
             this.OriginViewer =
                 this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0],
                                                       this.Shape.Origin[1]);
-            this.State = RECT_WIDGET_DRAG_RADIUS;
+            this.State = DRAG_RADIUS;
         }
-        if (this.State == RECT_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             // Determine behavior from active radius.
             if (this.NormalizedActiveDistance < 0.5) {
-                this.State = RECT_WIDGET_DRAG;
+                this.State = DRAG;
             } else {
                 this.OriginViewer =
                     this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0],
                                                           this.Shape.Origin[1]);
-                this.State = RECT_WIDGET_DRAG_RADIUS;
+                this.State = DRAG_RADIUS;
             }
         }
         return true;
@@ -49917,7 +50475,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     // returns false when it is finished doing its work.
     RectWidget.prototype.HandleMouseUp = function(event) {
-        if ( this.State == RECT_WIDGET_DRAG || this.State == RECT_WIDGET_DRAG_RADIUS) {
+        if ( this.State == DRAG || this.State == DRAG_RADIUS) {
             this.SetActive(false);
             RecordState();
         }
@@ -49927,18 +50485,18 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (event.which === 0 && this.State == RECT_WIDGET_ACTIVE) {
+        if (event.which === 0 && this.State == ACTIVE) {
             this.CheckActive(event);
             return;
         }
 
-        if (this.State == RECT_WIDGET_NEW || this.State == RECT_WIDGET_DRAG) {
+        if (this.State == NEW || this.State == DRAG) {
             this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.PlacePopup();
             eventuallyRender();
         }
 
-        if (this.State == RECT_WIDGET_DRAG_RADIUS) {
+        if (this.State == DRAG_RADIUS) {
             var viewport = this.Viewer.GetViewport();
             var cam = this.Viewer.MainView.Camera;
             var dx = x-this.OriginViewer[0];
@@ -49950,7 +50508,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             eventuallyRender();
         }
 
-        if (this.State == RECT_WIDGET_WAITING) {
+        if (this.State == WAITING) {
             this.CheckActive(event);
         }
     };
@@ -49961,7 +50519,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (this.State == RECT_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
                 var direction = 1;
@@ -50049,7 +50607,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     // Multiple active states. Active state is a bit confusing.
     RectWidget.prototype.GetActive = function() {
-      if (this.State == RECT_WIDGET_WAITING) {
+      if (this.State == WAITING) {
         return false;
       }
       return true;
@@ -50058,7 +50616,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     RectWidget.prototype.Deactivate = function() {
         this.Popup.StartHideTimer();
-        this.State = RECT_WIDGET_WAITING;
+        this.State = WAITING;
         this.Shape.Active = false;
         this.Viewer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
@@ -50075,7 +50633,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
       }
 
       if (flag) {
-        this.State = RECT_WIDGET_ACTIVE;
+        this.State = ACTIVE;
         this.Shape.Active = true;
         this.Viewer.ActivateWidget(this);
         eventuallyRender();
@@ -50099,7 +50657,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     };
 
     // Can we bind the dialog apply callback to an objects method?
-    var RECT_WIDGET_DIALOG_SELF;
+    var DIALOG_SELF;
 
     RectWidget.prototype.ShowPropertiesDialog = function () {
       this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
@@ -50138,28 +50696,28 @@ CircleWidget.prototype.DialogApplyCallback = function() {
       localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 
-    window.RectWidget = RectWidget;
+    SA.RectWidget = RectWidget;
 
 })();
 
 (function () {
     "use strict";
 
-    var GRID_WIDGET_NEW = 0;
-    var GRID_WIDGET_WAITING = 3; // The normal (resting) state.
-    var GRID_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-    var GRID_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    var NEW = 0;
+    var WAITING = 3; // The normal (resting) state.
+    var ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 5; // Properties dialog is up
 
-    var GRID_WIDGET_DRAG = 6;
-    var GRID_WIDGET_DRAG_LEFT = 7;
-    var GRID_WIDGET_DRAG_RIGHT = 8;
-    var GRID_WIDGET_DRAG_TOP = 9;
-    var GRID_WIDGET_DRAG_BOTTOM = 10;
-    var GRID_WIDGET_ROTATE = 11;
+    var DRAG = 6;
+    var DRAG_LEFT = 7;
+    var DRAG_RIGHT = 8;
+    var DRAG_TOP = 9;
+    var DRAG_BOTTOM = 10;
+    var ROTATE = 11;
     // Worry about corners later.
 
     function Grid() {
-        Shape.call(this);
+        SA.Shape.call(this);
         // Dimension of grid bin
         this.BinWidth = 20.0;
         this.BinHeight = 20.0;
@@ -50169,9 +50727,10 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
+        this.ActiveIndex = undefined;
     };
 
-    Grid.prototype = new Shape();
+    Grid.prototype = new SA.Shape();
 
     Grid.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -50182,11 +50741,6 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         // Add cell arrays.
         this.PointBuffer = [];
 
-        if (this.Dimensions[0] < 1 || this.Dimensions[1] < 1 ||
-            this.BinWidth <= 0.0 || this.BinHeight <= 0.0) {
-            return;
-        }
-
         // Matrix is computed by the draw method in Shape superclass.
         // TODO: Used to detect first initialization.
         // Get this out of this method.
@@ -50194,12 +50748,17 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         mat4.identity(this.Matrix);
         //mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
+        if (this.Dimensions[0] < 1 || this.Dimensions[1] < 1 ||
+            this.BinWidth <= 0.0 || this.BinHeight <= 0.0) {
+            return;
+        }
+
         var totalWidth = this.BinWidth * this.Dimensions[0];
         var totalHeight = this.BinHeight * this.Dimensions[1];
         var halfWidth = totalWidth / 2;
         var halfHeight = totalHeight / 2;
 
-        // Draw all of the x lines.
+        // Draw all of the x polylines.
         var x = this.Dimensions[1]%2 ? 0 : totalWidth;
         var y = 0;
         this.PointBuffer.push(x-halfWidth);
@@ -50242,9 +50801,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     };
 
 
-    function GridWidget (viewer, newFlag) {
+    function GridWidget (layer, newFlag) {
         var self = this;
-        this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
         this.Dialog.Title.text('Grid Annotation Editor');
 
@@ -50338,38 +50897,43 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             this.Tolerance = 0.1;
         }
 
-        if (viewer === null) {
+        if (layer === null) {
             return;
         }
 
         // Lets save the zoom level (sort of).
         // Load will overwrite this for existing annotations.
         // This will allow us to expand annotations into notes.
-        this.CreationCamera = viewer.GetCamera().Serialize();
+        this.CreationCamera = layer.GetCamera().Serialize();
 
-        this.Viewer = viewer;
-        this.Popup = new WidgetPopup(this);
-        var cam = viewer.MainView.Camera;
-        var viewport = viewer.MainView.Viewport;
-        this.Shape = new Grid();
-        this.Shape.Origin = [0,0];
-        this.Shape.OutlineColor = [0.0,0.0,0.0];
-        this.Shape.SetOutlineColor('#0A0F7A');
-        this.Shape.Length = 50.0*cam.Height/viewport[3];
-        // Get the default bin size from the viewer scale bar.
-        if (viewer.ScaleWidget) {
-            this.Shape.BinWidth = viewer.ScaleWidget.LengthWorld;
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        var cam = layer.AnnotationView.Camera;
+        var viewport = layer.AnnotationView.Viewport;
+        this.Grid = new Grid();
+        this.Grid.Origin = [0,0];
+        this.Grid.OutlineColor = [0.0,0.0,0.0];
+        this.Grid.SetOutlineColor('#0A0F7A');
+        // Get the default bin size from the layer scale bar.
+        if (layer.ScaleWidget) {
+            this.Grid.BinWidth = layer.ScaleWidget.LengthWorld;
         } else {
-            this.Shape.BinWidth = 30*cam.Height/viewport[3];
+            this.Grid.BinWidth = 30*cam.Height/viewport[3];
         }
-        this.Shape.BinHeight = this.Shape.BinWidth;
-        this.Shape.LineWidth = 2.0*cam.Height/viewport[3];
-        this.Shape.FixedSize = false;
+        this.Grid.BinHeight = this.Grid.BinWidth;
+        this.Grid.LineWidth = 2.0*cam.Height/viewport[3];
+        this.Grid.FixedSize = false;
 
-        this.Text = new Text();
+        var width = 0.8 * viewport[2] / layer.GetPixelsPerUnit();
+        this.Grid.Dimensions[0] = Math.floor(width / this.Grid.BinWidth);
+        var height = 0.8 * viewport[3] / layer.GetPixelsPerUnit();
+        this.Grid.Dimensions[1] = Math.floor(height / this.Grid.BinHeight);
+        this.Grid.UpdateBuffers();
+
+        this.Text = new SA.Text();
         // Shallow copy is dangerous
-        this.Text.Position = this.Shape.Origin;
-        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
+        this.Text.Position = this.Grid.Origin;
+        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
         this.Text.UpdateBuffers();
@@ -50379,26 +50943,17 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             var defaults = JSON.parse(localStorage.GridWidgetDefaults);
             if (defaults.Color) {
                 this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
-                this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
+                this.Grid.SetOutlineColor(this.Dialog.ColorInput.val());
             }
             if (defaults.LineWidth != undefined) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
-                this.Shape.LineWidth == defaults.LineWidth;
+                this.Grid.LineWidth == defaults.LineWidth;
             }
         }
 
-        this.Viewer.AddWidget(this);
+        this.Layer.AddWidget(this);
 
-        // Note: If the user clicks before the mouse is in the
-        // canvas, this will behave odd.
-
-        if (newFlag) {
-            this.State = GRID_WIDGET_NEW;
-            this.Viewer.ActivateWidget(this);
-            return;
-        }
-
-        this.State = GRID_WIDGET_WAITING;
+        this.State = WAITING;
 
     }
 
@@ -50407,20 +50962,20 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     // gx, gy is the point in grid pixel coordinates offset from the corner.
     GridWidget.prototype.ComputeCorner = function(xSign, ySign, gx, gy) {
         // Pick the upper left most corner to display the grid size text.
-        var xRadius = this.Shape.BinWidth * this.Shape.Dimensions[0] / 2;
-        var yRadius = this.Shape.BinHeight * this.Shape.Dimensions[1] / 2;
+        var xRadius = this.Grid.BinWidth * this.Grid.Dimensions[0] / 2;
+        var yRadius = this.Grid.BinHeight * this.Grid.Dimensions[1] / 2;
         xRadius += gx;
         yRadius += gy;
-        var x = this.Shape.Origin[0];
-        var y = this.Shape.Origin[1];
+        var x = this.Grid.Origin[0];
+        var y = this.Grid.Origin[1];
         // Choose the corner from 0 to 90 degrees in the window.
-        var roll = (this.Viewer.GetCamera().GetRotation()-
-                    this.Shape.Orientation) / 90; // range 0-4
+        var roll = (this.Layer.GetCamera().GetRotation()-
+                    this.Grid.Orientation) / 90; // range 0-4
         roll = Math.round(roll);
         // Modulo that works with negative numbers;
         roll = ((roll % 4) + 4) % 4;
-        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var c = Math.cos(3.14156* this.Grid.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Grid.Orientation / 180.0);
         var dx , dy;
         if (roll == 0) {
             dx =  xSign*xRadius;
@@ -50442,14 +50997,14 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     }
 
     GridWidget.prototype.Draw = function(view) {
-        this.Shape.Draw(view);
+        this.Grid.Draw(view);
 
         // Corner in grid pixel coordinates.
-        var x = - (this.Shape.BinWidth * this.Shape.Dimensions[0] / 2);
-        var y = - (this.Shape.BinHeight * this.Shape.Dimensions[1] / 2);
+        var x = - (this.Grid.BinWidth * this.Grid.Dimensions[0] / 2);
+        var y = - (this.Grid.BinHeight * this.Grid.Dimensions[1] / 2);
         this.Text.Anchor = [0,20];
-        this.Text.Orientation = (this.Shape.Orientation -
-                                 this.Viewer.GetCamera().GetRotation());
+        this.Text.Orientation = (this.Grid.Orientation -
+                                 this.Layer.GetCamera().GetRotation());
         // Modulo that works with negative numbers;
         this.Text.Orientation = ((this.Text.Orientation % 360) + 360) % 360;
         // Do not draw text upside down.
@@ -50460,74 +51015,73 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             //pixels , this is screen pixels).
         }
         // Convert to world Coordinates.
-        var radians = this.Shape.Orientation * Math.PI / 180;
+        var radians = this.Grid.Orientation * Math.PI / 180;
         var c = Math.cos(radians);
         var s = Math.sin(radians);
         var wx = c*x + s*y;
         var wy = c*y - s*x;
-        this.Text.Position = [this.Shape.Origin[0]+wx,this.Shape.Origin[1]+wy];
+        this.Text.Position = [this.Grid.Origin[0]+wx,this.Grid.Origin[1]+wy];
 
-                                 
         this.Text.Draw(view);
     };
 
-    // This needs to be put in the Viewer.
-    GridWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.Viewer.RemoveWidget(this);
-        }
-    };
+    // This needs to be put in the layer.
+    //GridWidget.prototype.RemoveFromViewer = function() {
+    //    if (this.Viewer) {
+    //        this.Viewer.RemoveWidget(this);
+    //    }
+    //};
 
     GridWidget.prototype.PasteCallback = function(data, mouseWorldPt, camera) {
         this.Load(data);
         // Keep the pasted grid from rotating when the camera changes.
-        var dr = this.Viewer.GetCamera().GetRotation() -
+        var dr = this.Layer.GetCamera().GetRotation() -
         camera.GetRotation();
-        this.Shape.Orientation += dr;
+        this.Grid.Orientation += dr;
         // Place the widget over the mouse.
         // This would be better as an argument.
-        this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+        this.Grid.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     };
 
     GridWidget.prototype.Serialize = function() {
-        if(this.Shape === undefined){ return null; }
+        if(this.Grid === undefined){ return null; }
         var obj = {};
         obj.type = "grid";
-        obj.origin = this.Shape.Origin;
-        obj.outlinecolor = this.Shape.OutlineColor;
-        obj.bin_width = this.Shape.BinWidth;
-        obj.bin_height = this.Shape.BinHeight;
-        obj.dimensions = this.Shape.Dimensions;
-        obj.orientation = this.Shape.Orientation;
-        obj.linewidth = this.Shape.LineWidth;
+        obj.origin = this.Grid.Origin;
+        obj.outlinecolor = this.Grid.OutlineColor;
+        obj.bin_width = this.Grid.BinWidth;
+        obj.bin_height = this.Grid.BinHeight;
+        obj.dimensions = this.Grid.Dimensions;
+        obj.orientation = this.Grid.Orientation;
+        obj.linewidth = this.Grid.LineWidth;
         obj.creation_camera = this.CreationCamera;
         return obj;
     };
 
     // Load a widget from a json object (origin MongoDB).
     GridWidget.prototype.Load = function(obj) {
-        this.Shape.Origin[0] = parseFloat(obj.origin[0]);
-        this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-        this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-        this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-        this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-        if (obj.width)  { this.Shape.BinWidth = parseFloat(obj.width);}
-        if (obj.height) {this.Shape.BinHeight = parseFloat(obj.height);}
-        if (obj.bin_width)  { this.Shape.BinWidth = parseFloat(obj.bin_width);}
-        if (obj.bin_height) {this.Shape.BinHeight = parseFloat(obj.bin_height);}
-        this.Shape.Dimensions[0] = parseInt(obj.dimensions[0]);
-        this.Shape.Dimensions[1] = parseInt(obj.dimensions[1]);
-        this.Shape.Orientation = parseFloat(obj.orientation);
-        this.Shape.LineWidth = parseFloat(obj.linewidth);
-        this.Shape.FixedSize = false;
-        this.Shape.UpdateBuffers();
+        this.Grid.Origin[0] = parseFloat(obj.origin[0]);
+        this.Grid.Origin[1] = parseFloat(obj.origin[1]);
+        this.Grid.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+        this.Grid.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+        this.Grid.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        if (obj.width)  { this.Grid.BinWidth = parseFloat(obj.width);}
+        if (obj.height) {this.Grid.BinHeight = parseFloat(obj.height);}
+        if (obj.bin_width)  { this.Grid.BinWidth = parseFloat(obj.bin_width);}
+        if (obj.bin_height) {this.Grid.BinHeight = parseFloat(obj.bin_height);}
+        this.Grid.Dimensions[0] = parseInt(obj.dimensions[0]);
+        this.Grid.Dimensions[1] = parseInt(obj.dimensions[1]);
+        this.Grid.Orientation = parseFloat(obj.orientation);
+        this.Grid.LineWidth = parseFloat(obj.linewidth);
+        this.Grid.FixedSize = false;
+        this.Grid.UpdateBuffers();
 
-        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
         // Shallow copy is dangerous
-        this.Text.Position = this.Shape.Origin;
+        this.Text.Position = this.Grid.Origin;
         this.Text.UpdateBuffers();
 
         // How zoomed in was the view when the annotation was created.
@@ -50538,7 +51092,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     GridWidget.prototype.HandleKeyPress = function(keyCode, shift) {
         // The dialog consumes all key events.
-        if (this.State == GRID_WIDGET_PROPERTIES_DIALOG) {
+        if (this.State == PROPERTIES_DIALOG) {
             return false;
         }
 
@@ -50551,7 +51105,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             // another stack section.
             var clip = {Type:"GridWidget", 
                         Data: this.Serialize(), 
-                        Camera: this.Viewer.GetCamera().Serialize()};
+                        Camera: this.Layer.GetCamera().Serialize()};
             localStorage.ClipBoard = JSON.stringify(clip);
             return false;
         }
@@ -50567,7 +51121,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         if (event.which != 1) {
             return true;
         }
-        this.DragLast = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        var cam = this.Layer.GetCamera();
+        this.DragLast = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         return false;
     };
 
@@ -50582,59 +51137,60 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     // Orientation is a pain,  we need a world to shape transformation.
     GridWidget.prototype.HandleMouseMove = function(event) {
         if (event.which == 1) {
+            var cam = this.Layer.GetCamera();
             var world =
-    this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+                cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
             var dx, dy;
-            if (this.State == GRID_WIDGET_DRAG) {
+            if (this.State == DRAG) {
                 dx = world[0] - this.DragLast[0];
                 dy = world[1] - this.DragLast[1];
                 this.DragLast = world;
-                this.Shape.Origin[0] += dx;
-                this.Shape.Origin[1] += dy;
+                this.Grid.Origin[0] += dx;
+                this.Grid.Origin[1] += dy;
             } else {
-                // convert mouse from world to Shape coordinate system.
-                dx = world[0] - this.Shape.Origin[0];
-                dy = world[1] - this.Shape.Origin[1];
-                var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-                var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+                // convert mouse from world to Grid coordinate system.
+                dx = world[0] - this.Grid.Origin[0];
+                dy = world[1] - this.Grid.Origin[1];
+                var c = Math.cos(3.14156* this.Grid.Orientation / 180.0);
+                var s = Math.sin(3.14156* this.Grid.Orientation / 180.0);
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
                 // convert from shape to integer grid indexes.
-                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.BinWidth);
-                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.BinHeight);
+                x = (0.5*this.Grid.Dimensions[0]) + (x / this.Grid.BinWidth);
+                y = (0.5*this.Grid.Dimensions[1]) + (y / this.Grid.BinHeight);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
                 // Change grid dimemsions
                 dx = dy = 0;
                 var changed = false;
-                if (this.State == GRID_WIDGET_DRAG_RIGHT) {
-                    dx = ix - this.Shape.Dimensions[0];
+                if (this.State == DRAG_RIGHT) {
+                    dx = ix - this.Grid.Dimensions[0];
                     if (dx) {
-                        this.Shape.Dimensions[0] = ix;
+                        this.Grid.Dimensions[0] = ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * dx * this.Shape.BinWidth;
+                        dx = 0.5 * dx * this.Grid.BinWidth;
                         changed = true;
                     }
-                } else if (this.State == GRID_WIDGET_DRAG_LEFT) {
+                } else if (this.State == DRAG_LEFT) {
                     if (ix) {
-                        this.Shape.Dimensions[0] -= ix;
+                        this.Grid.Dimensions[0] -= ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * ix * this.Shape.BinWidth;
+                        dx = 0.5 * ix * this.Grid.BinWidth;
                         changed = true;
                     }
-                } else if (this.State == GRID_WIDGET_DRAG_BOTTOM) {
-                    dy = iy - this.Shape.Dimensions[1];
+                } else if (this.State == DRAG_BOTTOM) {
+                    dy = iy - this.Grid.Dimensions[1];
                     if (dy) {
-                        this.Shape.Dimensions[1] = iy;
+                        this.Grid.Dimensions[1] = iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * dy * this.Shape.BinHeight;
+                        dy = 0.5 * dy * this.Grid.BinHeight;
                         changed = true;
                     }
-                } else if (this.State == GRID_WIDGET_DRAG_TOP) {
+                } else if (this.State == DRAG_TOP) {
                     if (iy) {
-                        this.Shape.Dimensions[1] -= iy;
+                        this.Grid.Dimensions[1] -= iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * iy * this.Shape.BinHeight;
+                        dy = 0.5 * iy * this.Grid.BinHeight;
                         changed = true;
                     }
                 }
@@ -50642,16 +51198,19 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                     // Rotate the translation and apply to the center.
                     x = c*dx + s*dy;
                     y = c*dy - s*dx;
-                    this.Shape.Origin[0] += x;
-                    this.Shape.Origin[1] += y;
-                    this.Shape.UpdateBuffers();
+                    this.Grid.Origin[0] += x;
+                    this.Grid.Origin[1] += y;
+                    this.Grid.UpdateBuffers();
                 }
             }
-            eventuallyRender();
+            this.Layer.EventuallyDraw();
             return
         }
 
-        this.CheckActive(event);
+        if (event.which == 0) {
+            // Update the active state if theuser is not interacting.
+            this.SetActive(this.CheckActive(event));
+        }
 
         return true;
     };
@@ -50662,7 +51221,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (this.State == GRID_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
                 var direction = 1;
@@ -50671,18 +51230,18 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                     direction = -1;
                 }
                 if(event.shiftKey) {
-                    this.Shape.Length = this.Shape.Length * ratio;
+                    this.Grid.Length = this.Grid.Length * ratio;
                 }
                 if(event.ctrlKey) {
-                    this.Shape.BinWidth = this.Shape.BinWidth * ratio;
+                    this.Grid.BinWidth = this.Grid.BinWidth * ratio;
                 }
                 if(!event.shiftKey && !event.ctrlKey) {
-                    this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
+                    this.Grid.Orientation = this.Grid.Orientation + 3 * direction;
                  }
 
-                this.Shape.UpdateBuffers();
+                this.Grid.UpdateBuffers();
                 this.PlacePopup();
-                eventuallyRender();
+                this.Layer.EventuallyDraw();
             }
         }
         */
@@ -50699,17 +51258,17 @@ CircleWidget.prototype.DialogApplyCallback = function() {
           var dx = w1[0] - w0[0];
           var dy = w1[1] - w0[1];
 
-          this.Shape.Origin[0] += dx;
-          this.Shape.Origin[1] += dy;
-          eventuallyRender();
+          this.Grid.Origin[0] += dx;
+          this.Grid.Origin[1] += dy;
+          this.Layer.EventuallyDraw();
         */
         return true;
     };
 
 
     GridWidget.prototype.HandleTouchPinch = function(event) {
-        //this.Shape.UpdateBuffers();
-        //eventuallyRender();
+        //this.Grid.UpdateBuffers();
+        //this.Layer.EventuallyDraw();
         return true;
     };
 
@@ -50720,7 +51279,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     GridWidget.prototype.CheckActive = function(event) {
         var x,y;
-        if (this.Shape.FixedSize) {
+        if (this.Grid.FixedSize) {
             x = event.offsetX;
             y = event.offsetY;
             pixelSize = 1;
@@ -50728,60 +51287,43 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             x = event.worldX;
             y = event.worldY;
         }
-        x = x - this.Shape.Origin[0];
-        y = y - this.Shape.Origin[1];
+        x = x - this.Grid.Origin[0];
+        y = y - this.Grid.Origin[1];
         // Rotate to grid.
-        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var c = Math.cos(3.14156* this.Grid.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Grid.Orientation / 180.0);
         var rx = c*x - s*y;
         var ry = c*y + s*x;
 
         // Convert to grid coordinates (0 -> dims)
-        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.BinWidth);
-        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.BinHeight);
+        x = (0.5*this.Grid.Dimensions[0]) + (rx / this.Grid.BinWidth);
+        y = (0.5*this.Grid.Dimensions[1]) + (ry / this.Grid.BinHeight);
         var ix = Math.round(x);
         var iy = Math.round(y);
-        if (ix < 0 || ix > this.Shape.Dimensions[0] ||
-            iy < 0 || iy > this.Shape.Dimensions[1]) {
+        if (ix < 0 || ix > this.Grid.Dimensions[0] ||
+            iy < 0 || iy > this.Grid.Dimensions[1]) {
             this.SetActive(false);
             return false;
         }
 
         // x,y get the residual in pixels.
-        x = (x - ix) * this.Shape.BinWidth;
-        y = (y - iy) * this.Shape.BinHeight;
+        x = (x - ix) * this.Grid.BinWidth;
+        y = (y - iy) * this.Grid.BinHeight;
 
         // Compute the screen pixel size for tollerance.
-        var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
+        var tolerance = 5.0 / this.Layer.GetPixelsPerUnit();
 
         if (Math.abs(x) < tolerance || Math.abs(y) < tolerance) {
-            this.SetActive(true);
-            if (ix == 0) {
-                this.State = GRID_WIDGET_DRAG_LEFT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
-            } else if (ix == this.Shape.Dimensions[0]) {
-                this.State = GRID_WIDGET_DRAG_RIGHT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
-            } else if (iy == 0) {
-                this.State = GRID_WIDGET_DRAG_TOP;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
-            } else if (iy == this.Shape.Dimensions[1]) {
-                this.State = GRID_WIDGET_DRAG_BOTTOM;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
-            } else {
-                this.State = GRID_WIDGET_DRAG;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'move'});
-            }
+            this.ActiveIndex =[ix,iy];
             return true;
         }
 
-        this.SetActive(false);
         return false;
     };
 
     // Multiple active states. Active state is a bit confusing.
     GridWidget.prototype.GetActive = function() {
-        if (this.State == GRID_WIDGET_WAITING) {
+        if (this.State == WAITING) {
             return false;
         }
         return true;
@@ -50789,35 +51331,52 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
 
     GridWidget.prototype.Deactivate = function() {
-        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
+        this.Layer.AnnotationView.CanvasDiv.css({'cursor':'default'});
         this.Popup.StartHideTimer();
-        this.State = GRID_WIDGET_WAITING;
-        this.Shape.Active = false;
-        this.Viewer.DeactivateWidget(this);
+        this.State = WAITING;
+        this.Grid.Active = false;
+        this.Layer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     };
 
     // Setting to active always puts state into "active".
     // It can move to other states and stay active.
     GridWidget.prototype.SetActive = function(flag) {
-        if (flag == this.GetActive()) {
-            return;
-        }
 
         if (flag) {
-            this.State = GRID_WIDGET_ACTIVE;
-            this.Shape.Active = true;
-            this.Viewer.ActivateWidget(this);
-            eventuallyRender();
+            this.State = ACTIVE;
+            this.Grid.Active = true;
+
+            if ( ! this.ActiveIndex) {
+                console.log("No active index");
+                return;
+            }
+            if (this.ActiveIndex[0] == 0) {
+                this.State = DRAG_LEFT;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
+            } else if (this.ActiveIndex[0] == this.Grid.Dimensions[0]) {
+                this.State = DRAG_RIGHT;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
+            } else if (this.ActiveIndex[1] == 0) {
+                this.State = DRAG_TOP;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'row-resize'});
+            } else if (this.ActiveIndex[1] == this.Grid.Dimensions[1]) {
+                this.State = DRAG_BOTTOM;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'row-resize'});
+            } else {
+                this.State = DRAG;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'move'});
+            }
+
             // Compute the location for the pop up and show it.
             this.PlacePopup();
         } else {
             this.Deactivate();
         }
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     };
 
 
@@ -50825,44 +51384,45 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     GridWidget.prototype.PlacePopup = function () {
         // Compute corner has its angle backwards.  I do not see how this works.
         var pt = this.ComputeCorner(1, -1, 0, 0);
-        pt = this.Viewer.ConvertPointWorldToViewer(pt[0], pt[1]);
+        var cam = this.Layer.GetCamera();
+        pt = cam.ConvertPointWorldToViewer(pt[0], pt[1]);
         this.Popup.Show(pt[0]+10,pt[1]-30);
     };
 
     // Can we bind the dialog apply callback to an objects method?
-    var GRID_WIDGET_DIALOG_SELF;
+    var DIALOG_SELF;
 
     GridWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
-        this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Grid.OutlineColor));
+        this.Dialog.LineWidthInput.val((this.Grid.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
-        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Shape.BinWidth*0.25e-6));
-        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Shape.BinHeight*0.25e-6));
-        this.Dialog.RotationInput.val(this.Shape.Orientation);
+        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Grid.BinWidth*0.25e-6));
+        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Grid.BinHeight*0.25e-6));
+        this.Dialog.RotationInput.val(this.Grid.Orientation);
 
         this.Dialog.Show(true);
     };
 
     GridWidget.prototype.DialogApplyCallback = function() {
         var hexcolor = this.Dialog.ColorInput.val();
-        this.Shape.SetOutlineColor(hexcolor);
-        this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
-        this.Shape.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
-        this.Shape.Orientation = parseFloat(this.Dialog.RotationInput.val());
-        this.Shape.UpdateBuffers();
+        this.Grid.SetOutlineColor(hexcolor);
+        this.Grid.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Grid.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
+        this.Grid.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
+        this.Grid.Orientation = parseFloat(this.Dialog.RotationInput.val());
+        this.Grid.UpdateBuffers();
         this.SetActive(false);
 
-        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.UpdateBuffers();
 
         RecordState();
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
 
-        localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
+        localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 
-    window.GridWidget = GridWidget;
+    SA.GridWidget = GridWidget;
 
 })();
 
@@ -50871,19 +51431,19 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 (function () {
     "use strict";
 
-    var SCALE_WIDGET_NEW = 0;
-    var SCALE_WIDGET_WAITING = 3; // The normal (resting) state.
-    var SCALE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-    var SCALE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    var NEW = 0;
+    var WAITING = 3; // The normal (resting) state.
+    var ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 5; // Properties dialog is up
 
-    var SCALE_WIDGET_DRAG = 6;
-    var SCALE_WIDGET_DRAG_LEFT = 7;
-    var SCALE_WIDGET_DRAG_RIGHT = 8;
+    var DRAG = 6;
+    var DRAG_LEFT = 7;
+    var DRAG_RIGHT = 8;
 
     // Viewer coordinates.
     // Horizontal or verticle
     function Scale() {
-        Shape.call(this);
+        SA.Shape.call(this);
         // Dimension of scale element
         this.BinLength = 100.0; // unit length in screen pixels
         this.TickSize = 6; // Screen pixels
@@ -50892,10 +51452,10 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
-        this.PositionCoordinateSystem = Shape.VIEWER;
+        this.PositionCoordinateSystem = SA.Shape.VIEWER;
     };
 
-    Scale.prototype = new Shape();
+    Scale.prototype = new SA.Shape();
 
     Scale.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -50939,14 +51499,14 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         }
     };
 
-    function ScaleWidget (viewer, newFlag) {
+    function ScaleWidget (layer, newFlag) {
         var self = this;
 
-        if (viewer === null) {
+        if (layer === null) {
             return;
         }
 
-        this.Viewer = viewer;
+        this.Layer = layer;
         this.PixelsPerMeter = 0;
         this.Shape = new Scale();
         this.Shape.OutlineColor = [0.0, 0.0, 0.0];
@@ -50954,8 +51514,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.BinLength = 200;
         this.Shape.FixedSize = true;
 
-        this.Text = new Text();
-        this.Text.PositionCoordinateSystem = Shape.VIEWER;
+        this.Text = new SA.Text();
+        this.Text.PositionCoordinateSystem = SA.Shape.VIEWER;
         this.Text.Position = [30,5];
         this.Text.String = "";
         this.Text.Color = [0.0, 0.0, 0.0];
@@ -50963,18 +51523,18 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         // This is a hackl estimate.
         this.Text.Anchor = [20,0];
 
-        this.Update(viewer.GetPixelsPerUnit());
+        this.Update(layer.GetPixelsPerUnit());
 
-        this.Viewer.AddWidget(this);
+        this.Layer.AddWidget(this);
 
-        this.State = SCALE_WIDGET_WAITING;
+        this.State = WAITING;
     }
 
 
     // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
         // Compute the number of screen pixels in a meter.
-        var scale = Math.round(4e6 * this.Viewer.GetPixelsPerUnit());
+        var scale = Math.round(4e6 * this.Layer.GetPixelsPerUnit());
         if (this.PixelsPerMeter == scale) {
             return;
         }
@@ -51045,11 +51605,11 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     };
 
     // This needs to be put in the Viewer.
-    ScaleWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.RemoveWidget(this);
-        }
-    };
+    //ScaleWidget.prototype.RemoveFromViewer = function() {
+    //    if (this.Layer) {
+    //        this.RemoveWidget(this);
+    //    }
+    //};
 
     ScaleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
         return true;
@@ -51064,7 +51624,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         if (event.which != 1) {
             return true;
         }
-        this.DragLast = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        this.DragLast = this.Layer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         */
         return false;
     };
@@ -51083,9 +51643,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         /*
         if (event.which == 1) {
             var world =
-                this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+                this.Layer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
             var dx, dy;
-            if (this.State == SCALE_WIDGET_DRAG) {
+            if (this.State == DRAG) {
                 dx = world[0] - this.DragLast[0];
                 dy = world[1] - this.DragLast[1];
                 this.DragLast = world;
@@ -51109,7 +51669,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                 // Change scale dimemsions
                 dx = dy = 0;
                 var changed = false;
-                if (this.State == SCALE_WIDGET_DRAG_RIGHT) {
+                if (this.State == DRAG_RIGHT) {
                     dx = ix - this.Shape.Dimensions[0];
                     if (dx) {
                         this.Shape.Dimensions[0] = ix;
@@ -51117,14 +51677,14 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                         dx = 0.5 * dx * this.Shape.Width;
                         changed = true;
                     }
-                } else if (this.State == SCALE_WIDGET_DRAG_LEFT) {
+                } else if (this.State == DRAG_LEFT) {
                     if (ix) {
                         this.Shape.Dimensions[0] -= ix;
                         // Compute the change in the center point origin.
                         dx = 0.5 * ix * this.Shape.Width;
                         changed = true;
                     }
-                } else if (this.State == SCALE_WIDGET_DRAG_BOTTOM) {
+                } else if (this.State == DRAG_BOTTOM) {
                     dy = iy - this.Shape.Dimensions[1];
                     if (dy) {
                         this.Shape.Dimensions[1] = iy;
@@ -51132,7 +51692,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                         dy = 0.5 * dy * this.Shape.Height;
                         changed = true;
                     }
-                } else if (this.State == SCALE_WIDGET_DRAG_TOP) {
+                } else if (this.State == DRAG_TOP) {
                     if (iy) {
                         this.Shape.Dimensions[1] -= iy;
                         // Compute the change in the center point origin.
@@ -51164,7 +51724,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (this.State == SCALE_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
                 var direction = 1;
@@ -51193,9 +51753,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     ScaleWidget.prototype.HandleTouchPan = function(event) {
         /*
-          w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+          w0 = this.Layer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
           EVENT_MANAGER.LastMouseY);
-          w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
+          w1 = this.Layer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
           // This is the translation.
           var dx = w1[0] - w0[0];
@@ -51255,25 +51815,25 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         y = (y - iy) * this.Shape.Height;
 
         // Compute the screen pixel size for tollerance.
-        var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
+        var tolerance = 5.0 / this.Layer.GetPixelsPerUnit();
 
         if (Math.abs(x) < tolerance || Math.abs(y) < tolerance) {
             this.SetActive(true);
             if (ix == 0) {
-                this.State = SCALE_WIDGET_DRAG_LEFT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
+                this.State = DRAG_LEFT;
+                thisLayer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
             } else if (ix == this.Shape.Dimensions[0]) {
-                this.State = SCALE_WIDGET_DRAG_RIGHT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
+                this.State = DRAG_RIGHT;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
             } else if (iy == 0) {
-                this.State = SCALE_WIDGET_DRAG_TOP;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
+                this.State = DRAG_TOP;
+                this.Viewer.AnnotationView.CanvasDiv.css({'cursor':'row-resize'});
             } else if (iy == this.Shape.Dimensions[1]) {
-                this.State = SCALE_WIDGET_DRAG_BOTTOM;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
+                this.State = DRAG_BOTTOM;
+                this.Layer.MainView.CanvasDiv.css({'cursor':'row-resize'});
             } else {
-                this.State = SCALE_WIDGET_DRAG;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'move'});
+                this.State = DRAG;
+                this.Layer.MainView.CanvasDiv.css({'cursor':'move'});
             }
             return true;
         }
@@ -51284,7 +51844,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     // Multiple active states. Active state is a bit confusing.
     ScaleWidget.prototype.GetActive = function() {
-        if (this.State == SCALE_WIDGET_WAITING) {
+        if (this.State == WAITING) {
             return false;
         }
         return true;
@@ -51292,11 +51852,11 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
 
     ScaleWidget.prototype.Deactivate = function() {
-        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
+        this.Layer.AnnotationView.CanvasDiv.css({'cursor':'default'});
         this.Popup.StartHideTimer();
-        this.State = SCALE_WIDGET_WAITING;
+        this.State = WAITING;
         this.Shape.Active = false;
-        this.Viewer.DeactivateWidget(this);
+        this.Layer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
@@ -51311,9 +51871,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         }
 
         if (flag) {
-            this.State = SCALE_WIDGET_ACTIVE;
+            this.State = ACTIVE;
             this.Shape.Active = true;
-            this.Viewer.ActivateWidget(this);
+            this.Layer.ActivateWidget(this);
             eventuallyRender();
             // Compute the location for the pop up and show it.
             this.PlacePopup();
@@ -51324,7 +51884,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     };
 
 
-    window.ScaleWidget = ScaleWidget;
+    SA.ScaleWidget = ScaleWidget;
 
 })();
 
@@ -51773,6 +52333,12 @@ ImageAnnotation.prototype.Draw = function (view) {
 
 
 
+window.requestAnimationFrame = 
+    window.requestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||             
+    window.msRequestAnimationFrame;
+
 // Firefox does not set which for mouse move events.
 function saFirefoxWhich(event) {
     event.which = event.buttons;
@@ -51789,9 +52355,11 @@ function saDebug(msg) {
 
 // for debugging
 function MOVE_TO(x,y) {
-  SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-  SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-  eventuallyRender();
+    SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+    SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+    if (SA.DualDisplay) {
+        SA.DualDisplay.Draw();
+    }
 }
 
 function ZERO_PAD(i, n) {
@@ -51832,6 +52400,7 @@ function SlideAtlas() {
     this.FinishedLoadingCallbacks = [];
 
     this.Caches = [];
+
     this.StartInteractionListeners = [];
 }
 
@@ -51975,7 +52544,6 @@ SlideAtlas.prototype.HandleKeyUpStack = function(event) {
             window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
         }
 
-        eventuallyRender();
         return false;
     }
 
@@ -52339,10 +52907,6 @@ function initGL() {
     initImageTileBuffers();
     GL.clearColor(1.0, 1.0, 1.0, 1.0);
     GL.enable(GL.DEPTH_TEST);
-
-    VIEW_PANEL = $('<div>')
-        .appendTo('body')
-        .addClass("sa-view-canvas-panel")
 }
 
 
@@ -52530,20 +53094,20 @@ function initImageTileBuffers() {
 // I put an eveutallyRender method in the viewer, but have not completely
 // converted code yet.
 // Stuff for drawing
-var RENDER_PENDING = false;
-function eventuallyRender() {
-    if (! RENDER_PENDING) {
-      RENDER_PENDING = true;
-      requestAnimFrame(tick);
-    }
-}
+//var RENDER_PENDING = false;
+//function eventuallyRender() {
+//    if (! RENDER_PENDING) {
+//      RENDER_PENDING = true;
+//      requestAnimFrame(tick);
+//    }
+//}
 
-function tick() {
-    //console.timeEnd("system");
-    RENDER_PENDING = false;
-    draw();
-    //console.time("system");
-}
+//function tick() {
+//    //console.timeEnd("system");
+//    RENDER_PENDING = false;
+//    draw();
+//    //console.time("system");
+//}
 
 
 
@@ -52555,14 +53119,6 @@ function tick() {
 function initGC() {
 
     detectMobile();
-
-    // Add a new canvas.
-    CANVAS = $('<div>')
-        .appendTo('body').addClass("sa-view-canvas");
-
-    VIEW_PANEL = $('<div>')
-        .appendTo('body')
-        .addClass("sa-view-canvas-panel");
 }
 
 
@@ -52623,7 +53179,6 @@ function LogMessage (message) {
 
 var CANVAS;
 
-var VIEW_PANEL; // div that should contain the two viewers.
 var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
@@ -52636,99 +53191,9 @@ function ShowAnnotationEditMenu(x, y) {
 }
 
 
-// TODO:  Put this into the dual view widget.
-// Getting resize right was a major pain.
+// TODO:  Get rid of this function.
 function handleResize() {
-    
-    var width = CANVAS.width();
-    var height = CANVAS.height();
-
-    if(MOBILE_DEVICE == 'iPad'){
-      width = window.innerWidth;
-      height = window.innerHeight;
-      CANVAS.height(height);
-
-      document.documentElement.setAttribute('height', height + "px");
-    }
-
-    if(height == 0){
-      height = window.innerHeight;
-    }
-
-    if (GL) {
-        VIEW_PANEL[0].width = width;
-        VIEW_PANEL[0].height = height;
-        //gl.viewportWidth = canvas.width;
-        //gl.viewportHeight = canvas.height;
-        GL.viewport(0, 0, width, height);
-    } // GL.SetViewport does the work for 2d canvases.
-
-    // Handle resizing of the favorites bar.
-    // TODO: Make a resize callback.
-    if(FAVORITES_WIDGET != undefined){
-        FAVORITES_WIDGET.HandleResize(width);
-    }
-
-    // we set the left border to leave space for the notes window.
-    var viewPanelLeft = 0;
-    if (SA.NotesWidget) {
-        viewPanelLeft = SA.NotesWidget.Width;
-        SA.NotesWidget.Resize(viewPanelLeft,height);
-    }
-    if (SA.Presentation) {
-        viewPanelLeft = SA.Presentation.ResizePanel.Width
-    }
-
-    var viewPanelWidth = width - viewPanelLeft;
-    // TODO: let css size the viewers.
-    // The remaining width is split between the two viewers.
-    var width1 = viewPanelWidth;
-    if (SA.DualDisplay) {
-        width1 = viewPanelWidth * SA.DualDisplay.Viewer1Fraction;
-    }
-    var width2 = viewPanelWidth - width1;
-
-    if (GL) {
-        // HACK:  view positioning is half managed by browser (VIEW_PANEL)
-        // and half by this resize viewport chain.  I want to get rid of the
-        // viewport completely, but until then, I have to manage both.
-        // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create
-        // a separate webgl canvas for each view because thay cannot share
-        // texture images.
-        VIEW_PANEL.css({"left":viewPanelLeft});
-    }
-
-    // Setup the view panel div to be the same as the two viewers.
-    if (VIEW_PANEL) {
-        VIEW_PANEL.css({'left': viewPanelLeft+'px',
-                        'width': viewPanelWidth+'px'});
-    }
-
-    // TODO: Make a multi-view object.
-    // TODO: Let css handle positioning the viewers.
-    //       This call positions the overview and still affect the main view.
-    if (SA.DualDisplay.Viewers[0]) {
-        SA.DualDisplay.Viewers[0].SetViewport([0, 0, width1, height]);
-        eventuallyRender();
-    }
-    if (SA.DualDisplay.Viewers[1]) {
-        SA.DualDisplay.Viewers[1].SetViewport([width1, 0, width2, height]);
-        eventuallyRender();
-    }
-}
-
-
-// Hack mutex. iPad2 must execute multiple draw callbacks at the same time
-// in different threads.
-// This was not actually the problem.  iPad had a bug in the javascript interpreter.
-var DRAWING = false;
-function draw() {
-    if (DRAWING) { return; }
-    DRAWING = true;
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
-    }
-    DRAWING = false;
+    $('window').trigger('resize');
 }
 
 // The event manager detects single right click and double right click.
@@ -52809,20 +53274,32 @@ function Main(rootNote) {
         initGC();
     }
 
-    SA.DualDisplay = new DualViewWidget(VIEW_PANEL);
-
     if (rootNote.Type == "Stack") {
         SA.DualDisplay.SetNumberOfViewers(2);
     }
-    // TODO: Is this really needed here?  Try it at the end.
-    handleResize();
 
     // TODO: Get rid of this global variable.
     if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
-    SA.NotesWidget = new NotesWidget(VIEW_PANEL,SA.DualDisplay);
+
+    SA.MainDiv = $('<div>')
+        .appendTo('body')
+        .css({
+            'position':'fixed',
+            'left':'0px',
+            'width': '100%'})
+        .saFullHeight();
+        //.addClass("sa-view-canvas-panel")
+
+    // Left panel for notes.
+    SA.ResizePanel = new ResizePanel(SA.MainDiv);
+    SA.DualDisplay = new DualViewWidget(SA.ResizePanel.MainDiv);
+    SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
+                                     SA.DualDisplay);
+
+
     SA.NotesWidget.SetModifiedCallback(NotesModified);
     SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
     // Navigation widget keeps track of which note is current.
@@ -52842,7 +53319,7 @@ function Main(rootNote) {
         if ( SA.Edit) {
             // Put a save button here when editing.
             SA.SaveButton = $('<img>')
-                .appendTo(VIEW_PANEL)
+                .appendTo(SA.ResizePanel.MainDiv)
                 .css({'position':'absolute',
                       'bottom':'4px',
                       'left':'10px',
@@ -52858,8 +53335,8 @@ function Main(rootNote) {
             }
         } else {
             // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(VIEW_PANEL, SA.DualDisplay);
-            FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+            FAVORITES_WIDGET = new FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+            //FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
         }
     }
 
@@ -52888,15 +53365,15 @@ function Main(rootNote) {
 
         // TODO: See if we can get rid of this, or combine it with
         // the view browser.
-        InitSlideSelector(VIEW_PANEL); // What is this?
+        InitSlideSelector(SA.MainDiv); // What is this?
         var viewMenu1 = new ViewEditMenu(SA.DualDisplay.Viewers[0],
                                          SA.DualDisplay.Viewers[1]);
         var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
                                          SA.DualDisplay.Viewers[0]);
 
-        var annotationWidget1 = new AnnotationWidget(SA.DualDisplay.Viewers[0]);
+        var annotationWidget1 = new AnnotationWidget(SA.DualDisplay.Viewers[0].GetAnnotationLayer());
         annotationWidget1.SetVisibility(2);
-        var annotationWidget2 = new AnnotationWidget(SA.DualDisplay.Viewers[1]);
+        var annotationWidget2 = new AnnotationWidget(SA.DualDisplay.Viewers[1].GetAnnotationLayer());
         annotationWidget1.SetVisibility(2);
         SA.DualDisplay.UpdateGui();
     }
@@ -52909,7 +53386,9 @@ function Main(rootNote) {
         handleResize();
     }).trigger('resize');
 
-    eventuallyRender();
+    if (SA.DualDisplay) {
+        SA.DualDisplay.Draw();
+    }
 }
 
 

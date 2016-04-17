@@ -10,7 +10,7 @@ Tab = (function () {
     function Tab (parent,imageSrc, tabID) {
         var self = this; // trick to set methods in callbacks.
         if ( ! parent) { alert("null parent: tab"); }
-        parent = parent || VIEW_PANEL;
+        parent = parent || SA.MainDiv;
 
         this.Div = $('<div>')
             .appendTo(parent)

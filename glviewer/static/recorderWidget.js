@@ -93,24 +93,27 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
         return;
     }
 
-
     this.OverviewBounds = viewer.GetOverViewBounds();
 
+    this.OverviewBounds = viewer.GetOverViewBounds();
     this.Image = cache.Image;
     this.Camera = viewer.GetCamera().Serialize();
 
-    this.AnnotationVisibility = viewer.GetAnnotationVisibility();
+    this.AnnotationVisibility = viewer.GetAnnotationLayer().GetVisibility();
     this.Annotations = [];
-    for (var i = 0; i < viewer.GetNumberOfWidgets(); ++i) {
-        this.Annotations.push(viewer.GetWidget(i).Serialize());
+
+    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    for (var i = 0; i < widgets.length; ++i) {
+        this.Annotations.push(widgets[i].Serialize());
     }
 }
 
 // For stacks.  A reduced version of copy view. 
 ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     this.Annotations = [];
-    for (var i = 0; i < viewer.GetNumberOfWidgets; ++i) {
-        var o = viewer.GetWidget(i).Serialize();
+    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    for (var i = 0; i < widgets.length; ++i) {
+        var o = widgets[i].Serialize();
         if (o) {
             this.Annotations.push(o);
         }
@@ -176,14 +179,15 @@ ViewerRecord.prototype.Apply = function (viewer) {
     if (viewer.AnnotationWidget && this.AnnotationVisibility != undefined) {
         viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
     }
-    if (this.Annotations != undefined) {
+    if (this.Annotations != undefined && viewer.AnnotationLayer) {
         // TODO: Fix this.  Keep actual widgets in the records / notes.
-        // For now lets just do the easy thing and recreate all the annotations.
+        // For now lets just do the easy thing and recreate all the
+        // annotations.
+        viewer.AnnotationLayer.Reset();
         for (var i = 0; i < this.Annotations.length; ++i) {
-            var widget = viewer.LoadWidget(this.Annotations[i]);
-            // Until we do the above todo.  This is the messy way of removing
-            // empty widgets (widgets that did not load properly).
-            if (widget.Type == "sections" && widget.IsEmpty()) {
+            var widget = viewer.AnnotationLayer.LoadWidget(this.Annotations[i]);
+            if (! widget) {
+                // Get rid of corrupt widgets that do not load properly
                 this.Annotations.splice(i,1);
                 --i;
             }

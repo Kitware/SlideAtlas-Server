@@ -30,7 +30,12 @@ function Viewer (parent) {
         .css({'position':'relative',
               'width':'100%',
               'height':'100%',
-              'box-sizing':'border-box'});
+              'box-sizing':'border-box'})
+        .addClass('sa-resize');
+    this.Div.saOnResize(
+        function() {
+            self.UpdateSize();
+        });
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
@@ -55,10 +60,12 @@ function Viewer (parent) {
     this.TranslateTarget = [0.0,0.0];
 
     this.MainView = new View(this.Div);
-    this.MainView.InitializeViewport(viewport, 1);
+    this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
+
+    this.AnnotationLayer = new SA.AnnotationLayer(this.Div, this.MainView.Camera);
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
@@ -67,7 +74,7 @@ function Viewer (parent) {
                              viewport[2]*0.18, viewport[3]*0.18];
         this.OverViewDiv = $('<div>').appendTo(this.Div);
         this.OverView = new View(this.OverViewDiv);
-	      this.OverView.InitializeViewport(this.OverViewport, 1);
+	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -98,13 +105,6 @@ function Viewer (parent) {
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
     
-    this.AnnotationVisibility = ANNOTATION_ON;
-    this.WidgetList = [];
-    this.ScaleWidget = new ScaleWidget(this, false);
-
-    this.ActiveWidget = null;
-
-
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
@@ -224,9 +224,12 @@ Viewer.prototype.Delete = function () {
     delete this.Div;
     delete this.InteractionListeners;
     delete this.RotateIcon;
-    delete this.WidgetList;
     delete this.StackCorrelations;
     delete this.CopyrightWrapper;
+}
+
+Viewer.prototype.GetAnnotationLayer = function () {
+    return this.AnnotationLayer;
 }
 
 // Abstracting saViewer  for viewer and dualViewWidget.
@@ -236,6 +239,7 @@ Viewer.prototype.Record = function (note, viewIdx) {
     note.ViewerRecords[viewIdx].CopyViewer(this);
 }
 
+// TODO: MAke the annotation layer optional.
 // I am moving some of the saViewer code into this viewer object because
 // I am trying to abstract the single viewer used for the HTML presentation
 // note and the full dual view / stack note.
@@ -431,7 +435,11 @@ Viewer.prototype.RollMove = function (e) {
 // TODO: Get rid of viewer::SetViewport.
 // onresize callback.  Canvas width and height and the camera need
 // to be synchronized with the canvas div.
-Viewer.prototype.UpdateSize = function (e) {
+Viewer.prototype.UpdateSize = function () {
+    if ( ! this.MainView) {
+        return;
+    }
+
     if (this.MainView.UpdateCanvasSize() ) {
         this.EventuallyRender();
     }
@@ -610,7 +618,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     // Clone the main view.
     var view = new View();
-    view.InitializeViewport(viewport, 1, true);
+    view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -658,12 +666,8 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     if ( ! view.DrawTiles() ) {
         console.log("Sanity check failed. Not all tiles were available.");
     }
-    if (this.AnnotationVisibility) {
-        this.MainView.DrawShapes();
-        for(i=0; i < this.WidgetList.length; ++i) {
-            this.WidgetList[i].Draw(view, this.AnnotationVisibility);
-        }
-    }
+    this.MainView.DrawShapes();
+    this.AnnotationLayer.Draw(view);
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
     if (stack) {
@@ -681,34 +685,34 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     finishedCallback();
 }
 
- // This method waits until all tiles are loaded before saving.
- var SAVE_FINISH_CALLBACK;
- Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
-     var self = this;
-     AddFinishedLoadingCallback(
-         function () {
-             self.SaveImage(fileName); 
-             if (finishedCallback) {
-                 finishedCallback();
-             }
-         }
-     );
-     this.EventuallyRender(false);
- }
+// This method waits until all tiles are loaded before saving.
+var SAVE_FINISH_CALLBACK;
+Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
+    var self = this;
+    AddFinishedLoadingCallback(
+        function () {
+            self.SaveImage(fileName);
+            if (finishedCallback) {
+                finishedCallback();
+            }
+        }
+    );
+    this.EventuallyRender(false);
+}
 
 
- // Not used anymore.  Incorpoarated in SaveLargeImage
- // delete these.
- // Save a bunch of stack images ----
- Viewer.prototype.SaveStackImages = function(fileNameRoot) {
-     var self = this;
-     AddFinishedLoadingCallback(
-         function () {
-             self.SaveStackImage(fileNameRoot); 
-         }
-     );
-     this.EventuallyRender(false);
- }
+// Not used anymore.  Incorpoarated in SaveLargeImage
+// delete these.
+// Save a bunch of stack images ----
+Viewer.prototype.SaveStackImages = function(fileNameRoot) {
+    var self = this;
+    AddFinishedLoadingCallback(
+        function () {
+            self.SaveStackImage(fileNameRoot);
+        }
+    );
+    this.EventuallyRender(false);
+}
 
 Viewer.prototype.SaveStackImage = function(fileNameRoot) {
     var self = this;
@@ -727,17 +731,6 @@ Viewer.prototype.SaveStackImage = function(fileNameRoot) {
 }
 //-----
 
-
-
-Viewer.prototype.GetAnnotationVisibility = function() {
-    return this.AnnotationVisibility;
-}
-
-Viewer.prototype.SetAnnotationVisibility = function(vis) {
-    this.AnnotationVisibility = vis;
-}
-
-
 Viewer.prototype.SetOverViewBounds = function(bounds) {
     this.OverViewBounds = bounds;
     if (this.OverView) {
@@ -751,34 +744,34 @@ Viewer.prototype.SetOverViewBounds = function(bounds) {
     }
 }
 
- Viewer.prototype.GetOverViewBounds = function() {
-     if (this.OverViewBounds) {
-         return this.OverViewBounds;
-     }
-     var cache = this.GetCache();
-     if (cache && cache.Image) {
-         if (cache.Image.bounds) {
-             return cache.Image.bounds;
-         }
-         if (cache.Image.dimensions) {
-             var dims = cache.Image.dimensions;
-             return [0, dims[0], 0, dims[1]];
-         }
-     }
-     // Depreciated code.
-     if (this.OverView) {
-         var cam = this.OverView.Camera;
-         var halfHeight = cam.GetHeight() / 2;
-         var halfWidth = cam.GetWidth() / 2;
-         this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
-                                cam.FocalPoint[0] + halfWidth,
-                                cam.FocalPoint[1] - halfHeight,
-                                cam.FocalPoint[1] + halfHeight];
-         return this.OverViewBounds;
-     }
-     // This method is called once too soon.  There is no image, and mobile devices have no overview.
-     return [0,10000,0,10000];
- }
+Viewer.prototype.GetOverViewBounds = function() {
+    if (this.OverViewBounds) {
+        return this.OverViewBounds;
+    }
+    var cache = this.GetCache();
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            return cache.Image.bounds;
+        }
+        if (cache.Image.dimensions) {
+            var dims = cache.Image.dimensions;
+            return [0, dims[0], 0, dims[1]];
+        }
+    }
+    // Depreciated code.
+    if (this.OverView) {
+        var cam = this.OverView.Camera;
+        var halfHeight = cam.GetHeight() / 2;
+        var halfWidth = cam.GetWidth() / 2;
+        this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
+                               cam.FocalPoint[0] + halfWidth,
+                               cam.FocalPoint[1] - halfHeight,
+                               cam.FocalPoint[1] + halfHeight];
+        return this.OverViewBounds;
+    }
+    // This method is called once too soon.  There is no image, and mobile devices have no overview.
+    return [0,10000,0,10000];
+}
 
 
 Viewer.prototype.SetSection = function(section) {
@@ -793,47 +786,47 @@ Viewer.prototype.SetSection = function(section) {
 }
 
 
- // Change the source / cache after a viewer has been created.
- Viewer.prototype.SetCache = function(cache) {
-     if (cache && cache.Image) {
-         if (cache.Image.bounds) {
-             this.SetOverViewBounds(cache.Image.bounds);
-         }
+// Change the source / cache after a viewer has been created.
+Viewer.prototype.SetCache = function(cache) {
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            this.SetOverViewBounds(cache.Image.bounds);
+        }
 
-         if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
-         }
-         this.CopyrightWrapper
-             .html(cache.Image.copyright);
-     }
+        if (cache.Image.copyright == undefined) {
+            cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
+        }
+        this.CopyrightWrapper
+            .html(cache.Image.copyright);
+    }
 
-     this.MainView.SetCache(cache);
-     if (this.OverView) {
-         this.OverView.SetCache(cache);
-         if (cache) {
-             var bds = cache.GetBounds();
-             if (bds) {
-                 this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
-                                                      (bds[2] + bds[3]) / 2]);
-                 var height = (bds[3]-bds[2]);
-                 // See if the view is constrained by the width.
-                 var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
-                 if (height2 > height) {
-                     height = height2;
-                 }
-                 this.OverView.Camera.SetHeight(height);
-                 this.OverView.Camera.ComputeMatrix();
-             }
-         }
-     }
-     // Change the overview to fit the new image dimensions.
-     // TODO: Get rid of this hack.
-     $(window).trigger('resize');
- }
+    this.MainView.SetCache(cache);
+    if (this.OverView) {
+        this.OverView.SetCache(cache);
+        if (cache) {
+            var bds = cache.GetBounds();
+            if (bds) {
+                this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
+                                                     (bds[2] + bds[3]) / 2]);
+                var height = (bds[3]-bds[2]);
+                // See if the view is constrained by the width.
+                var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+                if (height2 > height) {
+                    height = height2;
+                }
+                this.OverView.Camera.SetHeight(height);
+                this.OverView.Camera.ComputeMatrix();
+            }
+        }
+    }
+    // Change the overview to fit the new image dimensions.
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+}
 
- Viewer.prototype.GetCache = function() {
-     return this.MainView.GetCache();
- }
+Viewer.prototype.GetCache = function() {
+    return this.MainView.GetCache();
+}
 
 // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
@@ -940,12 +933,6 @@ Viewer.prototype.GetCamera = function() {
     return this.MainView.Camera;
 }
 
-Viewer.prototype.GetSpacing = function() {
-    var cam = this.GetCamera();
-    var viewport = this.GetViewport();
-    return cam.GetHeight() / viewport[3];
-}
-
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
     if (this.AnimateDuration > 0.0) {
@@ -1032,103 +1019,9 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
-Viewer.prototype.GetNumberOfWidgets = function() {
-    return this.WidgetList.length;
-}
-
-
-Viewer.prototype.GetWidget = function(i) {
-    return this.WidgetList[i];
-}
-
-Viewer.prototype.AddWidget = function(widget) {
-    widget.Viewer = this;
-    this.WidgetList.push(widget);
-    if (SA.NotesWidget) {
-        // Hack.
-        SA.NotesWidget.MarkAsModified();
-    }
-}
-
-Viewer.prototype.RemoveWidget = function(widget) {
-    if (widget.Viewer == null) {
-        return;
-    }
-    widget.Viewer = null;
-    var idx = this.WidgetList.indexOf(widget);
-    if(idx!=-1) {
-        this.WidgetList.splice(idx, 1);
-    }
-    if (SA.NotesWidget) {
-        // Hack.
-        SA.NotesWidget.MarkAsModified();
-    }
-}
-
-
-
-// Load a widget from a json object (origin MongoDB).
-Viewer.prototype.LoadWidget = function(obj) {
-    var widget;
-    switch(obj.type){
-    case "lasso":
-        widget = new LassoWidget(this, false);
-        break;
-    case "pencil":
-        widget = new PencilWidget(this, false);
-        break;
-    case "text":
-        widget = new TextWidget(this, "");
-        break;
-    case "circle":
-        widget = new CircleWidget(this, false);
-         break;
-    case "polyline":
-        widget = new PolylineWidget(this, false);
-        break;
-    case "stack_section":
-        widget = new StackSectionWidget(this);
-        break;
-    case "sections":
-        widget = new SectionsWidget(this);
-        break;
-    case "rect":
-        widget = new RectWidget(this, false);
-        break;
-    case "grid":
-        widget = new GridWidget(this, false);
-        break;
-    }
-    widget.Load(obj);
-    return widget;
-}
-
-// I am doing a dance because I expect widget SetActive to call this,
-// but this calls widget SetActive.
-// The widget is the only object to call these methods.
-// A widget cannot call this if another widget is active.
-// The widget deals with its own activation and deactivation.
-Viewer.prototype.ActivateWidget = function(widget) {
-    if (this.ActiveWidget == widget) {
-        return;
-    }
-    this.ActiveWidget = widget;
-}
-
-Viewer.prototype.DeactivateWidget = function(widget) {
-    if (this.ActiveWidget != widget || widget == null) {
-        // Do nothing if the widget is not active.
-        return;
-    }
-    this.ActiveWidget = null;
-}
-
-
-
 Viewer.prototype.DegToRad = function(degrees) {
     return degrees * Math.PI / 180;
 }
-
 
 Viewer.prototype.Draw = function() {
     // I do not think this is actaully necessary.
@@ -1160,6 +1053,13 @@ Viewer.prototype.Draw = function() {
         GL.enable(GL.DEPTH_TEST);
     }
 
+    if ( this.AnnotationLayer) {
+        this.AnnotationLayer.Clear();
+    }
+
+    // If we are still waiting for tiles to load, schedule another render.
+    // This works fine, but results in many renders while waiting.
+    // TODO: Consider having the tile load callback scheduling the next render.
     if ( ! this.MainView.DrawTiles() ) {
         this.EventuallyRender();
     }
@@ -1170,15 +1070,10 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawTiles();
         this.OverView.DrawOutline(true);
     }
-    if (this.AnnotationVisibility) {
-        if (this.ScaleWidget) {
-            this.ScaleWidget.Draw(this.MainView);
-        }
-        this.MainView.DrawShapes();
-        for(i in this.WidgetList){
-            this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
-        }
-    }
+
+    // This is not used anymore
+    this.MainView.DrawShapes();
+    this.AnnotationLayer.Draw();
 
     // Draw a rectangle in the overview representing the camera's view.
     if (this.OverView) {
@@ -1215,7 +1110,9 @@ Viewer.prototype.Draw = function() {
 // Makes the viewer clean to setup a new slide...
 Viewer.prototype.Reset = function() {
     this.SetCache(null);
-    this.WidgetList = [];
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.Reset();
+    }
     this.MainView.ShapeList = [];
 }
 
@@ -1468,19 +1365,14 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // See if any widget became active.
-    if (this.AnnotationVisibility) {
-        for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
-            this.MouseX = this.Touches[touchIdx][0];
-            this.MouseY = this.Touches[touchIdx][1];
-            this.ComputeMouseWorld(event);
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if ( ! this.WidgetList[i].GetActive() &&
-                     this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return true;
-                }
-            }
-        }
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility()) {
+        // TODO:
+        // I do not like storing these ivars in this object.
+        // I think the widgets rely on them being in the layer.
+        this.MouseX = event.Touches[touchIdx][0];
+        this.MouseY = event.Touches[touchIdx][1];
+        this.MouseWorld = this.ComputeMouseWorld(event);
+        return this.AnnotationLayer.HandleTouchStart(event,viewer);
     }
 
     return false;
@@ -1529,9 +1421,9 @@ Viewer.prototype.HandleTouchPan = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != undefined) {
-        this.ActiveWidget.HandleTouchPan(event);
-        return;
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchPan(event, this)) {
+        return false;
     }
 
     // I see an odd intermittent camera matrix problem
@@ -1682,10 +1574,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     scale = s1/ s0;
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        event.PinchScale = scale;
-        this.ActiveWidget.HandleTouchPinch(event);
-        return;
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchPinch(event, this)) {
+        return false;
     }
 
     // scale is around the mid point .....
@@ -1716,6 +1607,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 Viewer.prototype.HandleTouchEnd = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
+    // Code from a conflict
     var t = new Date().getTime();
     this.LastTime = this.Time;
     this.Time = t;
@@ -1748,6 +1640,18 @@ Viewer.prototype.HandleTouchEnd = function(event) {
         //this.UpdateZoomGui();
         this.HandleMomentum();
     }
+    // end conflict
+
+
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && 
+        this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleTouchEnd(event, this)) {
+        return false;
+    }
+
+    //this.UpdateZoomGui();
+    this.HandleMomentum(event);
 }
 
 Viewer.prototype.HandleMomentum = function() {
@@ -1878,8 +1782,9 @@ Viewer.prototype.HandleMouseDown = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        return this.ActiveWidget.HandleMouseDown(event);
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseDown(event, this)) {
+        return false;
     }
 
     // Choose what interaction will be performed.
@@ -1902,8 +1807,11 @@ Viewer.prototype.HandleMouseDown = function(event) {
 
 Viewer.prototype.HandleDoubleClick = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (this.ActiveWidget != null) {
-        return this.ActiveWidget.HandleDoubleClick(event);
+
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleDoubleClick(event, this)) {
+        return false;
     }
 
     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
@@ -1933,9 +1841,9 @@ Viewer.prototype.HandleMouseUp = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleMouseUp(event);
-        return false; // trying to keep the browser from selecting images
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseUp(event, this)) {
+        return false;
     }
 
     if (this.InteractionState != INTERACTION_NONE) {
@@ -1955,13 +1863,23 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
     // This could be obsolete because we never pass this event to another object.
     event.worldX = this.MouseWorld[0];
     event.worldY= this.MouseWorld[1];
+    // NOTE: DANGER!  user could change this pointer.
+    return this.MouseWorld;
 }
 
 Viewer.prototype.HandleMouseMove = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
-    event.preventDefault(); // Keep browser from selecting images.
-    if ( ! this.RecordMouseMove(event)) { return; }
+    // The event position is relative to the target which can be a tab on
+    // top of the canvas.  Just skip these events.
+    if ($(event.target).width() != $(event.currentTarget).width()) {
+        return true;
+    }
+
+
+    // TODO: Get rid of this. Should be done with image properties.
+    //event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return true; }
     this.ComputeMouseWorld(event);
 
     // I think we need to deal with the move here because the mouse can
@@ -1977,24 +1895,14 @@ Viewer.prototype.HandleMouseMove = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleMouseMove(event);
-        return false; // trying to keep the browser from selecting images
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseMove(event, this)) {
+        return false;
     }
 
-    //if (event.which == 0) { // Firefox does not set which for motion events.
-    if ( ! this.FireFoxWhich) {
-        // See if any widget became active.
-        if (this.AnnotationVisibility) {
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if (this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return false; // trying to keep the browser from selecting images
-                }
-            }
-        }
-
-        return false; // trying to keep the browser from selecting images
+    if (this.InteractionState == INTERACTION_NONE) {
+        // Allow the ResizePanel drag to process the events.
+        return true;
     }
 
     var x = event.offsetX;
@@ -2023,6 +1931,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
         this.ZoomTarget = this.MainView.Camera.GetHeight();
         this.UpdateCamera();
     } else if (this.InteractionState == INTERACTION_DRAG) {
+
         // Translate
         // Convert to view [-0.5,0.5] coordinate system.
         // Note: the origin gets subtracted out in delta above.
@@ -2041,16 +1950,16 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // The only interaction that does not go through animate camera.
     this.TriggerInteraction();
     this.EventuallyRender(true);
-    return false; // trying to keep the browser from selecting images
+    return false; 
 }
 
 Viewer.prototype.HandleMouseWheel = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
     // Forward the events to the widget if one is active.
-    if (this.ActiveWidget != null) {
-        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-            return false;
-        }
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleMouseWheel(event, this)) {
+        return false;
     }
 
     if ( ! event.offsetX) {
@@ -2100,7 +2009,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
         if ( ! SAVING_IMAGE) {
-            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE = new SA.Dialog();
             SAVING_IMAGE.Title.text('Saving');
             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
             SAVING_IMAGE.WaitingImage = $('<img>')
@@ -2160,10 +2069,10 @@ Viewer.prototype.HandleKeyDown = function(event) {
     }
 
     //----------------------
-    if (this.ActiveWidget != null) {
-        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-            return false;
-        }
+    // Forward the events to the widget if one is active.
+    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+        ! this.AnnotationLayer.HandleKeyDown(event, this)) {
+        return false;
     }
 
     if (String.fromCharCode(event.keyCode) == 'R') {
@@ -2243,7 +2152,7 @@ Viewer.prototype.GetPixelsPerUnit = function() {
     return this.MainView.GetPixelsPerUnit();
 }
 
-// Covert a point from world coordiante system to viewer coordinate system (units pixels).
+// Convert a point from world coordiante system to viewer coordinate system (units pixels).
 Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
     var cam = this.MainView.Camera;
     return cam.ConvertPointWorldToViewer(x, y);
@@ -2293,137 +2202,137 @@ function colorNameToHex(color)
 
 
 
- //==============================================================================
- // OverView slide widget stuff.
+//==============================================================================
+// OverView slide widget stuff.
 
- Viewer.prototype.OverViewCheckActive = function(event) {
-     if ( ! this.OverView) {
-         return false;
-     }
-     var x = event.offsetX;
-     var y = event.offsetY;
-     // Half height and width
-     var hw = this.OverViewport[2]/2;
-     var hh = this.OverViewport[3]/2;
-     // Center of the overview.
-     var cx = this.OverViewport[0]+hw;
-     var cy = this.OverViewport[1]+hh;
+Viewer.prototype.OverViewCheckActive = function(event) {
+    if ( ! this.OverView) {
+        return false;
+    }
+    var x = event.offsetX;
+    var y = event.offsetY;
+    // Half height and width
+    var hw = this.OverViewport[2]/2;
+    var hh = this.OverViewport[3]/2;
+    // Center of the overview.
+    var cx = this.OverViewport[0]+hw;
+    var cy = this.OverViewport[1]+hh;
 
-     x = x-cx;
-     y = y-cy;
-     // Rotate into overview slide coordinates.
-     var roll = this.MainView.Camera.Roll;
-     var c = Math.cos(roll);
-     var s = Math.sin(roll);
-     var nx = Math.abs(c*x+s*y);
-     var ny = Math.abs(c*y-s*x);
-     if ((Math.abs(hw-nx) < 5 && ny < hh) ||
-         (Math.abs(hh-ny) < 5 && nx < hw)) {
-         this.OverViewActive = true;
-         this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
-     } else {
-         this.OverViewActive = false;
-         this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
-     }
-     //return this.OverViewActive;
- }
-
-
+    x = x-cx;
+    y = y-cy;
+    // Rotate into overview slide coordinates.
+    var roll = this.MainView.Camera.Roll;
+    var c = Math.cos(roll);
+    var s = Math.sin(roll);
+    var nx = Math.abs(c*x+s*y);
+    var ny = Math.abs(c*y-s*x);
+    if ((Math.abs(hw-nx) < 5 && ny < hh) ||
+        (Math.abs(hh-ny) < 5 && nx < hw)) {
+        this.OverViewActive = true;
+        this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
+    } else {
+        this.OverViewActive = false;
+        this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
+    }
+    //return this.OverViewActive;
+}
 
 
 
- // Interaction events that change the main camera.
 
 
- // Resize of overview window will be drag with left mouse.
- // Reposition camera with left click (no drag).
- // Removing drag camera in overview.
-
- // TODO: Make the overview slide a widget.
- Viewer.prototype.HandleOverViewMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) { return;}
-
-     this.InteractionState = INTERACTION_OVERVIEW;
-
-     // Delay actions until we see if it is a drag or click.
-     this.OverviewEventX = event.pageX;
-     this.OverviewEventY = event.pageY;
-
-     return false;
- }
+// Interaction events that change the main camera.
 
 
- Viewer.prototype.HandleOverViewMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) { return;}
-     if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) 
-     {
-         this.InteractionState = INTERACTION_NONE;
-         return;
-     }
+// Resize of overview window will be drag with left mouse.
+// Reposition camera with left click (no drag).
+// Removing drag camera in overview.
 
-     // This target for animation is not implemented cleanly.
-     // This fixes a bug: OverView translated rotates camamera back to zero.
-     this.RollTarget = this.MainView.Camera.Roll;
+// TODO: Make the overview slide a widget.
+Viewer.prototype.HandleOverViewMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) { return;}
 
-     if (event.which == 1) {
-         var x = event.offsetX;
-         var y = event.offsetY;
-         if (x == undefined) {x = event.layerX;}
-         if (y == undefined) {y = event.layerY;}
-         // Transform to view's coordinate system.
-         this.OverViewPlaceCamera(x, y);
-     }
+    this.InteractionState = INTERACTION_OVERVIEW;
 
-     this.InteractionState = INTERACTION_NONE;
+    // Delay actions until we see if it is a drag or click.
+    this.OverviewEventX = event.pageX;
+    this.OverviewEventY = event.pageY;
 
-     return false;
- }
+    return false;
+}
 
- Viewer.prototype.HandleOverViewMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW) {
-         // Do not start dragging until the mouse has moved some distance.
-         if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
-             Math.abs(event.pageY - this.OverviewEventY) > 5) {
-             // Start dragging the overview window.
-             this.InteractionState = INTERACTION_OVERVIEW_DRAG;
-             var w = this.GetViewport()[2];
-             var p = Math.max(w-event.pageX,event.pageY);
-             this.OverViewScaleLast = p;
-         }
-         return false;
-     }
+Viewer.prototype.HandleOverViewMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) { return;}
+    if (this.InteractionState == INTERACTION_OVERVIEW_DRAG)
+    {
+        this.InteractionState = INTERACTION_NONE;
+        return;
+    }
 
-     // This consumes events even when I return true. Why?
-     if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
-         // Drag originated outside overview.
-         // Could be panning.
-         return true;
-     }
+    // This target for animation is not implemented cleanly.
+    // This fixes a bug: OverView translated rotates camamera back to zero.
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     // Drag to change overview size
-     var w = this.GetViewport()[2];
-     var p = Math.max(w-event.pageX,event.pageY);
-     var d = p/this.OverViewScaleLast;
-     this.OverViewScale *= d*d;
-     this.OverViewScaleLast = p;
-     if (p < 60) {
-         this.RotateIcon.hide();
-     } else {
-         this.RotateIcon.show();
-     }
+    if (event.which == 1) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        if (x == undefined) {x = event.layerX;}
+        if (y == undefined) {y = event.layerY;}
+        // Transform to view's coordinate system.
+        this.OverViewPlaceCamera(x, y);
+    }
 
-     // TODO: Get rid of this hack.
-     $(window).trigger('resize');
+    this.InteractionState = INTERACTION_NONE;
 
-     return false;
+    return false;
+}
+
+Viewer.prototype.HandleOverViewMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
+
+    if (this.InteractionState == INTERACTION_OVERVIEW) {
+        // Do not start dragging until the mouse has moved some distance.
+        if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
+            Math.abs(event.pageY - this.OverviewEventY) > 5) {
+            // Start dragging the overview window.
+            this.InteractionState = INTERACTION_OVERVIEW_DRAG;
+            var w = this.GetViewport()[2];
+            var p = Math.max(w-event.pageX,event.pageY);
+            this.OverViewScaleLast = p;
+        }
+        return false;
+    }
+
+    // This consumes events even when I return true. Why?
+    if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
+        // Drag originated outside overview.
+        // Could be panning.
+        return true;
+    }
+
+    // Drag to change overview size
+    var w = this.GetViewport()[2];
+    var p = Math.max(w-event.pageX,event.pageY);
+    var d = p/this.OverViewScaleLast;
+    this.OverViewScale *= d*d;
+    this.OverViewScaleLast = p;
+    if (p < 60) {
+        this.RotateIcon.hide();
+    } else {
+        this.RotateIcon.show();
+    }
+
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+
+    return false;
 }
 
 Viewer.prototype.HandleOverViewMouseWheel = function(event) {

@@ -308,7 +308,11 @@
     //    // The superclass does not implement this method.
     //}
 
-    Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
+    // Returns undefined if the point is not on the segment.
+    // Returns the interpolation index if it is touching the edge.
+    // NOTE: Confusion between undefined and 0. I could return -1 ...???...
+    // However -1 could mean extrapolation ....
+    Shape.prototype.IntersectPointLine = function(pt, end0, end1, dist) {
         // make end0 the origin.
         var x = pt[0] - end0[0];
         var y = pt[1] - end0[1];
@@ -317,19 +321,20 @@
 
         // Rotate so the edge lies on the x axis.
         var length = Math.sqrt(vx*vx + vy*vy); // Avoid atan2 ... with clever use of complex numbers.
+        // Get the edge normal direction.
         vx = vx/length;
         vy = -vy/length;
+        // Rotate the coordinate system to put the edge on the x axis.
         var newX = (x*vx - y*vy);
         var newY = (x*vy + y*vx);
 
-        if (newX >= 0.0 && newX <= length) {
-            if (Math.abs(newY) < (thickness *0.5)) {
-                return true;
-            }
-            return false;
+        if (Math.abs(newY) > dist  ||
+            newX < 0 || newX > length) {
+            return undefined;
         }
+        return newX / length;
     }
 
-    window.Shape = Shape;
+    SA.Shape = Shape;
 
 })();

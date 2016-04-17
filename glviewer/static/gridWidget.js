@@ -2,21 +2,21 @@
 (function () {
     "use strict";
 
-    var GRID_WIDGET_NEW = 0;
-    var GRID_WIDGET_WAITING = 3; // The normal (resting) state.
-    var GRID_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-    var GRID_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    var NEW = 0;
+    var WAITING = 3; // The normal (resting) state.
+    var ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 5; // Properties dialog is up
 
-    var GRID_WIDGET_DRAG = 6;
-    var GRID_WIDGET_DRAG_LEFT = 7;
-    var GRID_WIDGET_DRAG_RIGHT = 8;
-    var GRID_WIDGET_DRAG_TOP = 9;
-    var GRID_WIDGET_DRAG_BOTTOM = 10;
-    var GRID_WIDGET_ROTATE = 11;
+    var DRAG = 6;
+    var DRAG_LEFT = 7;
+    var DRAG_RIGHT = 8;
+    var DRAG_TOP = 9;
+    var DRAG_BOTTOM = 10;
+    var ROTATE = 11;
     // Worry about corners later.
 
     function Grid() {
-        Shape.call(this);
+        SA.Shape.call(this);
         // Dimension of grid bin
         this.BinWidth = 20.0;
         this.BinHeight = 20.0;
@@ -26,9 +26,10 @@
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
+        this.ActiveIndex = undefined;
     };
 
-    Grid.prototype = new Shape();
+    Grid.prototype = new SA.Shape();
 
     Grid.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -39,11 +40,6 @@
         // Add cell arrays.
         this.PointBuffer = [];
 
-        if (this.Dimensions[0] < 1 || this.Dimensions[1] < 1 ||
-            this.BinWidth <= 0.0 || this.BinHeight <= 0.0) {
-            return;
-        }
-
         // Matrix is computed by the draw method in Shape superclass.
         // TODO: Used to detect first initialization.
         // Get this out of this method.
@@ -51,12 +47,17 @@
         mat4.identity(this.Matrix);
         //mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
+        if (this.Dimensions[0] < 1 || this.Dimensions[1] < 1 ||
+            this.BinWidth <= 0.0 || this.BinHeight <= 0.0) {
+            return;
+        }
+
         var totalWidth = this.BinWidth * this.Dimensions[0];
         var totalHeight = this.BinHeight * this.Dimensions[1];
         var halfWidth = totalWidth / 2;
         var halfHeight = totalHeight / 2;
 
-        // Draw all of the x lines.
+        // Draw all of the x polylines.
         var x = this.Dimensions[1]%2 ? 0 : totalWidth;
         var y = 0;
         this.PointBuffer.push(x-halfWidth);
@@ -99,9 +100,9 @@
     };
 
 
-    function GridWidget (viewer, newFlag) {
+    function GridWidget (layer, newFlag) {
         var self = this;
-        this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
         this.Dialog.Title.text('Grid Annotation Editor');
 
@@ -195,38 +196,43 @@
             this.Tolerance = 0.1;
         }
 
-        if (viewer === null) {
+        if (layer === null) {
             return;
         }
 
         // Lets save the zoom level (sort of).
         // Load will overwrite this for existing annotations.
         // This will allow us to expand annotations into notes.
-        this.CreationCamera = viewer.GetCamera().Serialize();
+        this.CreationCamera = layer.GetCamera().Serialize();
 
-        this.Viewer = viewer;
-        this.Popup = new WidgetPopup(this);
-        var cam = viewer.MainView.Camera;
-        var viewport = viewer.MainView.Viewport;
-        this.Shape = new Grid();
-        this.Shape.Origin = [0,0];
-        this.Shape.OutlineColor = [0.0,0.0,0.0];
-        this.Shape.SetOutlineColor('#0A0F7A');
-        this.Shape.Length = 50.0*cam.Height/viewport[3];
-        // Get the default bin size from the viewer scale bar.
-        if (viewer.ScaleWidget) {
-            this.Shape.BinWidth = viewer.ScaleWidget.LengthWorld;
+        this.Layer = layer;
+        this.Popup = new SA.WidgetPopup(this);
+        var cam = layer.AnnotationView.Camera;
+        var viewport = layer.AnnotationView.Viewport;
+        this.Grid = new Grid();
+        this.Grid.Origin = [0,0];
+        this.Grid.OutlineColor = [0.0,0.0,0.0];
+        this.Grid.SetOutlineColor('#0A0F7A');
+        // Get the default bin size from the layer scale bar.
+        if (layer.ScaleWidget) {
+            this.Grid.BinWidth = layer.ScaleWidget.LengthWorld;
         } else {
-            this.Shape.BinWidth = 30*cam.Height/viewport[3];
+            this.Grid.BinWidth = 30*cam.Height/viewport[3];
         }
-        this.Shape.BinHeight = this.Shape.BinWidth;
-        this.Shape.LineWidth = 2.0*cam.Height/viewport[3];
-        this.Shape.FixedSize = false;
+        this.Grid.BinHeight = this.Grid.BinWidth;
+        this.Grid.LineWidth = 2.0*cam.Height/viewport[3];
+        this.Grid.FixedSize = false;
 
-        this.Text = new Text();
+        var width = 0.8 * viewport[2] / layer.GetPixelsPerUnit();
+        this.Grid.Dimensions[0] = Math.floor(width / this.Grid.BinWidth);
+        var height = 0.8 * viewport[3] / layer.GetPixelsPerUnit();
+        this.Grid.Dimensions[1] = Math.floor(height / this.Grid.BinHeight);
+        this.Grid.UpdateBuffers();
+
+        this.Text = new SA.Text();
         // Shallow copy is dangerous
-        this.Text.Position = this.Shape.Origin;
-        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
+        this.Text.Position = this.Grid.Origin;
+        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
         this.Text.UpdateBuffers();
@@ -236,26 +242,17 @@
             var defaults = JSON.parse(localStorage.GridWidgetDefaults);
             if (defaults.Color) {
                 this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
-                this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
+                this.Grid.SetOutlineColor(this.Dialog.ColorInput.val());
             }
             if (defaults.LineWidth != undefined) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
-                this.Shape.LineWidth == defaults.LineWidth;
+                this.Grid.LineWidth == defaults.LineWidth;
             }
         }
 
-        this.Viewer.AddWidget(this);
+        this.Layer.AddWidget(this);
 
-        // Note: If the user clicks before the mouse is in the
-        // canvas, this will behave odd.
-
-        if (newFlag) {
-            this.State = GRID_WIDGET_NEW;
-            this.Viewer.ActivateWidget(this);
-            return;
-        }
-
-        this.State = GRID_WIDGET_WAITING;
+        this.State = WAITING;
 
     }
 
@@ -264,20 +261,20 @@
     // gx, gy is the point in grid pixel coordinates offset from the corner.
     GridWidget.prototype.ComputeCorner = function(xSign, ySign, gx, gy) {
         // Pick the upper left most corner to display the grid size text.
-        var xRadius = this.Shape.BinWidth * this.Shape.Dimensions[0] / 2;
-        var yRadius = this.Shape.BinHeight * this.Shape.Dimensions[1] / 2;
+        var xRadius = this.Grid.BinWidth * this.Grid.Dimensions[0] / 2;
+        var yRadius = this.Grid.BinHeight * this.Grid.Dimensions[1] / 2;
         xRadius += gx;
         yRadius += gy;
-        var x = this.Shape.Origin[0];
-        var y = this.Shape.Origin[1];
+        var x = this.Grid.Origin[0];
+        var y = this.Grid.Origin[1];
         // Choose the corner from 0 to 90 degrees in the window.
-        var roll = (this.Viewer.GetCamera().GetRotation()-
-                    this.Shape.Orientation) / 90; // range 0-4
+        var roll = (this.Layer.GetCamera().GetRotation()-
+                    this.Grid.Orientation) / 90; // range 0-4
         roll = Math.round(roll);
         // Modulo that works with negative numbers;
         roll = ((roll % 4) + 4) % 4;
-        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var c = Math.cos(3.14156* this.Grid.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Grid.Orientation / 180.0);
         var dx , dy;
         if (roll == 0) {
             dx =  xSign*xRadius;
@@ -299,14 +296,14 @@
     }
 
     GridWidget.prototype.Draw = function(view) {
-        this.Shape.Draw(view);
+        this.Grid.Draw(view);
 
         // Corner in grid pixel coordinates.
-        var x = - (this.Shape.BinWidth * this.Shape.Dimensions[0] / 2);
-        var y = - (this.Shape.BinHeight * this.Shape.Dimensions[1] / 2);
+        var x = - (this.Grid.BinWidth * this.Grid.Dimensions[0] / 2);
+        var y = - (this.Grid.BinHeight * this.Grid.Dimensions[1] / 2);
         this.Text.Anchor = [0,20];
-        this.Text.Orientation = (this.Shape.Orientation -
-                                 this.Viewer.GetCamera().GetRotation());
+        this.Text.Orientation = (this.Grid.Orientation -
+                                 this.Layer.GetCamera().GetRotation());
         // Modulo that works with negative numbers;
         this.Text.Orientation = ((this.Text.Orientation % 360) + 360) % 360;
         // Do not draw text upside down.
@@ -317,74 +314,73 @@
             //pixels , this is screen pixels).
         }
         // Convert to world Coordinates.
-        var radians = this.Shape.Orientation * Math.PI / 180;
+        var radians = this.Grid.Orientation * Math.PI / 180;
         var c = Math.cos(radians);
         var s = Math.sin(radians);
         var wx = c*x + s*y;
         var wy = c*y - s*x;
-        this.Text.Position = [this.Shape.Origin[0]+wx,this.Shape.Origin[1]+wy];
+        this.Text.Position = [this.Grid.Origin[0]+wx,this.Grid.Origin[1]+wy];
 
-                                 
         this.Text.Draw(view);
     };
 
-    // This needs to be put in the Viewer.
-    GridWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.Viewer.RemoveWidget(this);
-        }
-    };
+    // This needs to be put in the layer.
+    //GridWidget.prototype.RemoveFromViewer = function() {
+    //    if (this.Viewer) {
+    //        this.Viewer.RemoveWidget(this);
+    //    }
+    //};
 
     GridWidget.prototype.PasteCallback = function(data, mouseWorldPt, camera) {
         this.Load(data);
         // Keep the pasted grid from rotating when the camera changes.
-        var dr = this.Viewer.GetCamera().GetRotation() -
+        var dr = this.Layer.GetCamera().GetRotation() -
         camera.GetRotation();
-        this.Shape.Orientation += dr;
+        this.Grid.Orientation += dr;
         // Place the widget over the mouse.
         // This would be better as an argument.
-        this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+        this.Grid.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     };
 
     GridWidget.prototype.Serialize = function() {
-        if(this.Shape === undefined){ return null; }
+        if(this.Grid === undefined){ return null; }
         var obj = {};
         obj.type = "grid";
-        obj.origin = this.Shape.Origin;
-        obj.outlinecolor = this.Shape.OutlineColor;
-        obj.bin_width = this.Shape.BinWidth;
-        obj.bin_height = this.Shape.BinHeight;
-        obj.dimensions = this.Shape.Dimensions;
-        obj.orientation = this.Shape.Orientation;
-        obj.linewidth = this.Shape.LineWidth;
+        obj.origin = this.Grid.Origin;
+        obj.outlinecolor = this.Grid.OutlineColor;
+        obj.bin_width = this.Grid.BinWidth;
+        obj.bin_height = this.Grid.BinHeight;
+        obj.dimensions = this.Grid.Dimensions;
+        obj.orientation = this.Grid.Orientation;
+        obj.linewidth = this.Grid.LineWidth;
         obj.creation_camera = this.CreationCamera;
         return obj;
     };
 
     // Load a widget from a json object (origin MongoDB).
     GridWidget.prototype.Load = function(obj) {
-        this.Shape.Origin[0] = parseFloat(obj.origin[0]);
-        this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-        this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-        this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-        this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-        if (obj.width)  { this.Shape.BinWidth = parseFloat(obj.width);}
-        if (obj.height) {this.Shape.BinHeight = parseFloat(obj.height);}
-        if (obj.bin_width)  { this.Shape.BinWidth = parseFloat(obj.bin_width);}
-        if (obj.bin_height) {this.Shape.BinHeight = parseFloat(obj.bin_height);}
-        this.Shape.Dimensions[0] = parseInt(obj.dimensions[0]);
-        this.Shape.Dimensions[1] = parseInt(obj.dimensions[1]);
-        this.Shape.Orientation = parseFloat(obj.orientation);
-        this.Shape.LineWidth = parseFloat(obj.linewidth);
-        this.Shape.FixedSize = false;
-        this.Shape.UpdateBuffers();
+        this.Grid.Origin[0] = parseFloat(obj.origin[0]);
+        this.Grid.Origin[1] = parseFloat(obj.origin[1]);
+        this.Grid.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+        this.Grid.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+        this.Grid.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        if (obj.width)  { this.Grid.BinWidth = parseFloat(obj.width);}
+        if (obj.height) {this.Grid.BinHeight = parseFloat(obj.height);}
+        if (obj.bin_width)  { this.Grid.BinWidth = parseFloat(obj.bin_width);}
+        if (obj.bin_height) {this.Grid.BinHeight = parseFloat(obj.bin_height);}
+        this.Grid.Dimensions[0] = parseInt(obj.dimensions[0]);
+        this.Grid.Dimensions[1] = parseInt(obj.dimensions[1]);
+        this.Grid.Orientation = parseFloat(obj.orientation);
+        this.Grid.LineWidth = parseFloat(obj.linewidth);
+        this.Grid.FixedSize = false;
+        this.Grid.UpdateBuffers();
 
-        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
         // Shallow copy is dangerous
-        this.Text.Position = this.Shape.Origin;
+        this.Text.Position = this.Grid.Origin;
         this.Text.UpdateBuffers();
 
         // How zoomed in was the view when the annotation was created.
@@ -395,7 +391,7 @@
 
     GridWidget.prototype.HandleKeyPress = function(keyCode, shift) {
         // The dialog consumes all key events.
-        if (this.State == GRID_WIDGET_PROPERTIES_DIALOG) {
+        if (this.State == PROPERTIES_DIALOG) {
             return false;
         }
 
@@ -408,7 +404,7 @@
             // another stack section.
             var clip = {Type:"GridWidget", 
                         Data: this.Serialize(), 
-                        Camera: this.Viewer.GetCamera().Serialize()};
+                        Camera: this.Layer.GetCamera().Serialize()};
             localStorage.ClipBoard = JSON.stringify(clip);
             return false;
         }
@@ -424,7 +420,8 @@
         if (event.which != 1) {
             return true;
         }
-        this.DragLast = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        var cam = this.Layer.GetCamera();
+        this.DragLast = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         return false;
     };
 
@@ -439,59 +436,60 @@
     // Orientation is a pain,  we need a world to shape transformation.
     GridWidget.prototype.HandleMouseMove = function(event) {
         if (event.which == 1) {
+            var cam = this.Layer.GetCamera();
             var world =
-    this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+                cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
             var dx, dy;
-            if (this.State == GRID_WIDGET_DRAG) {
+            if (this.State == DRAG) {
                 dx = world[0] - this.DragLast[0];
                 dy = world[1] - this.DragLast[1];
                 this.DragLast = world;
-                this.Shape.Origin[0] += dx;
-                this.Shape.Origin[1] += dy;
+                this.Grid.Origin[0] += dx;
+                this.Grid.Origin[1] += dy;
             } else {
-                // convert mouse from world to Shape coordinate system.
-                dx = world[0] - this.Shape.Origin[0];
-                dy = world[1] - this.Shape.Origin[1];
-                var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-                var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+                // convert mouse from world to Grid coordinate system.
+                dx = world[0] - this.Grid.Origin[0];
+                dy = world[1] - this.Grid.Origin[1];
+                var c = Math.cos(3.14156* this.Grid.Orientation / 180.0);
+                var s = Math.sin(3.14156* this.Grid.Orientation / 180.0);
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
                 // convert from shape to integer grid indexes.
-                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.BinWidth);
-                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.BinHeight);
+                x = (0.5*this.Grid.Dimensions[0]) + (x / this.Grid.BinWidth);
+                y = (0.5*this.Grid.Dimensions[1]) + (y / this.Grid.BinHeight);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
                 // Change grid dimemsions
                 dx = dy = 0;
                 var changed = false;
-                if (this.State == GRID_WIDGET_DRAG_RIGHT) {
-                    dx = ix - this.Shape.Dimensions[0];
+                if (this.State == DRAG_RIGHT) {
+                    dx = ix - this.Grid.Dimensions[0];
                     if (dx) {
-                        this.Shape.Dimensions[0] = ix;
+                        this.Grid.Dimensions[0] = ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * dx * this.Shape.BinWidth;
+                        dx = 0.5 * dx * this.Grid.BinWidth;
                         changed = true;
                     }
-                } else if (this.State == GRID_WIDGET_DRAG_LEFT) {
+                } else if (this.State == DRAG_LEFT) {
                     if (ix) {
-                        this.Shape.Dimensions[0] -= ix;
+                        this.Grid.Dimensions[0] -= ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * ix * this.Shape.BinWidth;
+                        dx = 0.5 * ix * this.Grid.BinWidth;
                         changed = true;
                     }
-                } else if (this.State == GRID_WIDGET_DRAG_BOTTOM) {
-                    dy = iy - this.Shape.Dimensions[1];
+                } else if (this.State == DRAG_BOTTOM) {
+                    dy = iy - this.Grid.Dimensions[1];
                     if (dy) {
-                        this.Shape.Dimensions[1] = iy;
+                        this.Grid.Dimensions[1] = iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * dy * this.Shape.BinHeight;
+                        dy = 0.5 * dy * this.Grid.BinHeight;
                         changed = true;
                     }
-                } else if (this.State == GRID_WIDGET_DRAG_TOP) {
+                } else if (this.State == DRAG_TOP) {
                     if (iy) {
-                        this.Shape.Dimensions[1] -= iy;
+                        this.Grid.Dimensions[1] -= iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * iy * this.Shape.BinHeight;
+                        dy = 0.5 * iy * this.Grid.BinHeight;
                         changed = true;
                     }
                 }
@@ -499,16 +497,19 @@
                     // Rotate the translation and apply to the center.
                     x = c*dx + s*dy;
                     y = c*dy - s*dx;
-                    this.Shape.Origin[0] += x;
-                    this.Shape.Origin[1] += y;
-                    this.Shape.UpdateBuffers();
+                    this.Grid.Origin[0] += x;
+                    this.Grid.Origin[1] += y;
+                    this.Grid.UpdateBuffers();
                 }
             }
-            eventuallyRender();
+            this.Layer.EventuallyDraw();
             return
         }
 
-        this.CheckActive(event);
+        if (event.which == 0) {
+            // Update the active state if theuser is not interacting.
+            this.SetActive(this.CheckActive(event));
+        }
 
         return true;
     };
@@ -519,7 +520,7 @@
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (this.State == GRID_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
                 var direction = 1;
@@ -528,18 +529,18 @@
                     direction = -1;
                 }
                 if(event.shiftKey) {
-                    this.Shape.Length = this.Shape.Length * ratio;
+                    this.Grid.Length = this.Grid.Length * ratio;
                 }
                 if(event.ctrlKey) {
-                    this.Shape.BinWidth = this.Shape.BinWidth * ratio;
+                    this.Grid.BinWidth = this.Grid.BinWidth * ratio;
                 }
                 if(!event.shiftKey && !event.ctrlKey) {
-                    this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
+                    this.Grid.Orientation = this.Grid.Orientation + 3 * direction;
                  }
 
-                this.Shape.UpdateBuffers();
+                this.Grid.UpdateBuffers();
                 this.PlacePopup();
-                eventuallyRender();
+                this.Layer.EventuallyDraw();
             }
         }
         */
@@ -556,17 +557,17 @@
           var dx = w1[0] - w0[0];
           var dy = w1[1] - w0[1];
 
-          this.Shape.Origin[0] += dx;
-          this.Shape.Origin[1] += dy;
-          eventuallyRender();
+          this.Grid.Origin[0] += dx;
+          this.Grid.Origin[1] += dy;
+          this.Layer.EventuallyDraw();
         */
         return true;
     };
 
 
     GridWidget.prototype.HandleTouchPinch = function(event) {
-        //this.Shape.UpdateBuffers();
-        //eventuallyRender();
+        //this.Grid.UpdateBuffers();
+        //this.Layer.EventuallyDraw();
         return true;
     };
 
@@ -577,7 +578,7 @@
 
     GridWidget.prototype.CheckActive = function(event) {
         var x,y;
-        if (this.Shape.FixedSize) {
+        if (this.Grid.FixedSize) {
             x = event.offsetX;
             y = event.offsetY;
             pixelSize = 1;
@@ -585,60 +586,43 @@
             x = event.worldX;
             y = event.worldY;
         }
-        x = x - this.Shape.Origin[0];
-        y = y - this.Shape.Origin[1];
+        x = x - this.Grid.Origin[0];
+        y = y - this.Grid.Origin[1];
         // Rotate to grid.
-        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var c = Math.cos(3.14156* this.Grid.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Grid.Orientation / 180.0);
         var rx = c*x - s*y;
         var ry = c*y + s*x;
 
         // Convert to grid coordinates (0 -> dims)
-        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.BinWidth);
-        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.BinHeight);
+        x = (0.5*this.Grid.Dimensions[0]) + (rx / this.Grid.BinWidth);
+        y = (0.5*this.Grid.Dimensions[1]) + (ry / this.Grid.BinHeight);
         var ix = Math.round(x);
         var iy = Math.round(y);
-        if (ix < 0 || ix > this.Shape.Dimensions[0] ||
-            iy < 0 || iy > this.Shape.Dimensions[1]) {
+        if (ix < 0 || ix > this.Grid.Dimensions[0] ||
+            iy < 0 || iy > this.Grid.Dimensions[1]) {
             this.SetActive(false);
             return false;
         }
 
         // x,y get the residual in pixels.
-        x = (x - ix) * this.Shape.BinWidth;
-        y = (y - iy) * this.Shape.BinHeight;
+        x = (x - ix) * this.Grid.BinWidth;
+        y = (y - iy) * this.Grid.BinHeight;
 
         // Compute the screen pixel size for tollerance.
-        var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
+        var tolerance = 5.0 / this.Layer.GetPixelsPerUnit();
 
         if (Math.abs(x) < tolerance || Math.abs(y) < tolerance) {
-            this.SetActive(true);
-            if (ix == 0) {
-                this.State = GRID_WIDGET_DRAG_LEFT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
-            } else if (ix == this.Shape.Dimensions[0]) {
-                this.State = GRID_WIDGET_DRAG_RIGHT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
-            } else if (iy == 0) {
-                this.State = GRID_WIDGET_DRAG_TOP;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
-            } else if (iy == this.Shape.Dimensions[1]) {
-                this.State = GRID_WIDGET_DRAG_BOTTOM;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
-            } else {
-                this.State = GRID_WIDGET_DRAG;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'move'});
-            }
+            this.ActiveIndex =[ix,iy];
             return true;
         }
 
-        this.SetActive(false);
         return false;
     };
 
     // Multiple active states. Active state is a bit confusing.
     GridWidget.prototype.GetActive = function() {
-        if (this.State == GRID_WIDGET_WAITING) {
+        if (this.State == WAITING) {
             return false;
         }
         return true;
@@ -646,35 +630,52 @@
 
 
     GridWidget.prototype.Deactivate = function() {
-        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
+        this.Layer.AnnotationView.CanvasDiv.css({'cursor':'default'});
         this.Popup.StartHideTimer();
-        this.State = GRID_WIDGET_WAITING;
-        this.Shape.Active = false;
-        this.Viewer.DeactivateWidget(this);
+        this.State = WAITING;
+        this.Grid.Active = false;
+        this.Layer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     };
 
     // Setting to active always puts state into "active".
     // It can move to other states and stay active.
     GridWidget.prototype.SetActive = function(flag) {
-        if (flag == this.GetActive()) {
-            return;
-        }
 
         if (flag) {
-            this.State = GRID_WIDGET_ACTIVE;
-            this.Shape.Active = true;
-            this.Viewer.ActivateWidget(this);
-            eventuallyRender();
+            this.State = ACTIVE;
+            this.Grid.Active = true;
+
+            if ( ! this.ActiveIndex) {
+                console.log("No active index");
+                return;
+            }
+            if (this.ActiveIndex[0] == 0) {
+                this.State = DRAG_LEFT;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
+            } else if (this.ActiveIndex[0] == this.Grid.Dimensions[0]) {
+                this.State = DRAG_RIGHT;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
+            } else if (this.ActiveIndex[1] == 0) {
+                this.State = DRAG_TOP;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'row-resize'});
+            } else if (this.ActiveIndex[1] == this.Grid.Dimensions[1]) {
+                this.State = DRAG_BOTTOM;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'row-resize'});
+            } else {
+                this.State = DRAG;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'move'});
+            }
+
             // Compute the location for the pop up and show it.
             this.PlacePopup();
         } else {
             this.Deactivate();
         }
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     };
 
 
@@ -682,43 +683,44 @@
     GridWidget.prototype.PlacePopup = function () {
         // Compute corner has its angle backwards.  I do not see how this works.
         var pt = this.ComputeCorner(1, -1, 0, 0);
-        pt = this.Viewer.ConvertPointWorldToViewer(pt[0], pt[1]);
+        var cam = this.Layer.GetCamera();
+        pt = cam.ConvertPointWorldToViewer(pt[0], pt[1]);
         this.Popup.Show(pt[0]+10,pt[1]-30);
     };
 
     // Can we bind the dialog apply callback to an objects method?
-    var GRID_WIDGET_DIALOG_SELF;
+    var DIALOG_SELF;
 
     GridWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
-        this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
+        this.Dialog.ColorInput.val(ConvertColorToHex(this.Grid.OutlineColor));
+        this.Dialog.LineWidthInput.val((this.Grid.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
-        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Shape.BinWidth*0.25e-6));
-        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Shape.BinHeight*0.25e-6));
-        this.Dialog.RotationInput.val(this.Shape.Orientation);
+        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Grid.BinWidth*0.25e-6));
+        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Grid.BinHeight*0.25e-6));
+        this.Dialog.RotationInput.val(this.Grid.Orientation);
 
         this.Dialog.Show(true);
     };
 
     GridWidget.prototype.DialogApplyCallback = function() {
         var hexcolor = this.Dialog.ColorInput.val();
-        this.Shape.SetOutlineColor(hexcolor);
-        this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
-        this.Shape.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
-        this.Shape.Orientation = parseFloat(this.Dialog.RotationInput.val());
-        this.Shape.UpdateBuffers();
+        this.Grid.SetOutlineColor(hexcolor);
+        this.Grid.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Grid.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
+        this.Grid.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
+        this.Grid.Orientation = parseFloat(this.Dialog.RotationInput.val());
+        this.Grid.UpdateBuffers();
         this.SetActive(false);
 
-        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.UpdateBuffers();
 
         RecordState();
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
 
-        localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
+        localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 
-    window.GridWidget = GridWidget;
+    SA.GridWidget = GridWidget;
 
 })();

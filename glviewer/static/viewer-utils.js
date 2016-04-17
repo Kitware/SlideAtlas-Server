@@ -201,7 +201,7 @@ saElement.prototype.ActiveOff = function () {
 
 saElement.prototype.InitializeDialog = function () {
     var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
     this.Dialog.Title.text('Properties');
     // Open callbacks allow default values to be set in the dialog.
     this.DialogInitializeFunctions = [];
@@ -1984,7 +1984,7 @@ saTextEditor.prototype.InsertUrlLink = function() {
 
     if ( ! this.UrlDialog) {
         var self = this;
-        var dialog = new Dialog(
+        var dialog = new SA.Dialog(
             function() {
                 self.InsertUrlLinkAccept();
             });
@@ -2438,7 +2438,7 @@ jQuery.prototype.saLightBoxViewer = function(args) {
 // Internal helper.
 function saGetDialog(domElement, showCallback, applyCallback) {
     if ( ! domElement.saDialog) {
-        var helper = new Dialog(function () {saDialogApplyCallback(domElement);});
+        var helper = new SA.Dialog(function () {saDialogApplyCallback(domElement);});
         if ( ! helper.ShowCallbacks) { helper.ShowCallbacks = []; }
         if ( ! helper.ApplyCallbacks) { helper.ApplyCallbacks = []; }
         saAddButton(domElement, SA.ImagePathUrl+"Menu.jpg", "properties",
@@ -2876,6 +2876,27 @@ jQuery.prototype.saRecordViewer = function() {
             this[i].saViewer.Record(note, idx);
         }
     }
+}
+
+
+
+
+
+//==============================================================================
+// JQuery items are not responding to resize events.  This fixes the
+// problem by using window resize event for all
+// NOTE: This depends on saFullSize callbacks.
+jQuery.prototype.saOnResize = function(callback) {
+    this.addClass('sa-resize');
+    for (var i = 0; i < this.length; ++i) {
+        this[i].onresize = callback;
+    }
+
+    return this;
+}
+
+jQuery.prototype.saTriggerResize = function() {
+     $(window).trigger('resize');
 }
 
 
@@ -3564,7 +3585,7 @@ function ResizePanel(parent) {
         .attr('draggable','false')
         .on("dragstart", function() {return false;});
 
-    this.OpenNoteWindowButton = $('<img>')
+    this.OpenButton = $('<img>')
         .appendTo(this.MainDiv)
         .css({'position': 'absolute',
               'height': '20px',
@@ -3583,7 +3604,7 @@ function ResizePanel(parent) {
             return false;});
 
     // I have no idea why the position right does not work.
-    this.CloseNoteWindowButton = $('<img>')
+    this.CloseButton = $('<img>')
         .appendTo(this.MainDiv)
         .css({'position': 'absolute',
               'height': '20px',
@@ -3604,7 +3625,7 @@ function ResizePanel(parent) {
     this.Visibility = true;
     this.Dragging = false;
 
-    this.ResizeNoteWindowEdge = $('<div>')
+    this.ResizeEdge = $('<div>')
         .appendTo(parent)
         .css({'position': 'absolute',
               'height': '100%',
@@ -3657,84 +3678,89 @@ ResizePanel.prototype.SetWidth = function(width) {
     this.Width = width;
     this.PanelDiv.css({'width': this.Width+'px'});
     this.MainDiv.css({'left' : this.Width+'px'});
-    this.ResizeNoteWindowEdge.css({'left' : (this.Width-2)+'px'});
+    this.ResizeEdge.css({'left' : (this.Width-2)+'px'});
 
-    // TODO: Get rid of this hack.
+    // Needed for viewers to sync canvas size.
     $(window).trigger('resize');
 }
 
 ResizePanel.prototype.AnimateNotesWindow = function() {
-    var timeStep = new Date().getTime() - this.AnimationLastTime;
-    if (timeStep > this.AnimationDuration) {
+    var animationTime = new Date().getTime() - this.AnimationStartTime;
+    if (animationTime > this.AnimationDuration || this.AnimationDuration <= 0) {
         // end the animation.
         this.SetWidth(this.AnimationTarget);
-        // Hack to recompute viewports
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
 
         if (this.Visibility) {
-            this.CloseNoteWindowButton.show();
-            this.OpenNoteWindowButton.hide();
+            this.CloseButton.show();
+            this.OpenButton.hide();
             this.PanelDiv.fadeIn();
         } else {
-            this.CloseNoteWindowButton.hide();
-            this.OpenNoteWindowButton.show();
+            this.CloseButton.hide();
+            this.OpenButton.show();
         }
+        clearInterval(this.AnimationId);
+        delete this.AnimationId;
+        delete this.AnimationStartTime;
+        delete this.AnimationDuration;
+        delete this.AnimationTarget;
+        
         return;
     }
 
-    var k = timeStep / this.AnimationDuration;
+    var k = animationTime / this.AnimationDuration;
 
     // update
-    this.AnimationDuration *= (1.0-k);
     this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
 
     var self = this;
-    requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
 // Open and close the panel
-ResizePanel.prototype.SetVisibility = function(visibility) {
+ResizePanel.prototype.SetVisibility = function(visibility, duration) {
+    if (duration === undefined) { duration = 1000.0;}
     if (this.Visibility == visibility) { return; }
     this.Visibility = visibility;
 
+    this.AnimationCurrent = this.Width;
     if (this.Visibility) {
-        this.AnimationCurrent = this.Width;
         this.AnimationTarget = 353;
     } else {
         this.PanelDiv.hide();
-        this.AnimationCurrent = this.Width;
         this.AnimationTarget = 0;
     }
+
+    this.AnimationDuration = duration;
+    this.AnimationStartTime = new Date().getTime();
+    // NOTE: tiles are not requestAnimFrame does not let the image tiles get drawn.
+    // Do the same animation with setInterval
+    var self = this;
     this.AnimationLastTime = new Date().getTime();
-    this.AnimationDuration = 1000.0;
-    this.AnimateNotesWindow();
+    this.AnimationId = setInterval(function(){self.AnimateNotesWindow(); }, 10);
 }
 
 // Show / hide the panel and handles.
 // I keep the "visibility" state and restore it.
 ResizePanel.prototype.Show = function() {
     this.Visibility = true;
-    this.ResizeNoteWindowEdge.show();
+    this.ResizeEdge.show();
     if (this.Visibility) {
         this.Visibility = false; // hack
         this.SetVisibility(true);
     } else {
-        this.OpenNoteWindowButton.show();
+        this.OpenButton.show();
     }
 }
 
 ResizePanel.prototype.Hide = function() {
     this.Visibility = false;
     // Do not use "SetVisibility" because we need to instantly close the panel.
+    // arg:duration = 0 works but is not perfect.
     this.PanelDiv.hide();
     this.SetWidth(0);
-    this.OpenNoteWindowButton.hide();
-    this.CloseNoteWindowButton.hide();
-    this.ResizeNoteWindowEdge.hide();
+    this.OpenButton.hide();
+    this.CloseButton.hide();
+    this.ResizeEdge.hide();
 
-    //Hack to recompute viewports
-    // TODO: Get rid of this hack.
     $(window).trigger('resize');
 }
 

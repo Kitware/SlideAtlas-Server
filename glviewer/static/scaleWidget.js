@@ -4,19 +4,19 @@
 (function () {
     "use strict";
 
-    var SCALE_WIDGET_NEW = 0;
-    var SCALE_WIDGET_WAITING = 3; // The normal (resting) state.
-    var SCALE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-    var SCALE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    var NEW = 0;
+    var WAITING = 3; // The normal (resting) state.
+    var ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 5; // Properties dialog is up
 
-    var SCALE_WIDGET_DRAG = 6;
-    var SCALE_WIDGET_DRAG_LEFT = 7;
-    var SCALE_WIDGET_DRAG_RIGHT = 8;
+    var DRAG = 6;
+    var DRAG_LEFT = 7;
+    var DRAG_RIGHT = 8;
 
     // Viewer coordinates.
     // Horizontal or verticle
     function Scale() {
-        Shape.call(this);
+        SA.Shape.call(this);
         // Dimension of scale element
         this.BinLength = 100.0; // unit length in screen pixels
         this.TickSize = 6; // Screen pixels
@@ -25,10 +25,10 @@
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
-        this.PositionCoordinateSystem = Shape.VIEWER;
+        this.PositionCoordinateSystem = SA.Shape.VIEWER;
     };
 
-    Scale.prototype = new Shape();
+    Scale.prototype = new SA.Shape();
 
     Scale.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -72,14 +72,14 @@
         }
     };
 
-    function ScaleWidget (viewer, newFlag) {
+    function ScaleWidget (layer, newFlag) {
         var self = this;
 
-        if (viewer === null) {
+        if (layer === null) {
             return;
         }
 
-        this.Viewer = viewer;
+        this.Layer = layer;
         this.PixelsPerMeter = 0;
         this.Shape = new Scale();
         this.Shape.OutlineColor = [0.0, 0.0, 0.0];
@@ -87,8 +87,8 @@
         this.Shape.BinLength = 200;
         this.Shape.FixedSize = true;
 
-        this.Text = new Text();
-        this.Text.PositionCoordinateSystem = Shape.VIEWER;
+        this.Text = new SA.Text();
+        this.Text.PositionCoordinateSystem = SA.Shape.VIEWER;
         this.Text.Position = [30,5];
         this.Text.String = "";
         this.Text.Color = [0.0, 0.0, 0.0];
@@ -96,18 +96,18 @@
         // This is a hackl estimate.
         this.Text.Anchor = [20,0];
 
-        this.Update(viewer.GetPixelsPerUnit());
+        this.Update(layer.GetPixelsPerUnit());
 
-        this.Viewer.AddWidget(this);
+        this.Layer.AddWidget(this);
 
-        this.State = SCALE_WIDGET_WAITING;
+        this.State = WAITING;
     }
 
 
     // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
         // Compute the number of screen pixels in a meter.
-        var scale = Math.round(4e6 * this.Viewer.GetPixelsPerUnit());
+        var scale = Math.round(4e6 * this.Layer.GetPixelsPerUnit());
         if (this.PixelsPerMeter == scale) {
             return;
         }
@@ -178,11 +178,11 @@
     };
 
     // This needs to be put in the Viewer.
-    ScaleWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.RemoveWidget(this);
-        }
-    };
+    //ScaleWidget.prototype.RemoveFromViewer = function() {
+    //    if (this.Layer) {
+    //        this.RemoveWidget(this);
+    //    }
+    //};
 
     ScaleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
         return true;
@@ -197,7 +197,7 @@
         if (event.which != 1) {
             return true;
         }
-        this.DragLast = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        this.DragLast = this.Layer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         */
         return false;
     };
@@ -216,9 +216,9 @@
         /*
         if (event.which == 1) {
             var world =
-                this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+                this.Layer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
             var dx, dy;
-            if (this.State == SCALE_WIDGET_DRAG) {
+            if (this.State == DRAG) {
                 dx = world[0] - this.DragLast[0];
                 dy = world[1] - this.DragLast[1];
                 this.DragLast = world;
@@ -242,7 +242,7 @@
                 // Change scale dimemsions
                 dx = dy = 0;
                 var changed = false;
-                if (this.State == SCALE_WIDGET_DRAG_RIGHT) {
+                if (this.State == DRAG_RIGHT) {
                     dx = ix - this.Shape.Dimensions[0];
                     if (dx) {
                         this.Shape.Dimensions[0] = ix;
@@ -250,14 +250,14 @@
                         dx = 0.5 * dx * this.Shape.Width;
                         changed = true;
                     }
-                } else if (this.State == SCALE_WIDGET_DRAG_LEFT) {
+                } else if (this.State == DRAG_LEFT) {
                     if (ix) {
                         this.Shape.Dimensions[0] -= ix;
                         // Compute the change in the center point origin.
                         dx = 0.5 * ix * this.Shape.Width;
                         changed = true;
                     }
-                } else if (this.State == SCALE_WIDGET_DRAG_BOTTOM) {
+                } else if (this.State == DRAG_BOTTOM) {
                     dy = iy - this.Shape.Dimensions[1];
                     if (dy) {
                         this.Shape.Dimensions[1] = iy;
@@ -265,7 +265,7 @@
                         dy = 0.5 * dy * this.Shape.Height;
                         changed = true;
                     }
-                } else if (this.State == SCALE_WIDGET_DRAG_TOP) {
+                } else if (this.State == DRAG_TOP) {
                     if (iy) {
                         this.Shape.Dimensions[1] -= iy;
                         // Compute the change in the center point origin.
@@ -297,7 +297,7 @@
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (this.State == SCALE_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
                 var direction = 1;
@@ -326,9 +326,9 @@
 
     ScaleWidget.prototype.HandleTouchPan = function(event) {
         /*
-          w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+          w0 = this.Layer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
           EVENT_MANAGER.LastMouseY);
-          w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
+          w1 = this.Layer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
           // This is the translation.
           var dx = w1[0] - w0[0];
@@ -388,25 +388,25 @@
         y = (y - iy) * this.Shape.Height;
 
         // Compute the screen pixel size for tollerance.
-        var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
+        var tolerance = 5.0 / this.Layer.GetPixelsPerUnit();
 
         if (Math.abs(x) < tolerance || Math.abs(y) < tolerance) {
             this.SetActive(true);
             if (ix == 0) {
-                this.State = SCALE_WIDGET_DRAG_LEFT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
+                this.State = DRAG_LEFT;
+                thisLayer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
             } else if (ix == this.Shape.Dimensions[0]) {
-                this.State = SCALE_WIDGET_DRAG_RIGHT;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
+                this.State = DRAG_RIGHT;
+                this.Layer.AnnotationView.CanvasDiv.css({'cursor':'col-resize'});
             } else if (iy == 0) {
-                this.State = SCALE_WIDGET_DRAG_TOP;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
+                this.State = DRAG_TOP;
+                this.Viewer.AnnotationView.CanvasDiv.css({'cursor':'row-resize'});
             } else if (iy == this.Shape.Dimensions[1]) {
-                this.State = SCALE_WIDGET_DRAG_BOTTOM;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
+                this.State = DRAG_BOTTOM;
+                this.Layer.MainView.CanvasDiv.css({'cursor':'row-resize'});
             } else {
-                this.State = SCALE_WIDGET_DRAG;
-                this.Viewer.MainView.CanvasDiv.css({'cursor':'move'});
+                this.State = DRAG;
+                this.Layer.MainView.CanvasDiv.css({'cursor':'move'});
             }
             return true;
         }
@@ -417,7 +417,7 @@
 
     // Multiple active states. Active state is a bit confusing.
     ScaleWidget.prototype.GetActive = function() {
-        if (this.State == SCALE_WIDGET_WAITING) {
+        if (this.State == WAITING) {
             return false;
         }
         return true;
@@ -425,11 +425,11 @@
 
 
     ScaleWidget.prototype.Deactivate = function() {
-        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
+        this.Layer.AnnotationView.CanvasDiv.css({'cursor':'default'});
         this.Popup.StartHideTimer();
-        this.State = SCALE_WIDGET_WAITING;
+        this.State = WAITING;
         this.Shape.Active = false;
-        this.Viewer.DeactivateWidget(this);
+        this.Layer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
@@ -444,9 +444,9 @@
         }
 
         if (flag) {
-            this.State = SCALE_WIDGET_ACTIVE;
+            this.State = ACTIVE;
             this.Shape.Active = true;
-            this.Viewer.ActivateWidget(this);
+            this.Layer.ActivateWidget(this);
             eventuallyRender();
             // Compute the location for the pop up and show it.
             this.PlacePopup();
@@ -457,6 +457,6 @@
     };
 
 
-    window.ScaleWidget = ScaleWidget;
+    SA.ScaleWidget = ScaleWidget;
 
 })();

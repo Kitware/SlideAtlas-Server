@@ -76,6 +76,7 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 
 <!-- Single view, view interacts with the cache -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationLayer.js') }}"></script>
 
 <!-- Has two views -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
@@ -116,6 +117,7 @@ shape has visibility and
 -->
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='shapeGroup.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='scaleWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='gridWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='rectWidget.js') }}"></script>
@@ -225,7 +227,7 @@ shape has visibility and
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
 
-      SA = new SlideAtlas();
+      SA = SA || new SlideAtlas();
       SA.ViewId = "{{view}}";
       SA.Template = "view.html";
       SA.User = "{{user}}";

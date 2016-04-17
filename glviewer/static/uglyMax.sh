@@ -21,7 +21,6 @@ cat note.js >> sa.max.js
 cat notesWidget.js >> sa.max.js 
 cat tab.js >> sa.max.js 
 cat annotationWidget.js >> sa.max.js 
-cat conferenceWidget.js >> sa.max.js 
 cat recorderWidget.js >> sa.max.js 
 cat navigationWidget.js >> sa.max.js 
 cat favoritesWidget.js >> sa.max.js 
@@ -41,6 +40,7 @@ cat tile.js >> sa.max.js
 cat cache.js >> sa.max.js 
 cat section.js >> sa.max.js 
 cat view.js >> sa.max.js 
+cat annotationLayer.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
 cat presentation.js >> sa.max.js 
@@ -66,6 +66,7 @@ cat fillWidget.js >> sa.max.js
 cat lassoWidget.js >> sa.max.js 
 cat widgetPopup.js >> sa.max.js 
 cat shape.js >> sa.max.js 
+cat shapeGroup.js >> sa.max.js 
 cat crossHairs.js >> sa.max.js 
 cat arrow.js >> sa.max.js 
 cat arrowWidget.js >> sa.max.js 

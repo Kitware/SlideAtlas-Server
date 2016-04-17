@@ -12,6 +12,10 @@
 // the viewerRecord.
 
 
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
 function StackSectionWidget (viewer) {
     var self = this;
 
@@ -558,5 +562,8 @@ StackSectionWidget.prototype.Decimate = function() {
 }
 
 
+    SA.StackSectionWidget = StackSectionWidget;
+
+})();
 
 
