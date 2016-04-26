@@ -30,6 +30,21 @@
 // Closure namespace 
 CollectionBrowser = (function (){
 
+    var PROGRESS_COUNT = 0;
+
+    var PushProgress = function() {
+        $('body').css({'cursor':'progress'});
+        PROGRESS_COUNT += 1;
+    }
+
+    var PopProgress = function() {
+        PROGRESS_COUNT -= 1;
+        if (PROGRESS_COUNT <= 0) {
+            $('body').css({'cursor':'default'});
+        }
+    }
+
+
 //==============================================================================
 // History for undo
 // Note: I can only support a single undo because copy will orphan views.
@@ -391,19 +406,19 @@ CollectionBrowser = (function (){
         args.label = this.Label;
 
         var self = this;
-        SA.PushProgress();
+        PushProgress();
         $.ajax({
             type: "post",
             url: "/session-save",
             data: {"input" :  JSON.stringify( args )},
             success: function(data) {
-                SA.PopProgress();
+                PopProgress();
                 // If copy, view ids have changed.
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
             error:   function() {
-                SA.PopProgress();
+                PopProgress();
                 console.log( "AJAX - error: session-save (collectionBrowser)" );
             }
         });
@@ -1152,19 +1167,19 @@ CollectionBrowser = (function (){
         args.label = this.SessionLabel.text();
 
         var self = this;
-        SA.PushProgress();
+        PushProgress();
         $.ajax({
             type: "post",
             url: "/session-save",
             data: {"input" :  JSON.stringify( args )},
             success: function(data) {
-                SA.PopProgress();
+                PopProgress();
                 // If copy, view ids have changed.
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
             error:   function() {
-                SA.PopProgress();
+                PopProgress();
                 console.log( "AJAX - error: session-save (collectionBrowser)" );
             }
         });
