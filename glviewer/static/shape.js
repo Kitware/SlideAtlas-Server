@@ -335,6 +335,6 @@
         return newX / length;
     }
 
-    SA.Shape = Shape;
+    SAM.Shape = Shape;
 
 })();

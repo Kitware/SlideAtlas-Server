@@ -201,7 +201,7 @@ saElement.prototype.ActiveOff = function () {
 
 saElement.prototype.InitializeDialog = function () {
     var self = this;
-    this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+    this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
     this.Dialog.Title.text('Properties');
     // Open callbacks allow default values to be set in the dialog.
     this.DialogInitializeFunctions = [];
@@ -1984,7 +1984,7 @@ saTextEditor.prototype.InsertUrlLink = function() {
 
     if ( ! this.UrlDialog) {
         var self = this;
-        var dialog = new SA.Dialog(
+        var dialog = new SAM.Dialog(
             function() {
                 self.InsertUrlLinkAccept();
             });
@@ -2438,7 +2438,7 @@ jQuery.prototype.saLightBoxViewer = function(args) {
 // Internal helper.
 function saGetDialog(domElement, showCallback, applyCallback) {
     if ( ! domElement.saDialog) {
-        var helper = new SA.Dialog(function () {saDialogApplyCallback(domElement);});
+        var helper = new SAM.Dialog(function () {saDialogApplyCallback(domElement);});
         if ( ! helper.ShowCallbacks) { helper.ShowCallbacks = []; }
         if ( ! helper.ApplyCallbacks) { helper.ApplyCallbacks = []; }
         saAddButton(domElement, SA.ImagePathUrl+"Menu.jpg", "properties",

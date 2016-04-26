@@ -139,7 +139,7 @@
         // First transform the world anchor to view.
         var x = this.Position[0];
         var y = this.Position[1];
-        if (this.PositionCoordinateSystem != SA.Shape.VIEWER) {
+        if (this.PositionCoordinateSystem != SAM.Shape.VIEWER) {
             var m = view.Camera.Matrix;
             x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
             y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
@@ -415,7 +415,7 @@
         this.Color = ConvertColor(c);
     }
 
-    SA.Text = Text;
+    SAM.Text = Text;
 
 })();
 

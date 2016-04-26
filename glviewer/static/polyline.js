@@ -4,13 +4,13 @@
     "use strict";
 
     function Polyline() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         this.Origin = [0.0,0.0]; // Center in world coordinates.
         this.Points = [];
         this.Closed = false;
         this.Bounds = [0,-1,0,-1];
     };
-    Polyline.prototype = new SA.Shape;
+    Polyline.prototype = new SAM.Shape;
 
 
     //Polyline.prototype.destructor=function() {
@@ -442,6 +442,6 @@
     }
 
 
-    SA.Polyline = Polyline;
+    SAM.Polyline = Polyline;
 
 })();

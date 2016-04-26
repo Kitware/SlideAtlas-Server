@@ -11,8 +11,52 @@
 //  should still work. Use this for everything.
 // -This class does not handle annotation visibility (part of annotationWidget).
 
+
+
 (function () {
     "use strict";
+
+    window.SAM = window.SAM || {};
+    window.SAM.ImagePathUrl = "/webgl-viewer/static/";
+
+    // length units = meters
+    window.SAM.DistanceToString = function(length) {
+        var lengthStr = "";
+        if (length < 0.001) {
+            // Latin-1 00B5 is micro sign
+            lengthStr += (length*1e6).toFixed(2) + " \xB5m";
+        } else if (length < 0.01) {
+            lengthStr += (length*1e3).toFixed(2) + " mm";
+        } else if (length < 1.0)  {
+            lengthStr += (length*1e2).toFixed(2) + " cm";
+        } else if (length < 1000) {
+            lengthStr += (length).toFixed(2) + " m";
+        } else {
+            lengthStr += (length).toFixed(2) + " km";
+        }
+        return lengthStr;
+    }
+
+    window.SAM.StringToDistance = function(lengthStr) {
+        var length = 0;
+        lengthStr = lengthStr.trim(); // remove leading and trailing spaces.
+        var len = lengthStr.length;
+        // Convert to microns
+        if (lengthStr.substring(len-2,len) == "\xB5m") {
+            length = parseFloat(lengthStr.substring(0,len-2)) / 1e6;
+        } else if (lengthStr.substring(len-2,len) == "mm") { 
+            length = parseFloat(lengthStr.substring(0,len-2)) / 1e3;
+        } else if (lengthStr.substring(len-2,len) == "cm") { 
+            length = parseFloat(lengthStr.substring(0,len-2)) / 1e2;
+        } else if (lengthStr.substring(len-2,len) == " m") { 
+            length = parseFloat(lengthStr.substring(0,len-2));
+        } else if (lengthStr.substring(len-2,len) == "km") { 
+            length = parseFloat(lengthStr.substring(0,len-2)) * 1e3;
+        }
+
+        return length;
+    }
+
 
     // Pass in the viewer div.
     // TODO: Pass the camera into the draw method.  It is shared here.
@@ -38,7 +82,7 @@
         this.Visibility = true;
         // Scale widget is unique. Deal with it separately so it is not
         // saved with the notes.
-        this.ScaleWidget = new SA.ScaleWidget(this, false);
+        this.ScaleWidget = new SAM.ScaleWidget(this, false);
     }
 
     // Try to remove all global references to this viewer.
@@ -110,31 +154,31 @@
         var widget;
         switch(obj.type){
         case "lasso":
-            widget = new SA.LassoWidget(this, false);
+            widget = new SAM.LassoWidget(this, false);
             break;
         case "pencil":
-            widget = new SA.PencilWidget(this, false);
+            widget = new SAM.PencilWidget(this, false);
             break;
         case "text":
-            widget = new SA.TextWidget(this, "");
+            widget = new SAM.TextWidget(this, "");
             break;
         case "circle":
-            widget = new SA.CircleWidget(this, false);
+            widget = new SAM.CircleWidget(this, false);
             break;
         case "polyline":
-            widget = new SA.PolylineWidget(this, false);
+            widget = new SAM.PolylineWidget(this, false);
             break;
         case "stack_section":
-            widget = new SA.StackSectionWidget(this);
+            widget = new SAM.StackSectionWidget(this);
             break;
         case "sections":
-            widget = new SA.SectionsWidget(this);
+            widget = new SAM.SectionsWidget(this);
             break;
         case "rect":
-            widget = new SA.RectWidget(this, false);
+            widget = new SAM.RectWidget(this, false);
             break;
         case "grid":
-            widget = new SA.GridWidget(this, false);
+            widget = new SAM.GridWidget(this, false);
             break;
         }
         widget.Load(obj);
@@ -342,9 +386,9 @@
     AnnotationLayer.prototype.AddWidget = function(widget) {
         widget.Layer = this;
         this.WidgetList.push(widget);
-        if (SA.NotesWidget) {
+        if (SAM.NotesWidget) {
             // Hack.
-            SA.NotesWidget.MarkAsModified();
+            SAM.NotesWidget.MarkAsModified();
         }
     }
 
@@ -357,12 +401,12 @@
         if(idx!=-1) {
             this.WidgetList.splice(idx, 1);
         }
-        if (SA.NotesWidget) {
+        if (SAM.NotesWidget) {
             // Hack.
-            SA.NotesWidget.MarkAsModified();
+            SAM.NotesWidget.MarkAsModified();
         }
     }
 
-    SA.AnnotationLayer = AnnotationLayer;
+    SAM.AnnotationLayer = AnnotationLayer;
 })();
 

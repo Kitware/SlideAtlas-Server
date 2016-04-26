@@ -3,8 +3,8 @@
     "use strict";
 
     function Dialog(callback) {
-        if ( ! SA.DialogOverlay) {
-            SA.DialogOverlay = $('<div>')
+        if ( ! SAM.DialogOverlay) {
+            SAM.DialogOverlay = $('<div>')
                 .appendTo('body')
                 .css({
                     'position':'fixed',
@@ -66,27 +66,27 @@
 
     Dialog.prototype.Show = function(modal) {
         var self = this;
-        SA.DialogOverlay.show();
+        SAM.DialogOverlay.show();
         this.Dialog.fadeIn(300);
 
         if (modal) {
-            SA.DialogOverlay.off('click.dialog');
+            SAM.DialogOverlay.off('click.dialog');
         } else {
-            SA.DialogOverlay.on(
+            SAM.DialogOverlay.on(
                 'click.dialog',
                 function (e) { self.Hide(); });
         }
-        SA.ContentEditableHasFocus = true; // blocks viewer events.
+        SAM.ContentEditableHasFocus = true; // blocks viewer events.
     }
 
     Dialog.prototype.Hide = function () {
-        SA.DialogOverlay.off('click.dialog');
-        SA.DialogOverlay.hide();
+        SAM.DialogOverlay.off('click.dialog');
+        SAM.DialogOverlay.hide();
         this.Dialog.fadeOut(300);
-        SA.ContentEditableHasFocus = false;
+        SAM.ContentEditableHasFocus = false;
     }
 
 
-    SA.Dialog = Dialog;
+    SAM.Dialog = Dialog;
 
 })();

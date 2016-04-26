@@ -30,7 +30,7 @@
         }
 
         var self = this;
-        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a pencil.
         this.Dialog.Title.text('Pencil Annotation Editor');
         this.Dialog.Body.css({'margin':'1em 2em'});
@@ -81,11 +81,11 @@
         }
 
         this.Layer = layer;
-        this.Popup = new SA.WidgetPopup(this);
+        this.Popup = new SAM.WidgetPopup(this);
         this.Layer.AddWidget(this);
 
         var self = this;
-        this.Shapes = new SA.ShapeGroup();
+        this.Shapes = new SAM.ShapeGroup();
         this.SetStateToDrawing();
 
         if ( ! newFlag) {
@@ -106,7 +106,7 @@
         this.Shapes.SetActive(false);
         this.Popup.Hide();
         this.Layer.GetCanvasDiv().css(
-            {'cursor':'url('+SA.ImagePathUrl+'Pencil-icon.png) 0 24,crosshair'});
+            {'cursor':'url('+SAM.ImagePathUrl+'Pencil-icon.png) 0 24,crosshair'});
         this.Layer.EventuallyDraw();
     }
 
@@ -136,7 +136,7 @@
     PencilWidget.prototype.Load = function(obj) {
         for(var n=0; n < obj.shapes.length; n++){
             var points = obj.shapes[n];
-            var shape = new SA.Polyline();
+            var shape = new SAM.Polyline();
             shape.SetOutlineColor(this.Dialog.ColorInput.val());
             shape.FixedSize = false;
             shape.LineWidth = this.LineWidth;
@@ -219,7 +219,7 @@
         if (event.which == 1) {
             if (this.State == DRAWING) {
                 // Start drawing.
-                var shape = new SA.Polyline();
+                var shape = new SAM.Polyline();
                 //shape.OutlineColor = [0.9, 1.0, 0.0];
                 shape.OutlineColor = [0.0, 0.0, 0.0];
                 shape.SetOutlineColor(this.Dialog.ColorInput.val());
@@ -294,7 +294,7 @@
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers();
-            if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
             this.Layer.EventuallyDraw();
             return false;
         }
@@ -329,6 +329,7 @@
     // This also shows the popup if it is not visible already.
     PencilWidget.prototype.PlacePopup = function () {
         var pt = this.Shapes.FindPopupPoint(this.Layer.GetCamera());
+        if ( ! pt) { return; }
         pt = this.Layer.GetCamera().ConvertPointWorldToViewer(pt[0], pt[1]);
 
         pt[0] += 20;
@@ -363,11 +364,8 @@
     // Setting to active always puts state into "active".
     // It can move to other states and stay active.
     PencilWidget.prototype.SetActive = function(flag) {
+        if (flag == this.GetActive()) { return; }
         if (flag) {
-            if (this.State == ACTIVE) {
-                // Already active.  Do nothing.
-                return;
-            }
             this.Layer.ActivateWidget(this);
             this.State = ACTIVE;
             this.Shapes.SetActive(true);
@@ -384,7 +382,7 @@
     }
 
     PencilWidget.prototype.GetActive = function() {
-        return this.State = ACTIVE;
+        return this.State != WAITING;
     }
 
     PencilWidget.prototype.RemoveFromLayer = function() {
@@ -415,7 +413,7 @@
 
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
                                                             LineWidth: this.LineWidth});
-        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
     }
 
     /*
@@ -475,6 +473,6 @@
     }
     */
 
-    SA.PencilWidget = PencilWidget;
+    SAM.PencilWidget = PencilWidget;
 
 })();

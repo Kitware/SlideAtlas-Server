@@ -1,4 +1,4 @@
-
+!
 (function () {
     "use strict";
 
@@ -16,7 +16,7 @@
     // Worry about corners later.
 
     function Grid() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         // Dimension of grid bin
         this.BinWidth = 20.0;
         this.BinHeight = 20.0;
@@ -29,7 +29,7 @@
         this.ActiveIndex = undefined;
     };
 
-    Grid.prototype = new SA.Shape();
+    Grid.prototype = new SAM.Shape();
 
     Grid.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -102,7 +102,7 @@
 
     function GridWidget (layer, newFlag) {
         var self = this;
-        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
         this.Dialog.Title.text('Grid Annotation Editor');
 
@@ -206,7 +206,7 @@
         this.CreationCamera = layer.GetCamera().Serialize();
 
         this.Layer = layer;
-        this.Popup = new SA.WidgetPopup(this);
+        this.Popup = new SAM.WidgetPopup(this);
         var cam = layer.AnnotationView.Camera;
         var viewport = layer.AnnotationView.Viewport;
         this.Grid = new Grid();
@@ -229,10 +229,10 @@
         this.Grid.Dimensions[1] = Math.floor(height / this.Grid.BinHeight);
         this.Grid.UpdateBuffers();
 
-        this.Text = new SA.Text();
+        this.Text = new SAM.Text();
         // Shallow copy is dangerous
         this.Text.Position = this.Grid.Origin;
-        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
+        this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
         this.Text.UpdateBuffers();
@@ -378,7 +378,7 @@
         this.Grid.FixedSize = false;
         this.Grid.UpdateBuffers();
 
-        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
+        this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         // Shallow copy is dangerous
         this.Text.Position = this.Grid.Origin;
         this.Text.UpdateBuffers();
@@ -695,8 +695,8 @@
         this.Dialog.ColorInput.val(ConvertColorToHex(this.Grid.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Grid.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
-        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Grid.BinWidth*0.25e-6));
-        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Grid.BinHeight*0.25e-6));
+        this.Dialog.BinWidthInput.val(SAM.DistanceToString(this.Grid.BinWidth*0.25e-6));
+        this.Dialog.BinHeightInput.val(SAM.DistanceToString(this.Grid.BinHeight*0.25e-6));
         this.Dialog.RotationInput.val(this.Grid.Orientation);
 
         this.Dialog.Show(true);
@@ -706,13 +706,13 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Grid.SetOutlineColor(hexcolor);
         this.Grid.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Grid.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
-        this.Grid.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
+        this.Grid.BinWidth = SAM.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
+        this.Grid.BinHeight = SAM.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
         this.Grid.Orientation = parseFloat(this.Dialog.RotationInput.val());
         this.Grid.UpdateBuffers();
         this.SetActive(false);
 
-        this.Text.String = SA.DistanceToString(this.Grid.BinWidth*0.25e-6);
+        this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.UpdateBuffers();
 
         RecordState();
@@ -721,6 +721,6 @@
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 
-    SA.GridWidget = GridWidget;
+    SAM.GridWidget = GridWidget;
 
 })();

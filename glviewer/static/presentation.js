@@ -1281,11 +1281,11 @@ function SlidePage(parent, edit) {
         // TODO: Better API (jquery) for adding widgets.
         // TODO: Better placement control for the widget.
         this.AnnotationWidget1 = new AnnotationWidget(
-            this.ViewerDiv1[0].saViewer);
+            this.ViewerDiv1[0].saViewer.AnnotationLayer);
         this.AnnotationWidget1.SetVisibility(2);
 
         this.AnnotationWidget2 = new AnnotationWidget(
-            this.ViewerDiv2[0].saViewer);
+            this.ViewerDiv2[0].saViewer.AnnotationLayer);
         this.AnnotationWidget2.SetVisibility(2);
 
         // TODO: Move this to bind in jquery.  (not sure how to do this yet)

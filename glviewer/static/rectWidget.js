@@ -15,7 +15,7 @@
 
 
     function Rect() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
 
         this.Width = 20.0;
         this.Length = 50.0;
@@ -26,7 +26,7 @@
         this.PointBuffer = [];
     }
 
-    Rect.prototype = new SA.Shape();
+    Rect.prototype = new SAM.Shape();
 
     Rect.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -63,7 +63,7 @@
 
 
     function RectWidget (viewer, newFlag) {
-      this.Dialog = new SA.Dialog(this);
+      this.Dialog = new SAM.Dialog(this);
       // Customize dialog for a circle.
       this.Dialog.Title.text('Rect Annotation Editor');
       // Color
@@ -142,7 +142,7 @@
       this.CreationCamera = viewer.GetCamera().Serialize();
 
       this.Viewer = viewer;
-      this.Popup = new SA.WidgetPopup(this);
+      this.Popup = new SAM.WidgetPopup(this);
       var cam = viewer.MainView.Camera;
       var viewport = viewer.MainView.Viewport;
       this.Shape = new Rect();
@@ -496,6 +496,6 @@
       localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 
-    SA.RectWidget = RectWidget;
+    SAM.RectWidget = RectWidget;
 
 })();

@@ -37,7 +37,7 @@
 
         // create and cuystomize the dialog properties popup.
         var self = this;
-        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         this.Dialog.Title.text('Text Annotation Editor');
         this.Dialog.Body.css({'margin':'1em 2em'});
 
@@ -133,7 +133,7 @@
 
         // Create the hover popup for deleting and showing properties dialog.
         this.Layer = layer;
-        this.Popup = new SA.WidgetPopup(this);
+        this.Popup = new SAM.WidgetPopup(this);
         // Text widgets are created with the dialog open (to set the string).
         // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
         this.State = WAITING;
@@ -141,7 +141,7 @@
 
         var cam = this.Layer.GetCamera();
 
-        this.Text = new SA.Text();
+        this.Text = new SAM.Text();
         this.Text.String = string;
         this.Text.UpdateBuffers(); // Needed to get the bounds.
         this.Text.Color = [0.0, 0.0, 1.0];
@@ -153,7 +153,7 @@
         this.Text.Position = [cam.FocalPoint[0], cam.FocalPoint[1]];
 
         // The anchor shape could be put into the text widget, but I might want a thumb tack anchor.
-        this.Arrow = new SA.Arrow();
+        this.Arrow = new SAM.Arrow();
         this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
         this.Arrow.Length = 50;
         this.Arrow.Width = 10;
@@ -227,7 +227,7 @@
         this.Text.Position[1] = mouseWorldPt[1];
         this.UpdateArrow();
         this.Layer.EventuallyDraw();
-        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
     }
 
 
@@ -458,9 +458,9 @@
 
     TextWidget.prototype.HandleMouseMove = function(event) {
         if (this.State == DRAG) {
-            if (SA.NotesWidget) {
+            if (SAM.NotesWidget) {
                 // Hack.
-                SA.NotesWidget.MarkAsModified();
+                SAM.NotesWidget.MarkAsModified();
             }
             var cam = this.Layer.GetCamera();
             var w0 = cam.ConvertPointViewerToWorld(this.LastMouse[0], this.LastMouse[1]);
@@ -472,14 +472,14 @@
             this.Text.Position[1] += wdy;
             this.Arrow.Origin = this.Text.Position;
             this.PlacePopup();
-            if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
             this.Layer.EventuallyDraw();
             return false;
         }
         if (this.State == DRAG_TEXT) { // Just the text not the anchor glyph
-            if (SA.NotesWidget) {
+            if (SAM.NotesWidget) {
                 // Hack.
-                SA.NotesWidget.MarkAsModified();
+                SAM.NotesWidget.MarkAsModified();
             }
             var dx = event.offsetX - this.LastMouse[0];
             var dy = event.offsetY - this.LastMouse[1];
@@ -491,7 +491,7 @@
             this.UpdateArrow();
             this.PlacePopup();
             this.Layer.EventuallyDraw();
-            if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
             return false;
         }
         // We do not want to deactivate the widget while the properties dialog is showing.
@@ -667,7 +667,7 @@
         RecordState();
 
         this.Layer.EventuallyDraw();
-        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
     }
 
     //Function to apply line breaks to textarea text.
@@ -712,7 +712,7 @@
     }
 
 
-    SA.TextWidget = TextWidget;
+    SAM.TextWidget = TextWidget;
 
 })();
 

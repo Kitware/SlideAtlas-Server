@@ -18,7 +18,7 @@
         this.Viewer = viewer;
         var cam = viewer.MainView.Camera;
         var viewport = viewer.MainView.Viewport;
-        this.Shape = new SA.CrossHairs();
+        this.Shape = new SAM.CrossHairs();
         this.Viewer.AddWidget(this);
         this.Viewer.AddShape(this.Shape);
 
@@ -153,7 +153,7 @@
         }
     }
 
-    SA.CrossWidget = CrossWidget;
+    SAM.CrossWidget = CrossWidget;
 
 })();
 

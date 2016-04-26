@@ -34,8 +34,8 @@
         }
 
         // Circle is to show an active vertex.
-        this.Circle = new SA.Circle();
-        this.Polyline = new SA.Polyline();
+        this.Circle = new SAM.Circle();
+        this.Polyline = new SAM.Polyline();
 
         this.InitializeDialog();
 
@@ -69,7 +69,7 @@
         this.Polyline.FixedSize = false;
 
         this.Layer = layer;
-        this.Popup = new SA.WidgetPopup(this);
+        this.Popup = new SAM.WidgetPopup(this);
         var cam = layer.GetCamera();
 
         this.Layer.AddWidget(this);
@@ -111,7 +111,7 @@
 
     PolylineWidget.prototype.InitializeDialog = function() {
         var self = this;
-        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a lasso.
         this.Dialog.Title.text('Lasso Annotation Editor');
         this.Dialog.Body.css({'margin':'1em 2em'});
@@ -231,7 +231,7 @@
             this.Polyline.Points[i][1] += yOffset;
         }
         this.Polyline.UpdateBuffers();
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
 
         this.Layer.EventuallyDraw(true);
     }
@@ -296,7 +296,7 @@
             // Last resort.  ESC key always deactivates the widget.
             // Deactivate.
             this.Layer.DeactivateWidget(this);
-            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
             RecordState();
             return false;
         }
@@ -380,7 +380,7 @@
             // Handle merging points when user drags a vertex onto another.
             this.Polyline.MergePoints(this.Circle.Radius);
             // TODO: Manage modidfied more consistently.
-            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
             RecordState();
             return false;
         }
@@ -469,7 +469,7 @@
         this.Polyline.UpdateBuffers();
 
         // TODO: Fix this hack.
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
         this.Layer.EventuallyDraw(true);
     }
 
@@ -700,7 +700,7 @@
     PolylineWidget.prototype.SetCursorToDrawing = function() {
         this.Popup.Hide();
         this.Layer.GetCanvasDiv().css(
-            {'cursor':'url('+SA.ImagePathUrl+'dotCursor8.png) 4 4,crosshair'});
+            {'cursor':'url('+SAM.ImagePathUrl+'dotCursor8.png) 4 4,crosshair'});
         this.Layer.EventuallyDraw();
     }
 
@@ -783,7 +783,7 @@
             {Color: hexcolor,
              ClosedLoop: this.Polyline.Closed,
              LineWidth: this.LineWidth});
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
     }
 
     // Note, self intersection can cause unexpected areas.
@@ -963,6 +963,6 @@
     */
 
 
-    SA.PolylineWidget = PolylineWidget;
+    SAM.PolylineWidget = PolylineWidget;
 
 })();

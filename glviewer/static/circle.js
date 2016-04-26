@@ -3,13 +3,13 @@
     "use strict";
 
     function Circle() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         this.Radius = 10; // Radius in pixels
         this.Origin = [10000,10000]; // Center in world coordinates.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
     };
-    Circle.prototype = new SA.Shape;
+    Circle.prototype = new SAM.Shape;
 
 
     // I know javascript does not have desctuctors.
@@ -120,6 +120,6 @@
         }
     }
 
-    SA.Circle = Circle;
+    SAM.Circle = Circle;
 
 })();

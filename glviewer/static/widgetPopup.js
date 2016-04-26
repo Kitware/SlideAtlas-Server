@@ -93,7 +93,7 @@
         this.HideTimerId = 0;
     }
 
-    SA.WidgetPopup = WidgetPopup;
+    SAM.WidgetPopup = WidgetPopup;
 
 })();
 

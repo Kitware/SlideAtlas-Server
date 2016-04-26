@@ -3,7 +3,7 @@
     "use strict";
 
     function Arrow() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         this.Width = 10; // width of the shaft and size of the head
         this.Length = 50; // Length of the arrow in pixels
         this.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
@@ -11,7 +11,7 @@
         this.OutlineColor = [0,0,0];
         this.ZOffset = -0.1;
     };
-    Arrow.prototype = new SA.Shape;
+    Arrow.prototype = new SAM.Shape;
 
 
     Arrow.prototype.destructor=function() {
@@ -111,6 +111,6 @@
         }
     }
 
-    SA.Arrow = Arrow;
+    SAM.Arrow = Arrow;
 
 })();
