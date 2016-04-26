@@ -245,44 +245,6 @@ SlideAtlas.prototype.TriggerStartInteraction = function() {
     }
 }
 
-// length units = meters
-SlideAtlas.prototype.DistanceToString = function(length) {
-    var lengthStr = "";
-    if (length < 0.001) {
-        // Latin-1 00B5 is micro sign
-        lengthStr += (length*1e6).toFixed(2) + " \xB5m";
-    } else if (length < 0.01) {
-        lengthStr += (length*1e3).toFixed(2) + " mm";
-    } else if (length < 1.0)  {
-        lengthStr += (length*1e2).toFixed(2) + " cm";
-    } else if (length < 1000) {
-        lengthStr += (length).toFixed(2) + " m";
-    } else {
-        lengthStr += (length).toFixed(2) + " km";
-    }
-    return lengthStr;
-}
-
-SlideAtlas.prototype.StringToDistance = function(lengthStr) {
-    var length = 0;
-    lengthStr = lengthStr.trim(); // remove leading and trailing spaces.
-    var len = lengthStr.length;
-    // Convert to microns
-    if (lengthStr.substring(len-2,len) == "\xB5m") {
-        length = parseFloat(lengthStr.substring(0,len-2)) / 1e6;
-    } else if (lengthStr.substring(len-2,len) == "mm") { 
-        length = parseFloat(lengthStr.substring(0,len-2)) / 1e3;
-    } else if (lengthStr.substring(len-2,len) == "cm") { 
-        length = parseFloat(lengthStr.substring(0,len-2)) / 1e2;
-    } else if (lengthStr.substring(len-2,len) == " m") { 
-        length = parseFloat(lengthStr.substring(0,len-2));
-    } else if (lengthStr.substring(len-2,len) == "km") { 
-        length = parseFloat(lengthStr.substring(0,len-2)) * 1e3;
-    }
-
-    return length;
-}
-
 // TODO: These should be moved to viewer-utils so they can be used
 // separately from SlideAtlas.
 // Helper function: Looks for a key phase in the text.
@@ -940,10 +902,6 @@ function Main(rootNote) {
         initGC();
     }
 
-    if (rootNote.Type == "Stack") {
-        SA.DualDisplay.SetNumberOfViewers(2);
-    }
-
     // TODO: Get rid of this global variable.
     if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
@@ -965,6 +923,9 @@ function Main(rootNote) {
     SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
                                      SA.DualDisplay);
 
+    if (rootNote.Type == "Stack") {
+        SA.DualDisplay.SetNumberOfViewers(2);
+    }
 
     SA.NotesWidget.SetModifiedCallback(NotesModified);
     SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);

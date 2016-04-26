@@ -17,7 +17,7 @@
         // I am not sure what to do for the fill because
         // I plan to change it to a contour.
 
-        this.Dialog = new SA.Dialog(this);
+        this.Dialog = new SAM.Dialog(this);
         // Customize dialog for a lasso.
         this.Dialog.Title.text('Fill Annotation Editor');
         this.Dialog.Body.css({'margin':'1em 2em'});
@@ -53,14 +53,14 @@
             .addClass("sa-view-fill-input")
             .keypress(function(event) { return event.keyCode != 13; });
 
-        this.Popup = new SA.WidgetPopup(this);
+        this.Popup = new SAM.WidgetPopup(this);
         this.Viewer = viewer;
         this.Viewer.AddWidget(this);
 
         this.Cursor = $('<img>').appendTo('body')
             .addClass("sa-view-fill-cursor")
             .attr('type','image')
-            .attr('src',SA.ImagePathUrl+"brush1.jpg");
+            .attr('src',SAM.ImagePathUrl+"brush1.jpg");
 
         var self = this;
         // I am trying to stop images from getting move events and displaying a circle/slash.
@@ -118,7 +118,7 @@
         /*
           for(var n=0; n < obj.shapes.length; n++){
           var points = obj.shapes[n];
-          var shape = new SA.Polyline();
+          var shape = new SAM.Polyline();
           shape.OutlineColor = [0.9, 1.0, 0.0];
           shape.FixedSize = false;
           shape.LineWidth = 0;
@@ -156,13 +156,13 @@
 
         if (event.which == 1) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
-            this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
+            this.Cursor.attr('src',SAM.ImagePathUrl+"brush1.jpg");
             this.Cursor.show();
             this.Segmentation.AddPositive(ptWorld);
         }
         if (event.which == 3) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
-            this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
+            this.Cursor.attr('src',SAM.ImagePathUrl+"eraser1.jpg");
             this.Cursor.show();
             this.Segmentation.AddNegative(ptWorld);
         }
@@ -307,7 +307,7 @@
         eventuallyRender();
     }
 
-    SA.FillWidget = FillWidget;
+    SAM.FillWidget = FillWidget;
 
 })();
 

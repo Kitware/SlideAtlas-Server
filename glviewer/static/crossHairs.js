@@ -7,7 +7,7 @@
     "use strict";
 
     function CrossHairs() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         this.Length = 50; // Length of the crosing lines
         this.Width = 1; // Width of the cross hair lines.
         this.Origin = [10000,10000]; // position in world coordinates.
@@ -15,7 +15,7 @@
         this.OutlineColor = [1,1,1];
         this.PointBuffer = [];
     };
-    CrossHairs.prototype = new SA.Shape;
+    CrossHairs.prototype = new SAM.Shape;
 
     CrossHairs.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -114,6 +114,6 @@
     }
 
 
-    SA.CrossHairs = CrossHairs;
+    SAM.CrossHairs = CrossHairs;
 
 })();

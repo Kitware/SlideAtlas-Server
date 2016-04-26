@@ -3,7 +3,7 @@
     "use strict";
 
     function Arrow() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         this.Width = 10; // width of the shaft and size of the head
         this.Length = 50; // Length of the arrow in pixels
         this.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
@@ -11,7 +11,7 @@
         this.OutlineColor = [0,0,0];
         this.ZOffset = -0.1;
     };
-    Arrow.prototype = new SA.Shape;
+    Arrow.prototype = new SAM.Shape;
 
 
     Arrow.prototype.destructor=function() {
@@ -24,8 +24,8 @@
         var tmp = -(this.Orientation * Math.PI / 180.0);
         var ct = Math.cos(tmp);
         var st = Math.sin(tmp);
-        xNew =  x*ct + y*st;
-        yNew = -x*st + y*ct;
+        var xNew =  x*ct + y*st;
+        var yNew = -x*st + y*ct;
         tmp = this.Width / 2.0;
         // Had to bump the y detection up by 3x because of unclickability on the iPad.
         if (xNew > 0.0 && xNew < this.Length*1.3 && yNew < tmp*3 && yNew > -tmp*3) {
@@ -111,6 +111,6 @@
         }
     }
 
-    SA.Arrow = Arrow;
+    SAM.Arrow = Arrow;
 
 })();

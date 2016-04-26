@@ -11,7 +11,35 @@ cat ../../slideatlas/static/thirdparty/blob/g7246d68/Blob.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/filesaver/g4d049e9/FileSaver.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.max.js
-cat websocket.js >> sa.max.js
+
+
+cat annotationLayer.js >> sam.max.js 
+cat shape.js >> sam.max.js 
+cat shapeGroup.js >> sam.max.js 
+cat stackSectionWidget.js >> sam.max.js 
+cat sectionsWidget.js >> sam.max.js 
+cat cutoutWidget.js >> sam.max.js 
+cat text.js >> sam.max.js 
+cat textWidget.js >> sam.max.js 
+cat polyline.js >> sam.max.js
+cat polylineWidget.js >> sam.max.js
+cat pencilWidget.js >> sam.max.js 
+cat fillWidget.js >> sam.max.js 
+cat lassoWidget.js >> sam.max.js 
+cat widgetPopup.js >> sam.max.js 
+cat crossHairs.js >> sam.max.js 
+cat arrow.js >> sam.max.js 
+cat arrowWidget.js >> sam.max.js 
+cat circle.js >> sam.max.js 
+cat circleWidget.js >> sam.max.js 
+cat rectWidget.js >> sam.max.js 
+cat gridWidget.js >> sam.max.js 
+cat scaleWidget.js >> sam.max.js 
+cat cutoutWidget.js >> sam.max.js 
+cat imageAnnotation.js >> sam.max.js 
+
+
+
 cat cookies.js >> sa.max.js 
 cat viewEditMenu.js >> sa.max.js 
 cat viewBrowser.js >> sa.max.js 
@@ -26,8 +54,6 @@ cat navigationWidget.js >> sa.max.js
 cat favoritesWidget.js >> sa.max.js 
 cat favoritesBar.js >> sa.max.js 
 cat mobileAnnotationWidget.js >> sa.max.js 
-cat stackSectionWidget.js >> sa.max.js 
-cat sectionsWidget.js >> sa.max.js 
 cat viewer-utils.js >> sa.max.js 
 cat presentation.js >> sa.max.js 
 cat loader.js >> sa.max.js 
@@ -40,43 +66,8 @@ cat tile.js >> sa.max.js
 cat cache.js >> sa.max.js 
 cat section.js >> sa.max.js 
 cat view.js >> sa.max.js 
-cat annotationLayer.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
-cat presentation.js >> sa.max.js 
-cat loader.js >> sa.max.js 
-cat camera.js >> sa.max.js 
-cat cutout.js >> sa.max.js 
-cat seedContour.js >> sa.max.js 
-cat align.js >> sa.max.js 
-cat dialog.js >> sa.max.js 
-cat tile.js >> sa.max.js 
-cat cache.js >> sa.max.js 
-cat section.js >> sa.max.js 
-cat view.js >> sa.max.js 
-cat viewer.js >> sa.max.js 
-cat pairTransformation.js >> sa.max.js 
-cat cutoutWidget.js >> sa.max.js 
-cat text.js >> sa.max.js 
-cat textWidget.js >> sa.max.js 
-cat polyline.js >> sa.max.js
-cat polylineWidget.js >> sa.max.js
-cat pencilWidget.js >> sa.max.js 
-cat fillWidget.js >> sa.max.js 
-cat lassoWidget.js >> sa.max.js 
-cat widgetPopup.js >> sa.max.js 
-cat shape.js >> sa.max.js 
-cat shapeGroup.js >> sa.max.js 
-cat crossHairs.js >> sa.max.js 
-cat arrow.js >> sa.max.js 
-cat arrowWidget.js >> sa.max.js 
-cat circle.js >> sa.max.js 
-cat circleWidget.js >> sa.max.js 
-cat rectWidget.js >> sa.max.js 
-cat gridWidget.js >> sa.max.js 
-cat scaleWidget.js >> sa.max.js 
-cat cutoutWidget.js >> sa.max.js 
-cat imageAnnotation.js >> sa.max.js 
 cat init.js >> sa.max.js 
 
 

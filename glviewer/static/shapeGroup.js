@@ -150,6 +150,6 @@
     }
 
 
-    SA.ShapeGroup = ShapeGroup;
+    SAM.ShapeGroup = ShapeGroup;
 })();
 

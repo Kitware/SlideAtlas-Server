@@ -65,7 +65,7 @@ function Viewer (parent) {
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
-    this.AnnotationLayer = new SA.AnnotationLayer(this.Div, this.MainView.Camera);
+    this.AnnotationLayer = new SAM.AnnotationLayer(this.Div, this.MainView.Camera);
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
@@ -2009,7 +2009,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
         if ( ! SAVING_IMAGE) {
-            SAVING_IMAGE = new SA.Dialog();
+            SAVING_IMAGE = new SAM.Dialog();
             SAVING_IMAGE.Title.text('Saving');
             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
             SAVING_IMAGE.WaitingImage = $('<img>')
@@ -2359,7 +2359,7 @@ Viewer.prototype.HandleOverViewMouseWheel = function(event) {
 Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
     if (vis) {
         if ( ! this.AnnotationWidget) {
-            this.AnnotationWidget = new AnnotationWidget(this);
+            this.AnnotationWidget = new AnnotationWidget(this.AnnotationLayer);
         }
         this.AnnotationWidget.show();
     } else {

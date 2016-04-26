@@ -356,7 +356,7 @@ var DownloadImage = (function () {
         }
 
         
-        var d = new SA.Dialog(StartDownloadCallback);
+        var d = new SAM.Dialog(StartDownloadCallback);
         d.Body.css({'margin':'1em 2em',
                     // Hack no time to figure out layout with border box option.
                     'padding-bottom':'2em',
@@ -572,7 +572,7 @@ var DownloadImage = (function () {
 
         // A dialog to cancel the download before we get all the tiles
         // needed to render thie image.
-        d = new SA.Dialog(CancelDownloadCallback);
+        d = new SAM.Dialog(CancelDownloadCallback);
         DOWNLOAD_WIDGET.CancelDialog = d;
         d.Title.text('Processing');
 

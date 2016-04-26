@@ -18,7 +18,7 @@
         }
 
         var self = this;
-        this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a lasso.
         this.Dialog.Title.text('Lasso Annotation Editor');
         this.Dialog.Body.css({'margin':'1em 2em'});
@@ -81,12 +81,12 @@
         }
 
         this.Layer = layer;
-        this.Popup = new SA.WidgetPopup(this);
+        this.Popup = new SAM.WidgetPopup(this);
         this.Layer.AddWidget(this);
 
         var self = this;
 
-        this.Loop = new SA.Polyline();
+        this.Loop = new SAM.Polyline();
         this.Loop.OutlineColor = [0.0, 0.0, 0.0];
         this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
         this.Loop.FixedSize = false;
@@ -218,7 +218,7 @@
             // Start drawing.
             // Stroke is a temporary line for interaction.
             // When interaction stops, it is converted/merged with loop.
-            this.Stroke = new SA.Polyline();
+            this.Stroke = new SAM.Polyline();
             this.Stroke.OutlineColor = [0.0, 0.0, 0.0];
             this.Stroke.SetOutlineColor(this.Loop.OutlineColor);
             //this.Stroke.SetOutlineColor(this.Dialog.ColorInput.val());
@@ -277,7 +277,7 @@
         this.Loop.SetActive(false);
         this.Popup.Hide();
         this.Layer.GetCanvasDiv().css(
-            {'cursor':'url('+SA.ImagePathUrl+'select_lasso.png) 5 30,crosshair'});
+            {'cursor':'url('+SAM.ImagePathUrl+'select_lasso.png) 5 30,crosshair'});
         this.Layer.EventuallyDraw();
     }
 
@@ -290,7 +290,7 @@
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers();
-            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
             this.Layer.EventuallyDraw();
             return;
         }
@@ -407,7 +407,7 @@
         this.Layer.EventuallyDraw();
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
     }
 
     /*
@@ -665,6 +665,6 @@
     }
 
     
-    SA.LassoWidget = LassoWidget;
+    SAM.LassoWidget = LassoWidget;
 
 })();

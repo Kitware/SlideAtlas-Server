@@ -16,7 +16,7 @@
     // Viewer coordinates.
     // Horizontal or verticle
     function Scale() {
-        SA.Shape.call(this);
+        SAM.Shape.call(this);
         // Dimension of scale element
         this.BinLength = 100.0; // unit length in screen pixels
         this.TickSize = 6; // Screen pixels
@@ -25,10 +25,10 @@
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
-        this.PositionCoordinateSystem = SA.Shape.VIEWER;
+        this.PositionCoordinateSystem = SAM.Shape.VIEWER;
     };
 
-    Scale.prototype = new SA.Shape();
+    Scale.prototype = new SAM.Shape();
 
     Scale.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -87,8 +87,8 @@
         this.Shape.BinLength = 200;
         this.Shape.FixedSize = true;
 
-        this.Text = new SA.Text();
-        this.Text.PositionCoordinateSystem = SA.Shape.VIEWER;
+        this.Text = new SAM.Text();
+        this.Text.PositionCoordinateSystem = SAM.Shape.VIEWER;
         this.Text.Position = [30,5];
         this.Text.String = "";
         this.Text.Color = [0.0, 0.0, 0.0];
@@ -457,6 +457,6 @@
     };
 
 
-    SA.ScaleWidget = ScaleWidget;
+    SAM.ScaleWidget = ScaleWidget;
 
 })();

@@ -196,7 +196,7 @@ AnnotationWidget.prototype.TogglePanel = function() {
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
     var button = this.TextButton;
-    var widget = this.ActivateButton(button, TextWidget);
+    var widget = this.ActivateButton(button, SAM.TextWidget);
     // The dialog is used to set the initial text.
     widget.ShowPropertiesDialog();
 }
@@ -204,22 +204,22 @@ AnnotationWidget.prototype.NewText = function() {
 // Probably want a singleton pencil.
 AnnotationWidget.prototype.NewPencil = function() {
     var button = this.PencilButton;
-    var widget = this.ActivateButton(button, SA.PencilWidget);
+    var widget = this.ActivateButton(button, SAM.PencilWidget);
 }
 
 AnnotationWidget.prototype.NewLasso = function() {
     var button = this.LassoButton;
-    var widget = this.ActivateButton(button, SA.LassoWidget);
+    var widget = this.ActivateButton(button, SAM.LassoWidget);
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
     var button = this.PolylineButton;
-    var widget = this.ActivateButton(button, SA.PolylineWidget);
+    var widget = this.ActivateButton(button, SAM.PolylineWidget);
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
     var button = this.CircleButton;
-    var widget = this.ActivateButton(button, SA.CircleWidget);
+    var widget = this.ActivateButton(button, SAM.CircleWidget);
     // Use the mouse position to place the circle.
     // Mouse in under button.  Should we put the cirlce in the middle?
     widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
@@ -229,7 +229,7 @@ AnnotationWidget.prototype.NewCircle = function() {
 
 AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
-    var widget = this.ActivateButton(button, SA.RectWidget);
+    var widget = this.ActivateButton(button, SAM.RectWidget);
     // DJ: Make sure the rect is around the circle
     widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
         this.Layer.LastMouseX,
@@ -238,7 +238,7 @@ AnnotationWidget.prototype.NewRect = function() {
 
 AnnotationWidget.prototype.NewGrid = function() {
     var button = this.GridButton;
-    var widget = this.ActivateButton(button, SA.GridWidget);
+    var widget = this.ActivateButton(button, SAM.GridWidget);
     var cam = this.Layer.GetCamera();
     var fp = cam.GetFocalPoint();
     // Square grid elements determined by height
@@ -254,7 +254,7 @@ AnnotationWidget.prototype.NewGrid = function() {
 
 AnnotationWidget.prototype.NewFill = function() {
     var button = this.FillButton;
-    var widget = this.ActivateButton(button, SA.FillWidget);
+    var widget = this.ActivateButton(button, SAM.FillWidget);
     widget.Initialize();
 }
 
