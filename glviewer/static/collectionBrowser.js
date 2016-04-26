@@ -391,16 +391,21 @@ CollectionBrowser = (function (){
         args.label = this.Label;
 
         var self = this;
+        SA.PushProgress();
         $.ajax({
             type: "post",
             url: "/session-save",
             data: {"input" :  JSON.stringify( args )},
             success: function(data) {
+                SA.PopProgress();
                 // If copy, view ids have changed.
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
-            error:   function() {console.log( "AJAX - error: session-save (collectionBrowser)" ); }
+            error:   function() {
+                SA.PopProgress();
+                console.log( "AJAX - error: session-save (collectionBrowser)" );
+            }
         });
 
     }
@@ -1147,16 +1152,21 @@ CollectionBrowser = (function (){
         args.label = this.SessionLabel.text();
 
         var self = this;
+        SA.PushProgress();
         $.ajax({
             type: "post",
             url: "/session-save",
             data: {"input" :  JSON.stringify( args )},
             success: function(data) {
+                SA.PopProgress();
                 // If copy, view ids have changed.
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
-            error:   function() {console.log( "AJAX - error: session-save (collectionBrowser)" ); }
+            error:   function() {
+                SA.PopProgress();
+                console.log( "AJAX - error: session-save (collectionBrowser)" );
+            }
         });
 
         // Update the other browser.
