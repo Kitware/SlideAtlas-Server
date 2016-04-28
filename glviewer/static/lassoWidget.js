@@ -153,7 +153,7 @@
     LassoWidget.prototype.HandleMouseWheel = function(event) {
         if ( this.State == DRAWING ||
              this.State == ACTIVE) {
-            if ( ! this.Loop) { return; }
+            if ( ! this.Loop) { return true; }
             var tmp = 0;
 
             if (event.deltaY) {
@@ -228,7 +228,9 @@
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             this.Stroke.Points = [];
             this.Stroke.Points.push([pt[0], pt[1]]); // avoid same reference.
+            return false;
         }
+        return true;
     }
 
     LassoWidget.prototype.HandleMouseUp = function(event) {
@@ -256,13 +258,14 @@
 
             RecordState();
         }
+        return false;
     }
 
     LassoWidget.prototype.HandleDoubleClick = function(event) {
         if (this.State == DRAWING) {
             this.Deactivate();
             return false;
-        } 
+        }
         if (this.State == ACTIVE) {
             this.SetStateToDrawing();
             return false;
@@ -292,15 +295,16 @@
             shape.UpdateBuffers();
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
             this.Layer.EventuallyDraw();
-            return;
+            return false;
         }
 
         if (this.State == ACTIVE &&
             event.which == 0) {
             // Deactivate
             this.SetActive(this.CheckActive(event));
-            return;
+            return false;
         }
+        return true;
     }
 
     LassoWidget.prototype.ComputeActiveCenter = function() {

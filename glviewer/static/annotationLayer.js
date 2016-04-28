@@ -62,11 +62,10 @@
     // TODO: Pass the camera into the draw method.  It is shared here.
     function AnnotationLayer (viewerDiv, viewerCamera) {
         var self = this;
-        this.Parent = parent;
-        //parent.addClass('sa-viewer');
 
         // TODO: Abstract the view to a layer somehow.
         this.AnnotationView = new View(viewerDiv);
+        this.AnnotationView.CanvasDiv.css({'z-index':'100'});
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
 
@@ -83,6 +82,64 @@
         // Scale widget is unique. Deal with it separately so it is not
         // saved with the notes.
         this.ScaleWidget = new SAM.ScaleWidget(this, false);
+
+
+        var self = this;
+        var can = this.AnnotationView.CanvasDiv;
+        can.on(
+            "mousedown.viewer",
+			      function (event){
+                return self.HandleMouseDown(event);
+            });
+        can.on(
+            "mousemove.viewer",
+			      function (event){
+                // So key events go the the right viewer.
+                this.focus();
+                // Firefox does not set which for mouse move events.
+                saFirefoxWhich(event);
+                return self.HandleMouseMove(event);
+            });
+        // We need to detect the mouse up even if it happens outside the canvas,
+        $(document.body).on(
+            "mouseup.viewer",
+			      function (event){
+                self.HandleMouseUp(event);
+                return true;
+            });
+        can.on(
+            "wheel.viewer",
+            function(event){
+                return self.HandleMouseWheel(event.originalEvent);
+            });
+        
+        // I am delaying getting event manager out of receiving touch events.
+        // It has too many helper functions.
+        can.on(
+            "touchstart.viewer",
+            function(event){
+                return self.HandleTouchStart(event.originalEvent);
+            });
+        can.on(
+            "touchmove.viewer",
+            function(event){
+                return self.HandleTouchMove(event.originalEvent);
+            });
+        can.on(
+            "touchend.viewer",
+            function(event){
+                self.HandleTouchEnd(event.originalEvent);
+                return true;
+            });
+
+        // necesary to respond to keyevents.
+        this.AnnotationView.CanvasDiv.attr("tabindex","1");
+        can.on(
+            "keydown.viewer",
+			      function (event){
+                //alert("keydown");
+                return self.HandleKeyDown(event);
+            });
     }
 
     // Try to remove all global references to this viewer.
@@ -231,8 +288,19 @@
         this.WidgetList = [];
     }
 
+    AnnotationLayer.prototype.ComputeMouseWorld = function(event) {
+        this.MouseWorld = this.GetCamera().ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        // Put this extra ivar in the even object.
+        event.worldX = this.MouseWorld[0];
+        event.worldY= this.MouseWorld[1];
+        return this.MouseWorld;
+    }
+
     // TODO: Try to get rid of the viewer argument.
     AnnotationLayer.prototype.HandleTouchStart = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         // Code from a conflict
         // Touch was not activating widgets on the ipad.
         // Show text on hover.
@@ -263,70 +331,105 @@
         }
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleTouchPan = function(event, viewer) {
+    AnnotationLayer.prototype.HandleTouchPan = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleTouchPan) {
-            return this.ActiveWidget.HandleTouchPan(event, viewer);
+            return this.ActiveWidget.HandleTouchPan(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleTouchPinch = function(event, viewer) {
+    AnnotationLayer.prototype.HandleTouchPinch = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleTouchPinch) {
-            return this.ActiveWidget.HandleTouchPinch(event, viewer);
+            return this.ActiveWidget.HandleTouchPinch(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleTouchEnd = function(event, viewer) {
-
+    AnnotationLayer.prototype.HandleTouchEnd = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleTouchEnd) {
-            return this.ActiveWidget.HandleTouchEnd(event, viewer);
+            return this.ActiveWidget.HandleTouchEnd(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleMouseDown = function(event, viewer) {
+    AnnotationLayer.prototype.HandleMouseDown = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
+        var timeNow = new Date().getTime();
+        if (this.LastMouseDownTime) {
+            if ( timeNow - this.LastMouseDownTime < 200) {
+                delete this.LastMouseDownTime;
+                return this.HandleDoubleClick(event);
+            }
+        }
+        this.LastMouseDownTime = timeNow;
+
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseDown) {
-            return this.ActiveWidget.HandleMouseDown(event, viewer);
+            return this.ActiveWidget.HandleMouseDown(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleDoubleClick = function(event, viewer) {
+    AnnotationLayer.prototype.HandleDoubleClick = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleDoubleClick) {
-            return this.ActiveWidget.HandleDoubleClick(event, viewer);
+            return this.ActiveWidget.HandleDoubleClick(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleMouseUp = function(event, viewer) {
+    AnnotationLayer.prototype.HandleMouseUp = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseUp) {
-            return this.ActiveWidget.HandleMouseUp(event, viewer);
+            return this.ActiveWidget.HandleMouseUp(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleMouseMove = function(event, viewer) {
+    AnnotationLayer.prototype.HandleMouseMove = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
+
+        // The event position is relative to the target which can be a tab on
+        // top of the canvas.  Just skip these events.
+        if ($(event.target).width() != $(event.currentTarget).width()) {
+            return true;
+        }
+
+        this.ComputeMouseWorld(event);
+
+        // Firefox does not set "which" for move events.
+        event.which = event.buttons;
+        if (event.which == 2) {
+            event.which = 3;
+        } else if (event.which == 3) {
+            event.which = 2;
+        }
+
         if (this.ActiveWidget) {
             if (this.ActiveWidget.HandleMouseMove) {
-                this.ActiveWidget.HandleMouseMove(event, viewer);
+                var ret = this.ActiveWidget.HandleMouseMove(event);
+                return ret;
             }
         } else {
-            if ( ! viewer.FireFoxWhich) {
+            if ( ! event.which) {
                 this.CheckActive(event);
+                return true;
             }
         }
 
@@ -335,19 +438,22 @@
         return ! this.ActiveWidget;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleMouseWheel = function(event, viewer) {
+    AnnotationLayer.prototype.HandleMouseWheel = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseWheel) {
-            return this.ActiveWidget.HandleMouseWheel(event, viewer);
+            return this.ActiveWidget.HandleMouseWheel(event);
         }
         return ! this.ActiveWidget;
-        return true;
     }
 
-    // TODO: Get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleKeyDown = function(event, viewer) {
+    AnnotationLayer.prototype.HandleKeyDown = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget && this.ActiveWidget.HandleKeyDown) {
-            return this.ActiveWidget.HandleKeyDown(event, viewer);
+            return this.ActiveWidget.HandleKeyDown(event);
         }
         return ! this.ActiveWidget;
     }
@@ -356,6 +462,9 @@
     // Looks for widgets under the cursor to make active.
     // Returns true if a widget is active.
     AnnotationLayer.prototype.CheckActive = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
         if (this.ActiveWidget) {
             return this.ActiveWidget.CheckActive(event);
         } else {
