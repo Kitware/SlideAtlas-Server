@@ -28,6 +28,7 @@ function Viewer (parent) {
     this.Div = $('<div>')
         .appendTo(this.Parent)
         .css({'position':'relative',
+              'border-width':'0px',
               'width':'100%',
               'height':'100%',
               'box-sizing':'border-box'})
@@ -36,6 +37,16 @@ function Viewer (parent) {
         function() {
             self.UpdateSize();
         });
+
+    this.LayerDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'relative',
+              'border-width':'0px',
+              'width':'100%',
+              'height':'100%',
+              'box-sizing':'border-box'})
+        .addClass('sa-resize');
+
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
@@ -65,7 +76,8 @@ function Viewer (parent) {
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
-    this.AnnotationLayer = new SAM.AnnotationLayer(this.Div, this.MainView.Camera);
+    this.AnnotationLayer = new SAM.AnnotationLayer(this.LayerDiv, 
+                                                   this.MainView.Camera);
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
@@ -1365,6 +1377,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // See if any widget became active.
+    /*
     if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility()) {
         // TODO:
         // I do not like storing these ivars in this object.
@@ -1374,7 +1387,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
         this.MouseWorld = this.ComputeMouseWorld(event);
         return this.AnnotationLayer.HandleTouchStart(event,viewer);
     }
-
+    */
     return false;
 }
 
@@ -1421,10 +1434,12 @@ Viewer.prototype.HandleTouchPan = function(event) {
     }
 
     // Forward the events to the widget if one is active.
+    /*
     if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
         ! this.AnnotationLayer.HandleTouchPan(event, this)) {
         return false;
     }
+    */
 
     // I see an odd intermittent camera matrix problem
     // on the iPad that looks like a thread safety issue.
@@ -1574,10 +1589,10 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     scale = s1/ s0;
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleTouchPinch(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleTouchPinch(event, this)) {
+    //    return false;
+    //}
 
     // scale is around the mid point .....
     // we need to compute focal point height and roll (not just a matrix).
@@ -1644,11 +1659,11 @@ Viewer.prototype.HandleTouchEnd = function(event) {
 
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && 
-        this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleTouchEnd(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && 
+    //    this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleTouchEnd(event, this)) {
+    //    return false;
+    //}
 
     //this.UpdateZoomGui();
     this.HandleMomentum(event);
@@ -1782,10 +1797,10 @@ Viewer.prototype.HandleMouseDown = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleMouseDown(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleMouseDown(event, this)) {
+    //    return false;
+    //}
 
     // Choose what interaction will be performed.
     if (event.which == 1 ) {
@@ -1809,10 +1824,10 @@ Viewer.prototype.HandleDoubleClick = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleDoubleClick(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleDoubleClick(event, this)) {
+    //    return false;
+    //}
 
     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
     if (event.which == 1) {
@@ -1841,10 +1856,10 @@ Viewer.prototype.HandleMouseUp = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleMouseUp(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleMouseUp(event, this)) {
+    //    return false;
+    //}
 
     if (this.InteractionState != INTERACTION_NONE) {
         this.InteractionState = INTERACTION_NONE;
@@ -1856,6 +1871,7 @@ Viewer.prototype.HandleMouseUp = function(event) {
     return false; // trying to keep the browser from selecting images
 }
 
+/*
 Viewer.prototype.ComputeMouseWorld = function(event) {
     // We need to save these for pasting annotation.
     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
@@ -1866,6 +1882,7 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
     // NOTE: DANGER!  user could change this pointer.
     return this.MouseWorld;
 }
+*/
 
 Viewer.prototype.HandleMouseMove = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
@@ -1880,7 +1897,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // TODO: Get rid of this. Should be done with image properties.
     //event.preventDefault(); // Keep browser from selecting images.
     if ( ! this.RecordMouseMove(event)) { return true; }
-    this.ComputeMouseWorld(event);
+    //this.ComputeMouseWorld(event);
 
     // I think we need to deal with the move here because the mouse can
     // exit the icon and the events are lost.
@@ -1895,10 +1912,10 @@ Viewer.prototype.HandleMouseMove = function(event) {
     }
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleMouseMove(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleMouseMove(event, this)) {
+    //    return false;
+    //}
 
     if (this.InteractionState == INTERACTION_NONE) {
         // Allow the ResizePanel drag to process the events.
@@ -1950,6 +1967,10 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // The only interaction that does not go through animate camera.
     this.TriggerInteraction();
     this.EventuallyRender(true);
+
+    var x = event.offsetX;
+    var y = event.offsetY;
+
     return false; 
 }
 
@@ -1957,10 +1978,10 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleMouseWheel(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleMouseWheel(event, this)) {
+    //    return false;
+    //}
 
     if ( ! event.offsetX) {
         // for firefox
@@ -2070,10 +2091,10 @@ Viewer.prototype.HandleKeyDown = function(event) {
 
     //----------------------
     // Forward the events to the widget if one is active.
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleKeyDown(event, this)) {
-        return false;
-    }
+    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
+    //    ! this.AnnotationLayer.HandleKeyDown(event, this)) {
+    //    return false;
+    //}
 
     if (String.fromCharCode(event.keyCode) == 'R') {
         //this.MainView.Camera.Reset();
