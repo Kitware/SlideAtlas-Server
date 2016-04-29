@@ -472,7 +472,7 @@ Contour.prototype.MakePolyline = function(rgb, view) {
     }
 
     // Create a polylineWidget from the loop.
-    var pl = new Polyline();
+    var pl = new SAM.Polyline();
     pl.OutlineColor = rgb;
 
     pl.Points = slidePoints;
@@ -494,7 +494,7 @@ Contour.prototype.MakePolyline = function(rgb, view) {
 Contour.prototype.MakeStackSectionWidget = function() {
     // Make an annotation out of the points.
     // Create a widget.
-    var w = new StackSectionWidget();
+    var w = new SAM.StackSectionWidget();
     w.Shapes.push(this.MakePolyline([0,1,0]));
     // Probably still in pixel coordinates.
     //w.Bounds = this.GetBounds();
@@ -566,7 +566,7 @@ function Segmentation (viewer) {
         this.Mask.data[i] = this.Data.data[i];
     }
 
-    this.ImageAnnotation = new ImageAnnotation();
+    this.ImageAnnotation = new SAM.ImageAnnotation();
     this.ImageAnnotation.Image = document.createElement('img');
     this.ImageAnnotation.Image.src = this.Canvas.toDataURL('image/png');
     var cam = viewer.GetCamera();

@@ -11,8 +11,9 @@
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
 // or maybe the delete key.
 
-function AnnotationWidget (layer) {
+function AnnotationWidget (layer, viewer) {
     var self = this; // trick to set methods in callbacks.
+    this.Viewer = viewer;
     this.Layer = layer;
     layer.AnnotationWidget = this;
 
@@ -97,16 +98,16 @@ function AnnotationWidget (layer) {
         .attr('src',SA.ImagePathUrl+"select_lasso.png")
         .prop('title', "Lasso")
         .click(function(){self.NewLasso();});
-    /*
-    this.SectionsButton = $('<img>')
-        .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button sa-flat-button-active")
-        .addClass('sa-active')
-        .attr('type','image')
-        .attr('src',SA.ImagePathUrl+"sections.png")
-        .prop('title', "Segment")
-        .click(function(){self.DetectSections();});
-    */
+    if (this.Viewer) {
+        this.SectionsButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .addClass("sa-view-annotation-button sa-flat-button-active")
+            .addClass('sa-active')
+            .attr('type','image')
+            .attr('src',SA.ImagePathUrl+"sections.png")
+            .prop('title', "Segment")
+            .click(function(){self.DetectSections();});
+    }
     /*
     this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
@@ -316,7 +317,7 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SectionsWidget(this.Layer, false);
+        widget = new SAM.SectionsWidget(this.Viewer, false);
         widget.ComputeSections();
         if (widget.IsEmpty()) {
             this.Layer.RemoveWidget(widget);

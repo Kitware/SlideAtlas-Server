@@ -11964,8 +11964,9 @@ Tab = (function () {
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
 // or maybe the delete key.
 
-function AnnotationWidget (layer) {
+function AnnotationWidget (layer, viewer) {
     var self = this; // trick to set methods in callbacks.
+    this.Viewer = viewer;
     this.Layer = layer;
     layer.AnnotationWidget = this;
 
@@ -12050,16 +12051,16 @@ function AnnotationWidget (layer) {
         .attr('src',SA.ImagePathUrl+"select_lasso.png")
         .prop('title', "Lasso")
         .click(function(){self.NewLasso();});
-    /*
-    this.SectionsButton = $('<img>')
-        .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button sa-flat-button-active")
-        .addClass('sa-active')
-        .attr('type','image')
-        .attr('src',SA.ImagePathUrl+"sections.png")
-        .prop('title', "Segment")
-        .click(function(){self.DetectSections();});
-    */
+    if (this.Viewer) {
+        this.SectionsButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .addClass("sa-view-annotation-button sa-flat-button-active")
+            .addClass('sa-active')
+            .attr('type','image')
+            .attr('src',SA.ImagePathUrl+"sections.png")
+            .prop('title', "Segment")
+            .click(function(){self.DetectSections();});
+    }
     /*
     this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
@@ -12269,7 +12270,7 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SectionsWidget(this.Layer, false);
+        widget = new SAM.SectionsWidget(this.Viewer, false);
         widget.ComputeSections();
         if (widget.IsEmpty()) {
             this.Layer.RemoveWidget(widget);
@@ -22117,7 +22118,7 @@ Contour.prototype.MakePolyline = function(rgb, view) {
     }
 
     // Create a polylineWidget from the loop.
-    var pl = new Polyline();
+    var pl = new SAM.Polyline();
     pl.OutlineColor = rgb;
 
     pl.Points = slidePoints;
@@ -22139,7 +22140,7 @@ Contour.prototype.MakePolyline = function(rgb, view) {
 Contour.prototype.MakeStackSectionWidget = function() {
     // Make an annotation out of the points.
     // Create a widget.
-    var w = new StackSectionWidget();
+    var w = new SAM.StackSectionWidget();
     w.Shapes.push(this.MakePolyline([0,1,0]));
     // Probably still in pixel coordinates.
     //w.Bounds = this.GetBounds();
@@ -22211,7 +22212,7 @@ function Segmentation (viewer) {
         this.Mask.data[i] = this.Data.data[i];
     }
 
-    this.ImageAnnotation = new ImageAnnotation();
+    this.ImageAnnotation = new SAM.ImageAnnotation();
     this.ImageAnnotation.Image = document.createElement('img');
     this.ImageAnnotation.Image.src = this.Canvas.toDataURL('image/png');
     var cam = viewer.GetCamera();
@@ -31130,11 +31131,14 @@ function Main(rootNote) {
                                          SA.DualDisplay.Viewers[1]);
         var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
                                          SA.DualDisplay.Viewers[0]);
-
-        var annotationWidget1 = new AnnotationWidget(SA.DualDisplay.Viewers[0].GetAnnotationLayer());
+        var viewer = SA.DualDisplay.Viewers[0];
+        var annotationWidget1 =
+            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
         annotationWidget1.SetVisibility(2);
-        var annotationWidget2 = new AnnotationWidget(SA.DualDisplay.Viewers[1].GetAnnotationLayer());
-        annotationWidget1.SetVisibility(2);
+        var viewer = SA.DualDisplay.Viewers[1];
+        var annotationWidget2 =
+            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
+        annotationWidget2.SetVisibility(2);
         SA.DualDisplay.UpdateGui();
     }
 

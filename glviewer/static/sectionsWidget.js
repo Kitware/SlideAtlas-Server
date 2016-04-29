@@ -35,19 +35,21 @@
 
         this.Type = "sections";
         this.Viewer = viewer;
-        this.Viewer.AddWidget(this);
+        this.Layer = viewer.GetAnnotationLayer();
+        this.Layer.AddWidget(this);
 
         var self = this;
 
         this.Sections = [];
         this.Active = false;
-        eventuallyRender();
-        
+        this.Layer.EventuallyDraw();
+        this.Viewer.EventuallyRender();
+
         this.ActiveSection = null;
         this.DragBounds = null;
         this.DragViewBounds = null;
 
-        // Just one delete button. 
+        // Just one delete button.
         // Just move it around with the active section.
         this.DeleteButton = $('<img>')
             .appendTo(parent)
@@ -111,7 +113,7 @@
         // TODO: Simplify args by making x axis = 1, and sign code for direction.
         this.ViewSortSections(1,-1, 0,1);
 
-        this.CreationCamera = this.Viewer.GetCamera().Serialize();
+        this.CreationCamera = this.Layer.GetCamera().Serialize();
     }
 
 
@@ -137,7 +139,7 @@
         var direction1 = 1;
         if (this.ActiveSection) {
             var allBds = this.GetBounds();
-            var allCenter = this.Viewer.ConvertPointWorldToViewer(
+            var allCenter = this.Layer.ConvertPointWorldToViewer(
                 (allBds[0]+allBds[1])*0.5, (allBds[0]+allBds[1])*0.5);
             var center = this.ActiveSection.GetViewCenter(this.Viewer.MainView);
             if (center[0] < allCenter[0]) {
@@ -192,7 +194,7 @@
                 this.Sections[i-1] = tmp;
             }
         }
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     }
 
     SectionsWidget.prototype.DeleteActiveSection = function() {
@@ -202,7 +204,7 @@
         this.RemoveSection(section);
         if (this.IsEmpty()) {
             this.RemoveFromViewer();
-            eventuallyRender();
+            this.Layer.EventuallyDraw();
             RecordState();
         }
     }
@@ -228,13 +230,13 @@
             // Draw moves it to the correct location.
         }
         this.ActiveSection = section;
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     }
 
 
     SectionsWidget.prototype.PlaceDeleteButton = function(section) {
         if (section) {
-            p = section.ViewUpperRight;
+            var p = section.ViewUpperRight;
             this.DeleteButton
                 .show()
                 .css({'left': (p[0]-10)+'px',
@@ -316,7 +318,7 @@
     // Load a widget from a json object (origin MongoDB).
     SectionsWidget.prototype.Load = function(obj) {
         for(var n=0; n < obj.sections.length; n++){
-            var section = new StackSectionWidget();
+            var section = new SAM.StackSectionWidget();
             section.Load(obj.sections[n]);
             if ( ! section.IsEmpty()) {
                 this.Sections.push(section);
@@ -339,7 +341,9 @@
     SectionsWidget.prototype.HandleKeyPress = function(event, shift) {
         if (event.keyCode == 46) {
             this.DeleteActiveSection();
+            return false;
         }
+        return true;
     }
 
     SectionsWidget.prototype.HandleMouseDown = function(event) {
@@ -352,7 +356,9 @@
                     .css({'left': event.offsetX+'px',
                           'top' : event.offsetY+'px'});
             }
+            return false;
         }
+        return true;
     }
 
     SectionsWidget.prototype.HandleMouseUp = function(event) {
@@ -366,12 +372,14 @@
                 this.ProcessBounds(this.DragBounds);
             }
             this.DragBounds = null;
-            eventuallyRender();
+            this.Layer.EventuallyDraw();
         }
         this.Menu.hide();
+        return false;
     }
 
     SectionsWidget.prototype.HandleDoubleClick = function(event) {
+        return true;
     }
 
     SectionsWidget.prototype.HandleMouseMove = function(event) {
@@ -380,10 +388,11 @@
         if (event.which == 1) {
             // Drag out a bounding box.
             // Keep the bounding box in slide coordinates for now.
-            pt0 = this.Viewer.ConvertPointViewerToWorld(this.StartX, this.StartY);
-            pt1 = this.Viewer.ConvertPointViewerToWorld(x, y);
+            var pt0 = this.Viewer.ConvertPointViewerToWorld(this.StartX, this.StartY);
+            var pt1 = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.DragBounds = [pt0[0],pt1[0], pt0[1],pt1[1]];
-            eventuallyRender();
+            this.Layer.EventuallyDraw();
+            return false;
         }
 
         if (event.which == 0) {
@@ -402,10 +411,7 @@
                 }
             }
             this.SetActiveSection(bestSection);
-        }
-
-        if (event.which == 1) {
-            return;
+            return true;
         }
     }
 
@@ -421,26 +427,20 @@
     // It can move to other states and stay active.
     SectionsWidget.prototype.SetActive = function(flag) {
         if (flag) {
-            this.Viewer.ActivateWidget(this);
+            this.Layer.ActivateWidget(this);
             this.Active = true;
         } else {
-            this.Viewer.DeactivateWidget(this);
+            this.Layer.DeactivateWidget(this);
             this.Active = false;
             if (this.DeactivateCallback) {
                 this.DeactivateCallback();
             }
         }
-        eventuallyRender();
+        this.Layer.EventuallyDraw();
     }
 
     SectionsWidget.prototype.Deactivate = function() {
         this.SetActive(false);
-    }
-
-    SectionsWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.Viewer.RemoveWidget(this);
-        }
     }
 
     // The multiple actions of bounds might be confusing to the user.
@@ -495,12 +495,12 @@
                                // TODO: Move the hagfish specific method in to this class.
                                var contours = self.GetBigContours(data, threshold);
                                if (contours.length == 0) { return; }
-                               var w = new StackSectionWidget();
+                               var w = new SAM.StackSectionWidget();
                                for (var i = 0; i < contours.length; ++i) {
                                    w.Shapes.push(contours[i].MakePolyline([0,1,0]));
                                }
                                self.Sections.push(w);
-                               eventuallyRender();
+                               this.Layer.EventuallyDraw();
                            });
         }
 
@@ -518,7 +518,7 @@
             if (partial.length == 0) {
                 var idx;
                 // Split it up.
-                var newSection = new StackSectionWidget();
+                var newSection = new SAM.StackSectionWidget();
                 newSection.Shapes = full;
                 for (var i = 0; i < full.length; ++i) {
                     idx = section.Shapes.indexOf(full[i]);
