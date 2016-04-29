@@ -997,11 +997,14 @@ function Main(rootNote) {
                                          SA.DualDisplay.Viewers[1]);
         var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
                                          SA.DualDisplay.Viewers[0]);
-
-        var annotationWidget1 = new AnnotationWidget(SA.DualDisplay.Viewers[0].GetAnnotationLayer());
+        var viewer = SA.DualDisplay.Viewers[0];
+        var annotationWidget1 =
+            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
         annotationWidget1.SetVisibility(2);
-        var annotationWidget2 = new AnnotationWidget(SA.DualDisplay.Viewers[1].GetAnnotationLayer());
-        annotationWidget1.SetVisibility(2);
+        var viewer = SA.DualDisplay.Viewers[1];
+        var annotationWidget2 =
+            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
+        annotationWidget2.SetVisibility(2);
         SA.DualDisplay.UpdateGui();
     }
 

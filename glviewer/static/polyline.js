@@ -41,7 +41,7 @@
 
     // Internal bounds will ignore origin and orientation.
     Polyline.prototype.GetBounds = function () {
-        var bounds = this.Bounds.slide(0);
+        var bounds = this.Bounds.slice(0);
         bounds[0] += this.Origin[0];
         bounds[1] += this.Origin[0];
         bounds[2] += this.Origin[1];
