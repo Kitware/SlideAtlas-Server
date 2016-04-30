@@ -296,7 +296,8 @@ CollectionBrowser = (function (){
         if (SELECTED.length == 0) {
             return;
         }
-        if (this.State != Loaded) {
+        if (this.State != LOADED) {
+            ClearSelected();
             alert("Destintation is not finished loading.");
             return;
         }
