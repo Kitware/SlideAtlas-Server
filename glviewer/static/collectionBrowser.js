@@ -753,6 +753,7 @@ CollectionBrowser = (function (){
                 function () {$(this).removeClass("sa-active")})
             .mousedown(
                 function(event){
+                    if (PROGRESS_COUNT) { reutrn true;}
                     event.preventDefault();
                     // If we leave with the mouse pressed, then a drag
                     // is started.
@@ -769,6 +770,7 @@ CollectionBrowser = (function (){
                 })
             .mouseup(
                 function(event){
+                    if (PROGRESS_COUNT) { reutrn true;}
                     var view = this.View;
                     event.preventDefault();
                     view.Item.unbind('mouseleave', leaveHandler);
