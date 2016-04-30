@@ -364,7 +364,7 @@ CollectionBrowser = (function (){
 
         // Sanity check for debugging.
         // Make sure the new session has all the "selected" views.
-        for (var i = 0; i < COPY.length(); ++i) {
+        for (var i = 0; i < COPY.length; ++i) {
             var viewObj = COPY[i].viewData;
             // Make sure the views are in the new session.
             var found = false;
