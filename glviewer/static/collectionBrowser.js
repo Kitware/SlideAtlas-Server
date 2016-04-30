@@ -291,6 +291,8 @@ CollectionBrowser = (function (){
             return;
         }
 
+        var COPY = SELECTED.slice(0);
+
         // We have to deal with viewObjects because copies have no view GUIs
         var selectedViewObjects = [];
 
@@ -341,7 +343,7 @@ CollectionBrowser = (function (){
         // Add the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
-            // We have to be careful. If the destination session is the 
+            // We have to be careful. If the destination session is the
             // same as the source destination.  Make a copy of the viewObj
             // so it will not be removed when trying to remove the
             // original.  Shallow copy so we do not need to duplicate the gui.
@@ -359,6 +361,32 @@ CollectionBrowser = (function (){
             var sessionObj = viewObj.SessionObject;
             sessionObj.RemoveViewObject(viewObj);
         }
+
+        // Sanity check for debugging.
+        // Make sure the new session has all the "selected" views.
+        for (var i = 0; i < COPY.length(); ++i) {
+            var viewObj = COPY[i].viewData;
+            // Make sure the views are in the new session.
+            var found = false;
+            for (j = 0; j < this.ViewObjects.length; ++j) {
+                if (this.ViewObjects[j].Id == viewObj.Id) {
+                    found == true;
+                    break;
+                }
+            }
+            if ( ! found) {
+                console.log("lost: " + viewObj.Id);
+            }
+            // Make sure the views are removed from the previous session.
+            if ( ! copy) {
+                var sessionObj = viewObj.SessionObject;
+                for (var j = 0; j < sessionObj.ViewObjects.length; ++j) {
+                    if(sessionObj.ViewObjects[j].Id == viewObj.Id) {
+                        console.log("Move did not remove: " + viewObj.Id);
+                    }
+                }
+            }
+        }   
 
 
         // I am not sure that the GUI stuff belongs in this method.
@@ -525,6 +553,7 @@ CollectionBrowser = (function (){
         view.ViewData.Selected = true;
     }
 
+    // Removes a specific view from the SELECTED array.  (i.e. unselect).
     function RemoveSelected(view) {
         view.ViewData.Selected = false;
         view.Item.removeClass("sa-view-browser-item sa-selected");
