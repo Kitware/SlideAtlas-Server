@@ -379,14 +379,18 @@ CollectionBrowser = (function (){
                 }
             }
             if ( ! found) {
-                console.log("lost: " + viewObj.Id);
+                HistoryUndo();
+                alert("lost: " + viewObj.Label);
+                return;
             }
             // Make sure the views are removed from the previous session.
             if ( ! copy) {
                 var sessionObj = viewObj.SessionObject;
                 for (var j = 0; j < sessionObj.ViewObjects.length; ++j) {
                     if(sessionObj.ViewObjects[j].Id == viewObj.Id) {
-                        console.log("Move did not remove: " + viewObj.Id);
+                        HistoryUndo();
+                        alert("Move did not remove: " + viewObj.Label);
+                        return;
                     }
                 }
             }
