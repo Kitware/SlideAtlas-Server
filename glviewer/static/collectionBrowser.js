@@ -148,11 +148,14 @@ CollectionBrowser = (function (){
         this.CollectionObjects = [];
         // Make the request.
         var self = this;
+        PushProgress();
         $.get("/sessions?json=true",
               function(data,status){
                   if (status == "success") {
+                      PopProgress();
                       self.Load(data);
                   } else {
+                      PopProgress();
                       console.log("ajax failed.");
                   }
               });   
@@ -233,13 +236,16 @@ CollectionBrowser = (function (){
         var self = this;
         this.State = WAITING
 
+        PushProgress();
         $.ajax({
             type: "get",
             url: "/sessions?json=1&sessid="+this.Id,
             success: function(data) {
+                PopProgress();
                 self.LoadViewData(data);
             },
             error: function() {
+                PopProgress();
                 if (errorCallback) {
                     (errorCallback)();
                 }
