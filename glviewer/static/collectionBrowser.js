@@ -296,6 +296,10 @@ CollectionBrowser = (function (){
         if (SELECTED.length == 0) {
             return;
         }
+        if (this.State != Loaded) {
+            alert("Destintation is not finished loading.");
+            return;
+        }
 
         // We have to deal with viewObjects because copies have no view GUIs
         var selectedViewObjects = [];
