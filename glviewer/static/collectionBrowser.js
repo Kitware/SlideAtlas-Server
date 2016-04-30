@@ -369,7 +369,7 @@ CollectionBrowser = (function (){
         // Sanity check for debugging.
         // Make sure the new session has all the "selected" views.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
-            var viewObj = selectedViewObjects[i].ViewData;
+            var viewObj = selectedViewObjects[i];
             // Make sure the views are in the new session.
             var found = false;
             for (j = 0; j < this.ViewObjects.length; ++j) {
