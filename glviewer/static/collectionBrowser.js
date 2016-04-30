@@ -391,11 +391,13 @@ CollectionBrowser = (function (){
             // Make sure the views are removed from the previous session.
             if ( ! copy) {
                 var sessionObj = viewObj.SessionObject;
-                for (var j = 0; j < sessionObj.ViewObjects.length; ++j) {
-                    if(sessionObj.ViewObjects[j].Id == viewObj.Id) {
-                        HistoryUndo();
-                        alert("Move did not remove: " + viewObj.Label);
-                        return;
+                if (this.Id != sessionObj.Id) {
+                    for (var j = 0; j < sessionObj.ViewObjects.length; ++j) {
+                        if(sessionObj.ViewObjects[j].Id == viewObj.Id) {
+                            HistoryUndo();
+                            alert("Move did not remove: " + viewObj.Label);
+                            return;
+                        }
                     }
                 }
             }
