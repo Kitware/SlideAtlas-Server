@@ -291,8 +291,6 @@ CollectionBrowser = (function (){
             return;
         }
 
-        var COPY = SELECTED.slice(0);
-
         // We have to deal with viewObjects because copies have no view GUIs
         var selectedViewObjects = [];
 
@@ -364,13 +362,13 @@ CollectionBrowser = (function (){
 
         // Sanity check for debugging.
         // Make sure the new session has all the "selected" views.
-        for (var i = 0; i < COPY.length; ++i) {
-            var viewObj = COPY[i].ViewData;
+        for (var i = 0; i < selectedViewObjects.length; ++i) {
+            var viewObj = selectedViewObjects[i].ViewData;
             // Make sure the views are in the new session.
             var found = false;
             for (j = 0; j < this.ViewObjects.length; ++j) {
                 if (this.ViewObjects[j].Id == viewObj.Id) {
-                    found == true;
+                    found = true;
                     break;
                 }
             }
