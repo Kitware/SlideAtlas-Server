@@ -47,7 +47,6 @@ function Viewer (parent) {
               'box-sizing':'border-box'})
         .addClass('sa-resize');
 
-
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
@@ -84,7 +83,9 @@ function Viewer (parent) {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
-        this.OverViewDiv = $('<div>').appendTo(this.Div);
+        this.OverViewDiv = $('<div>')
+            .appendTo(this.Div);
+
         this.OverView = new View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
@@ -112,7 +113,7 @@ function Viewer (parent) {
             });
         // Try to make the overview be on top of the rotate icon
         // It should receive events before the rotate icon.
-        this.OverView.CanvasDiv.css({'z-index':'2'});
+        this.OverView.CanvasDiv.css({'z-index':'200'});
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
@@ -1078,14 +1079,14 @@ Viewer.prototype.Draw = function() {
 
     // This is only necessary for webgl, Canvas2d just uses a border.
     this.MainView.DrawOutline(false);
+    this.AnnotationLayer.Draw();
+    // This is not used anymore
+    this.MainView.DrawShapes();
     if (this.OverView) {
         this.OverView.DrawTiles();
         this.OverView.DrawOutline(true);
     }
 
-    // This is not used anymore
-    this.MainView.DrawShapes();
-    this.AnnotationLayer.Draw();
 
     // Draw a rectangle in the overview representing the camera's view.
     if (this.OverView) {
