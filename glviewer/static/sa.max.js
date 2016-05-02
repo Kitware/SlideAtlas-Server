@@ -14343,6 +14343,11 @@ saElement.prototype.ProcessArguments = function(args) {
     this.ConvertToPercentages();
 }
 
+saElement.prototype.SetClickCallback = function(callback) {
+    this.ClickCallback = callback;
+    this.Clickable = true;
+}
+
 
 // Not the best function name.  Editable => draggable, expandable and deletable.
 saElement.prototype.EditableOn = function() {
@@ -14762,6 +14767,8 @@ saElement.prototype.ConvertToPercentages = function() {
 // "subclass" of this rectangle object.
 
 jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
+    // Setup the superclass saElement.
+    this.saElement();
     this.addClass('sa-presentation-rectangle');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
@@ -14777,8 +14784,6 @@ jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
 function saRectangle(div) {
     var self = this;
     this.Div = div;
-    // Setup the superclass saElement.
-    div.saElement();
     var element = div[0].saElement;
     this.BackgroundPanel = element.AddAccordionTab(
         "Background",
@@ -14924,6 +14929,8 @@ saRectangle.prototype.DialogApply = function () {
 // Text: dialog to set margin, text size, spacing, (font in the future)
 
 jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
+    // Setup the superclass saElement.
+    this.saRectangle();
     this.addClass('sa-text');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
@@ -14939,10 +14946,6 @@ jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
 function saText(div) {
     var self = this;
     this.Div = div;
-    // Setup the superclass saElement.
-    // It may not be necessary to have official super classes.
-    // We could follow the interface pattern.
-    div.saRectangle();
     var element = div[0].saElement;
     this.PaddingPanel = element.AddAccordionTab(
         "Margins",
@@ -15061,6 +15064,8 @@ saText.prototype.DialogPaddingApply = function () {
 // Questions
 //
 jQuery.prototype.saQuestion = function(arg1) { // 'arguments' handles extras.
+    // Setup the superclass saRectangle.
+    this.saText();
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saQuestion) {
             // Add the helper as an instance variable to the dom object.
@@ -15078,8 +15083,6 @@ function saQuestion(div) {
     this.Div = div;
     this.Div.addClass('sa-question');
 
-    // Setup the superclass saRectangle.
-    div.saText();
     var element = div[0].saElement;
     element.Dialog.Dialog.css({'width':'500px'});
 
@@ -15903,6 +15906,8 @@ saTextEditor.prototype.SetPositionPixel = function(x, y) {
 
 
 jQuery.prototype.saLightBox = function(arg1) { // 'arguments' handles extras.
+    // Superclass constructor.
+    this.saElement();
     this.addClass('sa-light-box');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saLightBox) {
@@ -15918,7 +15923,7 @@ jQuery.prototype.saLightBox = function(arg1) { // 'arguments' handles extras.
 
 function saLightBox(div) {
     var self = this;
-    div.saElement({click: function() {self.Expand(true);}});
+    div[0].saElement.SetClickCallback(function() {self.Expand(true);});
 
     this.Div = div;
     this.Expanded = false;
@@ -15951,7 +15956,7 @@ saLightBox.prototype.ProcessArguments = function(args) {
     if (args.length == 0) { return; }
 
     // Superclass
-    this.Div.saElement(args);
+    this.Div[0].saElement.ProcessArguments(args);
 
     // generic method call. Give jquery ui access to all this objects methods.
     if (typeof(this[args[0]]) == 'function') {
