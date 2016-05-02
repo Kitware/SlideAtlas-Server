@@ -7924,7 +7924,8 @@ function ViewEditMenu (viewer, otherViewer) {
     this.Tab.Div
         .css({'position':'absolute',
               'right':'47px',
-              'bottom':'0px'})
+              'bottom':'0px',
+              'z-index':'200'})
         .prop('title', "View Menu");
 
     this.Tab.Panel.addClass("sa-view-edit-panel");
@@ -28028,7 +28029,8 @@ Viewer.prototype.InitializeZoomGui = function() {
         .css({'box-sizing': 'border-box',
               'position':'absolute',
               'bottom':'0px',
-              'right':'7px'})
+              'right':'7px',
+              'z-index':'200'})
         .prop('title', "Zoom scroll");
     this.ZoomTab.Panel
         .addClass("sa-view-zoom-panel");

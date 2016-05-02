@@ -26,7 +26,8 @@ function ViewEditMenu (viewer, otherViewer) {
     this.Tab.Div
         .css({'position':'absolute',
               'right':'47px',
-              'bottom':'0px'})
+              'bottom':'0px',
+              'z-index':'200'})
         .prop('title', "View Menu");
 
     this.Tab.Panel.addClass("sa-view-edit-panel");
