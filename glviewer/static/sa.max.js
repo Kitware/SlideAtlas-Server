@@ -10199,6 +10199,7 @@ Note.prototype.AddChild = function(childNote, first) {
   this.UpdateChildrenGUI();
 }
 
+// TODO: Get the GUI stuff out of note objects.
 Note.prototype.UpdateChildrenGUI = function() {
     // Callback trick
     var self = this;
@@ -10232,14 +10233,31 @@ Note.prototype.UpdateChildrenGUI = function() {
         return;
     }
 
+    // Move all the views to the end.  They do not take part in the notes
+    // gui. They are for text links.  They may mess up drag ordering.
+    var newChildren = [];
     for (var i = 0; i < this.Children.length; ++i) {
-        this.Children[i].DisplayGUI(this.ChildrenDiv);
-        // Indexes used for sorting.
-        this.Children[i].Div.data("index", i);
-        if (this.Children.length > 1) {
-            this.Children[i].SortHandle.addClass('sa-sort-handle');
-        } else {
-            this.Children[i].SortHandle.removeClass('sa-sort-handle');
+        if (this.Children[i].Type == "Note") {
+            newChildren.push(this.Children[i]);
+        }
+    }
+    for (var i = 0; i < this.Children.length; ++i) {
+        if (this.Children[i].Type != "Note") {
+            newChildren.push(this.Children[i]);
+        }
+    }
+    this.Children = newChildren;
+
+    for (var i = 0; i < this.Children.length; ++i) {
+        if (this.Children[i].Type == "Note") {
+            this.Children[i].DisplayGUI(this.ChildrenDiv);
+            // Indexes used for sorting.
+            this.Children[i].Div.data("index", i);
+            if (this.Children.length > 1) {
+                this.Children[i].SortHandle.addClass('sa-sort-handle');
+            } else {
+                this.Children[i].SortHandle.removeClass('sa-sort-handle');
+            }
         }
     }
 }
@@ -10740,7 +10758,7 @@ function TextEditor(parent, display) {
 
     this.EditButtons = [];
     this.AddEditButton(SA.ImagePathUrl+"camera.png", "link view",
-                       function() {self.InsertCameraLink();});
+                       function() {self.InsertCameraLink2();});
     this.AddEditButton(SA.ImagePathUrl+"link.png", "link URL",
                        function() {self.InsertUrlLink();});
     this.AddEditButton(SA.ImagePathUrl+"font_bold.png", "bold",
@@ -10930,24 +10948,26 @@ TextEditor.prototype.AddQuestion = function() {
     var self = this;
     var range = SA.GetSelectionRange(this.TextEntry);
     // Try to initialize the dialog with the contents of the range.
-    var clone = range.cloneContents();
-    bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
-    if (clone.childElementCount > 1) {
-        //var answers = clone.querySelectorAll('li');
-        var answers = [];
-        var li = clone.querySelector('li');
-        if (li) {
-            answers = li.parentElement;
-        } else {
-            answers = clone.children[1];
-        }
-        for (var i = 0; i < answers.childElementCount; ++i) {
-            var answer = answers.children[i];
-            var bold = (answer.style.fontWeight == "bold") ||
-                       ($(answer).find('b').length > 0);
-            bar.saQuestion('AddAnswerText',
-                           answer.textContent,
-                           bold);
+    if ( ! range.collapsed) {
+        var clone = range.cloneContents();
+        bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
+        if (clone.childElementCount > 1) {
+            //var answers = clone.querySelectorAll('li');
+            var answers = [];
+            var li = clone.querySelector('li');
+            if (li) {
+                answers = li.parentElement;
+            } else {
+                answers = clone.children[1];
+            }
+            for (var i = 0; i < answers.childElementCount; ++i) {
+                var answer = answers.children[i];
+                var bold = (answer.style.fontWeight == "bold") ||
+                    ($(answer).find('b').length > 0);
+                bar.saQuestion('AddAnswerText',
+                               answer.textContent,
+                               bold);
+            }
         }
     }
 
@@ -11143,12 +11163,6 @@ TextEditor.prototype.InsertCameraLink = function() {
     if ( ! parentNote) {
         parentNote = SA.DualDisplay.GetRootNote();
     }
-    // Put the new note at the end of the list.
-    var childIdx = parentNote.Children.length;
-    //var childIdx = 0; // begining
-    var childNote = parentNote.NewChild(childIdx, text);
-    // Setup and save
-    childNote.RecordView(this.Display);
     // We need to save the note to get its Id (for the link div).
     childNote.Save();
     parentNote.UpdateChildrenGUI();
@@ -11186,6 +11200,74 @@ TextEditor.prototype.InsertCameraLink = function() {
             }
         });
 }
+
+
+// TODO: Untangle view links from the note.
+TextEditor.prototype.InsertCameraLink2 = function() {
+    var bar = $('<div>')
+        .css({'position':'relative',
+              'margin':'3%',
+              'width':'90%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'padding':'1% 1% 1% 1%'}) // top right bottom left
+        .attr('contenteditable', 'false')
+        .saQuestion({editable: SA.Edit,
+                     position : 'static'});
+
+    // Create a child note.
+    var parentNote = this.Note;
+    if ( ! parentNote) {
+        parentNote = SA.DualDisplay.GetRootNote();
+    }
+
+
+    // Create a new note to hold the view.
+    // Put the new note at the end of the list.
+    var childIdx = parentNote.Children.length;
+    //var childIdx = 0; // begining
+    var childNote = parentNote.NewChild(childIdx, text);
+    // Setup and save
+    childNote.RecordView(this.Display);
+    // Block subnotes and separate text.
+    childNote.Type = 'View';
+
+    // We need to save the note to get its Id.
+    var self = this;
+    var text = "(view)";
+    var range = SA.GetSelectionRange(this.TextEntry);
+    if ( ! range) {
+        range = SA.MakeSelectionRange(this.TextEntry);
+    } else if ( ! range.collapsed) {
+        text = range.toString();
+    }
+    range.deleteContents();
+
+    childNote.Save(
+        function (note) {
+            // Simply put a span tag around the text with the id of the view.
+            // It will be formated by the note hyperlink code.
+            var span = document.createElement("span");
+            // This id identifies the span as a hyperlink to this note.
+            // The note will format the link and add callbacks later.
+            span.id = note.Id;
+            $(span).attr('contenteditable', 'false');
+            span.appendChild( document.createTextNode(text) );
+            range.insertNode(span);
+            // Let the note format it.
+            childNote.FormatHyperlink();
+
+            // Some gymnasitcs to keep the cursor after the question.
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            self.TextEntry[0].focus();
+            self.UpdateNote();
+        });
+}
+
+
 
 TextEditor.prototype.Resize = function(width, height) {
     var pos;
@@ -11237,6 +11319,7 @@ TextEditor.prototype.LoadNote = function(note) {
 
     // TODO: Make the hyper link the same pattern as questions.
     for (var i = 0; i < note.Children.length; ++i) {
+        // In the future we can only call this on type "View"
         note.Children[i].FormatHyperlink();
     }
     
@@ -27454,7 +27537,6 @@ function Viewer (parent) {
               'box-sizing':'border-box'})
         .addClass('sa-resize');
 
-
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
@@ -27491,7 +27573,9 @@ function Viewer (parent) {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
-        this.OverViewDiv = $('<div>').appendTo(this.Div);
+        this.OverViewDiv = $('<div>')
+            .appendTo(this.Div);
+
         this.OverView = new View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
@@ -27519,7 +27603,7 @@ function Viewer (parent) {
             });
         // Try to make the overview be on top of the rotate icon
         // It should receive events before the rotate icon.
-        this.OverView.CanvasDiv.css({'z-index':'2'});
+        this.OverView.CanvasDiv.css({'z-index':'200'});
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
@@ -28485,14 +28569,14 @@ Viewer.prototype.Draw = function() {
 
     // This is only necessary for webgl, Canvas2d just uses a border.
     this.MainView.DrawOutline(false);
+    this.AnnotationLayer.Draw();
+    // This is not used anymore
+    this.MainView.DrawShapes();
     if (this.OverView) {
         this.OverView.DrawTiles();
         this.OverView.DrawOutline(true);
     }
 
-    // This is not used anymore
-    this.MainView.DrawShapes();
-    this.AnnotationLayer.Draw();
 
     // Draw a rectangle in the overview representing the camera's view.
     if (this.OverView) {

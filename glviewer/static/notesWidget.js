@@ -71,7 +71,7 @@ function TextEditor(parent, display) {
 
     this.EditButtons = [];
     this.AddEditButton(SA.ImagePathUrl+"camera.png", "link view",
-                       function() {self.InsertCameraLink();});
+                       function() {self.InsertCameraLink2();});
     this.AddEditButton(SA.ImagePathUrl+"link.png", "link URL",
                        function() {self.InsertUrlLink();});
     this.AddEditButton(SA.ImagePathUrl+"font_bold.png", "bold",
@@ -261,24 +261,26 @@ TextEditor.prototype.AddQuestion = function() {
     var self = this;
     var range = SA.GetSelectionRange(this.TextEntry);
     // Try to initialize the dialog with the contents of the range.
-    var clone = range.cloneContents();
-    bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
-    if (clone.childElementCount > 1) {
-        //var answers = clone.querySelectorAll('li');
-        var answers = [];
-        var li = clone.querySelector('li');
-        if (li) {
-            answers = li.parentElement;
-        } else {
-            answers = clone.children[1];
-        }
-        for (var i = 0; i < answers.childElementCount; ++i) {
-            var answer = answers.children[i];
-            var bold = (answer.style.fontWeight == "bold") ||
-                       ($(answer).find('b').length > 0);
-            bar.saQuestion('AddAnswerText',
-                           answer.textContent,
-                           bold);
+    if ( ! range.collapsed) {
+        var clone = range.cloneContents();
+        bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
+        if (clone.childElementCount > 1) {
+            //var answers = clone.querySelectorAll('li');
+            var answers = [];
+            var li = clone.querySelector('li');
+            if (li) {
+                answers = li.parentElement;
+            } else {
+                answers = clone.children[1];
+            }
+            for (var i = 0; i < answers.childElementCount; ++i) {
+                var answer = answers.children[i];
+                var bold = (answer.style.fontWeight == "bold") ||
+                    ($(answer).find('b').length > 0);
+                bar.saQuestion('AddAnswerText',
+                               answer.textContent,
+                               bold);
+            }
         }
     }
 
@@ -474,12 +476,6 @@ TextEditor.prototype.InsertCameraLink = function() {
     if ( ! parentNote) {
         parentNote = SA.DualDisplay.GetRootNote();
     }
-    // Put the new note at the end of the list.
-    var childIdx = parentNote.Children.length;
-    //var childIdx = 0; // begining
-    var childNote = parentNote.NewChild(childIdx, text);
-    // Setup and save
-    childNote.RecordView(this.Display);
     // We need to save the note to get its Id (for the link div).
     childNote.Save();
     parentNote.UpdateChildrenGUI();
@@ -517,6 +513,74 @@ TextEditor.prototype.InsertCameraLink = function() {
             }
         });
 }
+
+
+// TODO: Untangle view links from the note.
+TextEditor.prototype.InsertCameraLink2 = function() {
+    var bar = $('<div>')
+        .css({'position':'relative',
+              'margin':'3%',
+              'width':'90%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'padding':'1% 1% 1% 1%'}) // top right bottom left
+        .attr('contenteditable', 'false')
+        .saQuestion({editable: SA.Edit,
+                     position : 'static'});
+
+    // Create a child note.
+    var parentNote = this.Note;
+    if ( ! parentNote) {
+        parentNote = SA.DualDisplay.GetRootNote();
+    }
+
+
+    // Create a new note to hold the view.
+    // Put the new note at the end of the list.
+    var childIdx = parentNote.Children.length;
+    //var childIdx = 0; // begining
+    var childNote = parentNote.NewChild(childIdx, text);
+    // Setup and save
+    childNote.RecordView(this.Display);
+    // Block subnotes and separate text.
+    childNote.Type = 'View';
+
+    // We need to save the note to get its Id.
+    var self = this;
+    var text = "(view)";
+    var range = SA.GetSelectionRange(this.TextEntry);
+    if ( ! range) {
+        range = SA.MakeSelectionRange(this.TextEntry);
+    } else if ( ! range.collapsed) {
+        text = range.toString();
+    }
+    range.deleteContents();
+
+    childNote.Save(
+        function (note) {
+            // Simply put a span tag around the text with the id of the view.
+            // It will be formated by the note hyperlink code.
+            var span = document.createElement("span");
+            // This id identifies the span as a hyperlink to this note.
+            // The note will format the link and add callbacks later.
+            span.id = note.Id;
+            $(span).attr('contenteditable', 'false');
+            span.appendChild( document.createTextNode(text) );
+            range.insertNode(span);
+            // Let the note format it.
+            childNote.FormatHyperlink();
+
+            // Some gymnasitcs to keep the cursor after the question.
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            self.TextEntry[0].focus();
+            self.UpdateNote();
+        });
+}
+
+
 
 TextEditor.prototype.Resize = function(width, height) {
     var pos;
@@ -568,6 +632,7 @@ TextEditor.prototype.LoadNote = function(note) {
 
     // TODO: Make the hyper link the same pattern as questions.
     for (var i = 0; i < note.Children.length; ++i) {
+        // In the future we can only call this on type "View"
         note.Children[i].FormatHyperlink();
     }
     

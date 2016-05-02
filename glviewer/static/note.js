@@ -405,6 +405,7 @@ Note.prototype.AddChild = function(childNote, first) {
   this.UpdateChildrenGUI();
 }
 
+// TODO: Get the GUI stuff out of note objects.
 Note.prototype.UpdateChildrenGUI = function() {
     // Callback trick
     var self = this;
@@ -438,14 +439,31 @@ Note.prototype.UpdateChildrenGUI = function() {
         return;
     }
 
+    // Move all the views to the end.  They do not take part in the notes
+    // gui. They are for text links.  They may mess up drag ordering.
+    var newChildren = [];
     for (var i = 0; i < this.Children.length; ++i) {
-        this.Children[i].DisplayGUI(this.ChildrenDiv);
-        // Indexes used for sorting.
-        this.Children[i].Div.data("index", i);
-        if (this.Children.length > 1) {
-            this.Children[i].SortHandle.addClass('sa-sort-handle');
-        } else {
-            this.Children[i].SortHandle.removeClass('sa-sort-handle');
+        if (this.Children[i].Type == "Note") {
+            newChildren.push(this.Children[i]);
+        }
+    }
+    for (var i = 0; i < this.Children.length; ++i) {
+        if (this.Children[i].Type != "Note") {
+            newChildren.push(this.Children[i]);
+        }
+    }
+    this.Children = newChildren;
+
+    for (var i = 0; i < this.Children.length; ++i) {
+        if (this.Children[i].Type == "Note") {
+            this.Children[i].DisplayGUI(this.ChildrenDiv);
+            // Indexes used for sorting.
+            this.Children[i].Div.data("index", i);
+            if (this.Children.length > 1) {
+                this.Children[i].SortHandle.addClass('sa-sort-handle');
+            } else {
+                this.Children[i].SortHandle.removeClass('sa-sort-handle');
+            }
         }
     }
 }
