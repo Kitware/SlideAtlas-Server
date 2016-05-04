@@ -771,6 +771,21 @@ function NotesWidget(parent, display) {
             .text("+ New View")
     }
 
+    // Show hidden content to non administrator.
+    // Do not show this unless not is interactive.
+    this.QuizButton = $('<div>')
+        .appendTo(this.TextDiv)
+        .addClass('editButton')
+        .css({'float':'right',
+              'font-size':'small',
+              'margin-top':'4px',
+              'padding-left':'2px',
+              'padding-right':'2px',
+              'border':'1px solid #AAA',
+              'border-radius':'2px'})
+        .text("show")
+        .hide();
+
     // Now for the text tab:
     if (SA.Edit) {
         // TODO: Encapsulate this menu (used more than once)
@@ -847,11 +862,28 @@ NotesWidget.prototype.UpdateQuestionMode = function() {
             this.QuizMenu.val("review");
         }
     }
+    if (this.RootNote.Mode == 'answer-interactive') {
+        var self = this;
+        this.QuizButton
+            .show()
+            .css('background-color','')
+            .click(function () {
+                self.SetAnswerVisibility('answer-show');
+                self.QuizButton.css({'background-color':'#AAAAAA'});
+            })
+    } else {
+        this.QuizButton.hide();
+    }
 
+    this.SetAnswerVisibility(this.RootNote.Mode);
+}
+
+
+NotesWidget.prototype.SetAnswerVisibility = function(mode) {
     // make sure tags have been decoded.
     SA.AddHtmlTags(this.TextEditor.TextEntry);
 
-    if (this.RootNote.Mode == 'answer-show') {
+    if (mode == 'answer-show') {
         $('.sa-note').show();
         $('.sa-notes').show();
         $('.sa-diagnosis').show();
@@ -866,8 +898,9 @@ NotesWidget.prototype.UpdateQuestionMode = function() {
         $('.sa-teaching-points').hide();
         $('.sa-compare').hide();
     }
-    $('.sa-question').saQuestion('SetMode', this.RootNote.Mode);
+    $('.sa-question').saQuestion('SetMode', mode);
 }
+
 
 NotesWidget.prototype.SetNavigationWidget = function(nav) {
     this.NavigationWidget = nav;
