@@ -146,13 +146,6 @@
                             data-collection-id={{ collection.id }}>
                         <i class="glyphicon glyphicon-remove"></i>
                     </button>
-                    <a href="{{ url_for('.session_edit_view', session=session) }}">
-                        <button type="button"
-                                class="btn btn-warning badge">
-                            <i class="glyphicon glyphicon-edit"></i>
-                            <span> Edit</span>
-                        </button>
-                    </a>
                     <button type="button"
                             class="btn btn-info badge sa-session-access"
                             ng-controller="AccessModalCtrl"

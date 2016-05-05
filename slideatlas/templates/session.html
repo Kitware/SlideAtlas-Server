@@ -60,6 +60,44 @@
                 getPermalink(viewName, viewId, viewUrl);
             });
 
+            // Stuff to save a label when it is changed.
+            // Event leave, focus out have not worked.  
+            // Alternatively could look for enter keypress ....
+            var saveTimer;
+            var d = new Date();
+            var saveView = 
+                function(id, label, div) {
+                    var noteStr = JSON.stringify({_id:id, Title:label});
+                    $.ajax({
+                        type: "post",
+                        url: "/webgl-viewer/saveviewnotes",
+                        data: {"note" : noteStr,
+                               "date" : d.getTime()},
+                        success: function(data,status) {
+                            // How should we give user feedback?
+                            div.css({"color":"#000000"});
+                            console.log("saved " + id + " " +label);
+                        },
+                        error: function() {
+                            alert("AJAX - error() : save view label" );
+                        },
+                    });
+                };
+            $(".sa-view-get")
+              .bind('input', function () {
+                  var viewId = $(this).attr("sa-id");
+                  var viewLabel = $(this).text().trim();
+                  $(this).css({"color":"#6666AA"});
+                  if (saveTimer) {
+                      clearTimeout(saveTimer);
+                  }
+                  var self = this;
+                  saveTimer = setTimeout(
+                      function () {
+                          saveView(viewId, viewLabel,$(self));
+                      }, 3000);
+              }); 
+
             // By Djay
             $(".sa-upload-images").click(function() {
                 alert("Working on this ..");
@@ -416,7 +454,9 @@
                             </a>
                         </td>
                         <td>
-                            <a href="{{ viewer_url }}" class="lead sa-view-get">{{ view_son.label }}</a>
+                            <div sa-id="{{view_son.id}}" class="lead sa-view-get" contenteditable="true">
+                              {{ view_son.label }}
+                            </div>
                         </td>
                         {% if security.EditSessionRequirement(session).can() %}
                         <td align="right">

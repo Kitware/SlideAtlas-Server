@@ -37,7 +37,7 @@ def jsonifyView(db, viewid, viewobj):
 # It becomes so simple!
 def glnote(db, viewid, viewobj, edit):
     email = getattr(security.current_user, 'email', '')
-    return make_response(render_template('viewMax.html',
+    return make_response(render_template('view.html',
                                          view=viewid,
                                          user=email,
                                          edit=edit))
@@ -153,7 +153,7 @@ def glview():
 
     # default
     email = getattr(security.current_user, 'email', '')
-    return make_response(render_template('viewMax.html',
+    return make_response(render_template('view.html',
                                          view=viewid,
                                          user=email,
                                          sess=sessid,
@@ -628,23 +628,29 @@ def savenote(db, note, user):
             child["ParentId"] = note["_id"]
             childrenRefs.append(savenote(db, child, user))
         note["Children"] = childrenRefs
+        # I do not want to orphan children in the database.
+        # remove all the children before saving the note.
+        # The client must set the _ids of the notes / children
+        # to keep them the same.
+        oldNote = db["views"].find_one({"_id": note["_id"]})
+        if oldNote and 'Children' in oldNote:
+            for child in oldNote["Children"]:
+               if not child in childrenRefs:
+                    db["views"].remove({"_id":child})
 
     # Save the note for real.
     # db["views"].update({"_id": ObjectId(viewId) },
     #                    { "$set": { "notes": notes } })
 
-
-    # I do not want to orphan children in the database.
-    # remove all the children before saving the note.
-    # The client must set the _ids of the notes / children
-    # to keep them the same.
-    oldNote = db["views"].find_one({"_id": note["_id"]})
-    if oldNote and 'Children' in oldNote:
-        for child in oldNote["Children"]:
-            if not child in childrenRefs:
-                db["views"].remove({"_id":child})
-
-    return db["views"].save(note)
+    # TODO:  see is update can be used all the time
+    if note.has_key("Type"):
+        return db["views"].save(note)
+    else:
+        id = note['_id']
+        del note['_id']
+        return db["views"].update({'_id':id},
+                                  {'$set': note})
+        
 
 
 # This is close to a general purpose function to insert an object into the database.
@@ -666,10 +672,11 @@ def saveviewnotes():
 
     viewObj = savenote(db,note, email)
 
+    # TODO: This is not needed anymore.  Clients creates ids.
     # I want the client editor to display the correct links immediatly after saving, so
     # I have to return the entire note tree with any new ids created.
-    viewObj = readViewTree(db, viewObj, 0)
-    return jsonify(viewObj)
+    #viewObj = readViewTree(db, viewObj, 0)
+    return ""
 
 @mod.route('/gettrackingdata')
 def gettrackingdata():
