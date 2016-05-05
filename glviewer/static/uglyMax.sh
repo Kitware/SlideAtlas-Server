@@ -39,8 +39,8 @@ cat cutoutWidget.js >> sam.max.js
 cat imageAnnotation.js >> sam.max.js 
 
 
-
 cat cookies.js >> sa.max.js 
+cat objectId.js >> sa.max.js 
 cat viewEditMenu.js >> sa.max.js 
 cat viewBrowser.js >> sa.max.js 
 cat dualViewWidget.js >> sa.max.js 

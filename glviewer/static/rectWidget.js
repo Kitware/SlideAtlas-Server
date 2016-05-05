@@ -120,7 +120,7 @@
       if (localStorage.RectWidgetDefaults) {
         var defaults = JSON.parse(localStorage.RectWidgetDefaults);
         if (defaults.Color) {
-          this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+          this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
         }
         if (defaults.LineWidth) {
           this.Dialog.LineWidthInput.val(defaults.LineWidth);
@@ -460,7 +460,7 @@
     var DIALOG_SELF;
 
     RectWidget.prototype.ShowPropertiesDialog = function () {
-      this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+      this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shape.OutlineColor));
 
       this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 

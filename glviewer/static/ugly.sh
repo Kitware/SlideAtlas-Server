@@ -41,6 +41,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/filesaver/g4d049e9/FileSaver.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.min.js
 ~/bin/uglifyjs -nc cookies.js >> sa.min.js 
+~/bin/uglifyjs -nc objectId.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewEditMenu.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewBrowser.js >> sa.min.js 
 ~/bin/uglifyjs -nc dualViewWidget.js >> sa.min.js 

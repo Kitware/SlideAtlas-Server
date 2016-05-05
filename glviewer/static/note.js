@@ -12,7 +12,8 @@ function Note () {
     }
 
     // A global list of notes so we can find a note by its id.
-    this.TempId = 'tmp'+SA.Notes.length; // hack for html views.
+    // TODO: Legacy.  Get rid of TempId.
+    this.Id = this.TempId = new ObjectId().toString();
     SA.Notes.push(this);
 
     var self = this;
@@ -148,8 +149,8 @@ Note.prototype.DeepCopy = function(note) {
     this.Parent = note.Parent;
     this.StartIndex = note.StartIndex;
     // Replace old note id with new in HTML.
-    var oldId = note.Id || note.TempId;
-    var newId = this.Id || this.TempId;
+    var oldId = note.Id;
+    var newId = this.Id;
     this.Text = note.Text.replace(oldId, newId);
     this.Title = note.Title;
     this.Type = note.Type;
@@ -501,26 +502,34 @@ Note.prototype.NewChild = function(childIdx, title) {
     return childNote;
 }
 
+// TODO: No longer needed now that we are generating ids onthe client.
 Note.prototype.LoadIds = function(data) {
-    if ( ! this.Id) {
-        if (this.TempId) {
-            console.log("Converting " + this.TempId + " to " + data._id);
-        }
+    if (this.Id != data._id) {
+        // This should be fine.  Notes generate an id before the actual
+        // id is loaded from the database.
         this.Id = data._id;
-        // Leave TempId in place until we convert all references.
     }
-    if (data.Children && this.Children) {
-        for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
-            this.Children[i].LoadIds(data.Children[i]);
-        }
-    }
+
+
+    //if ( ! this.Id) {
+    //    if (this.TempId) {
+    //        console.log("Converting " + this.TempId + " to " + data._id);
+    //    }
+    //    this.Id = data._id;
+    //    // Leave TempId in place until we convert all references.
+    //}
+    //if (data.Children && this.Children) {
+    //    for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
+    //        this.Children[i].LoadIds(data.Children[i]);
+    //    }
+    //}
 }
 
 
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback, excludeChildren) {
-    console.log("Save note " + (this.Id || this.TempId) + " " + this.Title);
+    console.log("Save note " + this.Id + " " + this.Title);
 
     var self = this;
     // Save this users notes in the user specific collection.
@@ -712,8 +721,6 @@ Note.prototype.Load = function(obj){
     if (this._id) {
         this.Id = this._id;
         delete this._id;
-        // All notes have a TempId (set in contructor) before they are loaded.
-        delete this.TempId;
     }
 
     if (this.ParentId) {
@@ -736,7 +743,6 @@ Note.prototype.Load = function(obj){
             // We should have a load state in note.
             //childNote.LoadViewId(child);
             childNote.Id = child;
-            delete childNote.TempId;
         } else {
             childNote.Load(child);
         }

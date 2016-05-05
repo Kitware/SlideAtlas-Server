@@ -35,6 +35,15 @@
             .css({'height': '20px'})
             .attr('src',SA.ImagePathUrl+"Menu.jpg")
             .click(function(){self.PropertiesCallback();});
+
+        this.HideCallback = undefined;
+    }
+
+    // Used to hide an interacotrs handle with the popup.
+    // TODO:  Let the AnnotationLayer manage the "active" widget.
+    // The popup should not be doing this (managing its own timer)
+    WidgetPopup.prototype.SetHideCallback = function(callback) {
+        this.HideCllback = callback;
     }
 
     WidgetPopup.prototype.DeleteCallback = function() {
@@ -67,6 +76,9 @@
     WidgetPopup.prototype.Hide = function() {
         this.CancelHideTimer(); // Just in case: Show trumps previous hide.
         this.ButtonDiv.hide();
+        if (this.HideCallback) {
+            (this.HideCallback)();
+        }
     }
 
     WidgetPopup.prototype.StartHideTimer = function() {

@@ -436,7 +436,7 @@ TextEditor.prototype.InsertUrlLinkAccept = function() {
 // names for links.  The flaw is it always starts over when page is
 // loaded. It does not detect links from previous edits.
 var LINKS_WITH_NO_NAME = 0;
-TextEditor.prototype.InsertCameraLink = function() {
+/*TextEditor.prototype.InsertCameraLink = function() {
     var self = this;
     var sel = window.getSelection();
     var range = SA.GetSelectionRange(this.TextEntry);
@@ -451,8 +451,8 @@ TextEditor.prototype.InsertCameraLink = function() {
         if (note) {
             note.RecordView(this.Display);
             // Do not save empty usernotes.
-            if (note != "UserNote" || 
-                note.Text != "" || 
+            if (note != "UserNote" ||
+                note.Text != "" ||
                 this.Note.Children.length > 0) {
                 note.Save();
             }
@@ -513,27 +513,26 @@ TextEditor.prototype.InsertCameraLink = function() {
             }
         });
 }
-
+*/
 
 // TODO: Untangle view links from the note.
 TextEditor.prototype.InsertCameraLink2 = function() {
-    var bar = $('<div>')
-        .css({'position':'relative',
-              'margin':'3%',
-              'width':'90%',
-              'background':'#FFF',
-              'border':'1px solid #AAA',
-              'padding':'1% 1% 1% 1%'}) // top right bottom left
-        .attr('contenteditable', 'false')
-        .saQuestion({editable: SA.Edit,
-                     position : 'static'});
+    //var bar = $('<div>')
+    //    .css({'position':'relative',
+    //          'margin':'3%',
+    //          'width':'90%',
+    //          'background':'#FFF',
+    //          'border':'1px solid #AAA',
+    //          'padding':'1% 1% 1% 1%'}) // top right bottom left
+    //    .attr('contenteditable', 'false')
+    //    .saQuestion({editable: SA.Edit,
+    //                 position : 'static'});
 
     // Create a child note.
     var parentNote = this.Note;
     if ( ! parentNote) {
         parentNote = SA.DualDisplay.GetRootNote();
     }
-
 
     // Create a new note to hold the view.
     // Put the new note at the end of the list.
@@ -546,7 +545,6 @@ TextEditor.prototype.InsertCameraLink2 = function() {
     childNote.Type = 'View';
 
     // We need to save the note to get its Id.
-    var self = this;
     var text = "(view)";
     var range = SA.GetSelectionRange(this.TextEntry);
     if ( ! range) {
@@ -556,28 +554,27 @@ TextEditor.prototype.InsertCameraLink2 = function() {
     }
     range.deleteContents();
 
-    childNote.Save(
-        function (note) {
-            // Simply put a span tag around the text with the id of the view.
-            // It will be formated by the note hyperlink code.
-            var span = document.createElement("span");
-            // This id identifies the span as a hyperlink to this note.
-            // The note will format the link and add callbacks later.
-            span.id = note.Id;
-            $(span).attr('contenteditable', 'false');
-            span.appendChild( document.createTextNode(text) );
-            range.insertNode(span);
-            // Let the note format it.
-            childNote.FormatHyperlink();
+    // Simply put a span tag around the text with the id of the view.
+    // It will be formated by the note hyperlink code.
+    var span = document.createElement("span");
+    // This id identifies the span as a hyperlink to this note.
+    // The note will format the link and add callbacks later.
+    span.id = childNote.Id;
+    $(span).attr('contenteditable', 'false');
+    span.appendChild( document.createTextNode(text) );
+    range.insertNode(span);
+    // Let the note format it.
+    childNote.FormatHyperlink();
 
-            // Some gymnasitcs to keep the cursor after the question.
-            range.collapse(false);
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            self.TextEntry[0].focus();
-            self.UpdateNote();
-        });
+    // Some gymnasitcs to keep the cursor after the question.
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    this.TextEntry[0].focus();
+    // NOTE: This may not be necesary no that text note "views" are
+    // issolated from notes in views tab.
+    this.UpdateNote();
 }
 
 

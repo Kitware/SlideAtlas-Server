@@ -239,9 +239,9 @@
                 //view.Context2d.moveTo(x0*scale,y0*scale);
                 // Also for debuggin
                 //if (this.DebugScalars) {
-                //    view.Context2d.strokeStyle=ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
+                //    view.Context2d.strokeStyle=SAM.ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
                 //} else {
-                //    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+                //    view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.OutlineColor);
                 //}
                 //view.Context2d.stroke();
                 //x0 = x1;
@@ -260,9 +260,9 @@
                 }
                 view.Context2d.lineWidth = width;
                 if (this.Active) {
-                    view.Context2d.strokeStyle=ConvertColorToHex(this.ActiveColor);
+                    view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.ActiveColor);
                 } else {
-                    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+                    view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.OutlineColor);
                 }
                 // This gets remove when the debug code is uncommented.
                 view.Context2d.stroke();
@@ -270,9 +270,9 @@
 
             if (this.FillColor != undefined) {
                 if (this.Active) {
-                    view.Context2d.fillStyle=ConvertColorToHex(this.ActiveColor);
+                    view.Context2d.fillStyle=SAM.ConvertColorToHex(this.ActiveColor);
                 } else {
-                    view.Context2d.fillStyle=ConvertColorToHex(this.FillColor);
+                    view.Context2d.fillStyle=SAM.ConvertColorToHex(this.FillColor);
                 }
                 view.Context2d.fill();
             }
@@ -292,11 +292,11 @@
     }
 
     Shape.prototype.SetOutlineColor = function (c) {
-        this.OutlineColor = ConvertColor(c);
+        this.OutlineColor = SAM.ConvertColor(c);
     }
 
     Shape.prototype.SetFillColor = function (c) {
-        this.FillColor = ConvertColor(c);
+        this.FillColor = SAM.ConvertColor(c);
     }
 
     Shape.prototype.HandleMouseMove = function(event, dx,dy) {

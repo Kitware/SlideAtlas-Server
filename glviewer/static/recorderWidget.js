@@ -71,7 +71,7 @@ ViewerRecord.prototype.Load = function(obj) {
         for (var i = 0; i < this.Annotations.length; ++ i) {
             var a = this.Annotations[i];
             if (a && a.color) {
-                a.color = ConvertColor(a.color);
+                a.color = SAM.ConvertColor(a.color);
             }
         }
     }

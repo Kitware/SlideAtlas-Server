@@ -428,6 +428,7 @@ SlideAtlas.prototype.MakeSelectionRange = function(div) {
 
 
 
+
 var SA = SA || new SlideAtlas();
 var ROOT_DIV;
 var imageProgram;

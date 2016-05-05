@@ -45,7 +45,7 @@
         if (localStorage.PolylineWidgetDefaults) {
             var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             // Remebering closed flag seems arbitrary.  User can complete
             // the loop if they want it closed. Leaving it open allow
@@ -725,7 +725,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var DIALOG_SELF;
     PolylineWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Polyline.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Polyline.OutlineColor));
         this.Dialog.ClosedInput.prop('checked', this.Polyline.Closed);
         this.Dialog.LineWidthInput.val((this.Polyline.LineWidth).toFixed(2));
 

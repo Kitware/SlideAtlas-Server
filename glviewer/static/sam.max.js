@@ -19,6 +19,188 @@
     window.SAM = window.SAM || {};
     window.SAM.ImagePathUrl = "/webgl-viewer/static/";
 
+    // Not used at the moment.
+    // Make sure the color is an array of values 0->1
+    SAM.ConvertColor = function(color) {
+        // Deal with color names.
+        if ( typeof(color)=='string' && color[0] != '#') {
+            var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
+                          "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
+                          "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
+                          "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b","darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b","darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
+                          "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000","darksalmon":"#e9967a","darkseagreen":"#8fbc8f","darkslateblue":"#483d8b","darkslategray":"#2f4f4f","darkturquoise":"#00ced1",
+                          "darkviolet":"#9400d3","deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969","dodgerblue":"#1e90ff",
+                          "firebrick":"#b22222","floralwhite":"#fffaf0","forestgreen":"#228b22","fuchsia":"#ff00ff",
+                          "gainsboro":"#dcdcdc","ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520","gray":"#808080","green":"#008000","greenyellow":"#adff2f",
+                          "honeydew":"#f0fff0","hotpink":"#ff69b4",
+                          "indianred ":"#cd5c5c","indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
+                          "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00","lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080","lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
+                          "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1","lightsalmon":"#ffa07a","lightseagreen":"#20b2aa","lightskyblue":"#87cefa","lightslategray":"#778899","lightsteelblue":"#b0c4de",
+                          "lightyellow":"#ffffe0","lime":"#00ff00","limegreen":"#32cd32","linen":"#faf0e6",
+                          "magenta":"#ff00ff","maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd","mediumorchid":"#ba55d3","mediumpurple":"#9370d8","mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
+                          "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc","mediumvioletred":"#c71585","midnightblue":"#191970","mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
+                          "navajowhite":"#ffdead","navy":"#000080",
+                          "oldlace":"#fdf5e6","olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500","orangered":"#ff4500","orchid":"#da70d6",
+                          "palegoldenrod":"#eee8aa","palegreen":"#98fb98","paleturquoise":"#afeeee","palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9","peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd","powderblue":"#b0e0e6","purple":"#800080",
+                          "red":"#ff0000","rosybrown":"#bc8f8f","royalblue":"#4169e1",
+                          "saddlebrown":"#8b4513","salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57","seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0","skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090","snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
+                          "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347","turquoise":"#40e0d0",
+                          "violet":"#ee82ee",
+                          "wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5",
+                          "yellow":"#ffff00","yellowgreen":"#9acd32"};
+            if (typeof colors[color.toLowerCase()] != 'undefined') {
+                color = colors[color.toLowerCase()];
+            } else {
+                alert("Unknown color " + color);
+            }
+        }
+
+        // Deal with color in hex format i.e. #0000ff
+        if ( typeof(color)=='string' && color.length == 7 && color[0] == '#') {
+            var floatColor = [];
+            var idx = 1;
+            for (var i = 0; i < 3; ++i) {
+                var val = ((16.0 * SAM.HexDigitToInt(color[idx++])) + SAM.HexDigitToInt(color[idx++])) / 255.0;
+                floatColor.push(val);
+            }
+            return floatColor;
+        }
+        // No other formats for now.
+        return color;
+    }
+
+
+    // RGB [Float, Float, Float] to #RRGGBB string
+    SAM.ConvertColorToHex = function(color) {
+        if (typeof(color) == 'string') { 
+            color = SAM.ConvertColorNameToHex(color);
+            if (color.substring(0,1) == '#') {
+                return color;
+            } else if (color.substring(0,3) == 'rgb') {
+                tmp = color.substring(4,color.length - 1).split(',');
+                color = [parseInt(tmp[0])/255,
+                         parseInt(tmp[1])/255,
+                         parseInt(tmp[2])/255];
+            }
+        }
+        var hexDigits = "0123456789abcdef";
+        var str = "#";
+        for (var i = 0; i < 3; ++i) {
+	          var tmp = color[i];
+	          for (var j = 0; j < 2; ++j) {
+	              tmp *= 16.0;
+	              var digit = Math.floor(tmp);
+	              if (digit < 0) { digit = 0; }
+	              if (digit > 15){ digit = 15;}
+	              tmp = tmp - digit;
+	              str += hexDigits.charAt(digit);
+            }
+        }
+        return str;
+    }
+
+
+    // 0-f hex digit to int
+    SAM.HexDigitToInt = function(hex) {
+        if (hex == '1') {
+            return 1.0;
+        } else if (hex == '2') {
+            return 2.0;
+        } else if (hex == '3') {
+            return 3.0;
+        } else if (hex == '4') {
+            return 4.0;
+        } else if (hex == '5') {
+            return 5.0;
+        } else if (hex == '6') {
+            return 6.0;
+        } else if (hex == '7') {
+            return 7.0;
+        } else if (hex == '8') {
+            return 8.0;
+        } else if (hex == '9') {
+            return 9.0;
+        } else if (hex == 'a' || hex == 'A') {
+            return 10.0;
+        } else if (hex == 'b' || hex == 'B') {
+            return 11.0;
+        } else if (hex == 'c' || hex == 'C') {
+            return 12.0;
+        } else if (hex == 'd' || hex == 'D') {
+            return 13.0;
+        } else if (hex == 'e' || hex == 'E') {
+            return 14.0;
+        } else if (hex == 'f' || hex == 'F') {
+            return 15.0;
+        }
+        return 0.0;
+    }
+
+
+    SAM.ConvertColorNameToHex = function(color) {
+        // Deal with color names.
+        if ( typeof(color)=='string' && color[0] != '#') {
+            var colors = {
+                "aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff",
+                "aquamarine":"#7fffd4","azure":"#f0ffff","beige":"#f5f5dc",
+                "bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd",
+                "blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a",
+                "burlywood":"#deb887","cadetblue":"#5f9ea0","chartreuse":"#7fff00",
+                "chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed",
+                "cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
+                "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b",
+                "darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b",
+                "darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
+                "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000",
+                "darksalmon":"#e9967a","darkseagreen":"#8fbc8f",
+                "darkslateblue":"#483d8b","darkslategray":"#2f4f4f",
+                "darkturquoise":"#00ced1","darkviolet":"#9400d3",
+                "deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969",
+                "dodgerblue":"#1e90ff","firebrick":"#b22222","floralwhite":"#fffaf0",
+                "forestgreen":"#228b22","fuchsia":"#ff00ff","gainsboro":"#dcdcdc",
+                "ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520",
+                "gray":"#808080","green":"#008000","greenyellow":"#adff2f",
+                "honeydew":"#f0fff0","hotpink":"#ff69b4","indianred":"#cd5c5c",
+                "indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
+                "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00",
+                "lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080",
+                "lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
+                "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1",
+                "lightsalmon":"#ffa07a","lightseagreen":"#20b2aa",
+                "lightskyblue":"#87cefa","lightslategray":"#778899",
+                "lightsteelblue":"#b0c4de","lightyellow":"#ffffe0","lime":"#00ff00",
+                "limegreen":"#32cd32","linen":"#faf0e6","magenta":"#ff00ff",
+                "maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd",
+                "mediumorchid":"#ba55d3","mediumpurple":"#9370d8",
+                "mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
+                "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc",
+                "mediumvioletred":"#c71585","midnightblue":"#191970",
+                "mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
+                "navajowhite":"#ffdead","navy":"#000080","oldlace":"#fdf5e6",
+                "olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500",
+                "orangered":"#ff4500","orchid":"#da70d6","palegoldenrod":"#eee8aa",
+                "palegreen":"#98fb98","paleturquoise":"#afeeee",
+                "palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9",
+                "peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd",
+                "powderblue":"#b0e0e6","purple":"#800080","red":"#ff0000",
+                "rosybrown":"#bc8f8f","royalblue":"#4169e1","saddlebrown":"#8b4513",
+                "salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57",
+                "seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0",
+                "skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090",
+                "snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
+                "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347",
+                "turquoise":"#40e0d0","violet":"#ee82ee","wheat":"#f5deb3",
+                "white":"#ffffff","whitesmoke":"#f5f5f5",
+                "yellow":"#ffff00","yellowgreen":"#9acd32"};
+            color = color.toLowerCase();
+            if (typeof colors[color] != 'undefined') {
+                color = colors[color];
+            }
+        }
+        return color;
+    }
+
+
     // length units = meters
     window.SAM.DistanceToString = function(length) {
         var lengthStr = "";
@@ -760,9 +942,9 @@
                 //view.Context2d.moveTo(x0*scale,y0*scale);
                 // Also for debuggin
                 //if (this.DebugScalars) {
-                //    view.Context2d.strokeStyle=ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
+                //    view.Context2d.strokeStyle=SAM.ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
                 //} else {
-                //    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+                //    view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.OutlineColor);
                 //}
                 //view.Context2d.stroke();
                 //x0 = x1;
@@ -781,9 +963,9 @@
                 }
                 view.Context2d.lineWidth = width;
                 if (this.Active) {
-                    view.Context2d.strokeStyle=ConvertColorToHex(this.ActiveColor);
+                    view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.ActiveColor);
                 } else {
-                    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+                    view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.OutlineColor);
                 }
                 // This gets remove when the debug code is uncommented.
                 view.Context2d.stroke();
@@ -791,9 +973,9 @@
 
             if (this.FillColor != undefined) {
                 if (this.Active) {
-                    view.Context2d.fillStyle=ConvertColorToHex(this.ActiveColor);
+                    view.Context2d.fillStyle=SAM.ConvertColorToHex(this.ActiveColor);
                 } else {
-                    view.Context2d.fillStyle=ConvertColorToHex(this.FillColor);
+                    view.Context2d.fillStyle=SAM.ConvertColorToHex(this.FillColor);
                 }
                 view.Context2d.fill();
             }
@@ -813,11 +995,11 @@
     }
 
     Shape.prototype.SetOutlineColor = function (c) {
-        this.OutlineColor = ConvertColor(c);
+        this.OutlineColor = SAM.ConvertColor(c);
     }
 
     Shape.prototype.SetFillColor = function (c) {
-        this.FillColor = ConvertColor(c);
+        this.FillColor = SAM.ConvertColor(c);
     }
 
     Shape.prototype.HandleMouseMove = function(event, dx,dy) {
@@ -2837,7 +3019,7 @@
             if (this.Active) {
                 ctx.fillStyle = '#FF0';
             } else {
-                ctx.fillStyle = ConvertColorToHex(this.Color);
+                ctx.fillStyle = SAM.ConvertColorToHex(this.Color);
             }
 
             // Convert (x,y) from upper left of textbox to lower left of first character.
@@ -2999,7 +3181,7 @@
     }
 
     Text.prototype.SetColor = function (c) {
-        this.Color = ConvertColor(c);
+        this.Color = SAM.ConvertColor(c);
     }
 
     SAM.Text = Text;
@@ -3186,11 +3368,11 @@
         this.VisibilityMode = 2;
         this.Text.BackgroundFlag = true;
         this.Dialog.BackgroundInput.prop('checked', true);
-        var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+        var hexcolor = SAM.ConvertColorToHex(this.Dialog.ColorInput.val());
         if (localStorage.TextWidgetDefaults) {
             var defaults = JSON.parse(localStorage.TextWidgetDefaults);
             if (defaults.Color) {
-                hexcolor = ConvertColorToHex(defaults.Color);
+                hexcolor = SAM.ConvertColorToHex(defaults.Color);
             }
             if (defaults.FontSize) {
                 // font size was wrongly saved as a string.
@@ -3623,7 +3805,7 @@
     // Can we bind the dialog apply callback to an objects method?
     TextWidget.prototype.ShowPropertiesDialog = function () {
         this.Popup.Hide();
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Text.Color));
         this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
         this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
         this.Dialog.TextInput.val(this.Text.String);
@@ -3648,7 +3830,7 @@
             return;
         }
 
-        var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+        var hexcolor = SAM.ConvertColorToHex(this.Dialog.ColorInput.val());
         var fontSize = this.Dialog.FontInput.val();
         this.Text.String = string;
         this.Text.Size = parseFloat(fontSize);
@@ -4223,7 +4405,7 @@
         if (localStorage.PolylineWidgetDefaults) {
             var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             // Remebering closed flag seems arbitrary.  User can complete
             // the loop if they want it closed. Leaving it open allow
@@ -4903,7 +5085,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var DIALOG_SELF;
     PolylineWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Polyline.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Polyline.OutlineColor));
         this.Dialog.ClosedInput.prop('checked', this.Polyline.Closed);
         this.Dialog.LineWidthInput.val((this.Polyline.LineWidth).toFixed(2));
 
@@ -5218,7 +5400,7 @@
         if (localStorage.PencilWidgetDefaults) {
             var defaults = JSON.parse(localStorage.PencilWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             if (defaults.LineWidth) {
                 this.LineWidth = defaults.LineWidth;
@@ -5541,7 +5723,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var DIALOG_SELF
     PencilWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes.GetOutlineColor()));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shapes.GetOutlineColor()));
         this.Dialog.LineWidthInput.val((this.Shapes.GetLineWidth()).toFixed(2));
 
         this.Dialog.Show(true);
@@ -5912,7 +6094,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var FILL_WIDGET_DIALOG_SELF
     FillWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes[0].OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shapes[0].OutlineColor));
         this.Dialog.LineWidthInput.val((this.Shapes[0].LineWidth).toFixed(2));
 
         this.Dialog.Show(true);
@@ -6012,7 +6194,7 @@
         if (localStorage.LassoWidgetDefaults) {
             var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             if (defaults.LineWidth) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
@@ -6326,7 +6508,7 @@
 
     // Can we bind the dialog apply callback to an objects method?
     LassoWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Loop.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Loop.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Loop.LineWidth).toFixed(2));
 
         var area = this.ComputeArea();
@@ -6648,6 +6830,15 @@
             .css({'height': '20px'})
             .attr('src',SA.ImagePathUrl+"Menu.jpg")
             .click(function(){self.PropertiesCallback();});
+
+        this.HideCallback = undefined;
+    }
+
+    // Used to hide an interacotrs handle with the popup.
+    // TODO:  Let the AnnotationLayer manage the "active" widget.
+    // The popup should not be doing this (managing its own timer)
+    WidgetPopup.prototype.SetHideCallback = function(callback) {
+        this.HideCllback = callback;
     }
 
     WidgetPopup.prototype.DeleteCallback = function() {
@@ -6680,6 +6871,9 @@
     WidgetPopup.prototype.Hide = function() {
         this.CancelHideTimer(); // Just in case: Show trumps previous hide.
         this.ButtonDiv.hide();
+        if (this.HideCallback) {
+            (this.HideCallback)();
+        }
     }
 
     WidgetPopup.prototype.StartHideTimer = function() {
@@ -7235,7 +7429,7 @@
         //fs.checked = this.Shape.FixedSize;
 
         var color = document.getElementById("arrowcolor");
-        color.value = ConvertColorToHex(this.Shape.FillColor);
+        color.value = SAM.ConvertColorToHex(this.Shape.FillColor);
 
         var lengthLabel = document.getElementById("ArrowLength");
         //if (fs.checked) {
@@ -7498,7 +7692,7 @@
         if (localStorage.CircleWidgetDefaults) {
             var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             if (defaults.LineWidth) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
@@ -7831,7 +8025,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var CIRCLE_WIDGET_DIALOG_SELF;
     CircleWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shape.OutlineColor));
 
         this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
@@ -7995,7 +8189,7 @@
       if (localStorage.RectWidgetDefaults) {
         var defaults = JSON.parse(localStorage.RectWidgetDefaults);
         if (defaults.Color) {
-          this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+          this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
         }
         if (defaults.LineWidth) {
           this.Dialog.LineWidthInput.val(defaults.LineWidth);
@@ -8335,7 +8529,7 @@
     var DIALOG_SELF;
 
     RectWidget.prototype.ShowPropertiesDialog = function () {
-      this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+      this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shape.OutlineColor));
 
       this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
@@ -8374,7 +8568,7 @@
     SAM.RectWidget = RectWidget;
 
 })();
-!
+
 (function () {
     "use strict";
 
@@ -8617,7 +8811,7 @@
         if (localStorage.GridWidgetDefaults) {
             var defaults = JSON.parse(localStorage.GridWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
                 this.Grid.SetOutlineColor(this.Dialog.ColorInput.val());
             }
             if (defaults.LineWidth != undefined) {
@@ -9068,7 +9262,7 @@
     var DIALOG_SELF;
 
     GridWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Grid.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Grid.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Grid.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
         this.Dialog.BinWidthInput.val(SAM.DistanceToString(this.Grid.BinWidth*0.25e-6));

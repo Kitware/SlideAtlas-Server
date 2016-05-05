@@ -639,7 +639,7 @@ def savenote(db, note, user):
     # The client must set the _ids of the notes / children
     # to keep them the same.
     oldNote = db["views"].find_one({"_id": note["_id"]})
-    if 'Children' in oldNote:
+    if oldNote and 'Children' in oldNote:
         for child in oldNote["Children"]:
             if not child in childrenRefs:
                 db["views"].remove({"_id":child})

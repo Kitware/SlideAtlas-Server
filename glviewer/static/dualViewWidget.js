@@ -133,13 +133,14 @@ DualViewWidget.prototype.Record = function (note, startViewIdx) {
 }
 
 
-// Astracting the saViewer class to support dual viewers and stacks.
+// Abstracting the saViewer class to support dual viewers and stacks.
 DualViewWidget.prototype.ProcessArguments = function (args) {
     if (args.note) {
         // TODO: DO we need both?
         this.saNote = args.note;
         //args.note.DisplayView(this);
         this.SetNote(args.note,args.viewIndex);
+        // NOTE: TempId is legacy
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
     }
 
