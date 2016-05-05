@@ -153,19 +153,6 @@ def view_a_session(session):
 
 
 ################################################################################
-@mod.route('/sessions/<Session:session>/edit')
-@security.EditSessionRequirement.protected
-def session_edit_view(session):
-    session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
-
-    return render_template('sessionedit.html',
-                           gallery=1,
-                           collection=session.collection,
-                           session=session,
-                           session_son=session_son)
-
-
-################################################################################
 @mod.route('/collections/<Collection:collection>/edit')
 def collection_edit_view(collection):
     return render_template('collectionedit.html',
