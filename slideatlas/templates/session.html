@@ -35,6 +35,37 @@
     <script src="/static/thirdparty/flow/flow.min.js"></script>
     <script>
         $( function () {
+            $(".sa-question-mode").click(function() {
+                var label = $(this).children("span");
+                var mode;
+                if (label.text() == "? Hide") {
+                    mode = "answer-interactive";
+                    label.text("? Quiz");
+                } else if (label.text() == "? Quiz") {
+                    mode = "answer-show";
+                    label.text("? Show");
+                } else {
+                    mode = "answer-hide";
+                    label.text("? Hide");
+                }
+                var notes = $('.sa-view-get');
+                for (var i = 0; i < notes.length; ++i) {
+                    var note = $(notes[i]);
+                    var id = note.attr('sa-id');
+                    var viewStr = JSON.stringify({_id:id, Mode:mode});
+                    $.ajax({
+                        type: "post",
+                        url: "/webgl-viewer/saveviewnotes",
+                        data: {"note" : viewStr},
+                        success: function(data,status) {
+                            // How should we give user feedback?
+                        },
+                        error: function() {
+                            alert("AJAX - error() : save view mode" );
+                        },
+                    });
+                }
+            });
             $(".sa-attachment-delete").click(function() {
                 var attachmentItem = $(this).parent();
                 var attachmentGet = $(this).siblings(".sa-attachment-get");
@@ -390,6 +421,18 @@
             <h1 sa-id="{{session_son.id}}" class="sa-session-get" contenteditable="true">
                 {{ session_son.label }}
             </h1>
+
+            {% if is_session_admin %}
+            <div class="pull-right">
+            <button type="button"
+                    class="btn btn-primary badge sa-question-mode">
+                <span>? Mode</span>
+            </button>
+            </div>
+            {% endif %}
+
+        </div>
+        <div class="row">
             {%if session_son.attachments or is_session_admin %}
             <h2>
                 <span>Attachments</span>
