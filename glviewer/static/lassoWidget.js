@@ -73,7 +73,7 @@
         if (localStorage.LassoWidgetDefaults) {
             var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             if (defaults.LineWidth) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
@@ -387,7 +387,7 @@
 
     // Can we bind the dialog apply callback to an objects method?
     LassoWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Loop.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Loop.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Loop.LineWidth).toFixed(2));
 
         var area = this.ComputeArea();

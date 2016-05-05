@@ -75,7 +75,7 @@
         if (localStorage.CircleWidgetDefaults) {
             var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             if (defaults.LineWidth) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
@@ -408,7 +408,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var CIRCLE_WIDGET_DIALOG_SELF;
     CircleWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shape.OutlineColor));
 
         this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 

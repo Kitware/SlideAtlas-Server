@@ -288,7 +288,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var FILL_WIDGET_DIALOG_SELF
     FillWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes[0].OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shapes[0].OutlineColor));
         this.Dialog.LineWidthInput.val((this.Shapes[0].LineWidth).toFixed(2));
 
         this.Dialog.Show(true);

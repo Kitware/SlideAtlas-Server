@@ -16,13 +16,28 @@
     InteractorHandle.prototype = new SAM.Shape;
 
     InteractorHandle.prototype.Draw = function (view) {
-        view.Context2d.save();
-        var pt = view.GetCamera().ConvertPointWorldToViewer(this.Origin[0], this.Origin[1]);
-        // Identity.
-        view.Context2d.setTransform(1,0,0,1,0,0);
-        
+        var origin = view.GetCamera().ConvertPointWorldToViewer(this.Origin[0], this.Origin[1]);
+        var ctx = view.Context2d;
+        ctx.save();
+        ctx.strokeStyle = SAM.ConvertColorToHex(this.OutlineColor);
+        ctx.fillStyle = SAM.ConvertColorToHex(this.FillColor);
+        // Translation.
+        ctx.setTransform(1,0,0,1,origin[0],origin[1]);
 
+        ctx.beginPath();
+        ctx.rect(-this.Radius/4,-this.Radius*6,this.Radius/2,this.Radius*6);
+        ctx.fill();
+        ctx.stroke();
 
+        ctx.beginPath();
+        ctx.arc(0,0,this.Radius,0,2*Math.PI);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0,this.Radius*6,this.Radius/2,0,2*Math.PI);
+        ctx.fill();
+        ctx.stroke();
 
         view.Context2d.restore();
     }
@@ -51,11 +66,11 @@
     }
 
     InteractorHandle.prototype.SetOutlineColor = function (c) {
-        this.OutlineColor = ConvertColor(c);
+        this.OutlineColor = SAM.ConvertColor(c);
     }
 
     InteractorHandle.prototype.SetFillColor = function (c) {
-        this.FillColor = ConvertColor(c);
+        this.FillColor = SAM.ConvertColor(c);
     }
 
 

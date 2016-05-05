@@ -72,7 +72,7 @@
         if (localStorage.PencilWidgetDefaults) {
             var defaults = JSON.parse(localStorage.PencilWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
             if (defaults.LineWidth) {
                 this.LineWidth = defaults.LineWidth;
@@ -395,7 +395,7 @@
     // Can we bind the dialog apply callback to an objects method?
     var DIALOG_SELF
     PencilWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes.GetOutlineColor()));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Shapes.GetOutlineColor()));
         this.Dialog.LineWidthInput.val((this.Shapes.GetLineWidth()).toFixed(2));
 
         this.Dialog.Show(true);

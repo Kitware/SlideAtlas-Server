@@ -175,11 +175,11 @@
         this.VisibilityMode = 2;
         this.Text.BackgroundFlag = true;
         this.Dialog.BackgroundInput.prop('checked', true);
-        var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+        var hexcolor = SAM.ConvertColorToHex(this.Dialog.ColorInput.val());
         if (localStorage.TextWidgetDefaults) {
             var defaults = JSON.parse(localStorage.TextWidgetDefaults);
             if (defaults.Color) {
-                hexcolor = ConvertColorToHex(defaults.Color);
+                hexcolor = SAM.ConvertColorToHex(defaults.Color);
             }
             if (defaults.FontSize) {
                 // font size was wrongly saved as a string.
@@ -612,7 +612,7 @@
     // Can we bind the dialog apply callback to an objects method?
     TextWidget.prototype.ShowPropertiesDialog = function () {
         this.Popup.Hide();
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Text.Color));
         this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
         this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
         this.Dialog.TextInput.val(this.Text.String);
@@ -637,7 +637,7 @@
             return;
         }
 
-        var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+        var hexcolor = SAM.ConvertColorToHex(this.Dialog.ColorInput.val());
         var fontSize = this.Dialog.FontInput.val();
         this.Text.String = string;
         this.Text.Size = parseFloat(fontSize);

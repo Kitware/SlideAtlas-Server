@@ -284,7 +284,7 @@
         //fs.checked = this.Shape.FixedSize;
 
         var color = document.getElementById("arrowcolor");
-        color.value = ConvertColorToHex(this.Shape.FillColor);
+        color.value = SAM.ConvertColorToHex(this.Shape.FillColor);
 
         var lengthLabel = document.getElementById("ArrowLength");
         //if (fs.checked) {

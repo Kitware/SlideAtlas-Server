@@ -250,7 +250,7 @@
             if (this.Active) {
                 ctx.fillStyle = '#FF0';
             } else {
-                ctx.fillStyle = ConvertColorToHex(this.Color);
+                ctx.fillStyle = SAM.ConvertColorToHex(this.Color);
             }
 
             // Convert (x,y) from upper left of textbox to lower left of first character.
@@ -412,7 +412,7 @@
     }
 
     Text.prototype.SetColor = function (c) {
-        this.Color = ConvertColor(c);
+        this.Color = SAM.ConvertColor(c);
     }
 
     SAM.Text = Text;

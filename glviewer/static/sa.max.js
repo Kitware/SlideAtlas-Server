@@ -7896,6 +7896,130 @@ function getCookie(c_name)
       }
 }
 
+//var objectId = new ObjectId(0, 0, 0, 0x00ffffff);
+//      var objectIdString = objectId.toString();
+
+
+/*
+*
+* Copyright (c) 2011-2014- Justin Dearing (zippy1981@gmail.com)
+* Dual licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
+* and GPL (http://www.opensource.org/licenses/gpl-license.php) version 2 licenses.
+* This software is not distributed under version 3 or later of the GPL.
+*
+* Version 1.0.2
+*
+*/
+
+if (!document) var document = { cookie: '' }; // fix crashes on node
+
+/**
+ * Javascript class that mimics how WCF serializes a object of type MongoDB.Bson.ObjectId
+ * and converts between that format and the standard 24 character representation.
+*/
+var ObjectId = (function () {
+    var increment = Math.floor(Math.random() * (16777216));
+    var pid = Math.floor(Math.random() * (65536));
+    var machine = Math.floor(Math.random() * (16777216));
+
+    var setMachineCookie = function() {
+        var cookieList = document.cookie.split('; ');
+        for (var i in cookieList) {
+            var cookie = cookieList[i].split('=');
+            var cookieMachineId = parseInt(cookie[1], 10);
+            if (cookie[0] == 'mongoMachineId' && cookieMachineId && cookieMachineId >= 0 && cookieMachineId <= 16777215) {
+                machine = cookieMachineId;
+                break;
+            }
+        }
+        document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT;path=/';
+    };
+    if (typeof (localStorage) != 'undefined') {
+        try {
+            var mongoMachineId = parseInt(localStorage['mongoMachineId']);
+            if (mongoMachineId >= 0 && mongoMachineId <= 16777215) {
+                machine = Math.floor(localStorage['mongoMachineId']);
+            }
+            // Just always stick the value in.
+            localStorage['mongoMachineId'] = machine;
+        } catch (e) {
+            setMachineCookie();
+        }
+    }
+    else {
+        setMachineCookie();
+    }
+
+    function ObjId() {
+        if (!(this instanceof ObjectId)) {
+            return new ObjectId(arguments[0], arguments[1], arguments[2], arguments[3]).toString();
+        }
+
+        if (typeof (arguments[0]) == 'object') {
+            this.timestamp = arguments[0].timestamp;
+            this.machine = arguments[0].machine;
+            this.pid = arguments[0].pid;
+            this.increment = arguments[0].increment;
+        }
+        else if (typeof (arguments[0]) == 'string' && arguments[0].length == 24) {
+            this.timestamp = Number('0x' + arguments[0].substr(0, 8)),
+            this.machine = Number('0x' + arguments[0].substr(8, 6)),
+            this.pid = Number('0x' + arguments[0].substr(14, 4)),
+            this.increment = Number('0x' + arguments[0].substr(18, 6))
+        }
+        else if (arguments.length == 4 && arguments[0] != null) {
+            this.timestamp = arguments[0];
+            this.machine = arguments[1];
+            this.pid = arguments[2];
+            this.increment = arguments[3];
+        }
+        else {
+            this.timestamp = Math.floor(new Date().valueOf() / 1000);
+            this.machine = machine;
+            this.pid = pid;
+            this.increment = increment++;
+            if (increment > 0xffffff) {
+                increment = 0;
+            }
+        }
+    };
+    return ObjId;
+})();
+
+ObjectId.prototype.getDate = function () {
+    return new Date(this.timestamp * 1000);
+};
+
+ObjectId.prototype.toArray = function () {
+    var strOid = this.toString();
+    var array = [];
+    var i;
+    for(i = 0; i < 12; i++) {
+        array[i] = parseInt(strOid.slice(i*2, i*2+2), 16);
+    }
+    return array;
+};
+
+/**
+* Turns a WCF representation of a BSON ObjectId into a 24 character string representation.
+*/
+ObjectId.prototype.toString = function () {
+    if (this.timestamp === undefined
+        || this.machine === undefined
+        || this.pid === undefined
+        || this.increment === undefined) {
+        return 'Invalid ObjectId';
+    }
+
+    var timestamp = this.timestamp.toString(16);
+    var machine = this.machine.toString(16);
+    var pid = this.pid.toString(16);
+    var increment = this.increment.toString(16);
+    return '00000000'.substr(0, 8 - timestamp.length) + timestamp +
+           '000000'.substr(0, 6 - machine.length) + machine +
+           '0000'.substr(0, 4 - pid.length) + pid +
+           '000000'.substr(0, 6 - increment.length) + increment;
+};
 // TODO: 
 //    $('#slideInformation')
 //  ShowViewBrowser();});
@@ -9154,13 +9278,14 @@ DualViewWidget.prototype.Record = function (note, startViewIdx) {
 }
 
 
-// Astracting the saViewer class to support dual viewers and stacks.
+// Abstracting the saViewer class to support dual viewers and stacks.
 DualViewWidget.prototype.ProcessArguments = function (args) {
     if (args.note) {
         // TODO: DO we need both?
         this.saNote = args.note;
         //args.note.DisplayView(this);
         this.SetNote(args.note,args.viewIndex);
+        // NOTE: TempId is legacy
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
     }
 
@@ -9807,7 +9932,8 @@ function Note () {
     }
 
     // A global list of notes so we can find a note by its id.
-    this.TempId = 'tmp'+SA.Notes.length; // hack for html views.
+    // TODO: Legacy.  Get rid of TempId.
+    this.Id = this.TempId = new ObjectId().toString();
     SA.Notes.push(this);
 
     var self = this;
@@ -9943,8 +10069,8 @@ Note.prototype.DeepCopy = function(note) {
     this.Parent = note.Parent;
     this.StartIndex = note.StartIndex;
     // Replace old note id with new in HTML.
-    var oldId = note.Id || note.TempId;
-    var newId = this.Id || this.TempId;
+    var oldId = note.Id;
+    var newId = this.Id;
     this.Text = note.Text.replace(oldId, newId);
     this.Title = note.Title;
     this.Type = note.Type;
@@ -10296,26 +10422,34 @@ Note.prototype.NewChild = function(childIdx, title) {
     return childNote;
 }
 
+// TODO: No longer needed now that we are generating ids onthe client.
 Note.prototype.LoadIds = function(data) {
-    if ( ! this.Id) {
-        if (this.TempId) {
-            console.log("Converting " + this.TempId + " to " + data._id);
-        }
+    if (this.Id != data._id) {
+        // This should be fine.  Notes generate an id before the actual
+        // id is loaded from the database.
         this.Id = data._id;
-        // Leave TempId in place until we convert all references.
     }
-    if (data.Children && this.Children) {
-        for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
-            this.Children[i].LoadIds(data.Children[i]);
-        }
-    }
+
+
+    //if ( ! this.Id) {
+    //    if (this.TempId) {
+    //        console.log("Converting " + this.TempId + " to " + data._id);
+    //    }
+    //    this.Id = data._id;
+    //    // Leave TempId in place until we convert all references.
+    //}
+    //if (data.Children && this.Children) {
+    //    for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
+    //        this.Children[i].LoadIds(data.Children[i]);
+    //    }
+    //}
 }
 
 
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback, excludeChildren) {
-    console.log("Save note " + (this.Id || this.TempId) + " " + this.Title);
+    console.log("Save note " + this.Id + " " + this.Title);
 
     var self = this;
     // Save this users notes in the user specific collection.
@@ -10507,8 +10641,6 @@ Note.prototype.Load = function(obj){
     if (this._id) {
         this.Id = this._id;
         delete this._id;
-        // All notes have a TempId (set in contructor) before they are loaded.
-        delete this.TempId;
     }
 
     if (this.ParentId) {
@@ -10531,7 +10663,6 @@ Note.prototype.Load = function(obj){
             // We should have a load state in note.
             //childNote.LoadViewId(child);
             childNote.Id = child;
-            delete childNote.TempId;
         } else {
             childNote.Load(child);
         }
@@ -11124,7 +11255,7 @@ TextEditor.prototype.InsertUrlLinkAccept = function() {
 // names for links.  The flaw is it always starts over when page is
 // loaded. It does not detect links from previous edits.
 var LINKS_WITH_NO_NAME = 0;
-TextEditor.prototype.InsertCameraLink = function() {
+/*TextEditor.prototype.InsertCameraLink = function() {
     var self = this;
     var sel = window.getSelection();
     var range = SA.GetSelectionRange(this.TextEntry);
@@ -11139,8 +11270,8 @@ TextEditor.prototype.InsertCameraLink = function() {
         if (note) {
             note.RecordView(this.Display);
             // Do not save empty usernotes.
-            if (note != "UserNote" || 
-                note.Text != "" || 
+            if (note != "UserNote" ||
+                note.Text != "" ||
                 this.Note.Children.length > 0) {
                 note.Save();
             }
@@ -11201,27 +11332,26 @@ TextEditor.prototype.InsertCameraLink = function() {
             }
         });
 }
-
+*/
 
 // TODO: Untangle view links from the note.
 TextEditor.prototype.InsertCameraLink2 = function() {
-    var bar = $('<div>')
-        .css({'position':'relative',
-              'margin':'3%',
-              'width':'90%',
-              'background':'#FFF',
-              'border':'1px solid #AAA',
-              'padding':'1% 1% 1% 1%'}) // top right bottom left
-        .attr('contenteditable', 'false')
-        .saQuestion({editable: SA.Edit,
-                     position : 'static'});
+    //var bar = $('<div>')
+    //    .css({'position':'relative',
+    //          'margin':'3%',
+    //          'width':'90%',
+    //          'background':'#FFF',
+    //          'border':'1px solid #AAA',
+    //          'padding':'1% 1% 1% 1%'}) // top right bottom left
+    //    .attr('contenteditable', 'false')
+    //    .saQuestion({editable: SA.Edit,
+    //                 position : 'static'});
 
     // Create a child note.
     var parentNote = this.Note;
     if ( ! parentNote) {
         parentNote = SA.DualDisplay.GetRootNote();
     }
-
 
     // Create a new note to hold the view.
     // Put the new note at the end of the list.
@@ -11234,7 +11364,6 @@ TextEditor.prototype.InsertCameraLink2 = function() {
     childNote.Type = 'View';
 
     // We need to save the note to get its Id.
-    var self = this;
     var text = "(view)";
     var range = SA.GetSelectionRange(this.TextEntry);
     if ( ! range) {
@@ -11244,28 +11373,27 @@ TextEditor.prototype.InsertCameraLink2 = function() {
     }
     range.deleteContents();
 
-    childNote.Save(
-        function (note) {
-            // Simply put a span tag around the text with the id of the view.
-            // It will be formated by the note hyperlink code.
-            var span = document.createElement("span");
-            // This id identifies the span as a hyperlink to this note.
-            // The note will format the link and add callbacks later.
-            span.id = note.Id;
-            $(span).attr('contenteditable', 'false');
-            span.appendChild( document.createTextNode(text) );
-            range.insertNode(span);
-            // Let the note format it.
-            childNote.FormatHyperlink();
+    // Simply put a span tag around the text with the id of the view.
+    // It will be formated by the note hyperlink code.
+    var span = document.createElement("span");
+    // This id identifies the span as a hyperlink to this note.
+    // The note will format the link and add callbacks later.
+    span.id = childNote.Id;
+    $(span).attr('contenteditable', 'false');
+    span.appendChild( document.createTextNode(text) );
+    range.insertNode(span);
+    // Let the note format it.
+    childNote.FormatHyperlink();
 
-            // Some gymnasitcs to keep the cursor after the question.
-            range.collapse(false);
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            self.TextEntry[0].focus();
-            self.UpdateNote();
-        });
+    // Some gymnasitcs to keep the cursor after the question.
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    this.TextEntry[0].focus();
+    // NOTE: This may not be necesary no that text note "views" are
+    // issolated from notes in views tab.
+    this.UpdateNote();
 }
 
 
@@ -12478,7 +12606,7 @@ ViewerRecord.prototype.Load = function(obj) {
         for (var i = 0; i < this.Annotations.length; ++ i) {
             var a = this.Annotations[i];
             if (a && a.color) {
-                a.color = ConvertColor(a.color);
+                a.color = SAM.ConvertColor(a.color);
             }
         }
     }
@@ -15703,7 +15831,7 @@ saTextEditor.prototype.DialogInitialize = function() {
     var color = '#000000';
     str = this.Div[0].style.color;
     if (str != "") {
-        color = ConvertColorToHex(str);
+        color = SAM.ConvertColorToHex(str);
     }
     this.FontColor.spectrum('set',color);
 
@@ -17756,189 +17884,6 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 
-// RGB [Float, Float, Float] to #RRGGBB string
-var ConvertColorToHex = function(color) {
-    if (typeof(color) == 'string') { 
-        color = ConvertColorNameToHex(color);
-        if (color.substring(0,1) == '#') {
-            return color;
-        } else if (color.substring(0,3) == 'rgb') {
-            tmp = color.substring(4,color.length - 1).split(',');
-            color = [parseInt(tmp[0])/255,
-                     parseInt(tmp[1])/255,
-                     parseInt(tmp[2])/255];
-        }
-    }
-    var hexDigits = "0123456789abcdef";
-    var str = "#";
-    for (var i = 0; i < 3; ++i) {
-	      var tmp = color[i];
-	      for (var j = 0; j < 2; ++j) {
-	          tmp *= 16.0;
-	          var digit = Math.floor(tmp);
-	          if (digit < 0) { digit = 0; }
-	          if (digit > 15){ digit = 15;}
-	          tmp = tmp - digit;
-	          str += hexDigits.charAt(digit);
-        }
-    }
-    return str;
-}
-
-
-// 0-f hex digit to int
-var HexDigitToInt = function(hex) {
-    if (hex == '1') {
-        return 1.0;
-    } else if (hex == '2') {
-        return 2.0;
-    } else if (hex == '3') {
-        return 3.0;
-    } else if (hex == '4') {
-        return 4.0;
-    } else if (hex == '5') {
-        return 5.0;
-    } else if (hex == '6') {
-        return 6.0;
-    } else if (hex == '7') {
-        return 7.0;
-    } else if (hex == '8') {
-        return 8.0;
-    } else if (hex == '9') {
-        return 9.0;
-    } else if (hex == 'a' || hex == 'A') {
-        return 10.0;
-    } else if (hex == 'b' || hex == 'B') {
-        return 11.0;
-    } else if (hex == 'c' || hex == 'C') {
-        return 12.0;
-    } else if (hex == 'd' || hex == 'D') {
-        return 13.0;
-    } else if (hex == 'e' || hex == 'E') {
-        return 14.0;
-    } else if (hex == 'f' || hex == 'F') {
-        return 15.0;
-    }
-    return 0.0;
-}
-
-
-var ConvertColorNameToHex = function(color) {
-    // Deal with color names.
-    if ( typeof(color)=='string' && color[0] != '#') {
-        var colors = {
-            "aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff",
-            "aquamarine":"#7fffd4","azure":"#f0ffff","beige":"#f5f5dc",
-            "bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd",
-            "blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a",
-            "burlywood":"#deb887","cadetblue":"#5f9ea0","chartreuse":"#7fff00",
-            "chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed",
-            "cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
-            "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b",
-            "darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b",
-            "darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
-            "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000",
-            "darksalmon":"#e9967a","darkseagreen":"#8fbc8f",
-            "darkslateblue":"#483d8b","darkslategray":"#2f4f4f",
-            "darkturquoise":"#00ced1","darkviolet":"#9400d3",
-            "deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969",
-            "dodgerblue":"#1e90ff","firebrick":"#b22222","floralwhite":"#fffaf0",
-            "forestgreen":"#228b22","fuchsia":"#ff00ff","gainsboro":"#dcdcdc",
-            "ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520",
-            "gray":"#808080","green":"#008000","greenyellow":"#adff2f",
-            "honeydew":"#f0fff0","hotpink":"#ff69b4","indianred":"#cd5c5c",
-            "indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
-            "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00",
-            "lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080",
-            "lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
-            "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1",
-            "lightsalmon":"#ffa07a","lightseagreen":"#20b2aa",
-            "lightskyblue":"#87cefa","lightslategray":"#778899",
-            "lightsteelblue":"#b0c4de","lightyellow":"#ffffe0","lime":"#00ff00",
-            "limegreen":"#32cd32","linen":"#faf0e6","magenta":"#ff00ff",
-            "maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd",
-            "mediumorchid":"#ba55d3","mediumpurple":"#9370d8",
-            "mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
-            "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc",
-            "mediumvioletred":"#c71585","midnightblue":"#191970",
-            "mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
-            "navajowhite":"#ffdead","navy":"#000080","oldlace":"#fdf5e6",
-            "olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500",
-            "orangered":"#ff4500","orchid":"#da70d6","palegoldenrod":"#eee8aa",
-            "palegreen":"#98fb98","paleturquoise":"#afeeee",
-            "palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9",
-            "peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd",
-            "powderblue":"#b0e0e6","purple":"#800080","red":"#ff0000",
-            "rosybrown":"#bc8f8f","royalblue":"#4169e1","saddlebrown":"#8b4513",
-            "salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57",
-            "seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0",
-            "skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090",
-            "snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
-            "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347",
-            "turquoise":"#40e0d0","violet":"#ee82ee","wheat":"#f5deb3",
-            "white":"#ffffff","whitesmoke":"#f5f5f5",
-            "yellow":"#ffff00","yellowgreen":"#9acd32"};
-        color = color.toLowerCase();
-        if (typeof colors[color] != 'undefined') {
-            color = colors[color];
-        }
-    }
-    return color;
-}
-
-
-
-
-// Not used at the moment.
-// Make sure the color is an array of values 0->1
-var ConvertColor = function(color) {
-  // Deal with color names.
-  if ( typeof(color)=='string' && color[0] != '#') {
-    var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
-      "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
-      "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
-      "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b","darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b","darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
-      "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000","darksalmon":"#e9967a","darkseagreen":"#8fbc8f","darkslateblue":"#483d8b","darkslategray":"#2f4f4f","darkturquoise":"#00ced1",
-      "darkviolet":"#9400d3","deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969","dodgerblue":"#1e90ff",
-      "firebrick":"#b22222","floralwhite":"#fffaf0","forestgreen":"#228b22","fuchsia":"#ff00ff",
-      "gainsboro":"#dcdcdc","ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520","gray":"#808080","green":"#008000","greenyellow":"#adff2f",
-      "honeydew":"#f0fff0","hotpink":"#ff69b4",
-      "indianred ":"#cd5c5c","indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
-      "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00","lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080","lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
-      "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1","lightsalmon":"#ffa07a","lightseagreen":"#20b2aa","lightskyblue":"#87cefa","lightslategray":"#778899","lightsteelblue":"#b0c4de",
-      "lightyellow":"#ffffe0","lime":"#00ff00","limegreen":"#32cd32","linen":"#faf0e6",
-      "magenta":"#ff00ff","maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd","mediumorchid":"#ba55d3","mediumpurple":"#9370d8","mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
-      "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc","mediumvioletred":"#c71585","midnightblue":"#191970","mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
-      "navajowhite":"#ffdead","navy":"#000080",
-      "oldlace":"#fdf5e6","olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500","orangered":"#ff4500","orchid":"#da70d6",
-      "palegoldenrod":"#eee8aa","palegreen":"#98fb98","paleturquoise":"#afeeee","palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9","peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd","powderblue":"#b0e0e6","purple":"#800080",
-      "red":"#ff0000","rosybrown":"#bc8f8f","royalblue":"#4169e1",
-      "saddlebrown":"#8b4513","salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57","seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0","skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090","snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
-      "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347","turquoise":"#40e0d0",
-      "violet":"#ee82ee",
-      "wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5",
-      "yellow":"#ffff00","yellowgreen":"#9acd32"};
-    if (typeof colors[color.toLowerCase()] != 'undefined') {
-        color = colors[color.toLowerCase()];
-    } else {
-        alert("Unknown color " + color);
-    }
-  }
-
-  // Deal with color in hex format i.e. #0000ff
-  if ( typeof(color)=='string' && color.length == 7 && color[0] == '#') {
-    var floatColor = [];
-    var idx = 1;
-    for (var i = 0; i < 3; ++i) {
-      var val = ((16.0 * HexDigitToInt(color[idx++])) + HexDigitToInt(color[idx++])) / 255.0;
-      floatColor.push(val);
-    }
-    return floatColor;
-  }
-  // No other formats for now.
-  return color;
-}
-
 
 
 
@@ -18752,16 +18697,12 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
-    // It is necessary to convert
-    // temporary note ids to real note ids. (for the html
-    // sa-presentation-views)
-    // This is also important for the user notes.  They have to save the
-    // correct parent id.
-    var waitingCount = 0;
+    // NOTE:  It should not be necessary to differentiate user notes from
+    // normal notes anymore because we are generating ids on the client.
+
     for (var i = 0; i < SA.Notes.length; ++i) {
         note = SA.Notes[i];
-        if ( ! note.Id && note.Type != "UserNote" ) {
-            ++waitingCount;
+        if (note.Type != "UserNote" ) {
             note.Save(function (note) {
                 if (note == self.RootNote) {
                     // if this is the first time we are saving the root note, then
@@ -18781,19 +18722,8 @@ Presentation.prototype.Save = function () {
                         },
                     });
                 }
-                // For every note.
-                // Synchonize asynchronous calls.
-                --waitingCount;
-                if (waitingCount == 0) {
-                    // reenter this method to finish the rest.
-                    self.Save();
-                }
             }, true);
         }
-    }
-    // It will take time for the ids to come back
-    if (waitingCount > 0) {
-        return;
     }
 
     // Save the user notes.  They are not saved with the parent notes like
@@ -18802,11 +18732,7 @@ Presentation.prototype.Save = function () {
         note = SA.Notes[i];
         if ( note.Type == "UserNote" ) {
             if (note.Id || note.Text != "") {
-                // Parent will have an id at this point.
                 note.Save();
-                if (note.TempId) {
-                    delete note.TempId;
-                }
             }
         }
     }
@@ -18841,31 +18767,6 @@ Presentation.prototype.Save = function () {
             });
         rootNote.ViewerRecords.push(record);
     }
-
-    // Replacing the temp ids in the html is harder than I would expect.
-    // I change it in the save callback, but closure magic changes it back
-    // Before the root note was saved.
-    // Try changing them here.
-    for (var i = 0; i < SA.Notes.length; ++i) {
-        note = SA.Notes[i];
-        if (note.TempId) {
-            // Replace references in dom
-            $('[sa-note-id="'+note.TempId+'"]').attr('sa-note-id',note.Id);
-            // Replace al the occurances of the id in the string.
-            note.Text = note.Text.replace(
-                new RegExp(note.TempId, 'g'), note.Id);
-            // Parent too.
-            // TODO: There has to be a more elegant way of doing this.
-            // Search for temp ids in all text and use 'GetNoteFromId'.
-            if (note.Parent) {
-                note.Parent.Text = note.Parent.Text.replace(
-                    new RegExp(note.TempId, 'g'), note.Id);
-            }
-
-            delete note.TempId;
-        }
-    }
-
 
     //this.SaveButton.css({'color':'#F00'});
     // And finally, we can save the presentation.
@@ -19837,29 +19738,6 @@ HtmlPage.prototype.DisplayNote = function (note) {
              height:lastViewers[i].style.height});
     }
 
-    // hack to get rid of tmp ids.  I can not reproduce the problem.
-    // Sometimes the temp ids are not replaced by the real ids (in the text).
-    if ( ! note.TempId && note.Text && note.Id) {
-        var idx0 = note.Text.indexOf('sa-note-id="tmp');
-        while (idx0 >= 0) {
-            idx0 += 12;
-            var idx1 = note.Text.indexOf('"',idx0);
-            var tmpId = note.Text.substring(idx0,idx1);
-            // Now that we are adding children for dual displays ....
-            var found = false;
-            for (var j = 0; j < note.Children.length; ++j) {
-                if (note.Children[j].TempId == tmpId) {
-                    found = true;
-                }
-            }
-            if ( ! found ) {
-                console.log("Replacing temp id " + tmpId + " with " + note.Id);
-                note.Text = note.Text.replace(tmpId, note.Id);
-            }
-            idx0 = note.Text.indexOf('sa-note-id="tmp', idx0+1);
-        }
-    }
-
     this.Note = note;
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
@@ -20235,10 +20113,10 @@ HtmlPage.prototype.InsertView = function(viewObj) {
 
     // First make a copy of the view as a child.
     var newNote = new Note();
-    var tmpId = newNote.TempId;
+    var tmpId = newNote.Id;
     newNote.Load(viewObj);
     delete newNote.Id;
-    newNote.TempId = tmpId;
+    newNote.Id = tmpId;
     if (newNote.ViewerRecords.length == 0) {
         saDebug("Insert failed: Note has no viewer records.");
     } else if (this.Note.Parent) {
@@ -30683,6 +30561,7 @@ SlideAtlas.prototype.MakeSelectionRange = function(div) {
     sel.addRange(range);
     return range;
 }
+
 
 
 

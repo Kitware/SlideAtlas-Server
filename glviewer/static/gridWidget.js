@@ -1,4 +1,4 @@
-!
+
 (function () {
     "use strict";
 
@@ -241,7 +241,7 @@
         if (localStorage.GridWidgetDefaults) {
             var defaults = JSON.parse(localStorage.GridWidgetDefaults);
             if (defaults.Color) {
-                this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+                this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
                 this.Grid.SetOutlineColor(this.Dialog.ColorInput.val());
             }
             if (defaults.LineWidth != undefined) {
@@ -692,7 +692,7 @@
     var DIALOG_SELF;
 
     GridWidget.prototype.ShowPropertiesDialog = function () {
-        this.Dialog.ColorInput.val(ConvertColorToHex(this.Grid.OutlineColor));
+        this.Dialog.ColorInput.val(SAM.ConvertColorToHex(this.Grid.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Grid.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
         this.Dialog.BinWidthInput.val(SAM.DistanceToString(this.Grid.BinWidth*0.25e-6));

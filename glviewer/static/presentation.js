@@ -808,16 +808,12 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
-    // It is necessary to convert
-    // temporary note ids to real note ids. (for the html
-    // sa-presentation-views)
-    // This is also important for the user notes.  They have to save the
-    // correct parent id.
-    var waitingCount = 0;
+    // NOTE:  It should not be necessary to differentiate user notes from
+    // normal notes anymore because we are generating ids on the client.
+
     for (var i = 0; i < SA.Notes.length; ++i) {
         note = SA.Notes[i];
-        if ( ! note.Id && note.Type != "UserNote" ) {
-            ++waitingCount;
+        if (note.Type != "UserNote" ) {
             note.Save(function (note) {
                 if (note == self.RootNote) {
                     // if this is the first time we are saving the root note, then
@@ -837,19 +833,8 @@ Presentation.prototype.Save = function () {
                         },
                     });
                 }
-                // For every note.
-                // Synchonize asynchronous calls.
-                --waitingCount;
-                if (waitingCount == 0) {
-                    // reenter this method to finish the rest.
-                    self.Save();
-                }
             }, true);
         }
-    }
-    // It will take time for the ids to come back
-    if (waitingCount > 0) {
-        return;
     }
 
     // Save the user notes.  They are not saved with the parent notes like
@@ -858,11 +843,7 @@ Presentation.prototype.Save = function () {
         note = SA.Notes[i];
         if ( note.Type == "UserNote" ) {
             if (note.Id || note.Text != "") {
-                // Parent will have an id at this point.
                 note.Save();
-                if (note.TempId) {
-                    delete note.TempId;
-                }
             }
         }
     }
@@ -897,31 +878,6 @@ Presentation.prototype.Save = function () {
             });
         rootNote.ViewerRecords.push(record);
     }
-
-    // Replacing the temp ids in the html is harder than I would expect.
-    // I change it in the save callback, but closure magic changes it back
-    // Before the root note was saved.
-    // Try changing them here.
-    for (var i = 0; i < SA.Notes.length; ++i) {
-        note = SA.Notes[i];
-        if (note.TempId) {
-            // Replace references in dom
-            $('[sa-note-id="'+note.TempId+'"]').attr('sa-note-id',note.Id);
-            // Replace al the occurances of the id in the string.
-            note.Text = note.Text.replace(
-                new RegExp(note.TempId, 'g'), note.Id);
-            // Parent too.
-            // TODO: There has to be a more elegant way of doing this.
-            // Search for temp ids in all text and use 'GetNoteFromId'.
-            if (note.Parent) {
-                note.Parent.Text = note.Parent.Text.replace(
-                    new RegExp(note.TempId, 'g'), note.Id);
-            }
-
-            delete note.TempId;
-        }
-    }
-
 
     //this.SaveButton.css({'color':'#F00'});
     // And finally, we can save the presentation.
@@ -1893,29 +1849,6 @@ HtmlPage.prototype.DisplayNote = function (note) {
              height:lastViewers[i].style.height});
     }
 
-    // hack to get rid of tmp ids.  I can not reproduce the problem.
-    // Sometimes the temp ids are not replaced by the real ids (in the text).
-    if ( ! note.TempId && note.Text && note.Id) {
-        var idx0 = note.Text.indexOf('sa-note-id="tmp');
-        while (idx0 >= 0) {
-            idx0 += 12;
-            var idx1 = note.Text.indexOf('"',idx0);
-            var tmpId = note.Text.substring(idx0,idx1);
-            // Now that we are adding children for dual displays ....
-            var found = false;
-            for (var j = 0; j < note.Children.length; ++j) {
-                if (note.Children[j].TempId == tmpId) {
-                    found = true;
-                }
-            }
-            if ( ! found ) {
-                console.log("Replacing temp id " + tmpId + " with " + note.Id);
-                note.Text = note.Text.replace(tmpId, note.Id);
-            }
-            idx0 = note.Text.indexOf('sa-note-id="tmp', idx0+1);
-        }
-    }
-
     this.Note = note;
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
@@ -2291,10 +2224,10 @@ HtmlPage.prototype.InsertView = function(viewObj) {
 
     // First make a copy of the view as a child.
     var newNote = new Note();
-    var tmpId = newNote.TempId;
+    var tmpId = newNote.Id;
     newNote.Load(viewObj);
     delete newNote.Id;
-    newNote.TempId = tmpId;
+    newNote.Id = tmpId;
     if (newNote.ViewerRecords.length == 0) {
         saDebug("Insert failed: Note has no viewer records.");
     } else if (this.Note.Parent) {
