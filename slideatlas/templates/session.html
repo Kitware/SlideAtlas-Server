@@ -64,9 +64,11 @@
             // Event leave, focus out have not worked.  
             // Alternatively could look for enter keypress ....
             var saveTimer;
-            var d = new Date();
+            var viewId;
+            var viewLabel;
             var saveView = 
                 function(id, label, div) {
+                    var d = new Date();
                     var noteStr = JSON.stringify({_id:id, Title:label});
                     $.ajax({
                         type: "post",
@@ -75,7 +77,7 @@
                                "date" : d.getTime()},
                         success: function(data,status) {
                             // How should we give user feedback?
-                            div.css({"color":"#000000"});
+                            div.css({"color":"#6666AA"});
                             console.log("saved " + id + " " +label);
                         },
                         error: function() {
@@ -84,19 +86,66 @@
                     });
                 };
             $(".sa-view-get")
+              .css({"color":"#6666AA"})
               .bind('input', function () {
-                  var viewId = $(this).attr("sa-id");
-                  var viewLabel = $(this).text().trim();
-                  $(this).css({"color":"#6666AA"});
+                  var id = $(this).attr("sa-id");
+                  var label = this.innerText;
+                  $(this).css({"color":"#000000"});
                   if (saveTimer) {
                       clearTimeout(saveTimer);
+                      if (viewId && viewId != id) {
+                          // user move to annother too fast
+                          saveView(viewId, viewLabel,$(self));
+                      }
                   }
+                  viewId = id;
+                  viewLabel = label;
                   var self = this;
                   saveTimer = setTimeout(
                       function () {
                           saveView(viewId, viewLabel,$(self));
-                      }, 3000);
+                      }, 2000);
               }); 
+
+
+            // Stuff to save a session label when it is changed.
+            var saveSessionTimer;
+            var sessionId;
+            var sessionLabel;
+            var saveSession = 
+                function(id, label, div) {
+                    var sessionStr = JSON.stringify({_id:id, label:label});
+                    $.ajax({
+                        type: "post",
+                        url: "/webgl-viewer/savesessiontitle",
+                        data: {"session" : sessionStr},
+                        success: function(data,status) {
+                            // How should we give user feedback?
+                            div.css({"color":"#6666AA"});
+                        },
+                        error: function() {
+                            alert("AJAX - error() : save session label" );
+                        },
+                    });
+                };
+            $(".sa-session-get")
+              .css({"color":"#6666AA"})
+              .bind('input', function () {
+                  var id = $(this).attr("sa-id");
+                  var label = this.innerText;
+                  $(this).css({"color":"#000000"});
+                  if (saveSessionTimer) {
+                      clearTimeout(saveSessionTimer);
+                  }
+                  sessionId = id;
+                  sessionLabel = label;
+                  var self = this;
+                  saveSessionTimer = setTimeout(
+                      function () {
+                          saveSession(sessionId, sessionLabel,$(self));
+                      }, 2000);
+              }); 
+
 
             // By Djay
             $(".sa-upload-images").click(function() {
@@ -338,7 +387,9 @@
 {{ super() }}
     <div class="container">
         <div class="row">
-            <h1>{{ session_son.label }}</h1>
+            <h1 sa-id="{{session_son.id}}" class="sa-session-get" contenteditable="true">
+                {{ session_son.label }}
+            </h1>
             {%if session_son.attachments or is_session_admin %}
             <h2>
                 <span>Attachments</span>

@@ -678,6 +678,27 @@ def saveviewnotes():
     #viewObj = readViewTree(db, viewObj, 0)
     return ""
 
+# This is close to a general purpose function to insert an object into the database.
+@mod.route('/savesessiontitle', methods=['GET', 'POST'])
+#@security.login_required
+def savesessiontitle():
+
+    sessObj = request.form['session']
+    sess = json.loads(sessObj)
+
+    admindb = models.ImageStore._get_db()
+    db = admindb
+
+    # I was going get the user id from the session, and pass it to the viewer.
+    # I think I will just try to retreive the user from the "Save Note" method.
+    email = getattr(security.current_user, 'email', '')
+
+    id = sess['_id']
+    del sess['_id']
+    db["sessions"].update({'_id':ObjectId(id)},
+                          {'$set': sess})
+    return ""
+
 @mod.route('/gettrackingdata')
 def gettrackingdata():
     admindb = models.ImageStore._get_db()
