@@ -245,6 +245,9 @@
     function AnnotationLayer (viewerDiv, viewerCamera) {
         var self = this;
 
+        // Hack for debugging
+        SAM.DebugLayer = this;
+
         // TODO: Abstract the view to a layer somehow.
         this.AnnotationView = new View(viewerDiv);
         this.AnnotationView.CanvasDiv.css({'z-index':'100'});
@@ -697,6 +700,89 @@
             SAM.NotesWidget.MarkAsModified();
         }
     }
+
+    AnnotationLayer.prototype.LoadGirderItem = function(id) {
+        var data= {"itemId": "564e42fe3f24e538e9a20eb9",
+                   "limit": 50,
+                   "offset": 0,
+                   "sort":"lowerName",
+                   "sortdir":1};
+        var dataStr = JSON.stringify(data);
+        
+        // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
+        $.ajax({
+            type: "get",
+            url:  "/api/v1/annotation",
+            data: dataStr,
+            success: function(data,status) {
+                alert("success");
+            },
+            error: function() {
+                alert( "AJAX - error() : annotation get"  );
+            },
+        });
+
+
+        // The we have to get the annotations from the id.
+        $.ajax({
+            type: "get",
+            url:  "/api/v1/annotation/" + "572be29d3f24e53573aa8e91",
+            success: function(data,status) {
+                alert("success");
+            },
+            error: function() {
+                alert( "AJAX - error() : annotation get"  );
+            },
+        });
+    }
+
+    AnnotationLayer.prototype.SaveGirderItem = function(id) {
+        // Create a new annotation.
+        data =
+            {"itemId":"572be29d3f24e53573aa8e91",
+             "body": {"name": "Test3",
+                      "elements": [{"type": "circle",
+                                    "lineColor": "#FFFF00",
+                                    "lineWidth": 20,
+                                    "center": [5000, 5000, 0],
+                                    "radius": 2000}]
+                     }
+            }
+        var dataStr = JSON.stringify(data);
+        $.ajax({
+            type: "post",
+            url:  "/api/v1/annotation",
+            data: dataStr,
+            success: function(data,status) {
+                alert("success");
+            },
+            error: function() {
+                alert( "AJAX - error() : annotation get"  );
+            },
+        });
+
+
+        // Change an existing annotation
+        data = {"name": "Test", 
+                "elements": [{"type": "polyline", 
+                              "points":[[6500,6600,0],[3300,5600,0],[10600,500,6]],
+                              "closed": true,
+                              "fillColor": "rgba(0, 255, 0, 1)"} ]
+               };
+        var dataStr = JSON.stringify(data);
+        $.ajax({
+            type: "put",
+            url:  "/api/v1/annotation/" + "572be29d3f24e53573aa8e91",
+            data: dataStr,
+            success: function(data,status) {
+                alert("success");
+            },
+            error: function() {
+                alert( "AJAX - error() : annotation get"  );
+            },
+        });
+    }
+
 
     SAM.AnnotationLayer = AnnotationLayer;
 })();

@@ -792,9 +792,9 @@ Note.prototype.LoadViewId = function(viewId, callback) {
                 (callback)();
             }
         },
-        error: function() { 
+        error: function() {
             SA.PopProgress();
-            saDebug( "AJAX - error() : getview" ); 
+            saDebug( "AJAX - error() : getview" )
         },
     });
 }
