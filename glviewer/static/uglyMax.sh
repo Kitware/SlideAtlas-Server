@@ -37,6 +37,7 @@ cat gridWidget.js >> sam.max.js
 cat scaleWidget.js >> sam.max.js 
 cat cutoutWidget.js >> sam.max.js 
 cat imageAnnotation.js >> sam.max.js 
+cat girderWidget.js >> sam.max.js 
 
 
 cat cookies.js >> sa.max.js 

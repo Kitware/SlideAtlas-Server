@@ -24,7 +24,7 @@ echo "// auto generated: slide atlas" > css/sa.css
 ~/bin/uglifyjs -nc scaleWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc cutoutWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc imageAnnotation.js >> sam.min.js 
-
+~/bin/uglifyjs -nc girderWidget.js >> sam.min.js 
 
 
 
