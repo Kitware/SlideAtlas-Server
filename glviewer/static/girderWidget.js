@@ -16,7 +16,7 @@
     function GirderWidget (layer, itemId) {
         if (itemId) {
             this.ImageItemId  = itemId;
-            this.LoadGirderImageItem();
+            this.LoadGirderImageItem(itemId);
         }
         this.Radius = 7;
         this.AnnotationLayer = layer;
@@ -124,9 +124,9 @@
         var self = this;
         // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
         girder.restRequest({
-            type: "get",
-            url:  "annotation",
-            data: JSON.stringify(data)
+            path:   "annotation",
+            method: "GET",
+            data:   JSON.stringify(data)
         }).done(function(data) {
             for (var i = 0; i < data.length; ++i) {
                 self.LoadAnnotationItem(data._id);
