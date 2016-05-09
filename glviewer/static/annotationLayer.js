@@ -461,6 +461,8 @@
         }
         // Incase the widget changed the cursor.  Change it back.
         this.GetCanvasDiv().css({'cursor':'default'});
+        // The cursor does not change immediatly.  Try to flush.
+        this.EventuallyDraw();
         this.ActiveWidget = null;
         widget.SetActive(false);
     }
@@ -702,20 +704,20 @@
     }
 
     AnnotationLayer.prototype.LoadGirderItem = function(id) {
-        var data= {"itemId": "564e42fe3f24e538e9a20eb9",
+        var itemId = "564e42fe3f24e538e9a20eb9";
+        var data= {"itemId": itemId,
                    "limit": 50,
                    "offset": 0,
                    "sort":"lowerName",
                    "sortdir":1};
-        var dataStr = JSON.stringify(data);
         
         // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
-        $.ajax({
+        girder.restRequest({
             type: "get",
-            url:  "/api/v1/annotation",
-            data: dataStr,
+            url:  "annotation",
+            data: JSON.stringify(data),
             success: function(data,status) {
-                alert("success");
+                console.log("success");
             },
             error: function() {
                 alert( "AJAX - error() : annotation get"  );
@@ -723,38 +725,35 @@
         });
 
 
-        // The we have to get the annotations from the id.
-        $.ajax({
-            type: "get",
-            url:  "/api/v1/annotation/" + "572be29d3f24e53573aa8e91",
-            success: function(data,status) {
-                alert("success");
-            },
-            error: function() {
-                alert( "AJAX - error() : annotation get"  );
-            },
+        var annotationId = "572be29d3f24e53573aa8e91";
+        girder.restRequest({                             
+            path: 'annotation/' + annotationId,    // note that you don't need
+            // api/v1
+            method: 'GET',                          // data will be put in the
+            // body of a POST
+            contentType: 'application/json',        // this tells jQuery that we
+            // are passing JSON in the body
+        }).done(function(data) {
+            console.log("done"); 
         });
     }
 
     AnnotationLayer.prototype.SaveGirderItem = function(id) {
         // Create a new annotation.
-        data =
-            {"itemId":"572be29d3f24e53573aa8e91",
-             "body": {"name": "Test3",
-                      "elements": [{"type": "circle",
-                                    "lineColor": "#FFFF00",
-                                    "lineWidth": 20,
-                                    "center": [5000, 5000, 0],
-                                    "radius": 2000}]
-                     }
-            }
-        var dataStr = JSON.stringify(data);
-        $.ajax({
+        var annotId = "572be29d3f24e53573aa8e91";
+        data ={"name": "Test3",
+               "elements": [{"type": "circle",
+                             "lineColor": "#FFFF00",
+                             "lineWidth": 20,
+                             "center": [5000, 5000, 0],
+                             "radius": 2000}]
+              }
+        girder.restRequest({
             type: "post",
-            url:  "/api/v1/annotation",
-            data: dataStr,
+            url:  "annotation",
+            data: JSON.stringify(data),
             success: function(data,status) {
-                alert("success");
+                console.log("success");
             },
             error: function() {
                 alert( "AJAX - error() : annotation get"  );
@@ -769,13 +768,12 @@
                               "closed": true,
                               "fillColor": "rgba(0, 255, 0, 1)"} ]
                };
-        var dataStr = JSON.stringify(data);
-        $.ajax({
+        girder.restRequest({
             type: "put",
-            url:  "/api/v1/annotation/" + "572be29d3f24e53573aa8e91",
-            data: dataStr,
+            url:  "annotation/" + annotId,
+            data: JSON.stringify(data),
             success: function(data,status) {
-                alert("success");
+                console.log("success2");
             },
             error: function() {
                 alert( "AJAX - error() : annotation get"  );
@@ -783,6 +781,12 @@
         });
     }
 
+
+    AnnotationLayer.prototype.UpdateSize = function () {
+        if (this.AnnotationView && this.AnnotationView.UpdateCanvasSize() ) {
+            this.EventuallyDraw();
+        }
+    }
 
     SAM.AnnotationLayer = AnnotationLayer;
 })();

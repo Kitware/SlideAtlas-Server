@@ -9583,11 +9583,13 @@ DualViewWidget.prototype.UpdateSize = function () {
         this.ViewerDivs[0].css({'left':'0%',
                                 'width':percent+'%',
                                 'height':'100%'});
+        this.Viewers[0].UpdateSize();
     }
     if (this.ViewerDivs[1]) {
         this.ViewerDivs[1].css({'left':percent+'%',
                                 'width':(100-percent)+'%',
                                'height':'100%'});
+        this.Viewers[1].UpdateSize();
     }
 
     if (percent >= 90) {
@@ -9595,10 +9597,6 @@ DualViewWidget.prototype.UpdateSize = function () {
     } else {
         this.Viewers[1].Show();
     }
-
-    // Only window trigger resize events.
-    // Make sure the viewer, views and layers get a resize.
-    $(window).trigger('resize');
 }
 
 
@@ -27862,6 +27860,10 @@ Viewer.prototype.UpdateSize = function () {
 
     if (this.MainView.UpdateCanvasSize() ) {
         this.EventuallyRender();
+    }
+
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.UpdateSize();
     }
 
     // I do not know the way the viewport is used to place

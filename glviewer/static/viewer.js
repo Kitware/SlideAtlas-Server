@@ -457,6 +457,10 @@ Viewer.prototype.UpdateSize = function () {
         this.EventuallyRender();
     }
 
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.UpdateSize();
+    }
+
     // I do not know the way the viewport is used to place
     // this overview.  It should be like other widgets
     // and be placed relative to the parent.

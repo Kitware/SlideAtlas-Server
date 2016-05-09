@@ -98,8 +98,6 @@
 
         this.Update(layer.GetPixelsPerUnit());
 
-        this.Layer.AddWidget(this);
-
         this.State = WAITING;
     }
 

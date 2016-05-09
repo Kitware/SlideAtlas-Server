@@ -114,6 +114,7 @@
         var obj = new Object();
         obj.type = "lasso";
         obj.outlinecolor = this.Loop.OutlineColor;
+        obj.linewidth = this.Loop.GetLineWidth();
         obj.points = [];
         for (var j = 0; j < this.Loop.Points.length; ++j) {
             obj.points.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
@@ -133,6 +134,9 @@
             //if (this.Stroke) {
             //    this.Stroke.OutlineColor = this.Loop.OutlineColor;
             //}
+        }
+        if (obj.outlinewidth != undefined) {
+            this.Loop.LineWidth = obj.linewidth;
         }
         var points = [];
         if ( obj.points != undefined) {
