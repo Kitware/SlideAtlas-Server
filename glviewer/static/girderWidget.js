@@ -411,7 +411,7 @@
             if (element.type == "arrow") {
                 obj.type = "text";
                 obj.string = element.label.value;
-                obj.color = SAM.ConvertColor(element.fillCsolor);
+                obj.color = SAM.ConvertColor(element.fillColor);
                 obj.size = element.label.fontSize;
                 obj.position = element.points[0].slice(0);
                 obj.offset = element.points[1].slice(0);
