@@ -352,6 +352,7 @@
 
     // Move the annotation info to the layer widgets and draw.
     GirderWidget.prototype.DisplayAnnotation = function(annotObj) {
+        this.AnnotationLayer.SetVisibility(true);
         this.Highlight(annotObj);
 
         this.AnnotationLayer.Reset();
