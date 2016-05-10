@@ -24,6 +24,7 @@ echo "// auto generated: slide atlas" > css/sa.css
 ~/bin/uglifyjs -nc scaleWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc cutoutWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc imageAnnotation.js >> sam.min.js 
+~/bin/uglifyjs -nc dialog.js >> sam.min.js 
 ~/bin/uglifyjs -nc girderWidget.js >> sam.min.js 
 
 
@@ -62,7 +63,6 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc cutout.js >> sa.min.js 
 ~/bin/uglifyjs -nc seedContour.js >> sa.min.js 
 ~/bin/uglifyjs -nc align.js >> sa.min.js 
-~/bin/uglifyjs -nc dialog.js >> sa.min.js 
 ~/bin/uglifyjs -nc tile.js >> sa.min.js 
 ~/bin/uglifyjs -nc cache.js >> sa.min.js 
 ~/bin/uglifyjs -nc section.js >> sa.min.js 

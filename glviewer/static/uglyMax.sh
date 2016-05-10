@@ -37,6 +37,7 @@ cat gridWidget.js >> sam.max.js
 cat scaleWidget.js >> sam.max.js 
 cat cutoutWidget.js >> sam.max.js 
 cat imageAnnotation.js >> sam.max.js 
+cat dialog.js >> sam.max.js 
 cat girderWidget.js >> sam.max.js 
 
 
@@ -62,7 +63,6 @@ cat camera.js >> sa.max.js
 cat cutout.js >> sa.max.js 
 cat seedContour.js >> sa.max.js 
 cat align.js >> sa.max.js 
-cat dialog.js >> sa.max.js 
 cat tile.js >> sa.max.js 
 cat cache.js >> sa.max.js 
 cat section.js >> sa.max.js 

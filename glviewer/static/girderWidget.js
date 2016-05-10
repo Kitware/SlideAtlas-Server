@@ -26,7 +26,7 @@
         var self = this;
         this.Plus = $('<img>')
             .appendTo(this.AnnotationLayer.GetCanvasDiv())
-            .attr('src',"/webgl-viewer/static/"+"bluePlus.png")
+            .attr('src',SAM.ImagePathUrl+'bluePlus.png')
             .css({'position':'absolute',
                   'left':(3*this.Radius)+'px',
                   'top': y+'px',
@@ -90,7 +90,7 @@
 
     // Create a new annotation item from the annotation layer.
     // Save it in the database.  Add the annotation as a dot in the GUI.
-    GirderWidget.prototype.NewAnnotationItem = function(itemId) {
+    GirderWidget.prototype.NewAnnotationItem = function() {
         var annot = {"elements": []};
         annot.name = "SA-"+this.AnnotationObjects.length;
         annot.elements = this.RecordAnnotation();
@@ -141,7 +141,9 @@
             path: 'annotation/' + annotId,
             method: 'GET',
             contentType: 'application/json',
-        }).done(function(data) {self.AddAnnotationItem(data);});
+        }).done(function(data) {
+            self.AddAnnotation(data);
+        });
     }
 
     // Converts annotation layer widgets into girder annotation elements.
@@ -153,7 +155,7 @@
             if (widget.type == "circle") {
                 var element = {"type": "circle",
                                "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth":widget.linewidth,
+                               "lineWidth": Math.round(widget.linewidth),
                                "center":   widget.origin,
                                "radius":   widget.radius};
                 returnElements.push(element);
@@ -171,9 +173,10 @@
                 returnElements.push(element);
             }
             if (widget.type == "grid") {
+                widget.origin.push(0); // z coordinate.
                 var element = {"type": "rectanglegrid",
                                "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth":widget.linewidth,
+                               "lineWidth": Math.round(widget.linewidth),
                                "center": widget.origin,
                                "width":  widget.bin_width * widget.dimensions[0],
                                "height":  widget.bin_height * widget.dimensions[1],
@@ -191,7 +194,7 @@
                 var element = {"type": "polyline",
                                "closed":widget.closedloop,
                                "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth":widget.linewidth,
+                               "lineWidth": Math.round(widget.linewidth),
                                "points": widget.points};
                 returnElements.push(element);
             }
@@ -203,7 +206,7 @@
                 var element = {"type": "polyline",
                                "closed": true,
                                "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth":widget.linewidth,
+                               "lineWidth": Math.round(widget.linewidth),
                                "points": widget.points};
                 returnElements.push(element);
             }
@@ -218,7 +221,7 @@
                     var element = {"type": "polyline",
                                    "closed":false,
                                    "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                                   "lineWidth":widget.linewidth,
+                                   "lineWidth": Math.round(widget.linewidth),
                                    "points": points};
                     returnElements.push(element);
                 }
