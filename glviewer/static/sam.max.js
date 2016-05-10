@@ -10430,7 +10430,7 @@
         var self = this;
         this.Plus = $('<img>')
             .appendTo(this.AnnotationLayer.GetCanvasDiv())
-            .attr('src',SAM.ImagePathUrl+'bluePlus.png')
+            .attr('src',SA.ImagePathUrl+'bluePlus.png')
             .css({'position':'absolute',
                   'left':(3*this.Radius)+'px',
                   'top': y+'px',
@@ -10526,7 +10526,7 @@
                    "limit": 50,
                    "offset": 0,
                    "sort":"lowerName",
-                   "sortdir":1};
+                   "sortdir":0};
 
         var self = this;
         // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
@@ -10716,6 +10716,7 @@
                         Circle:circle};
         this.AnnotationObjects.push(annotObj);
 
+        circle.contextmenu( function() { return false; });
         circle.mousedown(function(e){
             if( e.button == 0 ) {
                 self.DisplayAnnotation(annotObj);
@@ -10755,6 +10756,7 @@
 
     // Move the annotation info to the layer widgets and draw.
     GirderWidget.prototype.DisplayAnnotation = function(annotObj) {
+        this.AnnotationLayer.SetVisibility(true);
         this.Highlight(annotObj);
 
         this.AnnotationLayer.Reset();

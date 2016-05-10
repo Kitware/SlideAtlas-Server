@@ -122,7 +122,7 @@
                    "limit": 50,
                    "offset": 0,
                    "sort":"lowerName",
-                   "sortdir":1};
+                   "sortdir":0};
 
         var self = this;
         // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
