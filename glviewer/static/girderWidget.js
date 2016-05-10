@@ -183,7 +183,7 @@
                                "label" : widget.string,
                                'fontSize': widget.size,
                                'lineWidth': 10,
-                               'color' : SAM.ConvertColorToHex(widget.color),
+                               'fillColor' : SAM.ConvertColorToHex(widget.color),
                                "points": points};
             }
             if (widget.type == "grid") {
@@ -410,7 +410,7 @@
             if (element.type == "arrow") {
                 obj.type = "text";
                 obj.string = element.label;
-                obj.color = SAM.ConvertColor(element.color);
+                obj.color = SAM.ConvertColor(element.fillCsolor);
                 obj.size = element.fontSize;
                 obj.position = element.points[0].slice(0);
                 obj.offset = element.points[1].slice(0);
