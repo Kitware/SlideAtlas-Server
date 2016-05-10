@@ -153,6 +153,17 @@
     // returns an elements array.
     GirderWidget.prototype.RecordAnnotation = function() {
         var returnElements = [];
+
+        // record the view.
+        var cam = this.AnnotationLayer.GetCamera();
+        var element = {"type": "view",
+                       "center": cam.GetFocalPoint(),
+                       'height': cam.GetHeight(),
+                       'width' : cam.GetWidth(),
+                       "rotation": cam.Roll};
+        element.center.push(0);
+        returnElements.push(element);
+
         for (var i = 0; i < this.AnnotationLayer.GetNumberOfWidgets(); ++i) {
             var widget = this.AnnotationLayer.GetWidget(i).Serialize();
             if (widget.type == "circle") {
@@ -166,9 +177,13 @@
                 var points = [widget.position, widget.offset];
                 points[1][0] += widget.position[0];
                 points[1][1] += widget.position[1];
-                var element = {"type": "arrow",
-                               "label": widget.string,
+                points[0].push(0);
+                points[1].push(0);
+                var element = {"type"  : "arrow",
+                               "label" : widget.string,
+                               'fontSize': widget.size,
                                'lineWidth': 10,
+                               'color' : SAM.ConvertColorToHex(widget.color),
                                "points": points};
             }
             if (widget.type == "grid") {
@@ -356,10 +371,34 @@
         this.Highlight(annotObj);
 
         this.AnnotationLayer.Reset();
+
         var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
             var element = annot.elements[i];
             var obj = {};
+
+
+            if (element.type == "view") {
+                // Set the camera / view.
+                var cam = this.AnnotationLayer.GetCamera();
+                cam.SetFocalPoint(element.center);
+                cam.SetHeight(element.height);
+                if (element.rotation) {
+                    cam.Roll = element.rotation;
+                } else {
+                    cam.Roll = 0;
+                }
+                // Ignore width for now because it is determined by the
+                // viewport.
+                cam.ComputeMatrix();
+                // How to handle forcing viewer to render?
+                // I could have a callback.
+                // I could also make a $('.sa-viewer').EventuallyRender();
+                // or $('.sa-viewer').saViewer('EventuallyRender');
+                if (this.AnnotationLayer.Viewer) {
+                    this.AnnotationLayer.Viewer.EventuallyRender();
+                }
+            }
             if (element.type == "circle") {
                 obj.type = element.type;
                 obj.outlinecolor = SAM.ConvertColor(element.lineColor);
@@ -371,7 +410,8 @@
             if (element.type == "arrow") {
                 obj.type = "text";
                 obj.string = element.label;
-                obj.color = SAM.ConvertColor(element.lineColor);
+                obj.color = SAM.ConvertColor(element.color);
+                obj.size = element.fontSize;
                 obj.position = element.points[0].slice(0);
                 obj.offset = element.points[1].slice(0);
                 obj.offset[0] -= obj.position[0];
