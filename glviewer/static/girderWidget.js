@@ -129,7 +129,7 @@
             data:   JSON.stringify(data)
         }).done(function(data) {
             for (var i = 0; i < data.length; ++i) {
-                self.LoadAnnotationItem(data._id);
+                self.LoadAnnotationItem(data[i]._id);
             }
         });
     }
