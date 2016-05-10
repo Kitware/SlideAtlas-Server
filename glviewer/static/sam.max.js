@@ -5544,6 +5544,8 @@
                 points.push([shape.Points[j][0], shape.Points[j][1]]);
             }
             obj.shapes.push(points);
+            obj.outlinecolor = shape.OutlineColor;
+            obj.linewidth = shape.LineWidth;
         }
         obj.creation_camera = this.CreationCamera;
 
@@ -5552,10 +5554,20 @@
 
     // Load a widget from a json object (origin MongoDB).
     PencilWidget.prototype.Load = function(obj) {
+        this.LineWidth = parseFloat(obj.linewidth);
+        if (obj.linewidth) {
+            this.LineWidth = parseFloat(obj.linewidth);
+        }
+        var outlineColor = this.Dialog.ColorInput.val();
+        if (obj.outlinecolor) {
+            outlineColor[0] = parseFloat(obj.outlinecolor[0]);
+            outlineColor[1] = parseFloat(obj.outlinecolor[1]);
+            outlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        }
         for(var n=0; n < obj.shapes.length; n++){
             var points = obj.shapes[n];
             var shape = new SAM.Polyline();
-            shape.SetOutlineColor(this.Dialog.ColorInput.val());
+            shape.SetOutlineColor(outlineColor);
             shape.FixedSize = false;
             shape.LineWidth = this.LineWidth;
             this.Shapes.AddShape(shape);
@@ -10501,7 +10513,10 @@
             });
         } else {
             // for debugging without girder.
-            self.Highlight(self.AddAnnotation(annot));
+            self.Highlight(self.AddAnnotation(
+                {_id:'ABC',
+                 annotation:annot,
+                 itemId:self.ImageItemId}));
         }
     }
 
@@ -10545,12 +10560,10 @@
         for (var i = 0; i < this.AnnotationLayer.GetNumberOfWidgets(); ++i) {
             var widget = this.AnnotationLayer.GetWidget(i).Serialize();
             if (widget.type == "circle") {
+                widget.origin.push(0); // z coordinate
                 var element = {"type": "circle",
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "center":   widget.origin,
                                "radius":   widget.radius};
-                returnElements.push(element);
             }
             if (widget.type == "text") {
                 // Will not keep scale feature..
@@ -10559,16 +10572,12 @@
                 points[1][1] += widget.position[1];
                 var element = {"type": "arrow",
                                "label": widget.string,
-                               "lineColor":SAM.ConvertColorToHex(widget.color),
                                'lineWidth': 10,
                                "points": points};
-                returnElements.push(element);
             }
             if (widget.type == "grid") {
-                widget.origin.push(0); // z coordinate.
+                //widget.origin.push(0); // z coordinate.
                 var element = {"type": "rectanglegrid",
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "center": widget.origin,
                                "width":  widget.bin_width * widget.dimensions[0],
                                "height":  widget.bin_height * widget.dimensions[1],
@@ -10576,7 +10585,6 @@
                                "normal": [0, 0, 1.0],
                                "widthSubdivisions": widget.dimensions[0],
                                "heightSubdivisions": widget.dimensions[1]};
-                returnElements.push(element);
             }
             if (widget.type == "polyline") {
                 // add the z coordinate
@@ -10585,10 +10593,7 @@
                 }
                 var element = {"type": "polyline",
                                "closed":widget.closedloop,
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "points": widget.points};
-                returnElements.push(element);
             }
             if (widget.type == "lasso") {
                 // add the z coordinate
@@ -10597,10 +10602,7 @@
                 }
                 var element = {"type": "polyline",
                                "closed": true,
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "points": widget.points};
-                returnElements.push(element);
             }
             // Pencil scheme not exact match.  Need to split up polylines.
             if (widget.type == "pencil") {
@@ -10612,11 +10614,24 @@
                     }
                     var element = {"type": "polyline",
                                    "closed":false,
-                                   "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                                   "lineWidth": Math.round(widget.linewidth),
                                    "points": points};
+                    // Hackish way to deal with multiple lines.
+                    if (widget.outlinecolor) {
+                        element.lineColor = SAM.ConvertColorToHex(widget.outlinecolor);
+                    }
+                    if (widget.linewidth) {
+                        element.lineWidth = Math.round(widget.linewidth);
+                    }
                     returnElements.push(element);
                 }
+            } else {
+                if (widget.outlinecolor) {
+                    element.lineColor = SAM.ConvertColorToHex(widget.outlinecolor);
+                }
+                if (widget.linewidth) {
+                    element.lineWidth = Math.round(widget.linewidth);
+                }
+                returnElements.push(element);
             }
         }
         return returnElements;
@@ -10627,13 +10642,13 @@
     // NOTE: We have no safe way for the database save to fail.
     GirderWidget.prototype.SnapShotAnnotation = function(annotObj) {
         this.Highlight(annotObj);
-        annotObj.Data.elements = this.RecordAnnotation();
+        annotObj.Data.annotation.elements = this.RecordAnnotation();
         if (window.girder) {
             // Save in the database
             girder.restRequest({
                 path:  "annotation/"+annotObj.Data._id,
                 method: 'PUT',
-                data: JSON.stringify(annotObj.Data),
+                data: JSON.stringify(annotObj.Data.annotation),
                 contentType:'application/json'
             });
         }
@@ -10743,7 +10758,7 @@
         this.Highlight(annotObj);
 
         this.AnnotationLayer.Reset();
-        var annot = annotObj.Data;
+        var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
             var element = annot.elements[i];
             var obj = {};

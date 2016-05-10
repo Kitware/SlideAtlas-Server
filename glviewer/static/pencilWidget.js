@@ -126,6 +126,8 @@
                 points.push([shape.Points[j][0], shape.Points[j][1]]);
             }
             obj.shapes.push(points);
+            obj.outlinecolor = shape.OutlineColor;
+            obj.linewidth = shape.LineWidth;
         }
         obj.creation_camera = this.CreationCamera;
 
@@ -134,10 +136,20 @@
 
     // Load a widget from a json object (origin MongoDB).
     PencilWidget.prototype.Load = function(obj) {
+        this.LineWidth = parseFloat(obj.linewidth);
+        if (obj.linewidth) {
+            this.LineWidth = parseFloat(obj.linewidth);
+        }
+        var outlineColor = this.Dialog.ColorInput.val();
+        if (obj.outlinecolor) {
+            outlineColor[0] = parseFloat(obj.outlinecolor[0]);
+            outlineColor[1] = parseFloat(obj.outlinecolor[1]);
+            outlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        }
         for(var n=0; n < obj.shapes.length; n++){
             var points = obj.shapes[n];
             var shape = new SAM.Polyline();
-            shape.SetOutlineColor(this.Dialog.ColorInput.val());
+            shape.SetOutlineColor(outlineColor);
             shape.FixedSize = false;
             shape.LineWidth = this.LineWidth;
             this.Shapes.AddShape(shape);

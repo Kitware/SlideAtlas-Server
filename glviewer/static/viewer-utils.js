@@ -2818,6 +2818,7 @@ function saViewerSetup(self, args) {
     //TODO: Think about making this viewer specific rather than a global.
     if (args.prefixUrl) {
         SA.ImagePathUrl = args.prefixUrl;
+        SAM.ImagePathUrl = args.prefixUrl;
     }
 
     $(window)

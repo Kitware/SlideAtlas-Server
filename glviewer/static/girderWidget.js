@@ -26,7 +26,7 @@
         var self = this;
         this.Plus = $('<img>')
             .appendTo(this.AnnotationLayer.GetCanvasDiv())
-            .attr('src',SAM.ImagePathUrl+'bluePlus.png')
+            .attr('src',SA.ImagePathUrl+'bluePlus.png')
             .css({'position':'absolute',
                   'left':(3*this.Radius)+'px',
                   'top': y+'px',
@@ -109,7 +109,10 @@
             });
         } else {
             // for debugging without girder.
-            self.Highlight(self.AddAnnotation(annot));
+            self.Highlight(self.AddAnnotation(
+                {_id:'ABC',
+                 annotation:annot,
+                 itemId:self.ImageItemId}));
         }
     }
 
@@ -153,12 +156,10 @@
         for (var i = 0; i < this.AnnotationLayer.GetNumberOfWidgets(); ++i) {
             var widget = this.AnnotationLayer.GetWidget(i).Serialize();
             if (widget.type == "circle") {
+                widget.origin.push(0); // z coordinate
                 var element = {"type": "circle",
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "center":   widget.origin,
                                "radius":   widget.radius};
-                returnElements.push(element);
             }
             if (widget.type == "text") {
                 // Will not keep scale feature..
@@ -167,16 +168,12 @@
                 points[1][1] += widget.position[1];
                 var element = {"type": "arrow",
                                "label": widget.string,
-                               "lineColor":SAM.ConvertColorToHex(widget.color),
                                'lineWidth': 10,
                                "points": points};
-                returnElements.push(element);
             }
             if (widget.type == "grid") {
-                widget.origin.push(0); // z coordinate.
+                //widget.origin.push(0); // z coordinate.
                 var element = {"type": "rectanglegrid",
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "center": widget.origin,
                                "width":  widget.bin_width * widget.dimensions[0],
                                "height":  widget.bin_height * widget.dimensions[1],
@@ -184,7 +181,6 @@
                                "normal": [0, 0, 1.0],
                                "widthSubdivisions": widget.dimensions[0],
                                "heightSubdivisions": widget.dimensions[1]};
-                returnElements.push(element);
             }
             if (widget.type == "polyline") {
                 // add the z coordinate
@@ -193,10 +189,7 @@
                 }
                 var element = {"type": "polyline",
                                "closed":widget.closedloop,
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "points": widget.points};
-                returnElements.push(element);
             }
             if (widget.type == "lasso") {
                 // add the z coordinate
@@ -205,10 +198,7 @@
                 }
                 var element = {"type": "polyline",
                                "closed": true,
-                               "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                               "lineWidth": Math.round(widget.linewidth),
                                "points": widget.points};
-                returnElements.push(element);
             }
             // Pencil scheme not exact match.  Need to split up polylines.
             if (widget.type == "pencil") {
@@ -220,11 +210,24 @@
                     }
                     var element = {"type": "polyline",
                                    "closed":false,
-                                   "lineColor":SAM.ConvertColorToHex(widget.outlinecolor),
-                                   "lineWidth": Math.round(widget.linewidth),
                                    "points": points};
+                    // Hackish way to deal with multiple lines.
+                    if (widget.outlinecolor) {
+                        element.lineColor = SAM.ConvertColorToHex(widget.outlinecolor);
+                    }
+                    if (widget.linewidth) {
+                        element.lineWidth = Math.round(widget.linewidth);
+                    }
                     returnElements.push(element);
                 }
+            } else {
+                if (widget.outlinecolor) {
+                    element.lineColor = SAM.ConvertColorToHex(widget.outlinecolor);
+                }
+                if (widget.linewidth) {
+                    element.lineWidth = Math.round(widget.linewidth);
+                }
+                returnElements.push(element);
             }
         }
         return returnElements;
@@ -235,13 +238,13 @@
     // NOTE: We have no safe way for the database save to fail.
     GirderWidget.prototype.SnapShotAnnotation = function(annotObj) {
         this.Highlight(annotObj);
-        annotObj.Data.elements = this.RecordAnnotation();
+        annotObj.Data.annotation.elements = this.RecordAnnotation();
         if (window.girder) {
             // Save in the database
             girder.restRequest({
                 path:  "annotation/"+annotObj.Data._id,
                 method: 'PUT',
-                data: JSON.stringify(annotObj.Data),
+                data: JSON.stringify(annotObj.Data.annotation),
                 contentType:'application/json'
             });
         }
@@ -309,6 +312,7 @@
                         Circle:circle};
         this.AnnotationObjects.push(annotObj);
 
+        circle.contextmenu( function() { return false; });
         circle.mousedown(function(e){
             if( e.button == 0 ) {
                 self.DisplayAnnotation(annotObj);
@@ -351,7 +355,7 @@
         this.Highlight(annotObj);
 
         this.AnnotationLayer.Reset();
-        var annot = annotObj.Data;
+        var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
             var element = annot.elements[i];
             var obj = {};
