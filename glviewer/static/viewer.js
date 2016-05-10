@@ -77,6 +77,8 @@ function Viewer (parent) {
 
     this.AnnotationLayer = new SAM.AnnotationLayer(this.LayerDiv, 
                                                    this.MainView.Camera);
+    // Hack only used for girder testing.
+    this.AnnotationLayer.Viewer = this;
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
