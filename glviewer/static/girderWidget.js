@@ -179,12 +179,13 @@
                 points[1][1] += widget.position[1];
                 points[0].push(0);
                 points[1].push(0);
-                var element = {"type"  : "arrow",
-                               "label" : widget.string,
-                               'fontSize': widget.size,
+                var element = {'type'     : 'arrow',
                                'lineWidth': 10,
-                               'fillColor' : SAM.ConvertColorToHex(widget.color),
-                               "points": points};
+                               'fillColor': SAM.ConvertColorToHex(widget.color),
+                               "points"   : points};
+                element.label = {'value'   : widget.string,
+                                 'fontSize': widget.size,
+                                 'color'   : SAM.ConvertColorToHex(widget.color)};
             }
             if (widget.type == "grid") {
                 //widget.origin.push(0); // z coordinate.
@@ -409,9 +410,9 @@
             }
             if (element.type == "arrow") {
                 obj.type = "text";
-                obj.string = element.label;
+                obj.string = element.label.value;
                 obj.color = SAM.ConvertColor(element.fillCsolor);
-                obj.size = element.fontSize;
+                obj.size = element.label.fontSize;
                 obj.position = element.points[0].slice(0);
                 obj.offset = element.points[1].slice(0);
                 obj.offset[0] -= obj.position[0];
