@@ -1903,7 +1903,8 @@ HtmlPage.prototype.InitializeTitlePage = function() {
     var titleText = this.InsertTextBox(50)
         .addClass('sa-presentation-title')
         .css({'color':'white',
-              'left':'10%',
+              'left' :'10%',
+              'width':'88%',
               'top':'40%'})
         .text("Title");
 
@@ -1929,7 +1930,8 @@ HtmlPage.prototype.InitializeSlidePage = function() {
     // Todo: make this look like jquery.
     var titleText = this.InsertTextBox(42)
         .css({'color':'white',
-              'left':'18%',
+              'left' :'18%',
+              'width':'70%',
               'top':'7.25%',
               'height':'11.5%'})
         .text("Title")
@@ -2254,9 +2256,13 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
     var viewerIdx = this.Note.ViewerRecords.length;
     this.Note.ViewerRecords.push(viewerRecord);
 
-    var defaultPosition = {left:'5%',top:'25%',width:'45%',height:'45%'};
+    var defaultPosition = {left:'5%',top:'25%',width:'40%',height:'40%'};
     if (this.DefaultViewerPositions.length > 0) {
         defaultPosition = this.DefaultViewerPositions.splice(0,1)[0];
+    } else {
+        var n = (this.Div.children().length) * 5;
+        defaultPosition.left = n.toString()+'%';
+        defaultPosition.top = (n+15).toString()+'%';
     }
 
     var self = this;

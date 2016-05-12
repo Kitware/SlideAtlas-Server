@@ -199,6 +199,8 @@ function GetNoteFromId(id) {
 }
 
 
+// OBSOLETE
+/*
 // Every time the "Text" is loaded, they hyper links have to be setup.
 Note.prototype.FormatHyperlink = function() {
     if ( ! SA.NotesWidget) { return; }
@@ -207,7 +209,7 @@ Note.prototype.FormatHyperlink = function() {
         span = document.getElementById(this.Id);
         if (span) {
             $(span)
-                //  I do not want the text to change. 
+                //  I do not want the text to change.
                 .click(function() { self.DisplayView(SA.NotesWidget.Display);})
                 //.click(function() { SA.NotesWidget.SelectNote(self);})
                 .css({'color': '#29C'})
@@ -224,6 +226,7 @@ Note.prototype.FormatHyperlink = function() {
         }
     }
 }
+*/
 
 // When the note is deleted, this clear associated text links.
 // However, it does not remove the span id.
