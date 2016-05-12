@@ -37,7 +37,7 @@ def jsonifyView(db, viewid, viewobj):
 # It becomes so simple!
 def glnote(db, viewid, viewobj, edit):
     email = getattr(security.current_user, 'email', '')
-    return make_response(render_template('view.html',
+    return make_response(render_template('viewMax.html',
                                          view=viewid,
                                          user=email,
                                          edit=edit))
@@ -153,7 +153,7 @@ def glview():
 
     # default
     email = getattr(security.current_user, 'email', '')
-    return make_response(render_template('view.html',
+    return make_response(render_template('viewMax.html',
                                          view=viewid,
                                          user=email,
                                          sess=sessid,
