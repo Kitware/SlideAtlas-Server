@@ -92,7 +92,7 @@
     // Save it in the database.  Add the annotation as a dot in the GUI.
     GirderWidget.prototype.NewAnnotationItem = function() {
         var annot = {"elements": []};
-        annot.name = "SA-"+this.AnnotationObjects.length;
+        annot.name = (this.AnnotationObjects.length).toString();
         annot.elements = this.RecordAnnotation();
 
         // Make a new annotation in the database.
@@ -313,13 +313,14 @@
             .css({'position':'absolute',
                   'left':(3*this.Radius)+'px',
                   'top': y+'px',
-                  'width': (2*this.Radius)+'px',
+                  'min-width': (2*this.Radius)+'px',
                   'height': (2*this.Radius)+'px',
                   'background-color':'#55BBFF',
                   'opacity':'0.6',
                   'border':'1px solid #666666',
                   'border-radius':this.Radius+'px'})
             .prop('title', "Show Annotation")
+            .text(data.name)
             .hide() // hide until animation is finished.
             .hover(function(){$(this).css({'opacity':'1'});},
                    function(){$(this).css({'opacity':'0.6'});});

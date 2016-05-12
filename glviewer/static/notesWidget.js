@@ -59,620 +59,676 @@
 
 //==============================================================================
 
-function TextEditor(parent, display) {
-    var self = this;
-    this.Display = display;
-    this.Parent = parent;
-    // I do not want the text editable until the note is set.
-    this.Editable = true;
-    this.Edit = true;
-    // The user can set this to save the note automatically.
-    this.ChangeCallback = null;
+(function () {
+    "use strict";
 
-    this.EditButtons = [];
-    this.AddEditButton(SA.ImagePathUrl+"camera.png", "link view",
-                       function() {self.InsertCameraLink2();});
-    this.AddEditButton(SA.ImagePathUrl+"link.png", "link URL",
-                       function() {self.InsertUrlLink();});
-    this.AddEditButton(SA.ImagePathUrl+"font_bold.png", "bold",
-                       function() {document.execCommand('bold',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"text_italic.png", "italic",
-                       function() {document.execCommand('italic',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"edit_underline.png", "underline",
-                       function() {document.execCommand('underline',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"list_bullets.png", "unorded list",
-                       function() {document.execCommand('InsertUnorderedList',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"list_numbers.png", "ordered list",
-                       function() {document.execCommand('InsertOrderedList',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"indent_increase.png", "indent",
-                       function() {document.execCommand('indent',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"indent_decrease.png", "outdent",
-                       function() {document.execCommand('outdent',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"alignment_left.png", "align left",
-                       function() {document.execCommand('justifyLeft',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"alignment_center.png", "align center",
-                       function() {document.execCommand('justifyCenter',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"edit_superscript.png", "superscript",
-                       function() {document.execCommand('superscript',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"edit_subscript.png", "subscript",
-                       function() {document.execCommand('subscript',false,null);});
-    this.AddEditButton(SA.ImagePathUrl+"font_increase.png", "large font", 
-                       function(){
-                           document.execCommand('fontSize',false,'5');
-                           self.ChangeBulletSize('1.5em');
-                       });
-    this.AddEditButton(SA.ImagePathUrl+"font_decrease.png", "small font", 
-                       function() {
-                           document.execCommand('fontSize',false,'2');
-                           self.ChangeBulletSize('0.9em');
-                       });
-    // TODO: Get selected text to see if we can convert it into a question.
-    this.AddEditButton(SA.ImagePathUrl+"question.png", "add question", 
-                       function() {
-                           self.AddQuestion();
-                       });
-
-    this.TextEntry = $('<div>')
-        .appendTo(parent)
-        .attr('contenteditable', "true")
-        .removeAttr('readonly')
-        .css({'box-sizing': 'border-box',
-              'width': '100%',
-              'height':'100%',
-              'border-style': 'solid',
-              'overflow': 'auto',
-              'resize': 'none',
-              'border-style': 'inset',
-              'background': '#f5f8ff'})
-        .bind('input', function () {
-                // Leave events are not triggering.
-            self.EventuallyUpdate();
-        })
-        .focusin(function() {
-            SA.ContentEditableHasFocus = true;
-        })
-        .focusout(function() {
-            SA.ContentEditableHasFocus = false;
-            self.Update();
-        })
-        // Mouse leave events are not triggering.
-        .mouseleave(function() { // back button does not cause loss of focus.
-            self.Update();
-        });
-
-    this.UpdateTimer = null;
-    this.RecordViewTimer = null;
-
-    // Do not enable editing until the Note is set.
-    this.EditOff();
-    this.Note = null;
-}
-
-TextEditor.prototype.Change = function(callback) {
-    this.ChangeCallback = callback;
-}
-
-TextEditor.prototype.EventuallyUpdate = function() {
-    if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer);
-        this.UpdateTimer = null;
-    }
-    var self = this;
-    this.UpdateTimer = setTimeout(function () { self.UpdateNote() }, 5000);
-}
-
-TextEditor.prototype.Update = function() {
-    if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer);
-        this.UpdateTimer = null;
-    } else {
-        // I am using the timer as a modified flag.
-        // Call update note to force an update.
-        return;
-    }
-    this.UpdateNote();
-}
-
-TextEditor.prototype.EditOff = function() {
-    if ( ! this.Edit) { return;}
-    this.Edit = false;
-
-    for (var i = 0; i < this.EditButtons.length; ++i) {
-        this.EditButtons[i].hide();
-    }
-
-    this.TextEntry
-        .attr('contenteditable', 'false')
-        .attr('spellcheck', 'false')
-        .css({'border-style': 'outset',
-              'background': '#ffffff'})
-        .unbind('input')
-        .unbind('focusin')
-        .unbind('focusout')
-        .unbind('mouseleave')
-        .blur();
-}
-
-TextEditor.prototype.EditableOff = function() {
-    this.EditOff();
-    this.Editable = false;
-}
+    // TODO: Merge this with the text editor in viewer-utils.
+    // Gray out buttons when no text is selected.
+    // Remove options to insert link if no text is selected.
 
 
-TextEditor.prototype.EditOn = function() {
-    var self = this;
-    if ( ! this.Editable) { return; }
-    if (this.Edit) { return;}
-    this.Edit = true;
-
-    for (var i = 0; i < this.EditButtons.length; ++i) {
-        this.EditButtons[i].show();
-    }
-
-    this.TextEntry
-        .attr('contenteditable', "true")
-        .removeAttr('readonly')
-        .css({'border-style': 'inset',
-              'background': '#f5f8ff'})
-        .bind('input', function () {
-            self.Modified = true;
-            self.EventuallyUpdate();
-        })
-        .focusin(function() {
-            SA.ContentEditableHasFocus = true;
-        })
-        .focusout(function() {
-            SA.ContentEditableHasFocus = false;
-            self.Update();
-        })
-        .mouseleave(function() { // back button does not cause loss of focus.
-            self.Update();
-        });
-}
-
-TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
-    var self = this;
-    var button = $('<img>');
-    if (tooltip) {
-        //button = $('<img title="'+tooltip+'">')
-        button.prop('title', tooltip);
-    }
-    button
-        .appendTo(this.Parent)
-        .addClass('editButton')
-        .attr('src',src)
-        .click(callback);
-    this.EditButtons.push(button);
-}
-
-TextEditor.prototype.AddQuestion = function() {
-    var bar = $('<div>')
-        .css({'position':'relative',
-              'margin':'3%',
-              'width':'90%',
-              'background':'#FFF',
-              'border':'1px solid #AAA',
-              'padding':'1% 1% 1% 1%'}) // top right bottom left
-        .attr('contenteditable', 'false')
-        .saQuestion({editable: SA.Edit,
-                     position : 'static'});
-
-    // Need to get the range here because the dialog changes it.
-    var self = this;
-    var range = SA.GetSelectionRange(this.TextEntry);
-    // Try to initialize the dialog with the contents of the range.
-    if ( ! range.collapsed) {
-        var clone = range.cloneContents();
-        bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
-        if (clone.childElementCount > 1) {
-            //var answers = clone.querySelectorAll('li');
-            var answers = [];
-            var li = clone.querySelector('li');
-            if (li) {
-                answers = li.parentElement;
-            } else {
-                answers = clone.children[1];
-            }
-            for (var i = 0; i < answers.childElementCount; ++i) {
-                var answer = answers.children[i];
-                var bold = (answer.style.fontWeight == "bold") ||
-                    ($(answer).find('b').length > 0);
-                bar.saQuestion('AddAnswerText',
-                               answer.textContent,
-                               bold);
-            }
-        }
-    }
-
-    bar.saQuestion('OpenDialog',
-        function () {
-            if (range) {
-                range.deleteContents();
-                range.insertNode(document.createElement('br'));
-            } else {
-                range = SA.MakeSelectionRange(self.TextEntry);
-            }
-            range.insertNode(bar[0]);
-            // Some gymnasitcs to keep the cursor after the question.
-            range.collapse(false);
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            self.TextEntry[0].focus();
-            self.UpdateNote();
-        });
-}
-
-// execCommand fontSize does change bullet size.
-// This is a work around.
-TextEditor.prototype.ChangeBulletSize = function(sizeString) {
-    var self = this;
-    var sel = window.getSelection();
-    // This call will clear the selected text if it is not in this editor.
-    var range = SA.GetSelectionRange(this.TextEntry);
-    range = range || SA.MakeSelectionRange(this.TextEntry);
-    var listItems = $('li');
-    for (var i = 0; i < listItems.length; ++i) {
-        var item = listItems[i];
-        if (range.isPointInRange(item,0) || 
-            range.isPointInRange(item,1)) {
-            $(item).css({'font-size':sizeString});
-        }
-    }
-}
-
-
-TextEditor.prototype.InsertUrlLink = function() {
-    var self = this;
-    var sel = window.getSelection();
-    // This call will clear the selected text if it is not in this editor.
-    var range = SA.GetSelectionRange(this.TextEntry);
-    var selectedText = sel.toString();
-
-    if ( ! this.UrlDialog) {
+    function TextEditor(parent, display) {
         var self = this;
-        var dialog = new Dialog(function() {
-            self.InsertUrlLinkAccept();
-        });
-        dialog.Body.css({'margin':'1em 2em'});
-        this.UrlDialog = dialog;
-        dialog.Dialog.css({'width':'40em'});
-        dialog.Title.text("Paste URL link");
-        dialog.TextDiv =
-            $('<div>')
-            .appendTo(dialog.Body)
-            .css({'display':'table-row',
-                  'width':'100%'});
-        dialog.TextLabel =
-            $('<div>')
-            .appendTo(dialog.TextDiv)
-            .text("Text to display:")
-            .css({'display':'table-cell',
-                  'height':'2em',
-                  'text-align': 'left'});
-        dialog.TextInput =
-            $('<input>')
-            .appendTo(dialog.TextDiv)
-            .val('#30ff00')
-            .css({'display':'table-cell',
-                  'width':'25em'});
+        this.Display = display;
+        this.Parent = parent;
+        // I do not want the text editable until the note is set.
+        this.Editable = true;
+        this.Edit = true;
+        // The user can set this to save the note automatically.
+        this.ChangeCallback = null;
 
-        dialog.UrlDiv =
-            $('<div>')
-            .appendTo(dialog.Body)
-            .css({'display':'table-row'});
-        dialog.UrlLabel =
-            $('<div>')
-            .appendTo(dialog.UrlDiv)
-            .text("URL link:")
-            .css({'display':'table-cell',
-                  'text-align': 'left'});
-        dialog.UrlInput =
-            $('<input>')
-            .appendTo(dialog.UrlDiv)
-            .val('#30ff00')
-            .css({'display':'table-cell',
-                  'width':'25em'})
+        this.EditButtons = [];
+        this.AddEditButton(SA.ImagePathUrl+"camera.png", "link view",
+                           function() {self.InsertCameraLink();});
+        this.AddEditButton(SA.ImagePathUrl+"link.png", "link URL",
+                           function() {self.InsertUrlLink();});
+        this.AddEditButton(SA.ImagePathUrl+"font_bold.png", "bold",
+                           function() {document.execCommand('bold',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"text_italic.png", "italic",
+                           function() {document.execCommand('italic',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"edit_underline.png", "underline",
+                           function() {document.execCommand('underline',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"list_bullets.png", "unorded list",
+                           function() {document.execCommand('InsertUnorderedList',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"list_numbers.png", "ordered list",
+                           function() {document.execCommand('InsertOrderedList',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"indent_increase.png", "indent",
+                           function() {document.execCommand('indent',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"indent_decrease.png", "outdent",
+                           function() {document.execCommand('outdent',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"alignment_left.png", "align left",
+                           function() {document.execCommand('justifyLeft',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"alignment_center.png", "align center",
+                           function() {document.execCommand('justifyCenter',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"edit_superscript.png", "superscript",
+                           function() {document.execCommand('superscript',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"edit_subscript.png", "subscript",
+                           function() {document.execCommand('subscript',false,null);});
+        this.AddEditButton(SA.ImagePathUrl+"font_increase.png", "large font",
+                           function(){
+                               document.execCommand('fontSize',false,'5');
+                               self.ChangeBulletSize('1.5em');
+                           });
+        this.AddEditButton(SA.ImagePathUrl+"font_decrease.png", "small font",
+                           function() {
+                               document.execCommand('fontSize',false,'2');
+                               self.ChangeBulletSize('0.9em');
+                           });
+        // TODO: Get selected text to see if we can convert it into a question.
+        this.AddEditButton(SA.ImagePathUrl+"question.png", "add question",
+                           function() {
+                               self.AddQuestion();
+                           });
+
+        this.InitializeHomeButton(parent);
+
+        this.TextEntry = $('<div>')
+            .appendTo(parent)
+            .attr('contenteditable', "true")
+            .removeAttr('readonly')
+            .css({'box-sizing': 'border-box',
+                  'width': '100%',
+                  'height':'100%',
+                  'border-style': 'solid',
+                  'overflow': 'auto',
+                  'resize': 'none',
+                  'border-style': 'inset',
+                  'background': '#f5f8ff'})
             .bind('input', function () {
-                var url = self.UrlDialog.UrlInput.val();
-                if (self.UrlDialog.LastUrl == self.UrlDialog.TextInput.val()) {
-                    // The text is same as the URL. Keep them synchronized.
-                    self.UrlDialog.TextInput.val(url);
-                }
-                self.UrlDialog.LastUrl = url;
-                // Deactivate the apply button if the url is blank.
-                if (url == "") {
-                    self.UrlDialog.ApplyButton.attr("disabled", true);
-                } else {
-                    self.UrlDialog.ApplyButton.attr("disabled", false);
-                }
+                // Leave events are not triggering.
+                self.EventuallyUpdate();
+            })
+            .focusin(function() {
+                SA.ContentEditableHasFocus = true;
+            })
+            .focusout(function() {
+                SA.ContentEditableHasFocus = false;
+                self.Update();
+            })
+        // Mouse leave events are not triggering.
+            .mouseleave(function() { // back button does not cause loss of focus.
+                self.Update();
             });
 
+        this.UpdateTimer = null;
+        this.RecordViewTimer = null;
+
+        // Do not enable editing until the Note is set.
+        this.EditOff();
+        this.Note = null;
     }
 
-    // We have to save the range/selection because user interaction with
-    // the dialog clears the text entry selection.
-    this.UrlDialog.SelectionRange = range;
-    this.UrlDialog.TextInput.val(selectedText);
-    this.UrlDialog.UrlInput.val("");
-    this.UrlDialog.LastUrl = "";
-    this.UrlDialog.ApplyButton.attr("disabled", true);
-    this.UrlDialog.Show(true);
-}
-
-TextEditor.prototype.InsertUrlLinkAccept = function() {
-    var sel = window.getSelection();
-    var range = this.UrlDialog.SelectionRange;
-    range = range || SA.MakeSelectionRange(this.TextEntry);
-
-    // Simply put a span tag around the text with the id of the view.
-    // It will be formated by the note hyperlink code.
-    var link = document.createElement("a");
-    link.href = this.UrlDialog.UrlInput.val();
-    link.target = "_blank";
-
-    // Replace or insert the text.
-    if ( ! range.collapsed) {
-        // Remove the seelcted text.
-        range.extractContents(); // deleteContents(); // cloneContents
-        range.collapse(true);
-    }
-    var linkText = this.UrlDialog.TextInput.val();
-    if (linkText == "") {
-        linkText = this.UrlDialog.UrlInput.val();
-    }
-    link.appendChild( document.createTextNode(linkText) );
-
-    range.insertNode(link);
-    if (range.noCursor) {
-        // Leave the selection the same as we found it.
-        // Ready for the next link.
-        sel.removeAllRanges();
-    }
-    this.UpdateNote();
-}
-
-// This global variable is an attempt to enumerate generated
-// names for links.  The flaw is it always starts over when page is
-// loaded. It does not detect links from previous edits.
-var LINKS_WITH_NO_NAME = 0;
-/*TextEditor.prototype.InsertCameraLink = function() {
-    var self = this;
-    var sel = window.getSelection();
-    var range = SA.GetSelectionRange(this.TextEntry);
-
-    // Check if an existing link is selected.
-    var dm = range.cloneContents();
-    if (dm.firstChild &&
-        dm.firstChild.getAttribute &&
-        (id = dm.firstChild.getAttribute("id"))) {
-        // A link is selected,  Just save a new camera for the link.
-        note = GetNoteFromId(id);
-        if (note) {
-            note.RecordView(this.Display);
-            // Do not save empty usernotes.
-            if (note != "UserNote" ||
-                note.Text != "" ||
-                this.Note.Children.length > 0) {
-                note.Save();
-            }
+    TextEditor.prototype.HomeCallback = function() {
+        if ( ! this.Note) {
             return;
         }
+        this.Note.DisplayView(this.Display);
     }
 
-    // Create a new note.  Save it to get its id. Then insert the html.
-
-    // Case: cursor is in editor, but nothing selected.
-    // Use the selected text as a name for the note.
-    var text = sel.toString();
-    if (text == "") {
-        // create a new name. Should I number the notes?
-        ++LINKS_WITH_NO_NAME;
-        text = "link"+LINKS_WITH_NO_NAME;
-    }
-
-    // Create a child note.
-    var parentNote = this.Note;
-    if ( ! parentNote) {
-        parentNote = SA.DualDisplay.GetRootNote();
-    }
-    // We need to save the note to get its Id (for the link div).
-    childNote.Save();
-    parentNote.UpdateChildrenGUI();
-
-    // We need to save the note to get its Id.
-    childNote.Save(
-        function (note) {
-            // Simply put a span tag around the text with the id of the view.
-            // It will be formated by the note hyperlink code.
-            var span = document.createElement("span");
-            // This id identifies the span as a hyperlink to this note.
-            // The note will format the link and add callbacks later.
-            span.id = note.Id;
-            if ( ! range.collapsed) {
-                // Remove the selected text.
-                range.extractContents(); // deleteContents(); // cloneContents
-                range.collapse(true);
-                span.appendChild( document.createTextNode(text) );
-            } else {
-                // no text selected.  What should we insert to represent a
-                // link? An image would be nice.
-                span.appendChild( document.createTextNode(" (link"+LINKS_WITH_NO_NAME+") ") );
+    // Home button is a link.  The link menu is used for other links too.
+    TextEditor.prototype.InitializeHomeButton = function(parent) {
+        var self = this;
+        this.HomeButton = $('<div>')
+            .appendTo(parent)
+            .text("Home")
+            .css({'text-align':'center',
+                  'border':'1px solid #666666',
+                  'border-radius': '10px',
+                  'color': '#29C',
+                  'background':'white'})
+            .hover(function(){ $(this).css("color", "blue");},
+                   function(){ $(this).css("color", "#29C");});
+        this.HomeButton.contextmenu( function() { return false; });
+        this.HomeButton.mousedown(function(e){
+            if( e.button == 0 ) {
+                self.HomeCallback();
+                return false;
             }
-            range.insertNode(span);
-            // Let the note format it.
-            note.FormatHyperlink();
-            self.UpdateNote();
-            // Do not automatically select new hyperlinks.
-            // The user may want to insert one after another.
-            //SA.NotesWidget.SelectNote(note);
-            if (range.noCursor) {
-                // Leave the selection the same as we found it.
-                // Ready for the next link.
-                sel.removeAllRanges();
+            if( e.button == 2 ) {
+                self.LinkMenuObject = {Link : self.HomeButton,
+                                       Note : self.Note};
+                // Position and show the properties menu.
+                var pos = $(this).position();
+                // Cannot delete the root note.
+                self.DeleteLinkButton.hide();
+                self.LinkMenu
+                    .css({'left':(25 + pos.left)+'px',
+                          'top' :(pos.top)+'px'})
+                    .show();
+                return false;
             }
+            return true;
         });
-}
-*/
 
-// TODO: Untangle view links from the note.
-TextEditor.prototype.InsertCameraLink2 = function() {
-    //var bar = $('<div>')
-    //    .css({'position':'relative',
-    //          'margin':'3%',
-    //          'width':'90%',
-    //          'background':'#FFF',
-    //          'border':'1px solid #AAA',
-    //          'padding':'1% 1% 1% 1%'}) // top right bottom left
-    //    .attr('contenteditable', 'false')
-    //    .saQuestion({editable: SA.Edit,
-    //                 position : 'static'});
-
-    // Create a child note.
-    var parentNote = this.Note;
-    if ( ! parentNote) {
-        parentNote = SA.DualDisplay.GetRootNote();
+        // When a link is right clicked, the object {Link: ..., Note: ...} is set and the
+        // menu is made visible.
+        this.LinkMenuObject = undefined;
+        this.LinkMenu = $('<div>')
+            .appendTo(parent)
+            .hide()
+            .mouseleave(function(){$(this).hide();})
+            .css({'position'  :'absolute',
+                  'background-color': '#FFFFFF',
+                  'border'    :'1px solid #666666',
+                  'box-sizing': 'border-box',
+                  'left'      : '-78px',
+                  'width'     : '100px',
+                  'padding'   : '0px 2px'})
+        $('<button>')
+            .appendTo(this.LinkMenu)
+            .text("Save View")
+            .css({'margin': '2px 0px',
+                  'width' : '100%'})
+            .prop('title', "Replace Annotation")
+            .click(
+                function(){
+                    self.SaveLink(self.LinkMenuObject.Link,
+                                  self.LinkMenuObject.Note);
+                    self.LinkMenu.hide();
+                });
+        this.DeleteLinkButton = $('<button>')
+            .appendTo(this.LinkMenu)
+            .text("Delete")
+            .css({'margin': '2px 0px',
+                  'width' : '100%'})
+            .click(
+                function(){
+                    self.DeleteLink(self.LinkMenuObject.Link,
+                                    self.LinkMenuObject.Note);
+                    self.Menu.hide();
+                });
     }
 
-    // Create a new note to hold the view.
-    // Put the new note at the end of the list.
-    var childIdx = parentNote.Children.length;
-    //var childIdx = 0; // begining
-    var childNote = parentNote.NewChild(childIdx, text);
-    // Setup and save
-    childNote.RecordView(this.Display);
-    // Block subnotes and separate text.
-    childNote.Type = 'View';
-
-    // We need to save the note to get its Id.
-    var text = "(view)";
-    var range = SA.GetSelectionRange(this.TextEntry);
-    if ( ! range) {
-        range = SA.MakeSelectionRange(this.TextEntry);
-    } else if ( ! range.collapsed) {
-        text = range.toString();
-    }
-    range.deleteContents();
-
-    // Simply put a span tag around the text with the id of the view.
-    // It will be formated by the note hyperlink code.
-    var span = document.createElement("span");
-    // This id identifies the span as a hyperlink to this note.
-    // The note will format the link and add callbacks later.
-    span.id = childNote.Id;
-    $(span).attr('contenteditable', 'false');
-    span.appendChild( document.createTextNode(text) );
-    range.insertNode(span);
-    // Let the note format it.
-    childNote.FormatHyperlink();
-
-    // Some gymnasitcs to keep the cursor after the question.
-    range.collapse(false);
-    var sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    this.TextEntry[0].focus();
-    // NOTE: This may not be necesary no that text note "views" are
-    // issolated from notes in views tab.
-    this.UpdateNote();
-}
-
-
-
-TextEditor.prototype.Resize = function(width, height) {
-    var pos;
-    pos = this.TextEntry.offset();
-    this.TextEntry.height(height - pos.top - 5);
-}
-
-TextEditor.prototype.SetHtml = function(html) {
-    if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer);
-        this.Update();
-    }
-    this.Note = null; //??? Editing without a note
-    this.EditOn();
-    this.TextEntry.html(html);
-
-    if (SA.Edit) {
-        var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true,
-                          position : 'static'});
-    }
-
-    // Not needed here long term.
-    // this looks for keywords in text and makes tags.
-    SA.AddHtmlTags(this.TextEntry);
-}
-
-TextEditor.prototype.GetHtml = function() {
-    return this.TextEntry.html();
-}
-
-// TODO: Editor should not become active until it has a note.
-// This probably belongs in a subclass.
-// Or in the note.
-TextEditor.prototype.LoadNote = function(note) {
-    if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer);
-        this.Update();
-    }
-    this.Note = note;
-    this.TextEntry.html(note.Text);
-
-    // TODO: Hide this.  Maybe use saHtml.
-    if (SA.Edit) {
-        var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true,
-                          position : 'static'});
-    }
-
-    // TODO: Make the hyper link the same pattern as questions.
-    for (var i = 0; i < note.Children.length; ++i) {
-        // In the future we can only call this on type "View"
-        note.Children[i].FormatHyperlink();
-    }
-    
-    this.MakeLinksClickable();
-    if (SA.Edit) {
-        this.EditOn();
-    }
-}
-
-// Copy the text entry text back into the note
-// (when the textEntry changes).
-// It saves the note too.
-TextEditor.prototype.UpdateNote = function() {
-    this.UpdateTimer = null;
-    if ( ! this.Note) {
-        return;
-    }
-    this.Note.Text = this.TextEntry.html();
-    if (this.ChangeCallback) {
-        (this.ChangeCallback)();
-    }
-
-    this.MakeLinksClickable();
-}
-
-// Link are not active in content editable divs.
-// Work around this.
-TextEditor.prototype.MakeLinksClickable = function() {
-    if (SA.Edit) {
-        // This is only necesary when div is editable.
-        // Links work the same in both situations with this.
-        links = $("a");
-        for (var i = 0; i < links.length; ++i) {
-            var link = links[i];
+    // Every time the "Text" is loaded, they hyper links have to be setup.
+    // TODO: Do we need to turn off editable?
+    TextEditor.prototype.FormatLink = function(linkNote) {
+        var self = this;
+        var link = document.getElementById(linkNote.Id);
+        if (link) {
             $(link)
-                .click(function() {
-                    window.open(this.href,'_blank');
-                })
+                .css({'color': '#29C',
+                      'background':'white'})
+                .hover(function(){ $(this).css("color", "blue");},
+                       function(){ $(this).css("color", "#29C");})
+                .attr('contenteditable', "false");
+
+            $(link).contextmenu( function() { return false; });
+            $(link).mousedown(function(e){
+                if( e.button == 0 ) {
+                    linkNote.DisplayView(self.Display);
+                    return false;
+                }
+                if( e.button == 2 ) {
+                    self.LinkMenuObject = {Link : $(link),
+                                           Note : linkNote};
+                    // Position and show the properties menu.
+                    var pos = $(this).position();
+                    self.DeleteLinkButton.show();
+                    self.LinkMenu
+                        .css({'left':(25 + pos.left)+'px',
+                              'top' :(pos.top)+'px'})
+                        .show();
+                    return false;
+                }
+                return true;
+            });
         }
     }
-}
 
-//==============================================================================
+    TextEditor.prototype.SaveLink = function(link, note) {
+        note.RecordView(this.Display);
+        note.Save();
+    }
+
+    TextEditor.prototype.DeleteLink = function(link, note) {
+        // TODO: Keep the old text.
+        var text = link.text();
+        $(document.createTextNode(text)).insertAfter(link);
+        link.remove();
+        note.DeleteCallback();
+        this.UpdateNote();
+        this.Note.Save();
+    }
+
+    TextEditor.prototype.Change = function(callback) {
+        this.ChangeCallback = callback;
+    }
+
+    TextEditor.prototype.EventuallyUpdate = function() {
+        if (this.UpdateTimer) {
+            clearTimeout(this.UpdateTimer);
+            this.UpdateTimer = null;
+        }
+        var self = this;
+        this.UpdateTimer = setTimeout(function () { self.UpdateNote() }, 5000);
+    }
+
+    TextEditor.prototype.Update = function() {
+        if (this.UpdateTimer) {
+            clearTimeout(this.UpdateTimer);
+            this.UpdateTimer = null;
+        } else {
+            // I am using the timer as a modified flag.
+            // Call update note to force an update.
+            return;
+        }
+        this.UpdateNote();
+    }
+
+    TextEditor.prototype.EditOff = function() {
+        if ( ! this.Edit) { return;}
+        this.Edit = false;
+
+        for (var i = 0; i < this.EditButtons.length; ++i) {
+            this.EditButtons[i].hide();
+        }
+
+        this.TextEntry
+            .attr('contenteditable', 'false')
+            .attr('spellcheck', 'false')
+            .css({'border-style': 'outset',
+                  'background': '#ffffff'})
+            .unbind('input')
+            .unbind('focusin')
+            .unbind('focusout')
+            .unbind('mouseleave')
+            .blur();
+    }
+
+    TextEditor.prototype.EditableOff = function() {
+        this.EditOff();
+        this.Editable = false;
+    }
+
+
+    TextEditor.prototype.EditOn = function() {
+        var self = this;
+        if ( ! this.Editable) { return; }
+        if (this.Edit) { return;}
+        this.Edit = true;
+
+        for (var i = 0; i < this.EditButtons.length; ++i) {
+            this.EditButtons[i].show();
+        }
+
+        this.TextEntry
+            .attr('contenteditable', "true")
+            .removeAttr('readonly')
+            .css({'border-style': 'inset',
+                  'background': '#f5f8ff'})
+            .bind('input', function () {
+                self.Modified = true;
+                self.EventuallyUpdate();
+            })
+            .focusin(function() {
+                SA.ContentEditableHasFocus = true;
+            })
+            .focusout(function() {
+                SA.ContentEditableHasFocus = false;
+                self.Update();
+            })
+            .mouseleave(function() { // back button does not cause loss of focus.
+                self.Update();
+            });
+    }
+
+    TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
+        var self = this;
+        var button = $('<img>');
+        if (tooltip) {
+            //button = $('<img title="'+tooltip+'">')
+            button.prop('title', tooltip);
+        }
+        button
+            .appendTo(this.Parent)
+            .addClass('editButton')
+            .attr('src',src)
+            .click(callback);
+        this.EditButtons.push(button);
+    }
+
+    TextEditor.prototype.AddQuestion = function() {
+        var bar = $('<div>')
+            .css({'position':'relative',
+                  'margin':'3%',
+                  'width':'90%',
+                  'background':'#FFF',
+                  'border':'1px solid #AAA',
+                  'padding':'1% 1% 1% 1%'}) // top right bottom left
+            .attr('contenteditable', 'false')
+            .saQuestion({editable: SA.Edit,
+                         position : 'static'});
+
+        // Need to get the range here because the dialog changes it.
+        var self = this;
+        var range = SA.GetSelectionRange(this.TextEntry);
+        // Try to initialize the dialog with the contents of the range.
+        if ( ! range.collapsed) {
+            var clone = range.cloneContents();
+            bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
+            if (clone.childElementCount > 1) {
+                //var answers = clone.querySelectorAll('li');
+                var answers = [];
+                var li = clone.querySelector('li');
+                if (li) {
+                    answers = li.parentElement;
+                } else {
+                    answers = clone.children[1];
+                }
+                for (var i = 0; i < answers.childElementCount; ++i) {
+                    var answer = answers.children[i];
+                    var bold = (answer.style.fontWeight == "bold") ||
+                        ($(answer).find('b').length > 0);
+                    bar.saQuestion('AddAnswerText',
+                                   answer.textContent,
+                                   bold);
+                }
+            }
+        }
+
+        bar.saQuestion('OpenDialog',
+                       function () {
+                           if (range) {
+                               range.deleteContents();
+                               range.insertNode(document.createElement('br'));
+                           } else {
+                               range = SA.MakeSelectionRange(self.TextEntry);
+                           }
+                           range.insertNode(bar[0]);
+                           // Some gymnasitcs to keep the cursor after the question.
+                           range.collapse(false);
+                           var sel = window.getSelection();
+                           sel.removeAllRanges();
+                           sel.addRange(range);
+                           self.TextEntry[0].focus();
+                           self.UpdateNote();
+                       });
+    }
+
+    // execCommand fontSize does change bullet size.
+    // This is a work around.
+    TextEditor.prototype.ChangeBulletSize = function(sizeString) {
+        var self = this;
+        var sel = window.getSelection();
+        // This call will clear the selected text if it is not in this editor.
+        var range = SA.GetSelectionRange(this.TextEntry);
+        range = range || SA.MakeSelectionRange(this.TextEntry);
+        var listItems = $('li');
+        for (var i = 0; i < listItems.length; ++i) {
+            var item = listItems[i];
+            if (range.isPointInRange(item,0) ||
+                range.isPointInRange(item,1)) {
+                $(item).css({'font-size':sizeString});
+            }
+        }
+    }
+
+
+    TextEditor.prototype.InsertUrlLink = function() {
+        var self = this;
+        var sel = window.getSelection();
+        // This call will clear the selected text if it is not in this editor.
+        var range = SA.GetSelectionRange(this.TextEntry);
+        var selectedText = sel.toString();
+
+        if ( ! this.UrlDialog) {
+            var self = this;
+            var dialog = new Dialog(function() {
+                self.InsertUrlLinkAccept();
+            });
+            dialog.Body.css({'margin':'1em 2em'});
+            this.UrlDialog = dialog;
+            dialog.Dialog.css({'width':'40em'});
+            dialog.Title.text("Paste URL link");
+            dialog.TextDiv =
+                $('<div>')
+                .appendTo(dialog.Body)
+                .css({'display':'table-row',
+                      'width':'100%'});
+            dialog.TextLabel =
+                $('<div>')
+                .appendTo(dialog.TextDiv)
+                .text("Text to display:")
+                .css({'display':'table-cell',
+                      'height':'2em',
+                      'text-align': 'left'});
+            dialog.TextInput =
+                $('<input>')
+                .appendTo(dialog.TextDiv)
+                .val('#30ff00')
+                .css({'display':'table-cell',
+                      'width':'25em'});
+
+            dialog.UrlDiv =
+                $('<div>')
+                .appendTo(dialog.Body)
+                .css({'display':'table-row'});
+            dialog.UrlLabel =
+                $('<div>')
+                .appendTo(dialog.UrlDiv)
+                .text("URL link:")
+                .css({'display':'table-cell',
+                      'text-align': 'left'});
+            dialog.UrlInput =
+                $('<input>')
+                .appendTo(dialog.UrlDiv)
+                .val('#30ff00')
+                .css({'display':'table-cell',
+                      'width':'25em'})
+                .bind('input', function () {
+                    var url = self.UrlDialog.UrlInput.val();
+                    if (self.UrlDialog.LastUrl == self.UrlDialog.TextInput.val()) {
+                        // The text is same as the URL. Keep them synchronized.
+                        self.UrlDialog.TextInput.val(url);
+                    }
+                    self.UrlDialog.LastUrl = url;
+                    // Deactivate the apply button if the url is blank.
+                    if (url == "") {
+                        self.UrlDialog.ApplyButton.attr("disabled", true);
+                    } else {
+                        self.UrlDialog.ApplyButton.attr("disabled", false);
+                    }
+                });
+        }
+
+        // We have to save the range/selection because user interaction with
+        // the dialog clears the text entry selection.
+        this.UrlDialog.SelectionRange = range;
+        this.UrlDialog.TextInput.val(selectedText);
+        this.UrlDialog.UrlInput.val("");
+        this.UrlDialog.LastUrl = "";
+        this.UrlDialog.ApplyButton.attr("disabled", true);
+        this.UrlDialog.Show(true);
+    }
+
+    TextEditor.prototype.InsertUrlLinkAccept = function() {
+        var sel = window.getSelection();
+        var range = this.UrlDialog.SelectionRange;
+        range = range || SA.MakeSelectionRange(this.TextEntry);
+
+        // Simply put a span tag around the text with the id of the view.
+        // It will be formated by the note hyperlink code.
+        var link = document.createElement("a");
+        link.href = this.UrlDialog.UrlInput.val();
+        link.target = "_blank";
+
+        // Replace or insert the text.
+        if ( ! range.collapsed) {
+            // Remove the seelcted text.
+            range.extractContents(); // deleteContents(); // cloneContents
+            range.collapse(true);
+        }
+        var linkText = this.UrlDialog.TextInput.val();
+        if (linkText == "") {
+            linkText = this.UrlDialog.UrlInput.val();
+        }
+        link.appendChild( document.createTextNode(linkText) );
+
+        range.insertNode(link);
+        if (range.noCursor) {
+            // Leave the selection the same as we found it.
+            // Ready for the next link.
+            sel.removeAllRanges();
+        }
+        this.UpdateNote();
+    }
+
+    // This global variable is an attempt to enumerate generated
+    // names for links.  The flaw is it always starts over when page is
+    // loaded. It does not detect links from previous edits.
+    var LINKS_WITH_NO_NAME = 0;
+
+    // TODO: Untangle view links from the note.
+    TextEditor.prototype.InsertCameraLink = function() {
+        // Create a child note.
+        var parentNote = this.Note;
+        if ( ! parentNote) {
+            parentNote = SA.DualDisplay.GetRootNote();
+        }
+
+        // Create a new note to hold the view.
+        // Put the new note at the end of the list.
+        var childIdx = parentNote.Children.length;
+        //var childIdx = 0; // begining
+        var childNote = parentNote.NewChild(childIdx, text);
+        // Setup and save
+        childNote.RecordView(this.Display);
+        // Block subnotes and separate text.
+        childNote.Type = 'View';
+
+        // We need to save the note to get its Id.
+        var text = "(view)";
+        var range = SA.GetSelectionRange(this.TextEntry);
+        if ( ! range) {
+            range = SA.MakeSelectionRange(this.TextEntry);
+        } else if ( ! range.collapsed) {
+            text = range.toString();
+        }
+        range.deleteContents();
+
+        // Simply put a span tag around the text with the id of the view.
+        // It will be formated by the note hyperlink code.
+        var span = document.createElement("span");
+        // This id identifies the span as a hyperlink to this note.
+        // The note will format the link and add callbacks later.
+        span.id = childNote.Id;
+        $(span).attr('contenteditable', 'false');
+        span.appendChild( document.createTextNode(text) );
+        range.insertNode(span);
+        // Let the note format it.
+        this.FormatLink(childNote);
+
+        // Some gymnasitcs to keep the cursor after the question.
+        range.collapse(false);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        this.TextEntry[0].focus();
+        // NOTE: This may not be necesary no that text note "views" are
+        // issolated from notes in views tab.
+        this.UpdateNote();
+
+        this.Note.Save();
+    }
+
+    TextEditor.prototype.Resize = function(width, height) {
+        var pos;
+        pos = this.TextEntry.offset();
+        this.TextEntry.height(height - pos.top - 5);
+    }
+
+    TextEditor.prototype.SetHtml = function(html) {
+        if (this.UpdateTimer) {
+            clearTimeout(this.UpdateTimer);
+            this.Update();
+        }
+        this.Note = null; //??? Editing without a note
+        this.EditOn();
+        this.TextEntry.html(html);
+
+        if (SA.Edit) {
+            var items = this.TextEntry.find('.sa-question');
+            items.saQuestion({editable:true,
+                              position : 'static'});
+        }
+
+        // Note needed here long term.
+        // this looks for keywords in text and makes tags.
+        SA.AddHtmlTags(this.TextEntry);
+    }
+
+    TextEditor.prototype.GetHtml = function() {
+        return this.TextEntry.html();
+    }
+
+    // TODO: Editor should not become active until it has a note.
+    // This probably belongs in a subclass.
+    // Or in the note.
+    TextEditor.prototype.LoadNote = function(note) {
+        if (this.UpdateTimer) {
+            clearTimeout(this.UpdateTimer);
+            this.Update();
+        }
+        this.Note = note;
+        this.TextEntry.html(note.Text);
+
+        // TODO: Hide this.  Maybe use saHtml.
+        if (SA.Edit) {
+            var items = this.TextEntry.find('.sa-question');
+            items.saQuestion({editable:true,
+                              position : 'static'});
+        }
+
+        // TODO: Make the hyper link the same pattern as questions.
+        for (var i = 0; i < note.Children.length; ++i) {
+            // In the future we can only call this on type "View"
+            this.FormatLink(note.Children[i]);
+        }
+
+        this.MakeLinksClickable();
+        if (SA.Edit) {
+            this.EditOn();
+        }
+    }
+
+    // Copy the text entry text back into the note
+    // (when the textEntry changes).
+    // It saves the note too.
+    TextEditor.prototype.UpdateNote = function() {
+        this.UpdateTimer = null;
+        if ( ! this.Note) {
+            return;
+        }
+        this.Note.Text = this.TextEntry.html();
+        if (this.ChangeCallback) {
+            (this.ChangeCallback)();
+        }
+
+        this.MakeLinksClickable();
+    }
+
+    // Link are not active in content editable divs.
+    // Work around this.
+    TextEditor.prototype.MakeLinksClickable = function() {
+        if (SA.Edit) {
+            // This is only necesary when div is editable.
+            // Links work the same in both situations with this.
+            var links = $("a");
+            for (var i = 0; i < links.length; ++i) {
+                var link = links[i];
+                $(link)
+                    .click(function() {
+                        window.open(this.href,'_blank');
+                    })
+            }
+        }
+    }
+
+    SA.TextEditor = TextEditor;
+
+})();
+
+    //==============================================================================
 
 
 function NotesWidget(parent, display) {
@@ -822,7 +878,7 @@ function NotesWidget(parent, display) {
         this.QuizMenu.val("review");
     }
 
-    this.TextEditor = new TextEditor(this.TextDiv, this.Display);
+    this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
     if ( ! SA.Edit) {
         this.TextEditor.EditableOff();
     } else {
@@ -832,7 +888,7 @@ function NotesWidget(parent, display) {
             });
     }
     // Private notes.
-    this.UserTextEditor = new TextEditor(this.UserTextDiv, this.Display);
+    this.UserTextEditor = new SA.TextEditor(this.UserTextDiv, this.Display);
     this.UserTextEditor.Change(
         function () {
             self.UserTextEditor.Note.Save();
