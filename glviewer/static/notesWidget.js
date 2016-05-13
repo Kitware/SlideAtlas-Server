@@ -235,7 +235,7 @@
                 function(){
                     self.DeleteLink(self.LinkMenuObject.Link,
                                     self.LinkMenuObject.Note);
-                    self.Menu.hide();
+                    self.LinkMenu.hide();
                 });
     }
 
@@ -604,6 +604,7 @@
         } else if ( ! range.collapsed) {
             text = range.toString();
         }
+        childNote.Title = text;
         range.deleteContents();
 
         // Simply put a span tag around the text with the id of the view.
@@ -1049,7 +1050,11 @@ NotesWidget.prototype.RecordView2 = function() {
     this.RecordViewTimer = null;
     var note = this.GetCurrentNote();
     //note.RecordView(this.Display);
-    note.RecordAnnotations(this.Display);
+    // Hack to keep root from getting view annotations.
+    // TODO: CLean up the two parallel paths Notes ad views.
+    if (this.DisplayedNote && note == this.DisplayedNote) {
+        note.RecordAnnotations(this.Display);
+    }
 }
 
 
@@ -1192,7 +1197,6 @@ NotesWidget.prototype.SaveBrownNote = function() {
                "col" : "views",
                "type": "Favorite"},//"favorites"
         success: function(data,status) {
-            note.Id = data;
             FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
         },
         error: function() {
