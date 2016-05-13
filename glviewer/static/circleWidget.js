@@ -252,7 +252,7 @@
             this.State = CIRCLE_WIDGET_NEW_DRAGGING;
         }
         if (this.State == CIRCLE_WIDGET_NEW_DRAGGING || this.State == CIRCLE_WIDGET_DRAG) {
-            if (SA && SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.Shape.Origin = cam.ConvertPointViewerToWorld(x, y);
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -266,7 +266,7 @@
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
             this.Shape.UpdateBuffers();
-            if (SA && SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+            if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.PlacePopup();
             this.Layer.EventuallyDraw();
         }
@@ -297,7 +297,7 @@
     CircleWidget.prototype.HandleTouchPinch = function(event) {
         this.Shape.Radius *= event.PinchScale;
         this.Shape.UpdateBuffers();
-        if (SA && SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
         this.Layer.EventuallyDraw();
         return false;
     }
@@ -443,7 +443,7 @@
         this.Layer.EventuallyDraw();
 
         localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
-        if (SA && SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
+        if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
     }
 
 

@@ -6,6 +6,10 @@
 
 var TEXT_VIEW_HACK = null;
 
+(function () {
+    "use strict";
+
+
 function View (parent) {
     // Text needs a context to compute its bounds.
     if ( ! TEXT_VIEW_HACK) {
@@ -243,7 +247,7 @@ View.prototype.DrawShapes = function () {
     if ( ! this.CanvasDiv.is(':visible') ) {
         return;
     }
-    for(i=0; i<this.ShapeList.length; i++){
+    for(var i=0; i<this.ShapeList.length; i++){
         this.ShapeList[i].Draw(this);
     }
 }
@@ -512,11 +516,6 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 }
 
 
+    SAM.View = View;
 
-
-
-
-
-
-
-
+})();

@@ -1170,7 +1170,7 @@ NotesWidget.prototype.GetCurrentNote = function() {
 
 NotesWidget.prototype.SaveBrownNote = function() {
     // Create a new note.
-    var note = new Note();
+    var note = new SA.Note();
     note.RecordView(this.Display);
 
     // This is not used and will probably be taken out of the scheme,
@@ -1297,7 +1297,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
             this.UserNote.Save();
         }
     }
-    this.UserNote = new Note();
+    this.UserNote = new SA.Note();
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {

@@ -108,7 +108,7 @@ FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
 }
 
 FavoritesBar.prototype.LoadFavorite = function(img){
-    var note = new Note();
+    var note = new SA.Note();
     var index = $(img).attr('index');
     note.Load(this.Favorites[index]);
 

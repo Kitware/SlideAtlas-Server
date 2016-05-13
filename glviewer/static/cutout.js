@@ -30,7 +30,7 @@ function DownloadImageData(data, filename) {
     var height =  data.height;
     var viewport = [0,0, width, height];
 
-    var view = new View();
+    var view = new SAM.View();
     view.InitializeViewport(viewport, 1, true);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -54,7 +54,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
     var height =  dimensions[1];
     var viewport = [0,0, width, height];
 
-    var view = new View();
+    var view = new SAM.View();
     CUTOUT_VIEW = view;
     view.SetCache(cache);
     view.InitializeViewport(viewport, 1, true);
