@@ -10255,17 +10255,15 @@ Note.prototype.DeleteCallback = function() {
         return;
     }
 
-    if ( ! window.confirm("Are you sure you want to delete this view?")) {
-        return;
-    }
-
     this.ClearHyperlink();
 
-    if (SA.DualDisplay && SA.DualDisplay.NavigationWidget &&
-        SA.DualDisplay.NavigationWidget.GetNote() == this) {
-        // Move the current note off this note.
-        // There is always a previous.
-        SA.DualDisplay.NavigationWidget.PreviousNote();
+    if (this.Type != 'view') {
+        if (SA.DualDisplay && SA.DualDisplay.NavigationWidget &&
+            SA.DualDisplay.NavigationWidget.GetNote() == this) {
+            // Move the current note off this note.
+            // There is always a previous.
+            SA.DualDisplay.NavigationWidget.PreviousNote();
+        }
     }
 
     // Get rid of the note.
@@ -10423,30 +10421,6 @@ Note.prototype.NewChild = function(childIdx, title) {
     return childNote;
 }
 
-// TODO: No longer needed now that we are generating ids onthe client.
-Note.prototype.LoadIds = function(data) {
-    if (this.Id != data._id) {
-        // This should be fine.  Notes generate an id before the actual
-        // id is loaded from the database.
-        this.Id = data._id;
-    }
-
-
-    //if ( ! this.Id) {
-    //    if (this.TempId) {
-    //        console.log("Converting " + this.TempId + " to " + data._id);
-    //    }
-    //    this.Id = data._id;
-    //    // Leave TempId in place until we convert all references.
-    //}
-    //if (data.Children && this.Children) {
-    //    for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
-    //        this.Children[i].LoadIds(data.Children[i]);
-    //    }
-    //}
-}
-
-
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback, excludeChildren) {
@@ -10464,9 +10438,6 @@ Note.prototype.Save = function(callback, excludeChildren) {
                "date" : d.getTime()},
         success: function(data,status) {
             SA.PopProgress();
-            // get the children ids too.
-            // Assumes the order of children did not change.
-            self.LoadIds(data);
             if (callback) {
                 (callback)(self);
             }
@@ -10687,12 +10658,6 @@ Note.prototype.Load = function(obj){
             this.ViewerRecords[i].Load(obj);
         }
     }
-
-    // Only show user notes for the first image of the root note.
-    // I can rethink this later.
-    //if (SA.NotesWidget && this.ViewerRecords.length > 0) {
-    //    SA.NotesWidget.RequestUserNote(this.ViewerRecords[0].Image._id);
-    //}
 }
 
 Note.prototype.LoadViewId = function(viewId, callback) {
@@ -11055,7 +11020,7 @@ Note.prototype.InitializeStackTransforms = function () {
                 function(){
                     self.DeleteLink(self.LinkMenuObject.Link,
                                     self.LinkMenuObject.Note);
-                    self.Menu.hide();
+                    self.LinkMenu.hide();
                 });
     }
 
@@ -11424,6 +11389,7 @@ Note.prototype.InitializeStackTransforms = function () {
         } else if ( ! range.collapsed) {
             text = range.toString();
         }
+        childNote.Title = text;
         range.deleteContents();
 
         // Simply put a span tag around the text with the id of the view.
@@ -11869,7 +11835,11 @@ NotesWidget.prototype.RecordView2 = function() {
     this.RecordViewTimer = null;
     var note = this.GetCurrentNote();
     //note.RecordView(this.Display);
-    note.RecordAnnotations(this.Display);
+    // Hack to keep root from getting view annotations.
+    // TODO: CLean up the two parallel paths Notes ad views.
+    if (this.DisplayedNote && note == this.DisplayedNote) {
+        note.RecordAnnotations(this.Display);
+    }
 }
 
 
@@ -12012,7 +11982,6 @@ NotesWidget.prototype.SaveBrownNote = function() {
                "col" : "views",
                "type": "Favorite"},//"favorites"
         success: function(data,status) {
-            note.Id = data;
             FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
         },
         error: function() {
