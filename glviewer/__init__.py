@@ -334,6 +334,23 @@ def glsessionaddview():
     return "Success"
 
 
+# From the session page when views are reordered in a session
+@mod.route('/save-view-order', methods=['POST'])
+def glsavevieworder():
+    sessid = request.form['sess']  # for post
+    dataStr = request.form['data']  # for post
+    viewIds = json.loads(dataStr)
+
+    session = models.Session.objects.get_or_404(id=sessid)
+    session.views = []
+    for i in range(len(viewIds)):
+        session.views.append(ObjectId(viewIds[i]))
+
+    session.save()
+
+    return "Success"
+
+
 # This method saves transformations and/or annotations (whatever exists in data.
 @mod.route('/stack-save', methods=['GET', 'POST'])
 def glstacksave():

@@ -28,8 +28,10 @@
     <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.iframe-transport.js"></script>
     <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.fileupload.js"></script>
 
-    <script src="/static/js/attachments.js"></script>
+    <link type="text/css" href="/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css" rel="stylesheet" />
+    <script type="text/javascript" src="/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js"></script>
 
+    <script src="/static/js/attachments.js"></script>
 
     {% if is_session_admin %}
     <script src="/static/thirdparty/flow/flow.min.js"></script>
@@ -90,6 +92,32 @@
                 var viewName = $(this).parent().parent().find(".sa-view-get").text();
                 getPermalink(viewName, viewId, viewUrl);
             });
+
+            $(".sa-sortable")
+                .sortable({stop: function( event, ui ) {
+                    var viewRows = $(".sa-sortable").children();
+                    var ids = [];
+                    for (var i = 0; i < viewRows.length; ++i) {
+                        ids.push($(viewRows[i]).attr("view-id"));
+                    }
+                    // Save the new order in the database
+                    $.ajax({
+                        type: "post",
+                        url: "/webgl-viewer/save-view-order",
+                        data: {"sess" : "{{session_son.id}}",
+                               "data" : JSON.stringify(ids)},
+                        success: function(data,status) {
+                            // How should we give user feedback?
+                            console.log("saved order");
+                        },
+                        error: function() {
+                            alert("AJAX - error() : save order" );
+                        },
+                    });
+
+
+                    console.log("sort stop");
+                }});
 
             // Stuff to save a label when it is changed.
             // Event leave, focus out have not worked.  
@@ -534,17 +562,16 @@
             </tbody>
             {% endif %}
 
-            <tbody>
+            <tbody class="sa-sortable">
                 {% for view_son in session_son.views %}
-                    {% set viewer_view_url = url_for('glviewer.glview', sess=session.id, view=view_son.id) %}
                     {% set viewer_edit_url = url_for('glviewer.glview', sess=session.id, view=view_son.id, edit='true') %}
                     {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
-                    <tr>
+                    <tr view-id="{{ view_son.id }}">
                         <td height=52px>
                             <a href="{{ viewer_url }}">
                                 <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}"
-                                     class="{% if view_son.Type == 'Stack' %}sa-view-stack{% endif %}"
-                                     width=100px>
+                                     {% if view_son.Type == 'Stack' %}class="sa-view-stac"{% endif %}
+                                     alt="Open" title="Open" width="100px">
                             </a>
                         </td>
                         <td>
