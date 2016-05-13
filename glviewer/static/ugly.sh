@@ -1,3 +1,7 @@
+rm css/sa.css
+rm sa.min.js
+rm sam.min.js
+
 echo "// auto generated: slide atlas" > css/sa.css
 
 ~/bin/uglifyjs -nc annotationLayer.js >> sam.min.js 
@@ -43,6 +47,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.min.js
 ~/bin/uglifyjs -nc cookies.js >> sa.min.js 
 ~/bin/uglifyjs -nc objectId.js >> sa.min.js 
+~/bin/uglifyjs -nc init.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewEditMenu.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewBrowser.js >> sa.min.js 
 ~/bin/uglifyjs -nc dualViewWidget.js >> sa.min.js 
@@ -69,6 +74,5 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc view.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewer.js >> sa.min.js 
 ~/bin/uglifyjs -nc pairTransformation.js >> sa.min.js 
-~/bin/uglifyjs -nc init.js >> sa.min.js 
 
 

@@ -579,7 +579,7 @@ UserNoteEditor.prototype.SetNote = function (parentNote) {
         // have a user note.  Make a new one (do not try to load user note).
         // A new note.  I do not want to save empty user notes for every
         // note.  The check will be in the save method.
-        parentNote.SetUserNote(new Note());
+        parentNote.SetUserNote(new SA.Note());
         this.TextEditor
             .attr('contenteditable', 'true')
             .css({'border':'2px inset #DDD'});
@@ -605,7 +605,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
     }
 
     var parentNote = this.ParentNote;
-    parentNote.SetUserNote(new Note());
+    parentNote.SetUserNote(new SA.Note());
 
     if (data.Notes && data.Notes.length > 0) {
         if (data.Notes.length > 1) {
@@ -698,7 +698,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
         // What will happen if you insert a whole presentation (root)?
         // Insert a new slide
         var idx = this.Index+1;
-        var note = new Note();
+        var note = new SA.Note();
         note.Load(viewObj);
         // Record changes in the note before the copy.
         this.HtmlPage.UpdateEdits();
@@ -740,7 +740,7 @@ Presentation.prototype.AddImageCallback = function(image) {
         return;
     }
     if (this.Note != this.RootNote) {
-        var note = new Note();
+        var note = new SA.Note();
         note.ViewerRecords[0] = record;
         this.SlidePage.InsertViewNote(note);
         return;
@@ -916,7 +916,7 @@ Presentation.prototype.DeleteCurentSlide = function () {
 
 Presentation.prototype.InsertNewSlide = function (type){
     var idx = this.Index+1;
-    var note = new Note();
+    var note = new SA.Note();
     if (type) { note.Type = type; }
     this.RootNote.Children.splice(idx-1,0,note);
     note.Parent = this.RootNote;
@@ -930,7 +930,7 @@ Presentation.prototype.InsertNewSlide = function (type){
 
 Presentation.prototype.InsertSlideCopy = function (type){
     var idx = this.Index+1;
-    var note = new Note();
+    var note = new SA.Note();
 
     // Record changes in the note before the copy.
     this.HtmlPage.UpdateEdits();
@@ -2225,7 +2225,7 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     }
 
     // First make a copy of the view as a child.
-    var newNote = new Note();
+    var newNote = new SA.Note();
     var tmpId = newNote.Id;
     newNote.Load(viewObj);
     delete newNote.Id;

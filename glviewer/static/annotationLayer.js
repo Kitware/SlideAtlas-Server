@@ -249,7 +249,7 @@
         SAM.DebugLayer = this;
 
         // TODO: Abstract the view to a layer somehow.
-        this.AnnotationView = new View(viewerDiv);
+        this.AnnotationView = new SAM.View(viewerDiv);
         this.AnnotationView.CanvasDiv.css({'z-index':'100'});
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});

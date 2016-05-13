@@ -1,3 +1,7 @@
+rm css/sa.css
+rm sa.max.js
+rm sam.max.js
+
 echo "// slide atlas" > css/sa.css
 cat css/main.css >> css/sa.css
 cat css/saViewer.css >> css/sa.css
@@ -43,6 +47,8 @@ cat girderWidget.js >> sam.max.js
 
 cat cookies.js >> sa.max.js 
 cat objectId.js >> sa.max.js 
+
+cat init.js >> sa.max.js 
 cat viewEditMenu.js >> sa.max.js 
 cat viewBrowser.js >> sa.max.js 
 cat dualViewWidget.js >> sa.max.js 
@@ -69,6 +75,5 @@ cat section.js >> sa.max.js
 cat view.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
-cat init.js >> sa.max.js 
 
 

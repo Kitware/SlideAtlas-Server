@@ -231,7 +231,7 @@
             this.Polyline.Points[i][1] += yOffset;
         }
         this.Polyline.UpdateBuffers();
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
 
         this.Layer.EventuallyDraw(true);
     }

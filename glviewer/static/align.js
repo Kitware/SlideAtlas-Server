@@ -3490,7 +3490,7 @@ var LAST_HAGFISH_CONTOUR;
 var HAGFISH_THRESHOLD;
 
 function initHagfish() {
-    HAGFISH_STACK = new Note();
+    HAGFISH_STACK = new SA.Note();
     HAGFISH_STACK.Id = "5523dad0dd98b56d82d6d062";
     HAGFISH_STACK.Title = "AutoStack";
     HAGFISH_STACK.CoordinateSystem = "Pixel";
@@ -3645,7 +3645,7 @@ function saveHagFishStack() {
                "date" : d.getTime()},
         success: function(data,status) {
             HAGFISH_DATA = data;
-            HAGFISH_DATA_STACK = new Note();
+            HAGFISH_DATA_STACK = new SA.Note();
             HAGFISH_DATA_STACK.Load(data);
             saDebug("Auto Stack Saved");
         },

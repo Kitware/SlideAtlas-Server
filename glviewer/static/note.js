@@ -4,6 +4,9 @@
 // TODO: Remove GUI from this file.
 
 
+(function () {
+    "use strict";
+
 function Note () {
     if ( ! SA.Notes) {
         // data is the object retrieved from mongo (with string ids)
@@ -688,6 +691,7 @@ Note.prototype.Load = function(obj){
     // Received
     this.LoadState = 2;
 
+    var ivar;
     for (ivar in obj) {
         this[ivar] = obj[ivar];
     }
@@ -865,3 +869,6 @@ Note.prototype.InitializeStackTransforms = function () {
     }
 }
 
+    SA.Note = Note;
+
+})();

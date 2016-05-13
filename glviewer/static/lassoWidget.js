@@ -297,7 +297,7 @@
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers();
-            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+            if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.Layer.EventuallyDraw();
             return false;
         }

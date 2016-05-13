@@ -151,7 +151,7 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
         cache.TileSource = args.tileSource;
         // Use the note tmp id as an image id so the viewer can index the
         // cache.
-        var note = new Note();
+        var note = new SA.Note();
         var image = {levels:     args.maxLevel + 1,
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
@@ -269,7 +269,7 @@ DualViewWidget.prototype.GetRootNote = function () {
 DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var note = GetNoteFromId(noteId);
     if ( ! note) {
-        note = new Note();
+        note = new SA.Note();
         var self = this;
         note.LoadViewId(
             noteId,

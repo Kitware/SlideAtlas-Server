@@ -119,7 +119,7 @@ SlideAtlas.prototype.Run2 = function() {
     }
 
     // We need to get the view so we know how to initialize the app.
-    var rootNote = new Note();
+    var rootNote = new SA.Note();
 
     // Hack to create a new presenation.
     if ( this.ViewId == "presentation") {

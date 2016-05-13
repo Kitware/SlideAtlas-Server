@@ -69,7 +69,7 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new View(this.Div);
+    this.MainView = new SAM.View(this.Div);
     this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -88,7 +88,7 @@ function Viewer (parent) {
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
-        this.OverView = new View(this.OverViewDiv);
+        this.OverView = new SAM.View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
@@ -286,7 +286,7 @@ Viewer.prototype.ProcessArguments = function (args) {
         cache.TileSource = args.tileSource;
         // Use the note tmp id as an image id so the viewer can index the
         // cache.
-        var note = new Note();
+        var note = new SA.Note();
         var image = {levels:     args.tileSource.maxLevel + 1,
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
@@ -335,7 +335,7 @@ Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var self = this;
     var note = GetNoteFromId(noteId);
     if ( ! note) {
-        note = new Note();
+        note = new SA.Note();
         var self = this;
         note.LoadViewId(
             noteId,
@@ -637,7 +637,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new View();
+    var view = new SAM.View();
     view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);

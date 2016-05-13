@@ -347,7 +347,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
     this.RedoStack = [];
 
     // Create a new note.
-    var note = new Note();
+    var note = new SA.Note();
     // This will probably have to be passed the viewers.
     note.RecordView(this.Display);
 
