@@ -8072,7 +8072,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
-    if (SA.NotesWidget) {
+    if (SA.notesWidget) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Download Image")
@@ -8181,7 +8181,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
 // Record the viewer into the current note and save into the database.
 ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
-    if (SA.NotesWidget) SA.NotesWidget.SaveCallback();
+    if (SA.notesWidget) SA.notesWidget.SaveCallback();
 }
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
@@ -8212,7 +8212,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     // Save automatically if user has permission.
     if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
-        //SA.NotesWidget.SaveCallback();
+        //SA.notesWidget.SaveCallback();
         // Lets try just setting this one note.
         var noteObj = JSON.stringify(note.Serialize(true));
         var d = new Date();
@@ -8819,7 +8819,7 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
     }
 
     // This will get the camera and the annotations too.
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     record.Apply(this.Viewer);
     delete record;
@@ -9165,6 +9165,11 @@ var VIEWER1;
 var VIEWER2;
 
 
+
+(function () {
+    "use strict";
+
+
 function DualViewWidget(parent) {
     var self = this;
     this.Viewers = []; // It would be nice to get rid of this.
@@ -9265,7 +9270,7 @@ DualViewWidget.prototype.Record = function (note, startViewIdx) {
         }
         if (this.DualView && note.ViewerRecords.length < 2) {
             while ( note.ViewerRecords.length < 2) {
-                note.ViewerRecords.push(new ViewerRecord());
+                note.ViewerRecords.push(new SA.ViewerRecord());
             }
         }
     }
@@ -9292,16 +9297,16 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
     if (args.tileSource) {
         var w = args.tileSource.width;
         var h = args.tileSource.height;
-        var cache = new Cache();
+        var cache = new SA.Cache();
         cache.TileSource = args.tileSource;
         // Use the note tmp id as an image id so the viewer can index the
         // cache.
-        var note = new Note();
+        var note = new SA.Note();
         var image = {levels:     args.maxLevel + 1,
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id: note.TempId};
-        var record = new ViewerRecord();
+        var record = new SA.ViewerRecord();
         record.Image = image;
         record.OverviewBounds = [0,w-1,0,h-1];
         record.Camera = {FocalPoint: [w/2, h/2],
@@ -9397,8 +9402,8 @@ DualViewWidget.prototype.SetNote = function(note, viewIdx) {
         note.DisplayView(this);
     }
 
-    if (SA.NotesWidget) { 
-        SA.NotesWidget.SelectNote(note);
+    if (SA.notesWidget) { 
+        SA.notesWidget.SelectNote(note);
     }
 }
 DualViewWidget.prototype.GetNote = function () {
@@ -9414,7 +9419,7 @@ DualViewWidget.prototype.GetRootNote = function () {
 DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var note = GetNoteFromId(noteId);
     if ( ! note) {
-        note = new Note();
+        note = new SA.Note();
         var self = this;
         note.LoadViewId(
             noteId,
@@ -9707,7 +9712,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
 
     // Preload the adjacent sections.
     if (cameras[0]) {
-        var cache = FindCache(note.ViewerRecords[note.StartIndex-1].Image);
+        var cache = SA.FindCache(note.ViewerRecords[note.StartIndex-1].Image);
         cameras[0].SetViewport(this.GetViewer(0).GetViewport());
         var tiles = cache.ChooseTiles(cameras[0], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
@@ -9716,7 +9721,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
         LoadQueueUpdate();
     }
     if (cameras[3]) {
-        var cache = FindCache(note.ViewerRecords[note.StartIndex+2].Image);
+        var cache = SA.FindCache(note.ViewerRecords[note.StartIndex+2].Image);
         cameras[3].SetViewport(this.GetViewer(0).GetViewport());
         var tiles = cache.ChooseTiles(cameras[3], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
@@ -9747,6 +9752,9 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     }
 }
 
+    SA.DualViewWidget = DualViewWidget;
+
+})();
 //==============================================================================
 // Is it time to switch to lowercase?  No.  I still like lower case for
 // local variables. Upper case for instance variables 
@@ -9921,6 +9929,10 @@ function TabPanel(tabbedDiv, title) {
 
 // TODO: Remove GUI from this file.
 
+(function () {
+    "use strict";
+
+
 
 function Note () {
     if ( ! SA.Notes) {
@@ -10076,7 +10088,7 @@ Note.prototype.DeepCopy = function(note) {
     //this.UserText = note.UserText;
     this.ViewerRecords = [];
     for (var i = 0; i < note.ViewerRecords.length; ++i) {
-        var record = new ViewerRecord();
+        var record = new sa.ViewerRecord();
         record.DeepCopy(note.ViewerRecords[i]);
         this.ViewerRecords.push(record);
     }
@@ -10096,8 +10108,8 @@ Note.prototype.SortCallback = function() {
 
     this.Children = newChildren;
     this.UpdateChildrenGUI();
-    if (SA.NotesWidget) {
-        SA.NotesWidget.MarkAsModified();
+    if (SA.notesWidget) {
+        SA.notesWidget.MarkAsModified();
     }
 }
 
@@ -10121,22 +10133,22 @@ function GetNoteFromId(id) {
 /*
 // Every time the "Text" is loaded, they hyper links have to be setup.
 Note.prototype.FormatHyperlink = function() {
-    if ( ! SA.NotesWidget) { return; }
+    if ( ! SA.notesWidget) { return; }
     var self = this;
     if (this.Id) {
         span = document.getElementById(this.Id);
         if (span) {
             $(span)
                 //  I do not want the text to change.
-                .click(function() { self.DisplayView(SA.NotesWidget.Display);})
-                //.click(function() { SA.NotesWidget.SelectNote(self);})
+                .click(function() { self.DisplayView(SA.notesWidget.Display);})
+                //.click(function() { SA.notesWidget.SelectNote(self);})
                 .css({'color': '#29C'})
                 .hover(function(){ $(this).css("color", "blue");},
                        function(){ $(this).css("color", "#29C");});
             // Let the selection indicate the current note.
             // this highlighting suggests the camera button will
             // will operate on this link rather than inserting a new one.
-            //if (this == SA.NotesWidget.SelectedNote) {
+            //if (this == SA.notesWidget.SelectedNote) {
             //    $(span).css({'background':'#CCC'});
             //} else {
                 $(span).css({'background':'white'});
@@ -10210,8 +10222,8 @@ Note.prototype.TitleFocusOutCallback = function() {
         // Move the Title from the GUI to the note.
         this.Modified = false;
         this.Title = this.TitleEntry.text();
-        if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
         }
     }
     // Allow the viewer to process arrow keys.
@@ -10273,8 +10285,8 @@ Note.prototype.DeleteCallback = function() {
 
     // Redraw the GUI.
     parent.UpdateChildrenGUI();
-    if (SA.NotesWidget) {
-        SA.NotesWidget.MarkAsModified();
+    if (SA.notesWidget) {
+        SA.notesWidget.MarkAsModified();
     }
 }
 
@@ -10305,7 +10317,7 @@ Note.prototype.RecordView = function(display) {
     }
     this.ViewerRecords = [];
     for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
-        var viewerRecord = new ViewerRecord();
+        var viewerRecord = new SA.ViewerRecord();
         viewerRecord.CopyViewer(display.GetViewer(i));
         this.ViewerRecords.push(viewerRecord);
     }
@@ -10477,7 +10489,7 @@ Note.prototype.DisplayGUI = function(div) {
             if (self.Modified) {
                 self.Modified = false;
                 self.Title = self.TitleEntry.text();
-                if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();}
+                if (SA.notesWidget) {SA.notesWidget.MarkAsModified();}
             }
         });
 
@@ -10485,7 +10497,7 @@ Note.prototype.DisplayGUI = function(div) {
         .hover(
             function() {
                 self.TitleEntry.css({'color':'#33D'});
-                if (SA.NotesWidget && SA.NotesWidget.SelectedNote == self) {
+                if (SA.notesWidget && SA.notesWidget.SelectedNote == self) {
                     self.ButtonsDiv.show();
                 }
             },
@@ -10506,7 +10518,7 @@ Note.prototype.DisplayGUI = function(div) {
         // Removing and adding removes the callbacks.
         this.AddButton
             .click(function () {
-                if (SA.NotesWidget) {SA.NotesWidget.NewCallback();}
+                if (SA.notesWidget) {SA.notesWidget.NewCallback();}
             });
         this.LinkButton
             .click(function () {
@@ -10606,6 +10618,7 @@ Note.prototype.Load = function(obj){
     // Received
     this.LoadState = 2;
 
+    var ivar;
     for (ivar in obj) {
         this[ivar] = obj[ivar];
     }
@@ -10654,7 +10667,7 @@ Note.prototype.Load = function(obj){
         if (this.ViewerRecords[i]) {
             obj = this.ViewerRecords[i];
             // It would be nice to have a constructor that took an object.
-            this.ViewerRecords[i] = new ViewerRecord();
+            this.ViewerRecords[i] = new SA.ViewerRecord();
             this.ViewerRecords[i].Load(obj);
         }
     }
@@ -10687,7 +10700,7 @@ Note.prototype.LoadViewId = function(viewId, callback) {
 
 Note.prototype.Collapse = function() {
     this.ChildrenVisibility = false;
-    if (this.Contains(SA.NotesWidget.SelectedNote)) {
+    if (this.Contains(SA.notesWidget.SelectedNote)) {
         // Selected note should not be in collapsed branch.
         // Make the visible ancestor active.
         SA.DualDisplay.SetNote(this);
@@ -10731,8 +10744,8 @@ Note.prototype.DisplayView = function(display) {
 
     // To determine which notes camera to save.
     // For when the user creates a camera link.
-    if (SA.NotesWidget) {
-        SA.NotesWidget.DisplayedNote = this;
+    if (SA.notesWidget) {
+        SA.notesWidget.DisplayedNote = this;
     }
 
     var numViewers = display.GetNumberOfViewers();
@@ -10783,6 +10796,9 @@ Note.prototype.InitializeStackTransforms = function () {
     }
 }
 
+    SA.Note = Note;
+
+})();
 // that possibly share a superclass.
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
@@ -11517,6 +11533,10 @@ Note.prototype.InitializeStackTransforms = function () {
     //==============================================================================
 
 
+(function () {
+    "use strict";
+
+
 function NotesWidget(parent, display) {
     this.ModifiedCallback = null;
     this.LinkDiv;
@@ -11790,7 +11810,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     note.TitleEntry.css({'background':'#f0f0f0'});
     // This highlighting can be confused with the selection highlighting.
     // Indicate hyperlink current note.
-    //$('#'+SA.NotesWidget.SelectedNote.Id).css({'background':'#CCC'});
+    //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
     // Select the current hyper link
     note.SelectHyperlink();
 
@@ -11955,7 +11975,7 @@ NotesWidget.prototype.GetCurrentNote = function() {
 
 NotesWidget.prototype.SaveBrownNote = function() {
     // Create a new note.
-    var note = new Note();
+    var note = new SA.Note();
     note.RecordView(this.Display);
 
     // This is not used and will probably be taken out of the scheme,
@@ -12010,7 +12030,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.AddViewButton
             .appendTo(this.LinksDiv)
             .click(function () {
-                var parentNote = SA.NotesWidget.RootNote;
+                var parentNote = SA.notesWidget.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
                 // Setup and save
@@ -12082,7 +12102,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
             this.UserNote.Save();
         }
     }
-    this.UserNote = new Note();
+    this.UserNote = new SA.Note();
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {
@@ -12096,7 +12116,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         // Only copoy the first viewer records.  More could be problematic.
         var note = this.GetCurrentNote();
         if (note && note.ViewerRecords.length > 0) {
-            var record = new ViewerRecord();
+            var record = new SA.ViewerRecord();
             record.DeepCopy(note.ViewerRecords[0]);
             this.UserNote.ViewerRecords.push(record);
         }
@@ -12117,6 +12137,9 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
     }
 }
 
+    SA.NotesWidget = NotesWidget;
+
+})();
 
 
 
@@ -12363,8 +12386,8 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     // Hack to make all stack viewers share a single annotation visibility
     // flag.
-    if (SA.NotesWidget) {
-        var note = SA.NotesWidget.GetCurrentNote();
+    if (SA.notesWidget) {
+        var note = SA.notesWidget.GetCurrentNote();
         if (note.Type == 'Stack') {
             for (var i = 0; i < note.ViewerRecords.length; ++i) {
                 note.ViewerRecords[i].AnnotationVisibility = visibility;
@@ -12586,6 +12609,11 @@ AnnotationWidget.prototype.DetectSections = function() {
 
 var RECORDER_WIDGET = null;
 
+
+(function () {
+    "use strict";
+
+
 function ViewerRecord () {
     this.AnnotationVisibility = 0;
     this.Annotations = [];
@@ -12615,6 +12643,7 @@ ViewerRecord.prototype.Load = function(obj) {
         }
     }
 
+    var ivar;
     for (ivar in obj) {
         this[ivar] = obj[ivar];
     }
@@ -12685,26 +12714,26 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.
 ViewerRecord.prototype.Serialize = function () {
-  rec = {};
-  rec.Image = this.Image._id;
-  rec.Database = this.Image.database;
-  rec.NumberOfLevels = this.Image.levels;
-  rec.Camera = this.Camera;
-  // deep copy
-  if ( this.Annotations) {
-    rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
-  }
-  rec.AnnotationVisibility = this.AnnotationVisibility;
+    var rec = {};
+    rec.Image = this.Image._id;
+    rec.Database = this.Image.database;
+    rec.NumberOfLevels = this.Image.levels;
+    rec.Camera = this.Camera;
+    // deep copy
+    if ( this.Annotations) {
+        rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
+    }
+    rec.AnnotationVisibility = this.AnnotationVisibility;
 
-  if (this.OverviewBounds) {
-     rec.OverviewBounds = this.OverviewBounds;
-  }
+    if (this.OverviewBounds) {
+        rec.OverviewBounds = this.OverviewBounds;
+    }
 
-  if (this.Transform) {
-      rec.Transform = this.Transform.Serialize();
-  }
+    if (this.Transform) {
+        rec.Transform = this.Transform.Serialize();
+    }
 
-  return rec;
+    return rec;
 }
 
 
@@ -12719,7 +12748,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
     var cache = viewer.GetCache();
     if ( ! cache || this.Image._id != cache.Image._id) {
-        var newCache = FindCache(this.Image);
+        var newCache = SA.FindCache(this.Image);
         viewer.SetCache(newCache);
     }
 
@@ -12761,7 +12790,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 // This is a helper method to start preloading tiles for an up coming view.
 ViewerRecord.prototype.LoadTiles = function (viewport) {
-    var cache = FindCache(this.Image);
+    var cache = SA.FindCache(this.Image);
     // TODO:  I do not like the fact that we are keeping a serialized
     // version of the camera in the record object.  It should be a real 
     // camera that is serialized when it is saved.
@@ -12776,6 +12805,13 @@ ViewerRecord.prototype.LoadTiles = function (viewport) {
         LoadQueueAddTile(tiles[i]);
     }
 }
+
+    SA.ViewerRecord = ViewerRecord;
+
+})();
+
+
+
 
 
 function GetTrackingData(){
@@ -12801,6 +12837,17 @@ function RecordState() {
         RECORDER_WIDGET.RecordState();
     }
 }
+
+
+
+
+
+
+
+
+(function () {
+    "use strict";
+
 
 // display is a set of viewers (like DualViewWidet)
 var RecorderWidget = function(display) {
@@ -12908,14 +12955,14 @@ RecorderWidget.prototype.RecordStateCallback = function() {
     this.RedoStack = [];
 
     // Create a new note.
-    var note = new Note();
+    var note = new SA.Note();
     // This will probably have to be passed the viewers.
     note.RecordView(this.Display);
 
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
     if (SA.DualDisplay) {
-        parentNote = SA.DualDisplay.GetNote();
+        var parentNote = SA.DualDisplay.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -13019,6 +13066,11 @@ RecorderWidget.prototype.RedoState = function() {
     // Now change the page to the state at the end of the timeline.
     recordNote.DisplayView();
 }
+
+
+    SA.RecorderWidget = RecorderWidget;
+
+})();
 // VCR like buttons to get to next/previous note/slide.
 // entwined with the notes widget at the moment.
 
@@ -13382,12 +13434,12 @@ NavigationWidget.prototype.PreviousSlide = function() {
     SA.StackCursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
-    if (SA.NotesWidget && SA.NotesWidget.Modified) {
+    if (SA.notesWidget && SA.notesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
         // TODO: Improve the API here.  Get rid of global access.
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
+        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
@@ -13401,11 +13453,11 @@ NavigationWidget.prototype.NextSlide = function() {
     SA.StackCursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
-    if ( SA.NotesWidget && SA.NotesWidget.Modified) {
+    if ( SA.notesWidget && SA.notesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
+        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
@@ -13598,8 +13650,8 @@ NoteIterator.prototype.SetNote = function(note) {
             this.Note = note;
             // BIG Hack here.
             // I got rid of a special SetRootNote call too soon.
-            if (SA.NotesWidget) {
-                SA.NotesWidget.SetRootNote(note);
+            if (SA.notesWidget) {
+                SA.notesWidget.SetRootNote(note);
             }
             return;
         }
@@ -13716,7 +13768,7 @@ FavoritesBar.prototype.ShowHideFavorites = function(){
 
 
 FavoritesBar.prototype.SaveFavorite = function() {
-    SA.NotesWidget.SaveBrownNote();
+    SA.notesWidget.SaveBrownNote();
     // Hide shifts the other buttons to the left to fill the gap.
     var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
     button.addClass("sa-inactive");
@@ -13770,7 +13822,7 @@ FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
 }
 
 FavoritesBar.prototype.LoadFavorite = function(img){
-    var note = new Note();
+    var note = new SA.Note();
     var index = $(img).attr('index');
     note.Load(this.Favorites[index]);
 
@@ -16717,7 +16769,7 @@ jQuery.prototype.saViewer = function(args) {
         args.note = GetNoteFromId(args.viewId);
         if (args.note == null) {
             // It has not been loaded yet.  Get if from the server.
-            args.note = new Note();
+            args.note = new SA.Note();
             var self = this;
             args.note.LoadViewId(
                 args.viewId,
@@ -16779,9 +16831,9 @@ function saViewerSetup(self, args) {
                 // TODO: dual has to be set on the first call.  Make this
                 // order independant. Also get rid of args here. We should
                 // use process arguments to setup options.
-                self[i].saViewer = new DualViewWidget($(self[i]));
+                self[i].saViewer = new SA.DualViewWidget($(self[i]));
             } else {
-                self[i].saViewer = new Viewer($(self[i]));
+                self[i].saViewer = new SA.Viewer($(self[i]));
             }
 
             // When the div resizes, we need to synch the camera and
@@ -17978,6 +18030,10 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 
+(function () {
+    "use strict";
+
+
 //==============================================================================
 function Presentation(rootNote, edit) {
     var self = this;
@@ -18495,7 +18551,7 @@ UserNoteEditor.prototype.SetNote = function (parentNote) {
         // have a user note.  Make a new one (do not try to load user note).
         // A new note.  I do not want to save empty user notes for every
         // note.  The check will be in the save method.
-        parentNote.SetUserNote(new Note());
+        parentNote.SetUserNote(new SA.Note());
         this.TextEditor
             .attr('contenteditable', 'true')
             .css({'border':'2px inset #DDD'});
@@ -18521,7 +18577,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
     }
 
     var parentNote = this.ParentNote;
-    parentNote.SetUserNote(new Note());
+    parentNote.SetUserNote(new SA.Note());
 
     if (data.Notes && data.Notes.length > 0) {
         if (data.Notes.length > 1) {
@@ -18614,7 +18670,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
         // What will happen if you insert a whole presentation (root)?
         // Insert a new slide
         var idx = this.Index+1;
-        var note = new Note();
+        var note = new SA.Note();
         note.Load(viewObj);
         // Record changes in the note before the copy.
         this.HtmlPage.UpdateEdits();
@@ -18632,7 +18688,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
         return;
     }
 
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
@@ -18641,7 +18697,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.OverviewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
@@ -18656,7 +18712,7 @@ Presentation.prototype.AddImageCallback = function(image) {
         return;
     }
     if (this.Note != this.RootNote) {
-        var note = new Note();
+        var note = new SA.Note();
         note.ViewerRecords[0] = record;
         this.SlidePage.InsertViewNote(note);
         return;
@@ -18769,7 +18825,7 @@ Presentation.prototype.Save = function () {
     // The root needs a record to show up in the session.
     var rootNote = this.RootNote;
     if (rootNote.ViewerRecords.length < 1) {
-        var record = new ViewerRecord();
+        var record = new SA.ViewerRecord();
         record.Load(
             {AnnotationVisibility: 2,
              Annotations: [],
@@ -18832,7 +18888,7 @@ Presentation.prototype.DeleteCurentSlide = function () {
 
 Presentation.prototype.InsertNewSlide = function (type){
     var idx = this.Index+1;
-    var note = new Note();
+    var note = new SA.Note();
     if (type) { note.Type = type; }
     this.RootNote.Children.splice(idx-1,0,note);
     note.Parent = this.RootNote;
@@ -18846,7 +18902,7 @@ Presentation.prototype.InsertNewSlide = function (type){
 
 Presentation.prototype.InsertSlideCopy = function (type){
     var idx = this.Index+1;
-    var note = new Note();
+    var note = new SA.Note();
 
     // Record changes in the note before the copy.
     this.HtmlPage.UpdateEdits();
@@ -19128,7 +19184,7 @@ function SlidePage(parent, edit) {
               'bottom': '5px',
               'width': '100%'});
     // List of question answers.
-    this.List = new TextEditor(this.TextDiv, VIEWERS);
+    this.List = new SA.TextEditor(this.TextDiv, VIEWERS);
     if ( ! edit) {
         this.List.EditOff();
     }
@@ -20141,7 +20197,7 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     }
 
     // First make a copy of the view as a child.
-    var newNote = new Note();
+    var newNote = new SA.Note();
     var tmpId = newNote.Id;
     newNote.Load(viewObj);
     delete newNote.Id;
@@ -20352,6 +20408,15 @@ HtmlPage.prototype.UpdateEdits = function () {
 
 
 
+    SA.Presentation = Presentation;
+
+})();
+
+
+
+
+
+
 //==============================================================================
 function SearchPanel(parent, callback) {
     var self = this;
@@ -20550,6 +20615,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
         });
     }
 }
+
 
 
 
@@ -21246,7 +21312,7 @@ function DownloadImageData(data, filename) {
     var height =  data.height;
     var viewport = [0,0, width, height];
 
-    var view = new View();
+    var view = new SA.View();
     view.InitializeViewport(viewport, 1, true);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -21270,7 +21336,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
     var height =  dimensions[1];
     var viewport = [0,0, width, height];
 
-    var view = new View();
+    var view = new SA.View();
     CUTOUT_VIEW = view;
     view.SetCache(cache);
     view.InitializeViewport(viewport, 1, true);
@@ -25819,6 +25885,10 @@ Tile.prototype.DeleteTexture = function () {
     this.Texture = null;
   }
 }
+
+(function () {
+    "use strict";
+
 // I am adding a levels with grids to index tiles in addition
 // to the tree.  Eventually I want to get rid fo the tree.
 // I am trying to get rid of the roots now.
@@ -25827,7 +25897,7 @@ Tile.prototype.DeleteTexture = function () {
 // A source object must have a getTileUrl method.
 // It can have any instance variables it needs to
 // compute the URL.
-function SlideAtlasSource () {
+SA.SlideAtlasSource = function() {
     this.Prefix = undefined;
 
     // Higher levels are higher resolution.
@@ -25849,7 +25919,7 @@ function SlideAtlasSource () {
     }
 }
 
-function GigamacroSource () {
+SA.GigamacroSource = function() {
     this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
     this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
 
@@ -25885,7 +25955,7 @@ function GigamacroSource () {
     }
 }
 
-function GirderSource () {
+SA.GirderSource = function() {
     this.height = 18432;
     this.width = 18432;
     this.tileSize = 256;
@@ -25898,7 +25968,7 @@ function GirderSource () {
 }
 
 // Our subdivision of leaves is arbitrary.
-function IIIFSource () {
+SA.IIIFSource = function() {
     this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
     this.TileSize = 256;
 
@@ -25940,7 +26010,7 @@ function IIIFSource () {
 }
 
 
-function DanielSource () {
+SA.DanielSource = function() {
     this.Prefix = "http://dragon.krash.net:2009/data/1"
     this.MinLevel = 0;
     this.MaxLevel = 7;
@@ -25956,12 +26026,12 @@ function DanielSource () {
 }
 
 
-function IIPSource () {
+SA.IIPSource = function() {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
         // The number if tiles in a row for this level grid.
-        var xDim = Math.ceil(this.ImageWidth / 
+        var xDim = Math.ceil(this.ImageWidth /
                              (this.TileSize << (this.NumLevels - z - 1)));
         var idx = y * xDim + x;
         imageSrc = this.Prefix + (z+2) + "," + idx;
@@ -25978,7 +26048,7 @@ function IIPSource () {
 
 //==============================================================================
 
-function FindCache(image) {
+SA.FindCache = function(image) {
     // Look through existing caches and reuse one if possible
     for (var i = 0; i < SA.Caches.length; ++i) {
         if (SA.Caches[i].Image._id == image._id) {
@@ -25991,7 +26061,7 @@ function FindCache(image) {
     //http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap&s=1&r=0&x=0&y=0&w=600&h=600
 
     if (image._id == "556e0ad63ed65909dbc2e383") {
-        var tileSource = new IIIFSource ();
+        var tileSource = new SA.IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=47174896";
         // "width":2087,"height":2550,"scale_factors":[1,2,4,8,16,32],
         tileSource.setDimensions(2087,2550);
@@ -26004,7 +26074,7 @@ function FindCache(image) {
     }
 
     if (image._id == "556c89a83ed65909dbc2e317") {
-        var tileSource = new IIIFSource ();
+        var tileSource = new SA.IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
         tileSource.setDimensions(3890,5787);
         image.levels = tileSource.Levels;
@@ -26017,7 +26087,7 @@ function FindCache(image) {
 
     // Special case to link to gigamacro.
     if (image._id == "555a1af93ed65909dbc2e19a") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
         tileSource.setDimensions(14316,8459);
         image.levels = tileSource.Levels;
@@ -26028,7 +26098,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555a5e163ed65909dbc2e19d") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_bottom/zoomify/"
         tileSource.setDimensions(64893, 40749);
         image.levels = tileSource.Levels;
@@ -26039,7 +26109,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555b66483ed65909dbc2e1a0") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_top/zoomify/"
         tileSource.setDimensions(64893,40749);
         image.levels = tileSource.Levels;
@@ -26050,7 +26120,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555b664d3ed65909dbc2e1a3") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/drawer_unit_box_test_05-01-2015_08-52-29_0000/zoomify/"
         tileSource.setDimensions(11893,7322);
         image.levels = tileSource.Levels;
@@ -26061,7 +26131,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555b66523ed65909dbc2e1a6") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/full_drawer_test_05-01-2015_09-04-17_0000/zoomify/"
         tileSource.setDimensions(44245,34013);
         image.levels = tileSource.Levels;
@@ -26072,7 +26142,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555c93973ed65909dbc2e1b5") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/impasto_polarized/zoomify/";
         tileSource.setDimensions(76551, 57364);
         image.levels = tileSource.Levels;
@@ -26083,7 +26153,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555c93913ed65909dbc2e1b2") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/restoration_polaraized/zoomify/";
         tileSource.setDimensions(55884, 55750);
         image.levels = tileSource.Levels;
@@ -26095,7 +26165,7 @@ function FindCache(image) {
     }
 
     if (image._id == "555f46503ed65909dbc2e1b8") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/eucalyptus_10-31-2010/zoomify/";
         tileSource.setDimensions(38392, 45242);
         image.levels = tileSource.Levels;
@@ -26106,7 +26176,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555f46553ed65909dbc2e1bb") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/Bunton/leaf_fossil_04-30-2015/zoomify/";
         tileSource.setDimensions(22590, 10793);
         image.levels = tileSource.Levels;
@@ -26117,7 +26187,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555f465a3ed65909dbc2e1be") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/formsandsurfaces/maiden_hair_fern_v1_7-6-2012/zoomify/";
         tileSource.setDimensions(22092, 22025);
         image.levels = tileSource.Levels;
@@ -26128,7 +26198,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555f46623ed65909dbc2e1c1") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/nancy_plants_7-28-2014/zoomify/";
         tileSource.setDimensions(40687, 69306);
         image.levels = tileSource.Levels;
@@ -26196,7 +26266,7 @@ Cache.prototype.SetImageData = function(image) {
         // TODO:  This should not be here.
         // Source should be initialized someplace else.
         // Other sources have to overwrite this default.
-        this.TileSource = new SlideAtlasSource();
+        this.TileSource = new SA.SlideAtlasSource();
         this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
     }
     this.Warp = null;
@@ -26634,13 +26704,14 @@ Cache.prototype.RecursivePruneTiles = function(node)
       node.Parent = null;
       this.UpdateBranchTimeStamp(parent)
       node.destructor();
-      delete node;
     }
   }
 }
 
 
+    SA.Cache = Cache;
 
+})();
 
 //==============================================================================
 // Section Object
@@ -26831,6 +26902,9 @@ Section.prototype.LoadTilesInView = function (view) {
 // Views can share a cache for tiles.
 
 var TEXT_VIEW_HACK = null;
+
+(function () {
+    "use strict";
 
 function View (parent) {
     // Text needs a context to compute its bounds.
@@ -27069,7 +27143,7 @@ View.prototype.DrawShapes = function () {
     if ( ! this.CanvasDiv.is(':visible') ) {
         return;
     }
-    for(i=0; i<this.ShapeList.length; i++){
+    for(var i=0; i<this.ShapeList.length; i++){
         this.ShapeList[i].Draw(this);
     }
 }
@@ -27338,14 +27412,9 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 }
 
 
+    SA.View = View;
 
-
-
-
-
-
-
-
+})();
 //==============================================================================
 
 // TODO: Fix
@@ -27364,6 +27433,11 @@ var INTERACTION_ZOOM = 3;
 var INTERACTION_OVERVIEW = 4;
 var INTERACTION_OVERVIEW_DRAG = 5;
 var INTERACTION_ICON_ROTATE = 6;
+
+
+(function () {
+    "use strict";
+
 
 // TODO: Can we get rid of args parameter now that we have ProcessArguments method?
 // See the top of the file for description of args.
@@ -27417,7 +27491,7 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new View(this.Div);
+    this.MainView = new SA.View(this.Div);
     this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -27436,7 +27510,7 @@ function Viewer (parent) {
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
-        this.OverView = new View(this.OverViewDiv);
+        this.OverView = new SA.View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
@@ -27630,16 +27704,16 @@ Viewer.prototype.ProcessArguments = function (args) {
     if (args.tileSource) {
         var w = args.tileSource.width;
         var h = args.tileSource.height;
-        var cache = new Cache();
+        var cache = new SA.Cache();
         cache.TileSource = args.tileSource;
         // Use the note tmp id as an image id so the viewer can index the
         // cache.
-        var note = new Note();
+        var note = new SA.Note();
         var image = {levels:     args.tileSource.maxLevel + 1,
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id: note.TempId};
-        var record = new ViewerRecord();
+        var record = new SA.ViewerRecord();
         record.Image = image;
         record.OverviewBounds = [0,w-1,0,h-1];
         record.Camera = {FocalPoint: [w/2, h/2],
@@ -27683,7 +27757,7 @@ Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var self = this;
     var note = GetNoteFromId(noteId);
     if ( ! note) {
-        note = new Note();
+        note = new SA.Note();
         var self = this;
         note.LoadViewId(
             noteId,
@@ -27874,7 +27948,7 @@ Viewer.prototype.OnInteraction = function(callback) {
 
 Viewer.prototype.TriggerInteraction = function() {
     for (var i = 0; i < this.InteractionListeners.length; ++i) {
-        callback = this.InteractionListeners[i];
+        var callback = this.InteractionListeners[i];
         callback();
     }
 }
@@ -27985,7 +28059,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new View();
+    var view = new SA.View();
     view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
@@ -29769,6 +29843,10 @@ Viewer.prototype.SetCopyrightVisibility = function(vis) {
 
 
 
+    SA.Viewer = Viewer;
+
+})();
+
 
 
 
@@ -30202,7 +30280,7 @@ SlideAtlas.prototype.Run2 = function() {
     }
 
     // We need to get the view so we know how to initialize the app.
-    var rootNote = new Note();
+    var rootNote = new SA.Note();
 
     // Hack to create a new presenation.
     if ( this.ViewId == "presentation") {
@@ -30582,8 +30660,8 @@ function GetViewId () {
     if (typeof(SA.ViewId) != "undefined") {
         return SA.ViewId;
     }
-    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
-        return SA.NotesWidget.RootNote._id;
+    if ( ! SA.notesWidget && ! SA.notesWidget.RootNote) {
+        return SA.notesWidget.RootNote._id;
     }
     saDebug("Could not find view id");
     return "";
@@ -30947,7 +31025,7 @@ function NotesNotModified() {
 // This function gets called when the save button is pressed.
 function SaveCallback() {
     // TODO: This is no longer called by a button, so change its name.
-    SA.NotesWidget.SaveCallback(
+    SA.notesWidget.SaveCallback(
         function () {
             // finished
             SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
@@ -30964,7 +31042,7 @@ function Main(rootNote) {
 
     if (rootNote.Type == "Presentation" ||
         rootNote.Type == "HTML") {
-        SA.Presentation = new Presentation(rootNote, SA.Edit);
+        SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
         return;
     }
 
@@ -31003,24 +31081,24 @@ function Main(rootNote) {
 
     // Left panel for notes.
     SA.ResizePanel = new ResizePanel(SA.MainDiv);
-    SA.DualDisplay = new DualViewWidget(SA.ResizePanel.MainDiv);
-    SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
-                                     SA.DualDisplay);
+    SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
+    SA.notesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
+                                        SA.DualDisplay);
 
     if (rootNote.Type == "Stack") {
         SA.DualDisplay.SetNumberOfViewers(2);
     }
 
-    SA.NotesWidget.SetModifiedCallback(NotesModified);
-    SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+    SA.notesWidget.SetModifiedCallback(NotesModified);
+    SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
     // Navigation widget keeps track of which note is current.
     // Notes widget needs to access and change this.
-    SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
+    SA.notesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
     if (SA.DualDisplay.NavigationWidget) {
       SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
     }
 
-    new RecorderWidget(SA.DualDisplay);
+    new SA.RecorderWidget(SA.DualDisplay);
 
     SA.DualDisplay.SetNote(rootNote);
 
@@ -31042,7 +31120,7 @@ function Main(rootNote) {
                 .click(SaveCallback);
             for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
                 SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.NotesWidget.RecordView();});
+                    function () {SA.notesWidget.RecordView();});
             }
         } else {
             // Favorites when not editing.
