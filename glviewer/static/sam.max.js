@@ -249,8 +249,7 @@
         SAM.DebugLayer = this;
 
         // TODO: Abstract the view to a layer somehow.
-        // TODO: MOve View into SAM
-        this.AnnotationView = new SA.View(viewerDiv);
+        this.AnnotationView = new SAM.View(viewerDiv);
         this.AnnotationView.CanvasDiv.css({'z-index':'100'});
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
@@ -4682,7 +4681,7 @@
             this.Polyline.Points[i][1] += yOffset;
         }
         this.Polyline.UpdateBuffers();
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
 
         this.Layer.EventuallyDraw(true);
     }
@@ -6521,7 +6520,7 @@
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers();
-            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+            if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.Layer.EventuallyDraw();
             return false;
         }

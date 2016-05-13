@@ -8020,6 +8020,1065 @@ ObjectId.prototype.toString = function () {
            '0000'.substr(0, 4 - pid.length) + pid +
            '000000'.substr(0, 6 - increment.length) + increment;
 };
+
+window.requestAnimationFrame = 
+    window.requestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||             
+    window.msRequestAnimationFrame;
+
+// Firefox does not set which for mouse move events.
+function saFirefoxWhich(event) {
+    event.which = event.buttons;
+    if (event.which == 2) {
+        event.which = 3;
+    } else if (event.which == 3) {
+        event.which = 2;
+    }
+}
+
+function saDebug(msg) {
+    console.log(msg);
+}
+
+// for debugging
+function MOVE_TO(x,y) {
+    SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+    SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+    if (SA.DualDisplay) {
+        SA.DualDisplay.Draw();
+    }
+}
+
+function ZERO_PAD(i, n) {
+    var s = "0000000000" + i.toFixed();
+    return s.slice(-n);
+}
+
+// This file contains some global variables and misc procedures to
+// initials shaders and some buffers we need and to render.
+// Main function called by the default view.html template
+// SA global will be set to this object.
+function SlideAtlas() {
+    // For managing progress with multiple ajax calls.
+    this.ProgressCount = 0;
+
+    this.TileLoader = "http";
+    // How can we distribute the initialization of these?
+    // TODO: Many of these are not used anymore. Clean them up.
+    this.TimeStamp = 0;
+    this.NumberOfTiles = 0;
+    this.NumberOfTextures = 0;
+    this.MaximumNumberOfTiles = 50000;
+    this.MaximumNumberOfTextures = 5000;
+    this.PruneTimeTiles = 0;
+    this.PruneTimeTextures = 0;
+
+    // Keep a queue of tiles to load so we can sort them as
+    // new requests come in.
+    this.LoadQueue = [];
+    this.LoadingCount = 0;
+    this.LoadingMaximum = 10;
+    this.LoadTimeoutId = 0;
+
+    this.LoadProgressMax = 0;
+    this.ProgressBar = null;
+
+    // Only used for saving images right now.
+    this.FinishedLoadingCallbacks = [];
+
+    this.Caches = [];
+
+    this.StartInteractionListeners = [];
+}
+
+SlideAtlas.prototype.PushProgress = function() {
+    $('body').css({'cursor':'progress'});
+    this.ProgressCount += 1;
+}
+
+SlideAtlas.prototype.PopProgress = function() {
+    this.ProgressCount -= 1;
+    if (this.ProgressCount <= 0) {
+        $('body').css({'cursor':'default'});
+    }
+}
+
+// Main function called by the default view.html template
+// SA global will be set to this object.
+SlideAtlas.prototype.Run = function() {
+    self = this;
+    if (this.SessionId) {
+        $.ajax({
+            type: "get",
+            url: this.SessionUrl+"?json=true&sessid="+this.SessionId,
+            success: function(data,status) {
+                self.Session = data;
+                self.HideAnnotations = data.hide;
+                // TODO: fix this serialization.
+                self.Run2();
+            },
+            error: function() {
+                saDebug("AJAX - error() : session" );
+                self.Run2();
+            },
+        });
+    } else {
+        this.Run2();
+    }
+}
+
+
+// Now we have the session (if the id was passed in).
+SlideAtlas.prototype.Run2 = function() {
+    self = this;
+    // Get the root note.
+    if (this.ViewId == "" || this.ViewId == "None") {
+        delete this.ViewId;
+    }
+    if (this.SessionId == "" ||this.SessionId == "None") {
+        delete this.SessionId;
+    }
+
+    // We need to get the view so we know how to initialize the app.
+    var rootNote = new SA.Note();
+
+    // Hack to create a new presenation.
+    if ( this.ViewId == "presentation") {
+        var title = window.prompt("Please enter the presentation title.",
+                                  "SlideShow");
+        if (title == null) {
+            // Go back in browser?
+            return;
+        }
+        rootNote.Title = title;
+        rootNote.HiddenTitle = title;
+        rootNote.Text = "";
+        rootNote.Type = "HTML";
+
+        Main(rootNote);
+    } else {
+        if (this.ViewId == "") {
+            saDebug("Missing view id");
+            return;
+        }
+        // Sort of a hack that we rely on main getting called after this
+        // method returns and other variables of SA are initialize.
+        rootNote.LoadViewId(this.ViewId,
+                            function () {Main(rootNote);});
+    }
+}
+
+// Stack editing stuff (should not be in the global class).
+// It used to be in the event manager.  Skipping the focus stuff.
+// TODO:
+// Modifier could be handled better with keypress events.
+SlideAtlas.prototype.HandleKeyDownStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;}
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = true;
+        // Do not forward modifier keys events to objects that consume keypresses.
+        return true;
+    }
+    if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = true;
+        return true;
+    }
+
+    // Handle undo and redo (cntrl-z, cntrl-y)
+    if (this.ControlKeyPressed && event.keyCode == 90) {
+        // Function in recordWidget.
+        UndoState();
+        return false;
+    } else if (this.ControlKeyPressed && event.keyCode == 89) {
+        // Function in recordWidget.
+        RedoState();
+        return false;
+    }
+
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyDown(event);
+        return true;
+    }
+
+    return true;
+}
+
+SlideAtlas.prototype.HandleKeyUpStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;} 
+
+    // For debugging deformable alignment in stacks.
+    if (event.keyCode == 90) { // z = 90
+        if (event.shiftKey) {
+            DeformableAlignViewers();
+            return true;
+        }
+    }
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.
+    if (event.keyCode == 88) { // x = 88
+        // I am using the 'c' key to display to focal point cursor
+        //this.StackCursorFlag = false;
+        // what a pain.  Holding x down sometimes blocks mouse events.
+        // Have to change to toggle.
+        this.StackCursorFlag =  ! this.StackCursorFlag;
+        if (event.shiftKey && this.StackCursorFlag) {
+            testAlignTranslation();
+            var self = this;
+            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
+        }
+
+        return false;
+    }
+
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = false;
+        //this.StackCursorFlag = false;
+    } else if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = false;
+    }
+
+    // Is this really necessary?
+    // TODO: Try to remove this and test presentation stuff.
+    if (this.Presentation) {
+        this.Presentation.HandleKeyUp(event);
+        return true;
+    }
+
+    return true;
+}
+
+// TODO: THis should be in viewer.
+SlideAtlas.prototype.OnStartInteraction = function(callback) {
+  this.StartInteractionListeners.push(callback);
+}
+
+SlideAtlas.prototype.TriggerStartInteraction = function() {
+    if ( ! this.StartInteractionListeners) { return; }
+    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
+        callback = this.StartInteractionListeners[i];
+        callback();
+    }
+}
+
+// TODO: These should be moved to viewer-utils so they can be used
+// separately from SlideAtlas.
+// Helper function: Looks for a key phase in the text.
+// first == true: Look only at the start. Returns true if found. 
+// first == false: return index of tag or -1;
+SlideAtlas.prototype.TagCompare = function (tag,text,first) {
+    if (first) {
+        return (tag.toUpperCase() ==
+                text.substring(0,tag.length).toUpperCase());
+    }
+    return text.toUpperCase().search(tag.toUpperCase());
+}
+
+// Process HTML to add standard tags.
+// Returns the altered html.
+// I am writting this to be safe to call multiple times.
+// Depth first traversal of tree.
+SlideAtlas.prototype.AddHtmlTags = function(item) {
+    var container = undefined;
+    var tags = [{string:"History:",               class:"sa-history"},
+                {string:"Diagnosis:",             class:"sa-diagnosis"},
+                {string:"Differential Diagnosis:",class:"sa-differential-diagnosis"},
+                {string:"Teaching Points:",       class:"sa-teaching-points"},
+                {string:"Compare with:",          class:"sa-compare"},
+                {string:"Notes:",                 class:"sa-notes"}];
+
+    // Since text concatinates children,
+    // containers only have to consume siblings.
+    var children = item.children();
+    for (var i = 0; i < children.length; ++i) {
+        var child = $(children[i]);
+
+        // Look for an existing class from our set. 
+        // If we find one, terminate processing for the item and ites children.
+        // Terminate the container collecting items.
+        var foundTag = undefined;
+        for (var j = 0; j < tags.length; ++j) {
+            if (child.hasClass(tags[j].class)) {
+                foundTag = tags[j];
+            }
+        }
+        if (foundTag) {
+            container = undefined;
+            continue;
+        }
+
+        // special  (one line tag)
+        if (child.hasClass('sa-ssc-title')) {
+            container = undefined;
+            continue;
+        }
+
+        // Look for a tag string inthe text
+        var text = child.text();
+        // Special case: treat the title as a single line.
+        if (this.TagCompare('SSC', text, true) && !child.hasClass('sa-ssc-title')) {
+            child.addClass('sa-ssc-title');
+        }
+
+        // Make sure tags are not grouped.
+        // This is a bit of a hack.  THere are too many ways html can be formatted.
+        if (child.children().length > 1) {
+            for (var j = 0; j < tags.length; ++j) {
+                tag = tags[j];
+                if (this.TagCompare(tag.string, text, false) > 0) {
+                    var grandChildren = child.children();
+                    grandChildren.remove();
+                    grandChildren.insertAfter(child);
+                    children = item.children();
+                    text = child.text();
+                    break;
+                }
+            }
+        }
+
+        // These tags consume children followint the tag.
+        var foundTag = false;
+        for (var j = 0; j < tags.length; ++j) {
+            tag = tags[j];
+            if (this.TagCompare(tag.string, text, true)) {
+                foundTag = tag;
+                break;
+            }
+        }
+
+        if (foundTag) {
+            // If the outer is a div,  reuse it for the container.
+            // There was a bug with diagnosis in the history container.
+            // This will ungroup multiple tags. However recursion may be
+            // needed.
+            if (child[0].tagName == 'DIV') {
+                var grandChildren = child.children();
+                child.empty();
+                grandChildren.insertAfter(child);
+                children = item.children();
+                container = child;
+                ++i;
+                child = $(children[i]);
+            } else {
+                // Start a new container.
+                container = $('<div>')
+                    .insertBefore(child);
+                children = item.children();
+                // Manipulating a list we are traversing is a pain.
+                ++i;
+            }
+            container.addClass(foundTag.class);
+        }
+
+        // If we have a container, it consumes all items after it.
+        if (container) {
+            // Remove the item and add it to the container.
+            child.remove();
+            child.appendTo(container);
+            children = item.children();
+            // Manipulating a list we are traversing is a pain.
+            --i;
+        }
+    }
+}
+
+
+// Useful utility to get selected text / the position of the cursor.
+// Get the selection in div.  Returns a range.
+// If not, the range is collapsed at the 
+// end of the text and a new line is added.
+// div is a jquery parent.
+SlideAtlas.prototype.GetSelectionRange = function(div) {
+    var sel = window.getSelection();
+    var range;
+    var parent = null;
+
+    // Two conditions when we have to create a selection:
+    // nothing selected, and something selected in wrong parent.
+    // use parent as a flag.
+    if (sel.rangeCount > 0) {
+        // Something is selected
+        range = sel.getRangeAt(0);
+        range.noCursor = false;
+        // Make sure the selection / cursor is in this editor.
+        parent = range.commonAncestorContainer;
+        // I could use jquery .parents(), but I bet this is more efficient.
+        while (parent && parent != div[0]) {
+            //if ( ! parent) {
+                // I believe this happens when outside text is selected.
+                // We should we treat this case like nothing is selected.
+                //console.log("Wrong parent");
+                //return;
+            //}
+            if (parent) {
+                parent = parent.parentNode;
+            }
+        }
+    }
+    if ( ! parent) {
+        return null;
+        //return this.MakeSelectionRange(div);
+    }
+
+    return range;
+}
+
+// When we are inserting at the end and nothing is selected, we need to
+// add a div with a break at the end and select the break. This keeps the
+// cursor after the inserted item. This returns the range.
+SlideAtlas.prototype.MakeSelectionRange = function(div) {
+    // When nothing is select, I am trying to make the cursor stay
+    // after the question inserted with the range we return.
+    // TODO: change this so that the div is added after the dialog
+    // apply. Cancel should leave div unchanged.(AddQuestion)
+    var sel = window.getSelection();
+
+    div[0].focus();
+    var br = $('<br>').appendTo(div);
+    range = document.createRange();
+    range.selectNode(br[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return range;
+}
+
+
+
+
+var SA = SA || new SlideAtlas();
+var ROOT_DIV;
+var imageProgram;
+var textProgram;
+var polyProgram;
+var mvMatrix = mat4.create();
+var pMatrix = mat4.create();
+var squareOutlinePositionBuffer;
+var squarePositionBuffer;
+var tileVertexPositionBuffer;
+var tileVertexTextureCoordBuffer;
+var tileCellBuffer;
+
+var MOBILE_DEVICE = false;
+// Hack to get rid of white lines.
+var I_PAD_FLAG = false;
+
+
+function detectMobile() {
+    MOBILE_DEVICE = false;
+
+    if ( navigator.userAgent.match(/Android/i)) {
+        MOBILE_DEVICE = "Andriod";
+    }
+    if ( navigator.userAgent.match(/webOS/i)) {
+        MOBILE_DEVICE = "webOS";
+    }
+    if ( navigator.userAgent.match(/iPhone/i)) {
+        MOBILE_DEVICE = "iPhone";
+    }
+    if ( navigator.userAgent.match(/iPad/i)) {
+        MOBILE_DEVICE = "iPad";
+        I_PAD_FLAG = true;
+    }
+    if ( navigator.userAgent.match(/iPod/i)) {
+        MOBILE_DEVICE = "iPod";
+    }
+    if ( navigator.userAgent.match(/BlackBerry/i)) {
+        MOBILE_DEVICE = "BlackBerry";
+    }
+    if ( navigator.userAgent.match(/Windows Phone/i)) {
+        MOBILE_DEVICE = "Windows Phone";
+    }
+    if (MOBILE_DEVICE) {
+        SA.MaximumNumberOfTiles = 5000;
+    }
+
+    return MOBILE_DEVICE;
+}
+
+
+// This global is used in every class that renders something.
+// I can not test multiple canvases until I modularize the canvas
+// and get rid of these globals.
+// WebGL context
+var GL;
+
+function GetUser() {
+    if (typeof(SA.User) != "undefined") {
+        return SA.User;
+    }
+    saDebug("Could not find user");
+    return "";
+}
+
+
+function GetViewId () {
+    if (typeof(SA.ViewId) != "undefined") {
+        return SA.ViewId;
+    }
+    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
+        return SA.NotesWidget.RootNote._id;
+    }
+    saDebug("Could not find view id");
+    return "";
+}
+
+// WebGL Initializationf
+
+function doesBrowserSupportWebGL(canvas) {
+    try {
+        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        GL = canvas.getContext("webgl");
+    } catch (e) {
+    }
+    if (!GL) {
+        //saDebug("Could not initialise WebGL, sorry :-(");
+        return false;
+    }
+   return true;
+}
+
+
+function initGL() {
+
+    // Add a new canvas.
+    CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
+    //this.canvas.onselectstart = function() {return false;};
+    //this.canvas.onmousedown = function() {return false;};
+    GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+
+    // Defined in HTML
+    initShaderPrograms();
+    initOutlineBuffers();
+    initImageTileBuffers();
+    GL.clearColor(1.0, 1.0, 1.0, 1.0);
+    GL.enable(GL.DEPTH_TEST);
+}
+
+
+
+function getShader(gl, id) {
+    var shaderScript = document.getElementById(id);
+    if (!shaderScript) {
+        return null;
+    }
+
+    var str = "";
+    var k = shaderScript.firstChild;
+    while (k) {
+        if (k.nodeType == 3) {
+            str += k.textContent;
+        }
+        k = k.nextSibling;
+    }
+
+    var shader;
+    if (shaderScript.type == "x-shader/x-fragment") {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+    } else if (shaderScript.type == "x-shader/x-vertex") {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+    } else {
+        return null;
+    }
+
+    gl.shaderSource(shader, str);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        saDebug(gl.getShaderInfoLog(shader));
+        return null;
+    }
+
+    return shader;
+}
+
+
+
+function initShaderPrograms() {
+    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs");
+    polyProgram.colorUniform = GL.getUniformLocation(polyProgram, "uColor");
+
+    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs");
+    // Texture coordinate attribute and texture image uniform
+    imageProgram.textureCoordAttribute
+        = GL.getAttribLocation(imageProgram,"aTextureCoord");
+    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute);
+    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");
+
+
+
+    textProgram = createProgram("shader-text-fs", "shader-text-vs");
+    textProgram.textureCoordAttribute
+        = GL.getAttribLocation(textProgram, "aTextureCoord");
+    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);
+    textProgram.samplerUniform
+        = GL.getUniformLocation(textProgram, "uSampler");
+    textProgram.colorUniform = GL.getUniformLocation(textProgram, "uColor");
+}
+
+
+function createProgram(fragmentShaderID, vertexShaderID) {
+    var fragmentShader = getShader(GL, fragmentShaderID);
+    var vertexShader = getShader(GL, vertexShaderID);
+
+    var program = GL.createProgram();
+    GL.attachShader(program, vertexShader);
+    GL.attachShader(program, fragmentShader);
+    GL.linkProgram(program);
+
+    if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
+        saDebug("Could not initialise shaders");
+    }
+
+    program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
+    GL.enableVertexAttribArray(program.vertexPositionAttribute);
+
+    // Camera matrix
+    program.pMatrixUniform = GL.getUniformLocation(program, "uPMatrix");
+    // Model matrix
+    program.mvMatrixUniform = GL.getUniformLocation(program, "uMVMatrix");
+
+    return program;
+}
+
+function initOutlineBuffers() {
+    // Outline Square
+    vertices = [
+        0.0,  0.0,  0.0,
+        0.0,  1.0,  0.0,
+        1.0, 1.0,  0.0,
+        1.0, 0.0,  0.0,
+        0.0, 0.0,  0.0];
+    squareOutlinePositionBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    squareOutlinePositionBuffer.itemSize = 3;
+    squareOutlinePositionBuffer.numItems = 5;
+
+    // Filled square
+    squarePositionBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
+    vertices = [
+        1.0,  1.0,  0.0,
+        0.0,  1.0,  0.0,
+        1.0,  0.0,  0.0,
+        0.0,  0.0,  0.0
+    ];
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    squarePositionBuffer.itemSize = 3;
+    squarePositionBuffer.numItems = 4;
+}
+
+
+
+
+//==============================================================================
+
+
+
+function initImageTileBuffers() {
+    var vertexPositionData = [];
+    var textureCoordData = [];
+
+    // Make 4 points
+    textureCoordData.push(0.0);
+    textureCoordData.push(0.0);
+    vertexPositionData.push(0.0);
+    vertexPositionData.push(0.0);
+    vertexPositionData.push(0.0);
+
+    textureCoordData.push(1.0);
+    textureCoordData.push(0.0);
+    vertexPositionData.push(1.0);
+    vertexPositionData.push(0.0);
+    vertexPositionData.push(0.0);
+
+    textureCoordData.push(0.0);
+    textureCoordData.push(1.0);
+    vertexPositionData.push(0.0);
+    vertexPositionData.push(1.0);
+    vertexPositionData.push(0.0);
+
+    textureCoordData.push(1.0);
+    textureCoordData.push(1.0);
+    vertexPositionData.push(1.0);
+    vertexPositionData.push(1.0);
+    vertexPositionData.push(0.0);
+
+    // Now create the cell.
+    var cellData = [];
+    cellData.push(0);
+    cellData.push(1);
+    cellData.push(2);
+
+    cellData.push(2);
+    cellData.push(1);
+    cellData.push(3);
+
+    tileVertexTextureCoordBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+    tileVertexTextureCoordBuffer.itemSize = 2;
+    tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+
+    tileVertexPositionBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    tileVertexPositionBuffer.itemSize = 3;
+    tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
+
+    tileCellBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
+    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+    tileCellBuffer.itemSize = 1;
+    tileCellBuffer.numItems = cellData.length;
+}
+
+
+
+// TODO: Get rid of this as legacy.
+// I put an eveutallyRender method in the viewer, but have not completely
+// converted code yet.
+// Stuff for drawing
+//var RENDER_PENDING = false;
+//function eventuallyRender() {
+//    if (! RENDER_PENDING) {
+//      RENDER_PENDING = true;
+//      requestAnimFrame(tick);
+//    }
+//}
+
+//function tick() {
+//    //console.timeEnd("system");
+//    RENDER_PENDING = false;
+//    draw();
+//    //console.time("system");
+//}
+
+
+
+
+//==============================================================================
+// Alternative to webgl, HTML5 2d canvas
+
+
+function initGC() {
+
+    detectMobile();
+}
+
+
+var GC_STACK = [];
+var GCT = [1,0,0,1,0,0];
+function GC_save() {
+  var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
+  GC_STACK.push(tmp);
+}
+function GC_restore() {
+  var tmp = GC_STACK.pop();
+  GCT = tmp;
+  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
+}
+function GC_setTransform(m00,m10,m01,m11,m02,m12) {
+  GCT = [m00,m10,m01,m11,m02,m12];
+  GC.setTransform(m00,m10,m01,m11,m02,m12);
+}
+function GC_transform(m00,m10,m01,m11,m02,m12) {
+  var n00 = m00*GCT[0] + m10*GCT[2];
+  var n10 = m00*GCT[1] + m10*GCT[3];
+  var n01 = m01*GCT[0] + m11*GCT[2];
+  var n11 = m01*GCT[1] + m11*GCT[3];
+  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
+  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
+
+  GCT = [n00,n10,n01,n11,n02,n12];
+  GC.setTransform(n00,n10,n01,n11,n02,n12);
+}
+
+
+
+//----------------------------------------------------------
+// Log to trackdown iPad bug.  Console does not log until
+// debugger is running.  Bug does not occur when debugger
+// is running.
+
+LOGGING = false;
+DEBUG_LOG = [];
+
+function StartLogging (message) {
+  if (LOGGING) return;
+  LOGGING = true;
+  //alert("Error: Check log");
+}
+
+function LogMessage (message) {
+  if (LOGGING) {
+    DEBUG_LOG.push(message);
+  }
+}
+
+//----------------------------------------------------------
+// In an attempt to simplify the view.html template file, I am putting
+// as much of the javascript from that file into this file as I can.
+// As I abstract viewer features, these variables and functions
+// should migrate into objects and other files.
+
+var CANVAS;
+
+var CONFERENCE_WIDGET;
+var FAVORITES_WIDGET;
+var MOBILE_ANNOTATION_WIDGET;
+
+//==============================================================================
+
+
+// hack to avoid an undefined error (until we unify annotation stuff).
+function ShowAnnotationEditMenu(x, y) {
+}
+
+
+// TODO:  Get rid of this function.
+function handleResize() {
+    $('window').trigger('resize');
+}
+
+// The event manager detects single right click and double right click.
+// This gets galled on the single.
+function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
+// I am getting rid of the right click feature now.
+
+// TODO: Move these out of the global SLideAtlas object.
+function handleKeyDown(event) {
+    return SA.HandleKeyDownStack(event);
+}
+function handleKeyUp(event) {
+    return SA.HandleKeyUpStack(event);
+}
+
+function cancelContextMenu(e) {
+    //alert("Try to cancel context menu");
+    if (e && e.stopPropagation) {
+        e.stopPropagation();
+    }
+    return false;
+}
+
+
+
+// Call back from NotesWidget.
+function NotesModified() {
+    if (SA.Edit && SA.SaveButton) {
+        SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
+    }
+}
+
+function NotesNotModified() {
+    if (SA.Edit && SA.SaveButton) {
+        SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
+    }
+}
+
+// This function gets called when the save button is pressed.
+function SaveCallback() {
+    // TODO: This is no longer called by a button, so change its name.
+    SA.NotesWidget.SaveCallback(
+        function () {
+            // finished
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
+        });
+}
+
+
+// This serializes loading a bit, but we need to know what type the note is
+// so we can coustomize the webApp.  The server could pass the type to us.
+// It might speed up loading.
+// Note is the same as a view.
+function Main(rootNote) {
+    SA.RootNote = rootNote;
+
+    if (rootNote.Type == "Presentation" ||
+        rootNote.Type == "HTML") {
+        SA.Presentation = new Presentation(rootNote, SA.Edit);
+        return;
+    }
+
+    detectMobile();
+    $(body).addClass("sa-view-body");
+    // Just to see if webgl is supported:
+    //var testCanvas = document.getElementById("gltest");
+
+    // I think the webgl viewer crashes.
+    // Maybe it is the texture leak I have seen in connectome.
+    // Just use the canvas for now.
+    // I have been getting crashes I attribute to not freeing texture
+    // memory properly.
+    // NOTE: I am getting similar crashe with the canvas too.
+    // Stack is running out of some resource.
+    if ( ! MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
+        initGL(); // Sets CANVAS and GL global variables
+    } else {
+        initGC();
+    }
+
+    // TODO: Get rid of this global variable.
+    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+        MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+    }
+
+
+    SA.MainDiv = $('<div>')
+        .appendTo('body')
+        .css({
+            'position':'fixed',
+            'left':'0px',
+            'width': '100%'})
+        .saFullHeight();
+        //.addClass("sa-view-canvas-panel")
+
+    // Left panel for notes.
+    SA.ResizePanel = new ResizePanel(SA.MainDiv);
+    SA.DualDisplay = new DualViewWidget(SA.ResizePanel.MainDiv);
+    SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
+                                     SA.DualDisplay);
+
+    if (rootNote.Type == "Stack") {
+        SA.DualDisplay.SetNumberOfViewers(2);
+    }
+
+    SA.NotesWidget.SetModifiedCallback(NotesModified);
+    SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+    // Navigation widget keeps track of which note is current.
+    // Notes widget needs to access and change this.
+    SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
+    if (SA.DualDisplay.NavigationWidget) {
+      SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+    }
+
+    new RecorderWidget(SA.DualDisplay);
+
+    SA.DualDisplay.SetNote(rootNote);
+
+    // Do not let guests create favorites.
+    // TODO: Rework how favorites behave on mobile devices.
+    if (SA.User != "" && ! MOBILE_DEVICE) {
+        if ( SA.Edit) {
+            // Put a save button here when editing.
+            SA.SaveButton = $('<img>')
+                .appendTo(SA.ResizePanel.MainDiv)
+                .css({'position':'absolute',
+                      'bottom':'4px',
+                      'left':'10px',
+                      'height': '28px',
+                      'z-index': '5'})
+                .prop('title', "save to databse")
+                .addClass('editButton')
+                .attr('src',SA.ImagePathUrl+"save22.png")
+                .click(SaveCallback);
+            for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
+                SA.DualDisplay.Viewers[i].OnInteraction(
+                    function () {SA.NotesWidget.RecordView();});
+            }
+        } else {
+            // Favorites when not editing.
+            FAVORITES_WIDGET = new FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+            //FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+        }
+    }
+
+    if (MOBILE_DEVICE && SA.DualDisplay && 
+        SA.DualDisplay.NavigationWidget) {
+        SA.DualDisplay.NavigationWidget.SetVisibility(false);
+    }
+    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+        MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
+    }
+
+    //CONFERENCE_WIDGET = new ConferenceWidget();
+
+    // The event manager still handles stack alignment.
+    // This should be moved to a stack helper class.
+    // Undo and redo too.
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+
+    // Keep the browser from showing the left click menu.
+    document.oncontextmenu = cancelContextMenu;
+
+    if ( ! MOBILE_DEVICE) {
+        // Hack for all viewer edit menus to share browser.
+        VIEW_BROWSER = new ViewBrowser($('body'));
+
+        // TODO: See if we can get rid of this, or combine it with
+        // the view browser.
+        InitSlideSelector(SA.MainDiv); // What is this?
+        var viewMenu1 = new ViewEditMenu(SA.DualDisplay.Viewers[0],
+                                         SA.DualDisplay.Viewers[1]);
+        var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
+                                         SA.DualDisplay.Viewers[0]);
+        var viewer = SA.DualDisplay.Viewers[0];
+        var annotationWidget1 =
+            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
+        annotationWidget1.SetVisibility(2);
+        var viewer = SA.DualDisplay.Viewers[1];
+        var annotationWidget2 =
+            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
+        annotationWidget2.SetVisibility(2);
+        SA.DualDisplay.UpdateGui();
+    }
+
+    $(window).bind('orientationchange', function(event) {
+        handleResize();
+    });
+
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+
+    if (SA.DualDisplay) {
+        SA.DualDisplay.Draw();
+    }
+}
+
+
+// I had to prune all the annotations (lassos) that were not visible.
+function keepVisible(){
+  var n = SA.DualDisplay.GetNote();
+  var r = n.ViewerRecords[n.StartIndex];
+  var w = VIEWER1.WidgetList;
+  var c = VIEWER1.GetCamera();
+  var b =c.GetBounds();
+  for(var i= 0; i<r.Annotations.length; ++i) {
+    if (r.Annotations[i].type != 'lasso') {
+      r.Annotations.splice(i,1);
+      --i;
+    } else {
+      var pt = r.Annotations[i].points[0];
+      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+  b[3]) {
+        r.Annotations.splice(i,1);
+        --i;
+      }
+    }
+  }
+  for(var i= 0; i<w.length; ++i) {
+    if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
+      w.splice(i,1);
+      --i;
+    } else {
+      var pt = w[i].Loop.Points[0];
+      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+  b[3]) {
+        w.splice(i,1);
+        --i;
+      }
+    }
+  }
+}
 // TODO: 
 //    $('#slideInformation')
 //  ShowViewBrowser();});
@@ -8072,7 +9131,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
-    if (SA.notesWidget) {
+    if (SA.NotesWidget) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Download Image")
@@ -8181,7 +9240,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
 // Record the viewer into the current note and save into the database.
 ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
-    if (SA.notesWidget) SA.notesWidget.SaveCallback();
+    if (SA.NotesWidget) SA.NotesWidget.SaveCallback();
 }
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
@@ -8212,7 +9271,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     // Save automatically if user has permission.
     if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
-        //SA.notesWidget.SaveCallback();
+        //SA.NotesWidget.SaveCallback();
         // Lets try just setting this one note.
         var noteObj = JSON.stringify(note.Serialize(true));
         var d = new Date();
@@ -8819,7 +9878,7 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
     }
 
     // This will get the camera and the annotations too.
-    var record = new SA.ViewerRecord();
+    var record = new ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     record.Apply(this.Viewer);
     delete record;
@@ -9165,11 +10224,6 @@ var VIEWER1;
 var VIEWER2;
 
 
-
-(function () {
-    "use strict";
-
-
 function DualViewWidget(parent) {
     var self = this;
     this.Viewers = []; // It would be nice to get rid of this.
@@ -9270,7 +10324,7 @@ DualViewWidget.prototype.Record = function (note, startViewIdx) {
         }
         if (this.DualView && note.ViewerRecords.length < 2) {
             while ( note.ViewerRecords.length < 2) {
-                note.ViewerRecords.push(new SA.ViewerRecord());
+                note.ViewerRecords.push(new ViewerRecord());
             }
         }
     }
@@ -9297,7 +10351,7 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
     if (args.tileSource) {
         var w = args.tileSource.width;
         var h = args.tileSource.height;
-        var cache = new SA.Cache();
+        var cache = new Cache();
         cache.TileSource = args.tileSource;
         // Use the note tmp id as an image id so the viewer can index the
         // cache.
@@ -9306,7 +10360,7 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id: note.TempId};
-        var record = new SA.ViewerRecord();
+        var record = new ViewerRecord();
         record.Image = image;
         record.OverviewBounds = [0,w-1,0,h-1];
         record.Camera = {FocalPoint: [w/2, h/2],
@@ -9402,8 +10456,8 @@ DualViewWidget.prototype.SetNote = function(note, viewIdx) {
         note.DisplayView(this);
     }
 
-    if (SA.notesWidget) { 
-        SA.notesWidget.SelectNote(note);
+    if (SA.NotesWidget) { 
+        SA.NotesWidget.SelectNote(note);
     }
 }
 DualViewWidget.prototype.GetNote = function () {
@@ -9712,7 +10766,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
 
     // Preload the adjacent sections.
     if (cameras[0]) {
-        var cache = SA.FindCache(note.ViewerRecords[note.StartIndex-1].Image);
+        var cache = FindCache(note.ViewerRecords[note.StartIndex-1].Image);
         cameras[0].SetViewport(this.GetViewer(0).GetViewport());
         var tiles = cache.ChooseTiles(cameras[0], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
@@ -9721,7 +10775,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
         LoadQueueUpdate();
     }
     if (cameras[3]) {
-        var cache = SA.FindCache(note.ViewerRecords[note.StartIndex+2].Image);
+        var cache = FindCache(note.ViewerRecords[note.StartIndex+2].Image);
         cameras[3].SetViewport(this.GetViewer(0).GetViewport());
         var tiles = cache.ChooseTiles(cameras[3], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
@@ -9752,9 +10806,6 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     }
 }
 
-    SA.DualViewWidget = DualViewWidget;
-
-})();
 //==============================================================================
 // Is it time to switch to lowercase?  No.  I still like lower case for
 // local variables. Upper case for instance variables 
@@ -9929,10 +10980,9 @@ function TabPanel(tabbedDiv, title) {
 
 // TODO: Remove GUI from this file.
 
+
 (function () {
     "use strict";
-
-
 
 function Note () {
     if ( ! SA.Notes) {
@@ -10088,7 +11138,7 @@ Note.prototype.DeepCopy = function(note) {
     //this.UserText = note.UserText;
     this.ViewerRecords = [];
     for (var i = 0; i < note.ViewerRecords.length; ++i) {
-        var record = new sa.ViewerRecord();
+        var record = new ViewerRecord();
         record.DeepCopy(note.ViewerRecords[i]);
         this.ViewerRecords.push(record);
     }
@@ -10108,8 +11158,8 @@ Note.prototype.SortCallback = function() {
 
     this.Children = newChildren;
     this.UpdateChildrenGUI();
-    if (SA.notesWidget) {
-        SA.notesWidget.MarkAsModified();
+    if (SA.NotesWidget) {
+        SA.NotesWidget.MarkAsModified();
     }
 }
 
@@ -10133,22 +11183,22 @@ function GetNoteFromId(id) {
 /*
 // Every time the "Text" is loaded, they hyper links have to be setup.
 Note.prototype.FormatHyperlink = function() {
-    if ( ! SA.notesWidget) { return; }
+    if ( ! SA.NotesWidget) { return; }
     var self = this;
     if (this.Id) {
         span = document.getElementById(this.Id);
         if (span) {
             $(span)
                 //  I do not want the text to change.
-                .click(function() { self.DisplayView(SA.notesWidget.Display);})
-                //.click(function() { SA.notesWidget.SelectNote(self);})
+                .click(function() { self.DisplayView(SA.NotesWidget.Display);})
+                //.click(function() { SA.NotesWidget.SelectNote(self);})
                 .css({'color': '#29C'})
                 .hover(function(){ $(this).css("color", "blue");},
                        function(){ $(this).css("color", "#29C");});
             // Let the selection indicate the current note.
             // this highlighting suggests the camera button will
             // will operate on this link rather than inserting a new one.
-            //if (this == SA.notesWidget.SelectedNote) {
+            //if (this == SA.NotesWidget.SelectedNote) {
             //    $(span).css({'background':'#CCC'});
             //} else {
                 $(span).css({'background':'white'});
@@ -10222,8 +11272,8 @@ Note.prototype.TitleFocusOutCallback = function() {
         // Move the Title from the GUI to the note.
         this.Modified = false;
         this.Title = this.TitleEntry.text();
-        if (SA.notesWidget) {
-            SA.notesWidget.MarkAsModified();
+        if (SA.NotesWidget) {
+            SA.NotesWidget.MarkAsModified();
         }
     }
     // Allow the viewer to process arrow keys.
@@ -10285,8 +11335,8 @@ Note.prototype.DeleteCallback = function() {
 
     // Redraw the GUI.
     parent.UpdateChildrenGUI();
-    if (SA.notesWidget) {
-        SA.notesWidget.MarkAsModified();
+    if (SA.NotesWidget) {
+        SA.NotesWidget.MarkAsModified();
     }
 }
 
@@ -10317,7 +11367,7 @@ Note.prototype.RecordView = function(display) {
     }
     this.ViewerRecords = [];
     for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
-        var viewerRecord = new SA.ViewerRecord();
+        var viewerRecord = new ViewerRecord();
         viewerRecord.CopyViewer(display.GetViewer(i));
         this.ViewerRecords.push(viewerRecord);
     }
@@ -10489,7 +11539,7 @@ Note.prototype.DisplayGUI = function(div) {
             if (self.Modified) {
                 self.Modified = false;
                 self.Title = self.TitleEntry.text();
-                if (SA.notesWidget) {SA.notesWidget.MarkAsModified();}
+                if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();}
             }
         });
 
@@ -10497,7 +11547,7 @@ Note.prototype.DisplayGUI = function(div) {
         .hover(
             function() {
                 self.TitleEntry.css({'color':'#33D'});
-                if (SA.notesWidget && SA.notesWidget.SelectedNote == self) {
+                if (SA.NotesWidget && SA.NotesWidget.SelectedNote == self) {
                     self.ButtonsDiv.show();
                 }
             },
@@ -10518,7 +11568,7 @@ Note.prototype.DisplayGUI = function(div) {
         // Removing and adding removes the callbacks.
         this.AddButton
             .click(function () {
-                if (SA.notesWidget) {SA.notesWidget.NewCallback();}
+                if (SA.NotesWidget) {SA.NotesWidget.NewCallback();}
             });
         this.LinkButton
             .click(function () {
@@ -10667,7 +11717,7 @@ Note.prototype.Load = function(obj){
         if (this.ViewerRecords[i]) {
             obj = this.ViewerRecords[i];
             // It would be nice to have a constructor that took an object.
-            this.ViewerRecords[i] = new SA.ViewerRecord();
+            this.ViewerRecords[i] = new ViewerRecord();
             this.ViewerRecords[i].Load(obj);
         }
     }
@@ -10700,7 +11750,7 @@ Note.prototype.LoadViewId = function(viewId, callback) {
 
 Note.prototype.Collapse = function() {
     this.ChildrenVisibility = false;
-    if (this.Contains(SA.notesWidget.SelectedNote)) {
+    if (this.Contains(SA.NotesWidget.SelectedNote)) {
         // Selected note should not be in collapsed branch.
         // Make the visible ancestor active.
         SA.DualDisplay.SetNote(this);
@@ -10744,8 +11794,8 @@ Note.prototype.DisplayView = function(display) {
 
     // To determine which notes camera to save.
     // For when the user creates a camera link.
-    if (SA.notesWidget) {
-        SA.notesWidget.DisplayedNote = this;
+    if (SA.NotesWidget) {
+        SA.NotesWidget.DisplayedNote = this;
     }
 
     var numViewers = display.GetNumberOfViewers();
@@ -11533,10 +12583,6 @@ Note.prototype.InitializeStackTransforms = function () {
     //==============================================================================
 
 
-(function () {
-    "use strict";
-
-
 function NotesWidget(parent, display) {
     this.ModifiedCallback = null;
     this.LinkDiv;
@@ -11810,7 +12856,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     note.TitleEntry.css({'background':'#f0f0f0'});
     // This highlighting can be confused with the selection highlighting.
     // Indicate hyperlink current note.
-    //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
+    //$('#'+SA.NotesWidget.SelectedNote.Id).css({'background':'#CCC'});
     // Select the current hyper link
     note.SelectHyperlink();
 
@@ -12030,7 +13076,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.AddViewButton
             .appendTo(this.LinksDiv)
             .click(function () {
-                var parentNote = SA.notesWidget.RootNote;
+                var parentNote = SA.NotesWidget.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
                 // Setup and save
@@ -12116,7 +13162,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         // Only copoy the first viewer records.  More could be problematic.
         var note = this.GetCurrentNote();
         if (note && note.ViewerRecords.length > 0) {
-            var record = new SA.ViewerRecord();
+            var record = new ViewerRecord();
             record.DeepCopy(note.ViewerRecords[0]);
             this.UserNote.ViewerRecords.push(record);
         }
@@ -12137,9 +13183,6 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
     }
 }
 
-    SA.NotesWidget = NotesWidget;
-
-})();
 
 
 
@@ -12386,8 +13429,8 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     // Hack to make all stack viewers share a single annotation visibility
     // flag.
-    if (SA.notesWidget) {
-        var note = SA.notesWidget.GetCurrentNote();
+    if (SA.NotesWidget) {
+        var note = SA.NotesWidget.GetCurrentNote();
         if (note.Type == 'Stack') {
             for (var i = 0; i < note.ViewerRecords.length; ++i) {
                 note.ViewerRecords[i].AnnotationVisibility = visibility;
@@ -12609,11 +13652,6 @@ AnnotationWidget.prototype.DetectSections = function() {
 
 var RECORDER_WIDGET = null;
 
-
-(function () {
-    "use strict";
-
-
 function ViewerRecord () {
     this.AnnotationVisibility = 0;
     this.Annotations = [];
@@ -12643,7 +13681,6 @@ ViewerRecord.prototype.Load = function(obj) {
         }
     }
 
-    var ivar;
     for (ivar in obj) {
         this[ivar] = obj[ivar];
     }
@@ -12714,26 +13751,26 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.
 ViewerRecord.prototype.Serialize = function () {
-    var rec = {};
-    rec.Image = this.Image._id;
-    rec.Database = this.Image.database;
-    rec.NumberOfLevels = this.Image.levels;
-    rec.Camera = this.Camera;
-    // deep copy
-    if ( this.Annotations) {
-        rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
-    }
-    rec.AnnotationVisibility = this.AnnotationVisibility;
+  rec = {};
+  rec.Image = this.Image._id;
+  rec.Database = this.Image.database;
+  rec.NumberOfLevels = this.Image.levels;
+  rec.Camera = this.Camera;
+  // deep copy
+  if ( this.Annotations) {
+    rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
+  }
+  rec.AnnotationVisibility = this.AnnotationVisibility;
 
-    if (this.OverviewBounds) {
-        rec.OverviewBounds = this.OverviewBounds;
-    }
+  if (this.OverviewBounds) {
+     rec.OverviewBounds = this.OverviewBounds;
+  }
 
-    if (this.Transform) {
-        rec.Transform = this.Transform.Serialize();
-    }
+  if (this.Transform) {
+      rec.Transform = this.Transform.Serialize();
+  }
 
-    return rec;
+  return rec;
 }
 
 
@@ -12748,7 +13785,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
     var cache = viewer.GetCache();
     if ( ! cache || this.Image._id != cache.Image._id) {
-        var newCache = SA.FindCache(this.Image);
+        var newCache = FindCache(this.Image);
         viewer.SetCache(newCache);
     }
 
@@ -12790,7 +13827,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 // This is a helper method to start preloading tiles for an up coming view.
 ViewerRecord.prototype.LoadTiles = function (viewport) {
-    var cache = SA.FindCache(this.Image);
+    var cache = FindCache(this.Image);
     // TODO:  I do not like the fact that we are keeping a serialized
     // version of the camera in the record object.  It should be a real 
     // camera that is serialized when it is saved.
@@ -12805,13 +13842,6 @@ ViewerRecord.prototype.LoadTiles = function (viewport) {
         LoadQueueAddTile(tiles[i]);
     }
 }
-
-    SA.ViewerRecord = ViewerRecord;
-
-})();
-
-
-
 
 
 function GetTrackingData(){
@@ -12837,17 +13867,6 @@ function RecordState() {
         RECORDER_WIDGET.RecordState();
     }
 }
-
-
-
-
-
-
-
-
-(function () {
-    "use strict";
-
 
 // display is a set of viewers (like DualViewWidet)
 var RecorderWidget = function(display) {
@@ -12962,7 +13981,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
     if (SA.DualDisplay) {
-        var parentNote = SA.DualDisplay.GetNote();
+        parentNote = SA.DualDisplay.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -13066,11 +14085,6 @@ RecorderWidget.prototype.RedoState = function() {
     // Now change the page to the state at the end of the timeline.
     recordNote.DisplayView();
 }
-
-
-    SA.RecorderWidget = RecorderWidget;
-
-})();
 // VCR like buttons to get to next/previous note/slide.
 // entwined with the notes widget at the moment.
 
@@ -13434,12 +14448,12 @@ NavigationWidget.prototype.PreviousSlide = function() {
     SA.StackCursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
-    if (SA.notesWidget && SA.notesWidget.Modified) {
+    if (SA.NotesWidget && SA.NotesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
         // TODO: Improve the API here.  Get rid of global access.
-        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
@@ -13453,11 +14467,11 @@ NavigationWidget.prototype.NextSlide = function() {
     SA.StackCursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
-    if ( SA.notesWidget && SA.notesWidget.Modified) {
+    if ( SA.NotesWidget && SA.NotesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
@@ -13650,8 +14664,8 @@ NoteIterator.prototype.SetNote = function(note) {
             this.Note = note;
             // BIG Hack here.
             // I got rid of a special SetRootNote call too soon.
-            if (SA.notesWidget) {
-                SA.notesWidget.SetRootNote(note);
+            if (SA.NotesWidget) {
+                SA.NotesWidget.SetRootNote(note);
             }
             return;
         }
@@ -13768,7 +14782,7 @@ FavoritesBar.prototype.ShowHideFavorites = function(){
 
 
 FavoritesBar.prototype.SaveFavorite = function() {
-    SA.notesWidget.SaveBrownNote();
+    SA.NotesWidget.SaveBrownNote();
     // Hide shifts the other buttons to the left to fill the gap.
     var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
     button.addClass("sa-inactive");
@@ -16831,9 +17845,9 @@ function saViewerSetup(self, args) {
                 // TODO: dual has to be set on the first call.  Make this
                 // order independant. Also get rid of args here. We should
                 // use process arguments to setup options.
-                self[i].saViewer = new SA.DualViewWidget($(self[i]));
+                self[i].saViewer = new DualViewWidget($(self[i]));
             } else {
-                self[i].saViewer = new SA.Viewer($(self[i]));
+                self[i].saViewer = new Viewer($(self[i]));
             }
 
             // When the div resizes, we need to synch the camera and
@@ -18030,10 +19044,6 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 
-(function () {
-    "use strict";
-
-
 //==============================================================================
 function Presentation(rootNote, edit) {
     var self = this;
@@ -18688,7 +19698,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
         return;
     }
 
-    var record = new SA.ViewerRecord();
+    var record = new ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
@@ -18697,7 +19707,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
-    var record = new SA.ViewerRecord();
+    var record = new ViewerRecord();
     record.OverviewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
@@ -18825,7 +19835,7 @@ Presentation.prototype.Save = function () {
     // The root needs a record to show up in the session.
     var rootNote = this.RootNote;
     if (rootNote.ViewerRecords.length < 1) {
-        var record = new SA.ViewerRecord();
+        var record = new ViewerRecord();
         record.Load(
             {AnnotationVisibility: 2,
              Annotations: [],
@@ -19184,7 +20194,7 @@ function SlidePage(parent, edit) {
               'bottom': '5px',
               'width': '100%'});
     // List of question answers.
-    this.List = new SA.TextEditor(this.TextDiv, VIEWERS);
+    this.List = new TextEditor(this.TextDiv, VIEWERS);
     if ( ! edit) {
         this.List.EditOff();
     }
@@ -20408,15 +21418,6 @@ HtmlPage.prototype.UpdateEdits = function () {
 
 
 
-    SA.Presentation = Presentation;
-
-})();
-
-
-
-
-
-
 //==============================================================================
 function SearchPanel(parent, callback) {
     var self = this;
@@ -20615,7 +21616,6 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
         });
     }
 }
-
 
 
 
@@ -21312,7 +22312,7 @@ function DownloadImageData(data, filename) {
     var height =  data.height;
     var viewport = [0,0, width, height];
 
-    var view = new SA.View();
+    var view = new SAM.View();
     view.InitializeViewport(viewport, 1, true);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -21336,7 +22336,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
     var height =  dimensions[1];
     var viewport = [0,0, width, height];
 
-    var view = new SA.View();
+    var view = new SAM.View();
     CUTOUT_VIEW = view;
     view.SetCache(cache);
     view.InitializeViewport(viewport, 1, true);
@@ -25235,7 +26235,7 @@ var LAST_HAGFISH_CONTOUR;
 var HAGFISH_THRESHOLD;
 
 function initHagfish() {
-    HAGFISH_STACK = new Note();
+    HAGFISH_STACK = new SA.Note();
     HAGFISH_STACK.Id = "5523dad0dd98b56d82d6d062";
     HAGFISH_STACK.Title = "AutoStack";
     HAGFISH_STACK.CoordinateSystem = "Pixel";
@@ -25390,7 +26390,7 @@ function saveHagFishStack() {
                "date" : d.getTime()},
         success: function(data,status) {
             HAGFISH_DATA = data;
-            HAGFISH_DATA_STACK = new Note();
+            HAGFISH_DATA_STACK = new SA.Note();
             HAGFISH_DATA_STACK.Load(data);
             saDebug("Auto Stack Saved");
         },
@@ -25885,10 +26885,6 @@ Tile.prototype.DeleteTexture = function () {
     this.Texture = null;
   }
 }
-
-(function () {
-    "use strict";
-
 // I am adding a levels with grids to index tiles in addition
 // to the tree.  Eventually I want to get rid fo the tree.
 // I am trying to get rid of the roots now.
@@ -25897,7 +26893,7 @@ Tile.prototype.DeleteTexture = function () {
 // A source object must have a getTileUrl method.
 // It can have any instance variables it needs to
 // compute the URL.
-SA.SlideAtlasSource = function() {
+function SlideAtlasSource () {
     this.Prefix = undefined;
 
     // Higher levels are higher resolution.
@@ -25919,7 +26915,7 @@ SA.SlideAtlasSource = function() {
     }
 }
 
-SA.GigamacroSource = function() {
+function GigamacroSource () {
     this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
     this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
 
@@ -25955,7 +26951,7 @@ SA.GigamacroSource = function() {
     }
 }
 
-SA.GirderSource = function() {
+function GirderSource () {
     this.height = 18432;
     this.width = 18432;
     this.tileSize = 256;
@@ -25968,7 +26964,7 @@ SA.GirderSource = function() {
 }
 
 // Our subdivision of leaves is arbitrary.
-SA.IIIFSource = function() {
+function IIIFSource () {
     this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
     this.TileSize = 256;
 
@@ -26010,7 +27006,7 @@ SA.IIIFSource = function() {
 }
 
 
-SA.DanielSource = function() {
+function DanielSource () {
     this.Prefix = "http://dragon.krash.net:2009/data/1"
     this.MinLevel = 0;
     this.MaxLevel = 7;
@@ -26026,12 +27022,12 @@ SA.DanielSource = function() {
 }
 
 
-SA.IIPSource = function() {
+function IIPSource () {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
         // The number if tiles in a row for this level grid.
-        var xDim = Math.ceil(this.ImageWidth /
+        var xDim = Math.ceil(this.ImageWidth / 
                              (this.TileSize << (this.NumLevels - z - 1)));
         var idx = y * xDim + x;
         imageSrc = this.Prefix + (z+2) + "," + idx;
@@ -26048,7 +27044,7 @@ SA.IIPSource = function() {
 
 //==============================================================================
 
-SA.FindCache = function(image) {
+function FindCache(image) {
     // Look through existing caches and reuse one if possible
     for (var i = 0; i < SA.Caches.length; ++i) {
         if (SA.Caches[i].Image._id == image._id) {
@@ -26061,7 +27057,7 @@ SA.FindCache = function(image) {
     //http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap&s=1&r=0&x=0&y=0&w=600&h=600
 
     if (image._id == "556e0ad63ed65909dbc2e383") {
-        var tileSource = new SA.IIIFSource ();
+        var tileSource = new IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=47174896";
         // "width":2087,"height":2550,"scale_factors":[1,2,4,8,16,32],
         tileSource.setDimensions(2087,2550);
@@ -26074,7 +27070,7 @@ SA.FindCache = function(image) {
     }
 
     if (image._id == "556c89a83ed65909dbc2e317") {
-        var tileSource = new SA.IIIFSource ();
+        var tileSource = new IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
         tileSource.setDimensions(3890,5787);
         image.levels = tileSource.Levels;
@@ -26087,7 +27083,7 @@ SA.FindCache = function(image) {
 
     // Special case to link to gigamacro.
     if (image._id == "555a1af93ed65909dbc2e19a") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
         tileSource.setDimensions(14316,8459);
         image.levels = tileSource.Levels;
@@ -26098,7 +27094,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555a5e163ed65909dbc2e19d") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_bottom/zoomify/"
         tileSource.setDimensions(64893, 40749);
         image.levels = tileSource.Levels;
@@ -26109,7 +27105,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555b66483ed65909dbc2e1a0") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_top/zoomify/"
         tileSource.setDimensions(64893,40749);
         image.levels = tileSource.Levels;
@@ -26120,7 +27116,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555b664d3ed65909dbc2e1a3") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/drawer_unit_box_test_05-01-2015_08-52-29_0000/zoomify/"
         tileSource.setDimensions(11893,7322);
         image.levels = tileSource.Levels;
@@ -26131,7 +27127,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555b66523ed65909dbc2e1a6") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/full_drawer_test_05-01-2015_09-04-17_0000/zoomify/"
         tileSource.setDimensions(44245,34013);
         image.levels = tileSource.Levels;
@@ -26142,7 +27138,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555c93973ed65909dbc2e1b5") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/impasto_polarized/zoomify/";
         tileSource.setDimensions(76551, 57364);
         image.levels = tileSource.Levels;
@@ -26153,7 +27149,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555c93913ed65909dbc2e1b2") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/restoration_polaraized/zoomify/";
         tileSource.setDimensions(55884, 55750);
         image.levels = tileSource.Levels;
@@ -26165,7 +27161,7 @@ SA.FindCache = function(image) {
     }
 
     if (image._id == "555f46503ed65909dbc2e1b8") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/eucalyptus_10-31-2010/zoomify/";
         tileSource.setDimensions(38392, 45242);
         image.levels = tileSource.Levels;
@@ -26176,7 +27172,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555f46553ed65909dbc2e1bb") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/Bunton/leaf_fossil_04-30-2015/zoomify/";
         tileSource.setDimensions(22590, 10793);
         image.levels = tileSource.Levels;
@@ -26187,7 +27183,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555f465a3ed65909dbc2e1be") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/formsandsurfaces/maiden_hair_fern_v1_7-6-2012/zoomify/";
         tileSource.setDimensions(22092, 22025);
         image.levels = tileSource.Levels;
@@ -26198,7 +27194,7 @@ SA.FindCache = function(image) {
         return cache;
     }
     if (image._id == "555f46623ed65909dbc2e1c1") {
-        var tileSource = new SA.GigamacroSource ();
+        var tileSource = new GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/nancy_plants_7-28-2014/zoomify/";
         tileSource.setDimensions(40687, 69306);
         image.levels = tileSource.Levels;
@@ -26266,7 +27262,7 @@ Cache.prototype.SetImageData = function(image) {
         // TODO:  This should not be here.
         // Source should be initialized someplace else.
         // Other sources have to overwrite this default.
-        this.TileSource = new SA.SlideAtlasSource();
+        this.TileSource = new SlideAtlasSource();
         this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
     }
     this.Warp = null;
@@ -26704,14 +27700,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
       node.Parent = null;
       this.UpdateBranchTimeStamp(parent)
       node.destructor();
+      delete node;
     }
   }
 }
 
 
-    SA.Cache = Cache;
 
-})();
 
 //==============================================================================
 // Section Object
@@ -26905,6 +27900,7 @@ var TEXT_VIEW_HACK = null;
 
 (function () {
     "use strict";
+
 
 function View (parent) {
     // Text needs a context to compute its bounds.
@@ -27412,7 +28408,7 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 }
 
 
-    SA.View = View;
+    SAM.View = View;
 
 })();
 //==============================================================================
@@ -27433,11 +28429,6 @@ var INTERACTION_ZOOM = 3;
 var INTERACTION_OVERVIEW = 4;
 var INTERACTION_OVERVIEW_DRAG = 5;
 var INTERACTION_ICON_ROTATE = 6;
-
-
-(function () {
-    "use strict";
-
 
 // TODO: Can we get rid of args parameter now that we have ProcessArguments method?
 // See the top of the file for description of args.
@@ -27491,7 +28482,7 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new SA.View(this.Div);
+    this.MainView = new SAM.View(this.Div);
     this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -27510,7 +28501,7 @@ function Viewer (parent) {
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
-        this.OverView = new SA.View(this.OverViewDiv);
+        this.OverView = new SAM.View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
@@ -27704,7 +28695,7 @@ Viewer.prototype.ProcessArguments = function (args) {
     if (args.tileSource) {
         var w = args.tileSource.width;
         var h = args.tileSource.height;
-        var cache = new SA.Cache();
+        var cache = new Cache();
         cache.TileSource = args.tileSource;
         // Use the note tmp id as an image id so the viewer can index the
         // cache.
@@ -27713,7 +28704,7 @@ Viewer.prototype.ProcessArguments = function (args) {
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id: note.TempId};
-        var record = new SA.ViewerRecord();
+        var record = new ViewerRecord();
         record.Image = image;
         record.OverviewBounds = [0,w-1,0,h-1];
         record.Camera = {FocalPoint: [w/2, h/2],
@@ -27948,7 +28939,7 @@ Viewer.prototype.OnInteraction = function(callback) {
 
 Viewer.prototype.TriggerInteraction = function() {
     for (var i = 0; i < this.InteractionListeners.length; ++i) {
-        var callback = this.InteractionListeners[i];
+        callback = this.InteractionListeners[i];
         callback();
     }
 }
@@ -28059,7 +29050,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new SA.View();
+    var view = new SAM.View();
     view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
@@ -29843,10 +30834,6 @@ Viewer.prototype.SetCopyrightVisibility = function(vis) {
 
 
 
-    SA.Viewer = Viewer;
-
-})();
-
 
 
 
@@ -30158,1063 +31145,4 @@ PairTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
     // This should be computed from the viewport
     //camOut.Width = camIn.Width;
     camOut.Width = camOut.Height * camOut.ViewportWidth / camOut.ViewportHeight;
-}
-
-window.requestAnimationFrame = 
-    window.requestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    window.webkitRequestAnimationFrame ||             
-    window.msRequestAnimationFrame;
-
-// Firefox does not set which for mouse move events.
-function saFirefoxWhich(event) {
-    event.which = event.buttons;
-    if (event.which == 2) {
-        event.which = 3;
-    } else if (event.which == 3) {
-        event.which = 2;
-    }
-}
-
-function saDebug(msg) {
-    console.log(msg);
-}
-
-// for debugging
-function MOVE_TO(x,y) {
-    SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-    SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
-    }
-}
-
-function ZERO_PAD(i, n) {
-    var s = "0000000000" + i.toFixed();
-    return s.slice(-n);
-}
-
-// This file contains some global variables and misc procedures to
-// initials shaders and some buffers we need and to render.
-// Main function called by the default view.html template
-// SA global will be set to this object.
-function SlideAtlas() {
-    // For managing progress with multiple ajax calls.
-    this.ProgressCount = 0;
-
-    this.TileLoader = "http";
-    // How can we distribute the initialization of these?
-    // TODO: Many of these are not used anymore. Clean them up.
-    this.TimeStamp = 0;
-    this.NumberOfTiles = 0;
-    this.NumberOfTextures = 0;
-    this.MaximumNumberOfTiles = 50000;
-    this.MaximumNumberOfTextures = 5000;
-    this.PruneTimeTiles = 0;
-    this.PruneTimeTextures = 0;
-
-    // Keep a queue of tiles to load so we can sort them as
-    // new requests come in.
-    this.LoadQueue = [];
-    this.LoadingCount = 0;
-    this.LoadingMaximum = 10;
-    this.LoadTimeoutId = 0;
-
-    this.LoadProgressMax = 0;
-    this.ProgressBar = null;
-
-    // Only used for saving images right now.
-    this.FinishedLoadingCallbacks = [];
-
-    this.Caches = [];
-
-    this.StartInteractionListeners = [];
-}
-
-SlideAtlas.prototype.PushProgress = function() {
-    $('body').css({'cursor':'progress'});
-    this.ProgressCount += 1;
-}
-
-SlideAtlas.prototype.PopProgress = function() {
-    this.ProgressCount -= 1;
-    if (this.ProgressCount <= 0) {
-        $('body').css({'cursor':'default'});
-    }
-}
-
-// Main function called by the default view.html template
-// SA global will be set to this object.
-SlideAtlas.prototype.Run = function() {
-    self = this;
-    if (this.SessionId) {
-        $.ajax({
-            type: "get",
-            url: this.SessionUrl+"?json=true&sessid="+this.SessionId,
-            success: function(data,status) {
-                self.Session = data;
-                self.HideAnnotations = data.hide;
-                // TODO: fix this serialization.
-                self.Run2();
-            },
-            error: function() {
-                saDebug("AJAX - error() : session" );
-                self.Run2();
-            },
-        });
-    } else {
-        this.Run2();
-    }
-}
-
-
-// Now we have the session (if the id was passed in).
-SlideAtlas.prototype.Run2 = function() {
-    self = this;
-    // Get the root note.
-    if (this.ViewId == "" || this.ViewId == "None") {
-        delete this.ViewId;
-    }
-    if (this.SessionId == "" ||this.SessionId == "None") {
-        delete this.SessionId;
-    }
-
-    // We need to get the view so we know how to initialize the app.
-    var rootNote = new SA.Note();
-
-    // Hack to create a new presenation.
-    if ( this.ViewId == "presentation") {
-        var title = window.prompt("Please enter the presentation title.",
-                                  "SlideShow");
-        if (title == null) {
-            // Go back in browser?
-            return;
-        }
-        rootNote.Title = title;
-        rootNote.HiddenTitle = title;
-        rootNote.Text = "";
-        rootNote.Type = "HTML";
-
-        Main(rootNote);
-    } else {
-        if (this.ViewId == "") {
-            saDebug("Missing view id");
-            return;
-        }
-        // Sort of a hack that we rely on main getting called after this
-        // method returns and other variables of SA are initialize.
-        rootNote.LoadViewId(this.ViewId,
-                            function () {Main(rootNote);});
-    }
-}
-
-// Stack editing stuff (should not be in the global class).
-// It used to be in the event manager.  Skipping the focus stuff.
-// TODO:
-// Modifier could be handled better with keypress events.
-SlideAtlas.prototype.HandleKeyDownStack = function(event) {
-    if ( this.ContentEditableHasFocus) {return true;}
-    
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = true;
-        // Do not forward modifier keys events to objects that consume keypresses.
-        return true;
-    }
-    if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = true;
-        return true;
-    }
-
-    // Handle undo and redo (cntrl-z, cntrl-y)
-    if (this.ControlKeyPressed && event.keyCode == 90) {
-        // Function in recordWidget.
-        UndoState();
-        return false;
-    } else if (this.ControlKeyPressed && event.keyCode == 89) {
-        // Function in recordWidget.
-        RedoState();
-        return false;
-    }
-
-    if (SA.Presentation) {
-        SA.Presentation.HandleKeyDown(event);
-        return true;
-    }
-
-    return true;
-}
-
-SlideAtlas.prototype.HandleKeyUpStack = function(event) {
-    if ( this.ContentEditableHasFocus) {return true;} 
-
-    // For debugging deformable alignment in stacks.
-    if (event.keyCode == 90) { // z = 90
-        if (event.shiftKey) {
-            DeformableAlignViewers();
-            return true;
-        }
-    }
-
-    // It is sort of a hack to check for the cursor mode here, but it
-    // affects both viewers.
-    if (event.keyCode == 88) { // x = 88
-        // I am using the 'c' key to display to focal point cursor
-        //this.StackCursorFlag = false;
-        // what a pain.  Holding x down sometimes blocks mouse events.
-        // Have to change to toggle.
-        this.StackCursorFlag =  ! this.StackCursorFlag;
-        if (event.shiftKey && this.StackCursorFlag) {
-            testAlignTranslation();
-            var self = this;
-            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
-        }
-
-        return false;
-    }
-
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = false;
-        //this.StackCursorFlag = false;
-    } else if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = false;
-    }
-
-    // Is this really necessary?
-    // TODO: Try to remove this and test presentation stuff.
-    if (this.Presentation) {
-        this.Presentation.HandleKeyUp(event);
-        return true;
-    }
-
-    return true;
-}
-
-// TODO: THis should be in viewer.
-SlideAtlas.prototype.OnStartInteraction = function(callback) {
-  this.StartInteractionListeners.push(callback);
-}
-
-SlideAtlas.prototype.TriggerStartInteraction = function() {
-    if ( ! this.StartInteractionListeners) { return; }
-    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
-        callback = this.StartInteractionListeners[i];
-        callback();
-    }
-}
-
-// TODO: These should be moved to viewer-utils so they can be used
-// separately from SlideAtlas.
-// Helper function: Looks for a key phase in the text.
-// first == true: Look only at the start. Returns true if found. 
-// first == false: return index of tag or -1;
-SlideAtlas.prototype.TagCompare = function (tag,text,first) {
-    if (first) {
-        return (tag.toUpperCase() ==
-                text.substring(0,tag.length).toUpperCase());
-    }
-    return text.toUpperCase().search(tag.toUpperCase());
-}
-
-// Process HTML to add standard tags.
-// Returns the altered html.
-// I am writting this to be safe to call multiple times.
-// Depth first traversal of tree.
-SlideAtlas.prototype.AddHtmlTags = function(item) {
-    var container = undefined;
-    var tags = [{string:"History:",               class:"sa-history"},
-                {string:"Diagnosis:",             class:"sa-diagnosis"},
-                {string:"Differential Diagnosis:",class:"sa-differential-diagnosis"},
-                {string:"Teaching Points:",       class:"sa-teaching-points"},
-                {string:"Compare with:",          class:"sa-compare"},
-                {string:"Notes:",                 class:"sa-notes"}];
-
-    // Since text concatinates children,
-    // containers only have to consume siblings.
-    var children = item.children();
-    for (var i = 0; i < children.length; ++i) {
-        var child = $(children[i]);
-
-        // Look for an existing class from our set. 
-        // If we find one, terminate processing for the item and ites children.
-        // Terminate the container collecting items.
-        var foundTag = undefined;
-        for (var j = 0; j < tags.length; ++j) {
-            if (child.hasClass(tags[j].class)) {
-                foundTag = tags[j];
-            }
-        }
-        if (foundTag) {
-            container = undefined;
-            continue;
-        }
-
-        // special  (one line tag)
-        if (child.hasClass('sa-ssc-title')) {
-            container = undefined;
-            continue;
-        }
-
-        // Look for a tag string inthe text
-        var text = child.text();
-        // Special case: treat the title as a single line.
-        if (this.TagCompare('SSC', text, true) && !child.hasClass('sa-ssc-title')) {
-            child.addClass('sa-ssc-title');
-        }
-
-        // Make sure tags are not grouped.
-        // This is a bit of a hack.  THere are too many ways html can be formatted.
-        if (child.children().length > 1) {
-            for (var j = 0; j < tags.length; ++j) {
-                tag = tags[j];
-                if (this.TagCompare(tag.string, text, false) > 0) {
-                    var grandChildren = child.children();
-                    grandChildren.remove();
-                    grandChildren.insertAfter(child);
-                    children = item.children();
-                    text = child.text();
-                    break;
-                }
-            }
-        }
-
-        // These tags consume children followint the tag.
-        var foundTag = false;
-        for (var j = 0; j < tags.length; ++j) {
-            tag = tags[j];
-            if (this.TagCompare(tag.string, text, true)) {
-                foundTag = tag;
-                break;
-            }
-        }
-
-        if (foundTag) {
-            // If the outer is a div,  reuse it for the container.
-            // There was a bug with diagnosis in the history container.
-            // This will ungroup multiple tags. However recursion may be
-            // needed.
-            if (child[0].tagName == 'DIV') {
-                var grandChildren = child.children();
-                child.empty();
-                grandChildren.insertAfter(child);
-                children = item.children();
-                container = child;
-                ++i;
-                child = $(children[i]);
-            } else {
-                // Start a new container.
-                container = $('<div>')
-                    .insertBefore(child);
-                children = item.children();
-                // Manipulating a list we are traversing is a pain.
-                ++i;
-            }
-            container.addClass(foundTag.class);
-        }
-
-        // If we have a container, it consumes all items after it.
-        if (container) {
-            // Remove the item and add it to the container.
-            child.remove();
-            child.appendTo(container);
-            children = item.children();
-            // Manipulating a list we are traversing is a pain.
-            --i;
-        }
-    }
-}
-
-
-// Useful utility to get selected text / the position of the cursor.
-// Get the selection in div.  Returns a range.
-// If not, the range is collapsed at the 
-// end of the text and a new line is added.
-// div is a jquery parent.
-SlideAtlas.prototype.GetSelectionRange = function(div) {
-    var sel = window.getSelection();
-    var range;
-    var parent = null;
-
-    // Two conditions when we have to create a selection:
-    // nothing selected, and something selected in wrong parent.
-    // use parent as a flag.
-    if (sel.rangeCount > 0) {
-        // Something is selected
-        range = sel.getRangeAt(0);
-        range.noCursor = false;
-        // Make sure the selection / cursor is in this editor.
-        parent = range.commonAncestorContainer;
-        // I could use jquery .parents(), but I bet this is more efficient.
-        while (parent && parent != div[0]) {
-            //if ( ! parent) {
-                // I believe this happens when outside text is selected.
-                // We should we treat this case like nothing is selected.
-                //console.log("Wrong parent");
-                //return;
-            //}
-            if (parent) {
-                parent = parent.parentNode;
-            }
-        }
-    }
-    if ( ! parent) {
-        return null;
-        //return this.MakeSelectionRange(div);
-    }
-
-    return range;
-}
-
-// When we are inserting at the end and nothing is selected, we need to
-// add a div with a break at the end and select the break. This keeps the
-// cursor after the inserted item. This returns the range.
-SlideAtlas.prototype.MakeSelectionRange = function(div) {
-    // When nothing is select, I am trying to make the cursor stay
-    // after the question inserted with the range we return.
-    // TODO: change this so that the div is added after the dialog
-    // apply. Cancel should leave div unchanged.(AddQuestion)
-    var sel = window.getSelection();
-
-    div[0].focus();
-    var br = $('<br>').appendTo(div);
-    range = document.createRange();
-    range.selectNode(br[0]);
-    sel.removeAllRanges();
-    sel.addRange(range);
-    return range;
-}
-
-
-
-
-var SA = SA || new SlideAtlas();
-var ROOT_DIV;
-var imageProgram;
-var textProgram;
-var polyProgram;
-var mvMatrix = mat4.create();
-var pMatrix = mat4.create();
-var squareOutlinePositionBuffer;
-var squarePositionBuffer;
-var tileVertexPositionBuffer;
-var tileVertexTextureCoordBuffer;
-var tileCellBuffer;
-
-var MOBILE_DEVICE = false;
-// Hack to get rid of white lines.
-var I_PAD_FLAG = false;
-
-
-function detectMobile() {
-    MOBILE_DEVICE = false;
-
-    if ( navigator.userAgent.match(/Android/i)) {
-        MOBILE_DEVICE = "Andriod";
-    }
-    if ( navigator.userAgent.match(/webOS/i)) {
-        MOBILE_DEVICE = "webOS";
-    }
-    if ( navigator.userAgent.match(/iPhone/i)) {
-        MOBILE_DEVICE = "iPhone";
-    }
-    if ( navigator.userAgent.match(/iPad/i)) {
-        MOBILE_DEVICE = "iPad";
-        I_PAD_FLAG = true;
-    }
-    if ( navigator.userAgent.match(/iPod/i)) {
-        MOBILE_DEVICE = "iPod";
-    }
-    if ( navigator.userAgent.match(/BlackBerry/i)) {
-        MOBILE_DEVICE = "BlackBerry";
-    }
-    if ( navigator.userAgent.match(/Windows Phone/i)) {
-        MOBILE_DEVICE = "Windows Phone";
-    }
-    if (MOBILE_DEVICE) {
-        SA.MaximumNumberOfTiles = 5000;
-    }
-
-    return MOBILE_DEVICE;
-}
-
-
-// This global is used in every class that renders something.
-// I can not test multiple canvases until I modularize the canvas
-// and get rid of these globals.
-// WebGL context
-var GL;
-
-function GetUser() {
-    if (typeof(SA.User) != "undefined") {
-        return SA.User;
-    }
-    saDebug("Could not find user");
-    return "";
-}
-
-
-function GetViewId () {
-    if (typeof(SA.ViewId) != "undefined") {
-        return SA.ViewId;
-    }
-    if ( ! SA.notesWidget && ! SA.notesWidget.RootNote) {
-        return SA.notesWidget.RootNote._id;
-    }
-    saDebug("Could not find view id");
-    return "";
-}
-
-// WebGL Initializationf
-
-function doesBrowserSupportWebGL(canvas) {
-    try {
-        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        GL = canvas.getContext("webgl");
-    } catch (e) {
-    }
-    if (!GL) {
-        //saDebug("Could not initialise WebGL, sorry :-(");
-        return false;
-    }
-   return true;
-}
-
-
-function initGL() {
-
-    // Add a new canvas.
-    CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
-    //this.canvas.onselectstart = function() {return false;};
-    //this.canvas.onmousedown = function() {return false;};
-    GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
-
-    // Defined in HTML
-    initShaderPrograms();
-    initOutlineBuffers();
-    initImageTileBuffers();
-    GL.clearColor(1.0, 1.0, 1.0, 1.0);
-    GL.enable(GL.DEPTH_TEST);
-}
-
-
-
-function getShader(gl, id) {
-    var shaderScript = document.getElementById(id);
-    if (!shaderScript) {
-        return null;
-    }
-
-    var str = "";
-    var k = shaderScript.firstChild;
-    while (k) {
-        if (k.nodeType == 3) {
-            str += k.textContent;
-        }
-        k = k.nextSibling;
-    }
-
-    var shader;
-    if (shaderScript.type == "x-shader/x-fragment") {
-        shader = gl.createShader(gl.FRAGMENT_SHADER);
-    } else if (shaderScript.type == "x-shader/x-vertex") {
-        shader = gl.createShader(gl.VERTEX_SHADER);
-    } else {
-        return null;
-    }
-
-    gl.shaderSource(shader, str);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        saDebug(gl.getShaderInfoLog(shader));
-        return null;
-    }
-
-    return shader;
-}
-
-
-
-function initShaderPrograms() {
-    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs");
-    polyProgram.colorUniform = GL.getUniformLocation(polyProgram, "uColor");
-
-    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs");
-    // Texture coordinate attribute and texture image uniform
-    imageProgram.textureCoordAttribute
-        = GL.getAttribLocation(imageProgram,"aTextureCoord");
-    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute);
-    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");
-
-
-
-    textProgram = createProgram("shader-text-fs", "shader-text-vs");
-    textProgram.textureCoordAttribute
-        = GL.getAttribLocation(textProgram, "aTextureCoord");
-    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);
-    textProgram.samplerUniform
-        = GL.getUniformLocation(textProgram, "uSampler");
-    textProgram.colorUniform = GL.getUniformLocation(textProgram, "uColor");
-}
-
-
-function createProgram(fragmentShaderID, vertexShaderID) {
-    var fragmentShader = getShader(GL, fragmentShaderID);
-    var vertexShader = getShader(GL, vertexShaderID);
-
-    var program = GL.createProgram();
-    GL.attachShader(program, vertexShader);
-    GL.attachShader(program, fragmentShader);
-    GL.linkProgram(program);
-
-    if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
-        saDebug("Could not initialise shaders");
-    }
-
-    program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
-    GL.enableVertexAttribArray(program.vertexPositionAttribute);
-
-    // Camera matrix
-    program.pMatrixUniform = GL.getUniformLocation(program, "uPMatrix");
-    // Model matrix
-    program.mvMatrixUniform = GL.getUniformLocation(program, "uMVMatrix");
-
-    return program;
-}
-
-function initOutlineBuffers() {
-    // Outline Square
-    vertices = [
-        0.0,  0.0,  0.0,
-        0.0,  1.0,  0.0,
-        1.0, 1.0,  0.0,
-        1.0, 0.0,  0.0,
-        0.0, 0.0,  0.0];
-    squareOutlinePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
-    squareOutlinePositionBuffer.itemSize = 3;
-    squareOutlinePositionBuffer.numItems = 5;
-
-    // Filled square
-    squarePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-    vertices = [
-        1.0,  1.0,  0.0,
-        0.0,  1.0,  0.0,
-        1.0,  0.0,  0.0,
-        0.0,  0.0,  0.0
-    ];
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
-    squarePositionBuffer.itemSize = 3;
-    squarePositionBuffer.numItems = 4;
-}
-
-
-
-
-//==============================================================================
-
-
-
-function initImageTileBuffers() {
-    var vertexPositionData = [];
-    var textureCoordData = [];
-
-    // Make 4 points
-    textureCoordData.push(0.0);
-    textureCoordData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(1.0);
-    textureCoordData.push(0.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(0.0);
-    textureCoordData.push(1.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(1.0);
-    textureCoordData.push(1.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-
-    // Now create the cell.
-    var cellData = [];
-    cellData.push(0);
-    cellData.push(1);
-    cellData.push(2);
-
-    cellData.push(2);
-    cellData.push(1);
-    cellData.push(3);
-
-    tileVertexTextureCoordBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
-    tileVertexTextureCoordBuffer.itemSize = 2;
-    tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
-
-    tileVertexPositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
-    tileVertexPositionBuffer.itemSize = 3;
-    tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
-
-    tileCellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-    tileCellBuffer.itemSize = 1;
-    tileCellBuffer.numItems = cellData.length;
-}
-
-
-
-// TODO: Get rid of this as legacy.
-// I put an eveutallyRender method in the viewer, but have not completely
-// converted code yet.
-// Stuff for drawing
-//var RENDER_PENDING = false;
-//function eventuallyRender() {
-//    if (! RENDER_PENDING) {
-//      RENDER_PENDING = true;
-//      requestAnimFrame(tick);
-//    }
-//}
-
-//function tick() {
-//    //console.timeEnd("system");
-//    RENDER_PENDING = false;
-//    draw();
-//    //console.time("system");
-//}
-
-
-
-
-//==============================================================================
-// Alternative to webgl, HTML5 2d canvas
-
-
-function initGC() {
-
-    detectMobile();
-}
-
-
-var GC_STACK = [];
-var GCT = [1,0,0,1,0,0];
-function GC_save() {
-  var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
-  GC_STACK.push(tmp);
-}
-function GC_restore() {
-  var tmp = GC_STACK.pop();
-  GCT = tmp;
-  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
-}
-function GC_setTransform(m00,m10,m01,m11,m02,m12) {
-  GCT = [m00,m10,m01,m11,m02,m12];
-  GC.setTransform(m00,m10,m01,m11,m02,m12);
-}
-function GC_transform(m00,m10,m01,m11,m02,m12) {
-  var n00 = m00*GCT[0] + m10*GCT[2];
-  var n10 = m00*GCT[1] + m10*GCT[3];
-  var n01 = m01*GCT[0] + m11*GCT[2];
-  var n11 = m01*GCT[1] + m11*GCT[3];
-  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
-  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
-
-  GCT = [n00,n10,n01,n11,n02,n12];
-  GC.setTransform(n00,n10,n01,n11,n02,n12);
-}
-
-
-
-//----------------------------------------------------------
-// Log to trackdown iPad bug.  Console does not log until
-// debugger is running.  Bug does not occur when debugger
-// is running.
-
-LOGGING = false;
-DEBUG_LOG = [];
-
-function StartLogging (message) {
-  if (LOGGING) return;
-  LOGGING = true;
-  //alert("Error: Check log");
-}
-
-function LogMessage (message) {
-  if (LOGGING) {
-    DEBUG_LOG.push(message);
-  }
-}
-
-//----------------------------------------------------------
-// In an attempt to simplify the view.html template file, I am putting
-// as much of the javascript from that file into this file as I can.
-// As I abstract viewer features, these variables and functions
-// should migrate into objects and other files.
-
-var CANVAS;
-
-var CONFERENCE_WIDGET;
-var FAVORITES_WIDGET;
-var MOBILE_ANNOTATION_WIDGET;
-
-//==============================================================================
-
-
-// hack to avoid an undefined error (until we unify annotation stuff).
-function ShowAnnotationEditMenu(x, y) {
-}
-
-
-// TODO:  Get rid of this function.
-function handleResize() {
-    $('window').trigger('resize');
-}
-
-// The event manager detects single right click and double right click.
-// This gets galled on the single.
-function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
-// I am getting rid of the right click feature now.
-
-// TODO: Move these out of the global SLideAtlas object.
-function handleKeyDown(event) {
-    return SA.HandleKeyDownStack(event);
-}
-function handleKeyUp(event) {
-    return SA.HandleKeyUpStack(event);
-}
-
-function cancelContextMenu(e) {
-    //alert("Try to cancel context menu");
-    if (e && e.stopPropagation) {
-        e.stopPropagation();
-    }
-    return false;
-}
-
-
-
-// Call back from NotesWidget.
-function NotesModified() {
-    if (SA.Edit && SA.SaveButton) {
-        SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
-    }
-}
-
-function NotesNotModified() {
-    if (SA.Edit && SA.SaveButton) {
-        SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
-    }
-}
-
-// This function gets called when the save button is pressed.
-function SaveCallback() {
-    // TODO: This is no longer called by a button, so change its name.
-    SA.notesWidget.SaveCallback(
-        function () {
-            // finished
-            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
-        });
-}
-
-
-// This serializes loading a bit, but we need to know what type the note is
-// so we can coustomize the webApp.  The server could pass the type to us.
-// It might speed up loading.
-// Note is the same as a view.
-function Main(rootNote) {
-    SA.RootNote = rootNote;
-
-    if (rootNote.Type == "Presentation" ||
-        rootNote.Type == "HTML") {
-        SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
-        return;
-    }
-
-    detectMobile();
-    $(body).addClass("sa-view-body");
-    // Just to see if webgl is supported:
-    //var testCanvas = document.getElementById("gltest");
-
-    // I think the webgl viewer crashes.
-    // Maybe it is the texture leak I have seen in connectome.
-    // Just use the canvas for now.
-    // I have been getting crashes I attribute to not freeing texture
-    // memory properly.
-    // NOTE: I am getting similar crashe with the canvas too.
-    // Stack is running out of some resource.
-    if ( ! MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
-        initGL(); // Sets CANVAS and GL global variables
-    } else {
-        initGC();
-    }
-
-    // TODO: Get rid of this global variable.
-    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
-        MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
-    }
-
-
-    SA.MainDiv = $('<div>')
-        .appendTo('body')
-        .css({
-            'position':'fixed',
-            'left':'0px',
-            'width': '100%'})
-        .saFullHeight();
-        //.addClass("sa-view-canvas-panel")
-
-    // Left panel for notes.
-    SA.ResizePanel = new ResizePanel(SA.MainDiv);
-    SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
-    SA.notesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
-                                        SA.DualDisplay);
-
-    if (rootNote.Type == "Stack") {
-        SA.DualDisplay.SetNumberOfViewers(2);
-    }
-
-    SA.notesWidget.SetModifiedCallback(NotesModified);
-    SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
-    // Navigation widget keeps track of which note is current.
-    // Notes widget needs to access and change this.
-    SA.notesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-    if (SA.DualDisplay.NavigationWidget) {
-      SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
-    }
-
-    new SA.RecorderWidget(SA.DualDisplay);
-
-    SA.DualDisplay.SetNote(rootNote);
-
-    // Do not let guests create favorites.
-    // TODO: Rework how favorites behave on mobile devices.
-    if (SA.User != "" && ! MOBILE_DEVICE) {
-        if ( SA.Edit) {
-            // Put a save button here when editing.
-            SA.SaveButton = $('<img>')
-                .appendTo(SA.ResizePanel.MainDiv)
-                .css({'position':'absolute',
-                      'bottom':'4px',
-                      'left':'10px',
-                      'height': '28px',
-                      'z-index': '5'})
-                .prop('title', "save to databse")
-                .addClass('editButton')
-                .attr('src',SA.ImagePathUrl+"save22.png")
-                .click(SaveCallback);
-            for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
-                SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.notesWidget.RecordView();});
-            }
-        } else {
-            // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(SA.MainDiv, SA.DualDisplay);
-            //FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
-        }
-    }
-
-    if (MOBILE_DEVICE && SA.DualDisplay && 
-        SA.DualDisplay.NavigationWidget) {
-        SA.DualDisplay.NavigationWidget.SetVisibility(false);
-    }
-    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
-        MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
-    }
-
-    //CONFERENCE_WIDGET = new ConferenceWidget();
-
-    // The event manager still handles stack alignment.
-    // This should be moved to a stack helper class.
-    // Undo and redo too.
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
-
-    // Keep the browser from showing the left click menu.
-    document.oncontextmenu = cancelContextMenu;
-
-    if ( ! MOBILE_DEVICE) {
-        // Hack for all viewer edit menus to share browser.
-        VIEW_BROWSER = new ViewBrowser($('body'));
-
-        // TODO: See if we can get rid of this, or combine it with
-        // the view browser.
-        InitSlideSelector(SA.MainDiv); // What is this?
-        var viewMenu1 = new ViewEditMenu(SA.DualDisplay.Viewers[0],
-                                         SA.DualDisplay.Viewers[1]);
-        var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
-                                         SA.DualDisplay.Viewers[0]);
-        var viewer = SA.DualDisplay.Viewers[0];
-        var annotationWidget1 =
-            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
-        annotationWidget1.SetVisibility(2);
-        var viewer = SA.DualDisplay.Viewers[1];
-        var annotationWidget2 =
-            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
-        annotationWidget2.SetVisibility(2);
-        SA.DualDisplay.UpdateGui();
-    }
-
-    $(window).bind('orientationchange', function(event) {
-        handleResize();
-    });
-
-    $(window).resize(function() {
-        handleResize();
-    }).trigger('resize');
-
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
-    }
-}
-
-
-// I had to prune all the annotations (lassos) that were not visible.
-function keepVisible(){
-  var n = SA.DualDisplay.GetNote();
-  var r = n.ViewerRecords[n.StartIndex];
-  var w = VIEWER1.WidgetList;
-  var c = VIEWER1.GetCamera();
-  var b =c.GetBounds();
-  for(var i= 0; i<r.Annotations.length; ++i) {
-    if (r.Annotations[i].type != 'lasso') {
-      r.Annotations.splice(i,1);
-      --i;
-    } else {
-      var pt = r.Annotations[i].points[0];
-      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
-  b[3]) {
-        r.Annotations.splice(i,1);
-        --i;
-      }
-    }
-  }
-  for(var i= 0; i<w.length; ++i) {
-    if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
-      w.splice(i,1);
-      --i;
-    } else {
-      var pt = w[i].Loop.Points[0];
-      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
-  b[3]) {
-        w.splice(i,1);
-        --i;
-      }
-    }
-  }
 }
