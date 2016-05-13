@@ -55,14 +55,17 @@
                     var note = $(notes[i]);
                     var id = note.attr('sa-id');
                     var viewStr = JSON.stringify({_id:id, Mode:mode});
+                    $('body').css({'cursor':'progress'});
                     $.ajax({
                         type: "post",
                         url: "/webgl-viewer/saveviewnotes",
                         data: {"note" : viewStr},
                         success: function(data,status) {
                             // How should we give user feedback?
+                            $('body').css({'cursor':'default'});
                         },
                         error: function() {
+                            $('body').css({'cursor':'default'});
                             alert("AJAX - error() : save view mode" );
                         },
                     });
