@@ -96,8 +96,10 @@
                 getPermalink(viewName, viewId, viewUrl);
             });
 
+            $(".sa-handle").css({"cursor":"ns-resize"});
             $(".sa-sortable")
-                .sortable({stop: function( event, ui ) {
+                .sortable({handle: ".sa-handle",
+                           stop: function( event, ui ) {
                     var viewRows = $(".sa-sortable").children();
                     var ids = [];
                     for (var i = 0; i < viewRows.length; ++i) {
@@ -570,7 +572,7 @@
                     {% set viewer_edit_url = url_for('glviewer.glview', sess=session.id, view=view_son.id, edit='true') %}
                     {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
                     <tr view-id="{{ view_son.id }}">
-                        <td height=52px>
+                        <td height=52px class="sa-handle">
                             <a href="{{ viewer_url }}">
                                 <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}"
                                      {% if view_son.Type == 'Stack' %}class="sa-view-stac"{% endif %}
