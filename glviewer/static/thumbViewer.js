@@ -6,7 +6,7 @@
 
 
 function ThumbViewer (width, height) {
-    this.MainView1 = new SAM.View(viewport, 1);
+    this.MainView1 = new SA.View(viewport, 1);
     this.MainView1.OutlineColor = [0,0,0];
     this.MainView1.Camera.ZRange = [0,1];
     this.MainView1.Camera.ComputeMatrix();

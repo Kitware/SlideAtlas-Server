@@ -516,6 +516,6 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 }
 
 
-    SAM.View = View;
+    SA.View = View;
 
 })();

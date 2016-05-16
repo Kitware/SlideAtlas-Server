@@ -69,7 +69,7 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new SAM.View(this.Div);
+    this.MainView = new SA.View(this.Div);
     this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -88,7 +88,7 @@ function Viewer (parent) {
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
-        this.OverView = new SAM.View(this.OverViewDiv);
+        this.OverView = new SA.View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
@@ -637,7 +637,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new SAM.View();
+    var view = new SA.View();
     view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
