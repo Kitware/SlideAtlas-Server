@@ -42,6 +42,7 @@ cat scaleWidget.js >> sam.max.js
 cat cutoutWidget.js >> sam.max.js 
 cat imageAnnotation.js >> sam.max.js 
 cat dialog.js >> sam.max.js 
+cat view.js >> sam.max.js 
 cat girderWidget.js >> sam.max.js 
 
 
@@ -72,7 +73,6 @@ cat align.js >> sa.max.js
 cat tile.js >> sa.max.js 
 cat cache.js >> sa.max.js 
 cat section.js >> sa.max.js 
-cat view.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
 

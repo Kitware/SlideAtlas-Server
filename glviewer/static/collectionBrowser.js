@@ -26,9 +26,6 @@
 // variables private either.
 
 
-window.SAM = window.SAM || {};
-
-
 // Closure namespace 
 CollectionBrowser = (function (){
 
@@ -974,7 +971,7 @@ CollectionBrowser = (function (){
         this.LoadState = LOAD_METADATA_LOADED;
         for (var i = 0; i < this.SessionData.ViewObjects.length; ++i) {
             var viewObject = this.SessionData.ViewObjects[i];
-            this.Views.push(new SAM.View(viewObject, this));
+            this.Views.push(new View(viewObject, this));
         }
         $('<div>')
             .appendTo(this.ViewList)
