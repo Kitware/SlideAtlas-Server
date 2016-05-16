@@ -26,6 +26,8 @@
 // variables private either.
 
 
+window.SAM = window.SAM || {};
+
 
 // Closure namespace 
 CollectionBrowser = (function (){
