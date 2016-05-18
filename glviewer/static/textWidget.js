@@ -143,7 +143,7 @@
 
         this.Text = new SAM.Text();
         this.Text.String = string;
-        this.Text.UpdateBuffers(); // Needed to get the bounds.
+        this.Text.UpdateBuffers(this.Layer.AnnotationView); // Needed to get the bounds.
         this.Text.Color = [0.0, 0.0, 1.0];
         this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
                             0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
@@ -157,13 +157,13 @@
         this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
         this.Arrow.Length = 50;
         this.Arrow.Width = 10;
-        this.Arrow.UpdateBuffers();
+        this.Arrow.UpdateBuffers(this.Layer.AnnotationView);
         this.Arrow.Visibility = true;
         this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
         this.Arrow.FillColor = [0,0,1];
         this.Arrow.OutlineColor = [1,1,0];
         this.Arrow.ZOffset = 0.2;
-        this.Arrow.UpdateBuffers();
+        this.Arrow.UpdateBuffers(this.Layer.AnnotationView);
 
         layer.AddWidget(this);
         this.ActiveReason = 1;
@@ -294,7 +294,7 @@
         this.Arrow.SetFillColor(rgb);
         this.Arrow.ChooseOutlineColor();
 
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
         this.UpdateArrow();
     }
 
@@ -330,7 +330,7 @@
             // save the old anchor incase glyph is turned back on.
             this.SavedTextAnchor = this.Text.Anchor.slice(0);
             // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
-            this.Text.UpdateBuffers(); // computes pixel bounds.
+            this.Text.UpdateBuffers(this.Layer.AnnotationView); // computes pixel bounds.
             this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
             this.Arrow.Visibility = false;
         }
@@ -364,7 +364,7 @@
         length = length - min - 5;
         if (length < 5) { length = 5;}
         this.Arrow.Length = length;
-        this.Arrow.UpdateBuffers();
+        this.Arrow.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     TextWidget.prototype.HandleMouseWheel = function(event) {
@@ -641,7 +641,7 @@
         var fontSize = this.Dialog.FontInput.val();
         this.Text.String = string;
         this.Text.Size = parseFloat(fontSize);
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
             this.SetVisibilityMode(0);

@@ -4,17 +4,12 @@
 // A view has its own camera and list of tiles to display.
 // Views can share a cache for tiles.
 
-var TEXT_VIEW_HACK = null;
 
 (function () {
     "use strict";
 
 
-function View (parent) {
-    // Text needs a context to compute its bounds.
-    if ( ! TEXT_VIEW_HACK) {
-        TEXT_VIEW_HACK = this;
-    }
+function View (parent, useWebGL) {
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -38,7 +33,15 @@ function View (parent) {
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
-    if ( ! GL) {
+
+    if (useWebGL) {
+        this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
+        GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
+        // TODO: Fix this.
+    }
+    if (this.gl) {
+        initWebGL(this.gl);
+    } else {
         this.Context2d = this.Canvas[0].getContext("2d");
     }
 
@@ -270,11 +273,11 @@ View.prototype.DrawTiles = function () {
     //    return;
     //}
     //console.time("  ViewDraw");
-    if ( GL) {
+    if ( this.gl) {
         if (MASK_HACK ) {
             return;
         }
-        return this.Section.Draw(this, GL);
+        return this.Section.Draw(this);
     } else {
         this.Clear();
         // Clear the canvas to start drawing.
@@ -296,13 +299,13 @@ View.prototype.DrawTiles = function () {
         if (MASK_HACK ) {
             return;
         }
-        return this.Section.Draw(this, this.Context2d);
+        return this.Section.Draw(this);
     }
 }
 
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawHistory = function (windowHeight) {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing history does not work with webGl yet.");
     } else {
         var ctx = this.Context2d;
@@ -359,7 +362,7 @@ View.prototype.DrawHistory = function (windowHeight) {
 
 // Draw a cross hair in the center of the view.
 View.prototype.DrawFocalPoint = function () {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing focal point does not work with webGl yet.");
     } else {
         var x = this.Viewport[2] * 0.5;
@@ -415,7 +418,7 @@ View.prototype.DrawFocalPoint = function () {
 // Draw a cross hair at each correlation point.
 // pointIdx is 0 or 1.  It indicates which correlation point should be drawn.
 View.prototype.DrawCorrelations = function (correlations, pointIdx) {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing correlations does not work with webGl yet.");
     } else {
         var ctx = this.Context2d;
@@ -451,7 +454,7 @@ View.prototype.DrawCopyright = function (copyright) {
   if (copyright == undefined || MASK_HACK) {
     return;
   }
-  if ( GL) {
+  if ( this.gl) {
     // not implemented yet.
   } else {
     this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
@@ -467,11 +470,11 @@ View.prototype.DrawCopyright = function (copyright) {
 
 
 View.prototype.DrawOutline = function(backgroundFlag) {
-    if (GL) {
-        program = polyProgram;
-        GL.useProgram(program);
+    if (this.gl) {
+        var program = polyProgram;
+        this.gl.useProgram(program);
 
-        GL.viewport(this.Viewport[0], 
+        this.gl.viewport(this.Viewport[0], 
                     this.Viewport[3]-this.Viewport[1], 
                     this.Viewport[2], 
                     this.Viewport[3]);
@@ -489,29 +492,29 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 
         mat4.identity(this.OutlineMatrix);
 
-        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
+        this.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
 
         if (backgroundFlag) {
             // White background fill
             this.OutlineCamMatrix[14] = viewBackZ; // back plane
-            GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-            GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
-            GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+            this.gl.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squarePositionBuffer);
+            this.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    squarePositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);
-            GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
+                                   this.gl.FLOAT, false, 0, 0);
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
         }
 
         // outline
         this.OutlineCamMatrix[14] = viewFrontZ; // force in front
-        GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-        GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
-        GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        GL.vertexAttribPointer(program.vertexPositionAttribute,
+        this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+        this.gl.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        this.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                squareOutlinePositionBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);
-        GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+                               this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(this.gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
     }
 }
 

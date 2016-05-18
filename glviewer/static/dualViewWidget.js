@@ -417,9 +417,9 @@ DualViewWidget.prototype.CreateThumbnailImage = function(height) {
 }
 
 
-DualViewWidget.prototype.Draw = function () {
-    if (GL) {
-      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+DualViewWidget.prototype.Draw = function (gl) {
+    if (gl) {
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
     // This just changes the camera based on the current time.

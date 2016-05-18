@@ -111,6 +111,8 @@ function Tile(x, y, z, level, name, cache) {
     mat4.identity(this.Matrix);
     this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
 
+    // TODO: Warping depends on a global GL (which I am getting rid of) Fix
+    // on demand :)
     // Default path is to shared geometry and move/scale it with the matrix.
     // The shared polygon is a square [(0,0),(1,0),(1,1),(0,1)]
     // The matrix transforms it into world coordinates.
@@ -125,12 +127,12 @@ function Tile(x, y, z, level, name, cache) {
         this.Matrix[13] = (this.Y+1) * yScale;
         this.Matrix[15] = 1.0;
 
-        if (GL) {
+        //if (GL) {
             // These tiles share the same buffers.  Do not crop when there is no warp.
-            this.VertexPositionBuffer = tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = tileVertexTextureCoordBuffer;
-            this.CellBuffer = tileCellBuffer;
-        }
+            this.VertexPositionBuffer = window.tileVertexPositionBuffer;
+            this.VertexTextureCoordBuffer = window.tileVertexTextureCoordBuffer;
+            this.CellBuffer = window.tileCellBuffer;
+        //}
     } else {
         // Warp model.
         this.CreateWarpBuffer(cache.Warp);
@@ -139,10 +141,10 @@ function Tile(x, y, z, level, name, cache) {
     ++SA.NumberOfTiles;
 }
 
-Tile.prototype.destructor=function()
+Tile.prototype.delete=function(gl)
 {
     --SA.NumberOfTiles;
-    this.DeleteTexture();
+    this.DeleteTexture(gl);
     delete this.Matrix;
     this.Matrix = null;
     if (this.Image) {
@@ -151,7 +153,7 @@ Tile.prototype.destructor=function()
     }
     for (var i = 0; i < 4; ++i) {
         if (this.Children[i] != null) {
-            this.Children[i].destructor();
+            this.Children[i].delete(gl);
             this.Children[i] = null;
         }
     }
@@ -200,7 +202,7 @@ Tile.prototype.LoadQueueAdd = function() {
 
 // This is for connectome stitching.  It uses texture mapping
 // to dynamically warp images.  It only works with webGL.
-Tile.prototype.CreateWarpBuffer = function (warp) {
+Tile.prototype.CreateWarpBuffer = function (warp, gl) {
   // Compute the tile bounds.
   var tileDimensions = this.Cache.TileDimensions;
   var rootSpacing = this.Cache.RootSpacing;
@@ -217,21 +219,21 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 
   warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
 
-  this.VertexTextureCoordBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(tCoordsData), GL.STATIC_DRAW);
+  this.VertexTextureCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tCoordsData), gl.STATIC_DRAW);
   this.VertexTextureCoordBuffer.itemSize = 2;
   this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
 
-  this.VertexPositionBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+  this.VertexPositionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
   this.VertexPositionBuffer.itemSize = 3;
   this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-  this.CellBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+  this.CellBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
   this.CellBuffer.itemSize = 1;
   this.CellBuffer.numItems = cellData.length;
 }
@@ -313,7 +315,8 @@ Tile.prototype.LoadWebSocket = function (cache) {
     ws.FetchTile(name, image, cache, this.Image);
 }
 
-Tile.prototype.Draw = function (program, context) {
+// TODO: Put program as iVar of view.
+Tile.prototype.Draw = function (program, view) {
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.
   // Load state 1 is: not loaded but in the load queue.
   if ( this.LoadState != 3) {
@@ -321,49 +324,49 @@ Tile.prototype.Draw = function (program, context) {
     return;
   }
 
-  if (GL) {
+  if (view.gl) {
     if (this.Texture == null) {
-      this.CreateTexture();
+      this.CreateTexture(view.gl);
     }
     // These are the same for every tile.
     // Vertex points (shifted by tiles matrix)
-    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
     // Needed for outline ??? For some reason, DrawOutline did not work
     // without this call first.
-    context.vertexAttribPointer(imageProgram.vertexPositionAttribute,
+    view.gl.vertexAttribPointer(imageProgram.vertexPositionAttribute,
                           this.VertexPositionBuffer.itemSize,
-                          GL.FLOAT, false, 0, 0);     // Texture coordinates
-    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    context.vertexAttribPointer(imageProgram.textureCoordAttribute,
+                          view.gl.FLOAT, false, 0, 0);     // Texture coordinates
+    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+    view.gl.vertexAttribPointer(imageProgram.textureCoordAttribute,
                           this.VertexTextureCoordBuffer.itemSize,
-                          GL.FLOAT, false, 0, 0);
+                          view.gl.FLOAT, false, 0, 0);
     // Cell Connectivity
-    context.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+    view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
       // Texture
-    context.activeTexture(GL.TEXTURE0);
-    context.bindTexture(GL.TEXTURE_2D, this.Texture);
+    view.gl.activeTexture(view.gl.TEXTURE0);
+    view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
 
-    context.uniform1i(program.samplerUniform, 0);
+    view.gl.uniform1i(program.samplerUniform, 0);
     // Matrix that tranforms the vertex p
-    context.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+    view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-    context.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+    view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
   } else {
     // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
     // WebGL handles this by flipping the texture coordinates.  Here we have to
     // translate the tiles to the correct location.
-    context.save(); // Save the state of the transform so we can restore for the next tile.
+    view.Context2d.save(); // Save the state of the transform so we can restore for the next tile.
 
     // Map tile to world.
     // Matrix is world to 0-1.
-    context.transform(this.Matrix[0], this.Matrix[1],
+    view.Context2d.transform(this.Matrix[0], this.Matrix[1],
                       this.Matrix[4], this.Matrix[5],
                       this.Matrix[12], this.Matrix[13]);
 
 
     // Flip the tile upside down, but leave it in the same place
-    context.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
+    view.Context2d.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
 
     // map pixels to Tile
     var tileSize = this.Cache.Image.TileSize;
@@ -371,35 +374,43 @@ Tile.prototype.Draw = function (program, context) {
     if ( tileSize == undefined) {
       tileSize = 256;
     }
-    context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-    context.drawImage(this.Image,0,0);
+    view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
+    view.Context2d.drawImage(this.Image,0,0);
 
     //  Transform to map (0->1, 0->1)
-    context.restore();
+    view.Context2d.restore();
   }
 }
 
-Tile.prototype.CreateTexture = function () {
-  if (this.Texture != null) { return;}
+Tile.prototype.CreateTexture = function (gl) {
+    if (! gl) { 
+        alert("Textures need a gl instance");
+        return;
+    }
+    if (this.Texture != null) { return;}
 
-  ++SA.NumberOfTextures; // To determine when to prune textures.
-  this.Texture = GL.createTexture();
-  var texture = this.Texture;
-  //alert(tile);
-  GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-  GL.bindTexture(GL.TEXTURE_2D, texture);
-  GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
-  GL.bindTexture(GL.TEXTURE_2D, null);
+    ++SA.NumberOfTextures; // To determine when to prune textures.
+    this.Texture = gl.createTexture();
+    var texture = this.Texture;
+    //alert(tile);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.Image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
-Tile.prototype.DeleteTexture = function () {
-  if (this.Texture) {
-    --SA.NumberOfTextures; // To determine when to prune textures.
-    GL.deleteTexture(this.Texture);
-    this.Texture = null;
-  }
+Tile.prototype.DeleteTexture = function (gl) {
+    if (! gl) { 
+        alert("Textures need a gl instance");
+        return;
+    }
+    if (this.Texture) {
+        --SA.NumberOfTextures; // To determine when to prune textures.
+        gl.deleteTexture(this.Texture);
+        this.Texture = null;
+    }
 }

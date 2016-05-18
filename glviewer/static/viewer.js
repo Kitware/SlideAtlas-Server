@@ -69,7 +69,8 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new SA.View(this.Div);
+    this.MainView = new SA.View(this.Div, true); // Experiment enabling
+    // webgl for main view.
     this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -1085,7 +1086,8 @@ Viewer.prototype.Draw = function() {
     }
 
     // This is only necessary for webgl, Canvas2d just uses a border.
-    this.MainView.DrawOutline(false);
+    //Even for weggl, the overview will be a canvas
+    //this.MainView.DrawOutline(false);
     this.AnnotationLayer.Draw();
     // This is not used anymore
     this.MainView.DrawShapes();

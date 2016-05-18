@@ -34,7 +34,7 @@
         // Get rid of the buffers?
     };
 
-    Scale.prototype.UpdateBuffers = function() {
+    Scale.prototype.UpdateBuffers = function(view) {
         // TODO: Having a single poly line for a shape is to simple.
         // Add cell arrays.
         this.PointBuffer = [];
@@ -161,11 +161,11 @@
 
         // Update the label text and position
         this.Text.String = this.Label;
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
         this.Text.Position = [this.Shape.Origin[0]+(scaleLengthViewer/2),
                               this.Shape.Origin[1]-15];
 
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     ScaleWidget.prototype.Draw = function(view) {
@@ -277,7 +277,7 @@
                     y = c*dy - s*dx;
                     this.Shape.Origin[0] += x;
                     this.Shape.Origin[1] += y;
-                    this.Shape.UpdateBuffers();
+                    this.Shape.UpdateBuffers(this.Layer.AnnotationView);
                 }
             }
             eventuallyRender();
@@ -313,7 +313,7 @@
                     this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
                  }
 
-                this.Shape.UpdateBuffers();
+                this.Shape.UpdateBuffers(this.Layer.AnnotationView);
                 this.PlacePopup();
                 eventuallyRender();
             }
@@ -341,7 +341,7 @@
 
 
     ScaleWidget.prototype.HandleTouchPinch = function(event) {
-        //this.Shape.UpdateBuffers();
+        //this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         //eventuallyRender();
         return true;
     };

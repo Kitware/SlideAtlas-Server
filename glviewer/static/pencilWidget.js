@@ -156,7 +156,7 @@
             for (var m = 0; m < points.length; ++m) {
                 shape.Points[m] = [points[m][0], points[m][1]];
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
 
         // How zoomed in was the view when the annotation was created.
@@ -216,7 +216,7 @@
             }
             this.Dialog.LineWidthInput.val(lineWidth);
             this.Shapes.SetLineWidth(lineWidth);
-            this.Shapes.UpdateBuffers();
+            this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
 
             this.Layer.EventuallyDraw();
             return false;
@@ -305,7 +305,7 @@
             var shape = this.Shapes.GetShape(last);
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
             if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
             this.Layer.EventuallyDraw();
             return false;
@@ -418,7 +418,7 @@
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Shapes.SetOutlineColor(hexcolor);
         this.Shapes.SetLineWidth(parseFloat(this.Dialog.LineWidthInput.val()));
-        this.Shapes.UpdateBuffers();
+        this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
         this.Layer.EventuallyDraw();
@@ -481,7 +481,7 @@
             shape.Points = newPoints;
         }
 
-        shape.UpdateBuffers();
+        shape.UpdateBuffers(this.Layer.AnnotationView);
     }
     */
 

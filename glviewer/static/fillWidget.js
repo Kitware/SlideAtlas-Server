@@ -126,7 +126,7 @@
           for (var m = 0; m < points.length; ++m) {
           shape.Points[m] = [points[m][0], points[m][1]];
           }
-          shape.UpdateBuffers();
+          shape.UpdateBuffers(this.Viewer.AnnotationView);
           }
 
           // How zoomed in was the view when the annotation was created.
@@ -300,7 +300,7 @@
         for (var i = 0; i < this.Shapes.length; ++i) {
             this.Shapes[i].SetOutlineColor(hexcolor);
             this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-            this.Shapes[i].UpdateBuffers();
+            this.Shapes[i].UpdateBuffers(this.Viewer.AnnotationView);
         }
         this.SetActive(false);
         RecordState();

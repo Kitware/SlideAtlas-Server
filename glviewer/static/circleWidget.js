@@ -165,7 +165,7 @@
         this.Shape.Radius = parseFloat(obj.radius);
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -265,7 +265,7 @@
             var dy = y-this.OriginViewer[1];
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
-            this.Shape.UpdateBuffers();
+            this.Shape.UpdateBuffers(this.Layer.AnnotationView);
             if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -296,7 +296,7 @@
 
     CircleWidget.prototype.HandleTouchPinch = function(event) {
         this.Shape.Radius *= event.PinchScale;
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
         this.Layer.EventuallyDraw();
         return false;
@@ -435,7 +435,7 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Shape.SetOutlineColor(hexcolor);
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
 

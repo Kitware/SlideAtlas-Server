@@ -21,7 +21,7 @@
         // Get rid of the buffers?
     }
 
-    CrossHairs.prototype.UpdateBuffers = function() {
+    CrossHairs.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
         var cellData = [];
         var halfLength = (this.Length * 0.5) + 0.5;
@@ -98,16 +98,16 @@
         cellData.push(10);
         cellData.push(11);
 
-        if (GL) {
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+        if (view.gl) {
+            this.VertexPositionBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
             this.VertexPositionBuffer.itemSize = 3;
             this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
             this.CellBuffer.itemSize = 1;
             this.CellBuffer.numItems = cellData.length;
         }

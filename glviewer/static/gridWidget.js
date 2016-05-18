@@ -35,7 +35,7 @@
         // Get rid of the buffers?
     };
 
-    Grid.prototype.UpdateBuffers = function() {
+    Grid.prototype.UpdateBuffers = function(view) {
         // TODO: Having a single poly line for a shape is to simple.
         // Add cell arrays.
         this.PointBuffer = [];
@@ -227,7 +227,7 @@
         this.Grid.Dimensions[0] = Math.floor(width / this.Grid.BinWidth);
         var height = 0.8 * viewport[3] / layer.GetPixelsPerUnit();
         this.Grid.Dimensions[1] = Math.floor(height / this.Grid.BinHeight);
-        this.Grid.UpdateBuffers();
+        this.Grid.UpdateBuffers(this.Layer.AnnotationView);
 
         this.Text = new SAM.Text();
         // Shallow copy is dangerous
@@ -235,7 +235,7 @@
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         // Get default properties.
         if (localStorage.GridWidgetDefaults) {
@@ -376,12 +376,12 @@
         this.Grid.Orientation = parseFloat(obj.orientation);
         this.Grid.LineWidth = parseFloat(obj.linewidth);
         this.Grid.FixedSize = false;
-        this.Grid.UpdateBuffers();
+        this.Grid.UpdateBuffers(this.Layer.AnnotationView);
 
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         // Shallow copy is dangerous
         this.Text.Position = this.Grid.Origin;
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -499,7 +499,7 @@
                     y = c*dy - s*dx;
                     this.Grid.Origin[0] += x;
                     this.Grid.Origin[1] += y;
-                    this.Grid.UpdateBuffers();
+                    this.Grid.UpdateBuffers(this.Layer.AnnotationView);
                 }
             }
             this.Layer.EventuallyDraw();
@@ -538,7 +538,7 @@
                     this.Grid.Orientation = this.Grid.Orientation + 3 * direction;
                  }
 
-                this.Grid.UpdateBuffers();
+                this.Grid.UpdateBuffers(this.Layer.AnnotationView);
                 this.PlacePopup();
                 this.Layer.EventuallyDraw();
             }
@@ -566,7 +566,7 @@
 
 
     GridWidget.prototype.HandleTouchPinch = function(event) {
-        //this.Grid.UpdateBuffers();
+        //this.Grid.UpdateBuffers(this.Layer.AnnotationView);
         //this.Layer.EventuallyDraw();
         return true;
     };
@@ -709,11 +709,11 @@
         this.Grid.BinWidth = SAM.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
         this.Grid.BinHeight = SAM.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
         this.Grid.Orientation = parseFloat(this.Dialog.RotationInput.val());
-        this.Grid.UpdateBuffers();
+        this.Grid.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
 
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         RecordState();
         this.Layer.EventuallyDraw();

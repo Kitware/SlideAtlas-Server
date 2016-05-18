@@ -478,7 +478,7 @@ Contour.prototype.MakePolyline = function(rgb, view) {
     pl.Points = slidePoints;
     pl.Closed = true;
     pl.LineWidth = 0;
-    pl.UpdateBuffers();
+    pl.UpdateBuffers(view);
     pl.FixedSize = false;
 
     // We do not need to do this here.
@@ -639,9 +639,6 @@ Segmentation.prototype.AddPositive = function (ptWorld) {
 
         if (sphere.r2 > 1) {
             this.PositiveSpheres.push(sphere);
-            // Everytime?
-            //this.Update();
-            //this.Draw();
         }
     }
 }
@@ -672,9 +669,6 @@ Segmentation.prototype.AddNegative = function (ptWorld) {
                 posSphere.r2 = d2;
             }
         }
-        // Everytime?
-        //this.Update();
-        //this.Draw();
     }
 }
 

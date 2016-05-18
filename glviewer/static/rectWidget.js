@@ -32,7 +32,7 @@
         // Get rid of the buffers?
     };
 
-    Rect.prototype.UpdateBuffers = function() {
+    Rect.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
 
         this.Matrix = mat4.create();
@@ -217,7 +217,7 @@
         this.Shape.Orientation = parseFloat(obj.orientation);
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -303,7 +303,7 @@
             var dy = y-this.OriginViewer[1];
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
-            this.Shape.UpdateBuffers();
+            this.Shape.UpdateBuffers(this.Layer.AnnotationView);
             this.PlacePopup();
             eventuallyRender();
         }
@@ -337,7 +337,7 @@
                     this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
                  }
 
-                this.Shape.UpdateBuffers();
+                this.Shape.UpdateBuffers(this.Layer.AnnotationView);
                 this.PlacePopup();
                 eventuallyRender();
             }
@@ -362,7 +362,7 @@
 
     RectWidget.prototype.HandleTouchPinch = function(event) {
       this.Shape.Radius *= event.PinchScale;
-      this.Shape.UpdateBuffers();
+      this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       eventuallyRender();
     };
 
@@ -488,7 +488,7 @@
       var hexcolor = this.Dialog.ColorInput.val();
       this.Shape.SetOutlineColor(hexcolor);
       this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-      this.Shape.UpdateBuffers();
+      this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       this.SetActive(false);
       RecordState();
       eventuallyRender();

@@ -79,7 +79,7 @@
         // when the actual line with is too thin.
         this.Polyline.LineWidth =this.LineWidth;
         this.Circle.Radius = this.LineWidth;
-        this.Circle.UpdateBuffers();
+        this.Circle.UpdateBuffers(this.Layer.AnnotationView);
 
         // ActiveVertex and Edge are for placing the circle handle.
         this.ActiveVertex = -1;
@@ -230,7 +230,7 @@
             this.Polyline.Points[i][0] += xOffset;
             this.Polyline.Points[i][1] += yOffset;
         }
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
 
         this.Layer.EventuallyDraw(true);
@@ -268,7 +268,7 @@
                                     parseFloat(obj.points[n][1])];
         }
         this.Polyline.Closed = obj.closedloop;
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.view_height !== undefined) {
@@ -332,7 +332,7 @@
                 console.log("No vertex or edge is active.");
                 return false;
             }
-            this.Polyline.UpdateBuffers();
+            this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
             this.SetCursorToDrawing();
             // Transition to drawing edge when we know which way the user
             // is dragging.
@@ -416,7 +416,7 @@
             // Insert another point to drag around.
             this.DrawingVertex += 1;
             this.Polyline.Points.splice(this.DrawingVertex,0,pt);
-            this.Polyline.UpdateBuffers();
+            this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
             this.Layer.EventuallyDraw(true);
             return false;
         }
@@ -466,7 +466,7 @@
         this.Polyline.Points[this.ActiveVertex] = pt;
         // Move the hightlight circle with the vertex.
         this.Circle.Origin = pt;
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
         // TODO: Fix this hack.
         if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
@@ -532,7 +532,7 @@
         if (this.State == DRAWING_EDGE) {
             // Move the active point to follor the cursor.
             this.Polyline.Points[this.DrawingVertex] = pt;
-            this.Polyline.UpdateBuffers();
+            this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
             // This higlights the first vertex when a loop is possible.
             var idx = this.Polyline.PointOnVertex(pt, this.Circle.Radius);
@@ -615,7 +615,7 @@
             this.Circle.Radius = VERTEX_RADIUS / this.Layer.GetPixelsPerUnit();
             this.CircleRadius = Math.max(this.CircleRadius,
                                          this.Polyline.GetLineWidth() * 1.5);
-            this.Circle.UpdateBuffers();
+            this.Circle.UpdateBuffers(this.Layer.AnnotationView);
             this.Circle.Origin = this.Polyline.Points[vertexIdx];
         }
         this.ActiveVertex = vertexIdx;
@@ -640,7 +640,7 @@
             var x = pt0[0] + this.ActiveEdge[2]*(pt1[0]-pt0[0]);
             var y = pt0[1] + this.ActiveEdge[2]*(pt1[1]-pt0[1]);
             this.Circle.Origin = [x,y,0];
-            this.Circle.UpdateBuffers();
+            this.Circle.UpdateBuffers(this.Layer.AnnotationView);
         } else {
             // Not active.
             this.Circle.Visibility = false;
@@ -774,7 +774,7 @@
         // Cannot use the shap line width because it is set to zero (single pixel)
         // it the dialog value is too thin.
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
         this.Layer.EventuallyDraw(false);

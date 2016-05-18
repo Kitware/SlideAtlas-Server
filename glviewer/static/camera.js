@@ -325,15 +325,15 @@ Camera.prototype.AddPoint = function (x, y, z) {
     this.Points.push(z);
 }
 
-Camera.prototype.CreateBuffer = function () {
-  if (GL) {
+Camera.prototype.CreateBuffer = function (gl) {
+  if (gl) {
     if (this.Buffer != null) {
-      GL.deleteBuffer(this.Buffer);
+      gl.deleteBuffer(this.Buffer);
     }
-    this.Buffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.Buffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.Points),
-                  GL.STATIC_DRAW);
+    this.Buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.Buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.Points),
+                  gl.STATIC_DRAW);
   }
 }
 
@@ -354,7 +354,7 @@ Camera.prototype.UpdateBuffer = function() {
 
 
 // Camera is already set.
-Camera.prototype.Draw = function (overview) {
+Camera.prototype.Draw = function (overview, gl) {
     var overviewCam = overview.Camera;
     var viewport = overview.Viewport;
 
@@ -370,7 +370,7 @@ Camera.prototype.Draw = function (overview) {
     var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5]
                  + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
 
-    if (GL) {
+    if (gl) {
         // I having trouble using the overview camera, so lets just compute
         // the position of the rectangle here.
         var ocx = overviewCam.FocalPoint[0];
@@ -379,12 +379,12 @@ Camera.prototype.Draw = function (overview) {
         var ory = overviewCam.GetHeight() * 0.5;
 
         program = polyProgram;
-        GL.useProgram(program);
-        GL.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
+        gl.useProgram(program);
+        gl.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
 
-        GL.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
+        gl.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
         mat4.identity(pMatrix);
-        GL.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
 
         var viewFrontZ = overviewCam.ZRange[0]+0.001;
 
@@ -397,12 +397,12 @@ Camera.prototype.Draw = function (overview) {
         mvMatrix[0] = 2*rx/orx;
         mvMatrix[5] = 2*ry/ory;
 
-        GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        GL.vertexAttribPointer(program.vertexPositionAttribute,
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        gl.vertexAttribPointer(program.vertexPositionAttribute,
                                squareOutlinePositionBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);
-        GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
-        GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+                               gl.FLOAT, false, 0, 0);
+        gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
+        gl.drawArrays(gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
     } else {
         // Transform focal point from -1->1 to viewport
         newCx = (1.0 + newCx) * viewport[2] * 0.5;

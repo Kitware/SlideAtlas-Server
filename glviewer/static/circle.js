@@ -18,7 +18,7 @@
         // Get rid of the buffers?
     }
 
-    Circle.prototype.UpdateBuffers = function() {
+    Circle.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
         var cellData = [];
         var lineCellData = [];
@@ -32,7 +32,7 @@
         this.Matrix = mat4.create();
         mat4.identity(this.Matrix);
 
-        if  (GL) {
+        if  (view.gl) {
             if (this.LineWidth == 0) {
                 for (var i = 0; i <= numEdges; ++i) {
                     var theta = i*2*3.14159265359/numEdges;
@@ -50,15 +50,15 @@
                     cellData.push(i);
                 }
 
-                this.VertexPositionBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-                GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+                this.VertexPositionBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+                view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
                 this.VertexPositionBuffer.itemSize = 3;
                 this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-                this.CellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+                this.CellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
                 this.CellBuffer.itemSize = 1;
                 this.CellBuffer.numItems = cellData.length;
             } else {
@@ -75,9 +75,9 @@
                     this.PointBuffer.push(maxRad*Math.sin(theta));
                     this.PointBuffer.push(0.0);
                 }
-                this.VertexPositionBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-                GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+                this.VertexPositionBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+                view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
                 this.VertexPositionBuffer.itemSize = 3;
                 this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
@@ -89,9 +89,9 @@
                     cellData.push((i-1)*2);
                     cellData.push(i*2);
                 }
-                this.CellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+                this.CellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
                 this.CellBuffer.itemSize = 1;
                 this.CellBuffer.numItems = cellData.length;
 
@@ -104,9 +104,9 @@
                     lineCellData.push(3 + i*2);
                     lineCellData.push(2 + i*2);
                 }
-                this.LineCellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+                this.LineCellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), view.gl.STATIC_DRAW);
                 this.LineCellBuffer.itemSize = 1;
                 this.LineCellBuffer.numItems = lineCellData.length;
             }

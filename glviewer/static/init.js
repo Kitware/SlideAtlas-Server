@@ -514,16 +514,17 @@ function GetViewId () {
 // WebGL Initializationf
 
 function doesBrowserSupportWebGL(canvas) {
+    var gl;
     try {
-        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        GL = canvas.getContext("webgl");
+        //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        gl = canvas.getContext("webgl");
     } catch (e) {
     }
-    if (!GL) {
+    if (!gl) {
         //saDebug("Could not initialise WebGL, sorry :-(");
-        return false;
+        return null;
     }
-   return true;
+   return gl;
 }
 
 
@@ -533,16 +534,30 @@ function initGL() {
     CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
     //this.canvas.onselectstart = function() {return false;};
     //this.canvas.onmousedown = function() {return false;};
-    GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+    var gl = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
 
-    // Defined in HTML
-    initShaderPrograms();
-    initOutlineBuffers();
-    initImageTileBuffers();
-    GL.clearColor(1.0, 1.0, 1.0, 1.0);
-    GL.enable(GL.DEPTH_TEST);
+    if (gl) {
+        // Defined in HTML
+        initShaderPrograms();
+        initOutlineBuffers();
+        initImageTileBuffers();
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.enable(GL.DEPTH_TEST);
+    }
+
+    return gl;
 }
 
+
+function initWebGL(gl) {
+    if (polyProgram) { return; }
+    // Defined in HTML
+    initShaderPrograms(gl);
+    initOutlineBuffers(gl);
+    initImageTileBuffers(gl);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+}
 
 
 function getShader(gl, id) {
@@ -581,55 +596,54 @@ function getShader(gl, id) {
 }
 
 
+function initShaderPrograms(gl) {
+    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+    polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-function initShaderPrograms() {
-    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs");
-    polyProgram.colorUniform = GL.getUniformLocation(polyProgram, "uColor");
-
-    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs");
+    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs", gl);
     // Texture coordinate attribute and texture image uniform
     imageProgram.textureCoordAttribute
-        = GL.getAttribLocation(imageProgram,"aTextureCoord");
-    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute);
-    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");
+        = gl.getAttribLocation(imageProgram,"aTextureCoord");
+    gl.enableVertexAttribArray(imageProgram.textureCoordAttribute);
+    imageProgram.samplerUniform = gl.getUniformLocation(imageProgram, "uSampler");
 
 
 
-    textProgram = createProgram("shader-text-fs", "shader-text-vs");
+    textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
     textProgram.textureCoordAttribute
-        = GL.getAttribLocation(textProgram, "aTextureCoord");
-    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);
+        = gl.getAttribLocation(textProgram, "aTextureCoord");
+    gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
     textProgram.samplerUniform
-        = GL.getUniformLocation(textProgram, "uSampler");
-    textProgram.colorUniform = GL.getUniformLocation(textProgram, "uColor");
+        = gl.getUniformLocation(textProgram, "uSampler");
+    textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
 }
 
 
-function createProgram(fragmentShaderID, vertexShaderID) {
-    var fragmentShader = getShader(GL, fragmentShaderID);
-    var vertexShader = getShader(GL, vertexShaderID);
+function createProgram(fragmentShaderID, vertexShaderID, gl) {
+    var fragmentShader = getShader(gl, fragmentShaderID);
+    var vertexShader = getShader(gl, vertexShaderID);
 
-    var program = GL.createProgram();
-    GL.attachShader(program, vertexShader);
-    GL.attachShader(program, fragmentShader);
-    GL.linkProgram(program);
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
 
-    if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         saDebug("Could not initialise shaders");
     }
 
-    program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
-    GL.enableVertexAttribArray(program.vertexPositionAttribute);
+    program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
+    gl.enableVertexAttribArray(program.vertexPositionAttribute);
 
     // Camera matrix
-    program.pMatrixUniform = GL.getUniformLocation(program, "uPMatrix");
+    program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
     // Model matrix
-    program.mvMatrixUniform = GL.getUniformLocation(program, "uMVMatrix");
+    program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
 
     return program;
 }
 
-function initOutlineBuffers() {
+function initOutlineBuffers(gl) {
     // Outline Square
     vertices = [
         0.0,  0.0,  0.0,
@@ -637,22 +651,22 @@ function initOutlineBuffers() {
         1.0, 1.0,  0.0,
         1.0, 0.0,  0.0,
         0.0, 0.0,  0.0];
-    squareOutlinePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    squareOutlinePositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     squareOutlinePositionBuffer.itemSize = 3;
     squareOutlinePositionBuffer.numItems = 5;
 
     // Filled square
-    squarePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
+    squarePositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
     vertices = [
         1.0,  1.0,  0.0,
         0.0,  1.0,  0.0,
         1.0,  0.0,  0.0,
         0.0,  0.0,  0.0
     ];
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     squarePositionBuffer.itemSize = 3;
     squarePositionBuffer.numItems = 4;
 }
@@ -664,7 +678,7 @@ function initOutlineBuffers() {
 
 
 
-function initImageTileBuffers() {
+function initImageTileBuffers(gl) {
     var vertexPositionData = [];
     var textureCoordData = [];
 
@@ -703,21 +717,21 @@ function initImageTileBuffers() {
     cellData.push(1);
     cellData.push(3);
 
-    tileVertexTextureCoordBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+    tileVertexTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
     tileVertexTextureCoordBuffer.itemSize = 2;
     tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-    tileVertexPositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    tileVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexPositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
     tileVertexPositionBuffer.itemSize = 3;
     tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-    tileCellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+    tileCellBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
     tileCellBuffer.itemSize = 1;
     tileCellBuffer.numItems = cellData.length;
 }
