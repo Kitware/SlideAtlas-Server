@@ -97,6 +97,7 @@
             });
 
             $(".sa-handle").css({"cursor":"ns-resize"});
+            $(".sa-handle").find("img").css({'border':'1px solid gray'});
             $(".sa-sortable")
                 .sortable({handle: ".sa-handle",
                            stop: function( event, ui ) {
@@ -570,6 +571,7 @@
             <tbody class="sa-sortable">
                 {% for view_son in session_son.views %}
                     {% set viewer_edit_url = url_for('glviewer.glview', sess=session.id, view=view_son.id, edit='true') %}
+                    {% set viewer_view_url = url_for('glviewer.glview', sess=session.id, view=view_son.id) %}
                     {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
                     <tr view-id="{{ view_son.id }}">
                         <td height=52px class="sa-handle">
