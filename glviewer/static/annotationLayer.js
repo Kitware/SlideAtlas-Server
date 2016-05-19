@@ -250,7 +250,7 @@
 
         // TODO: Abstract the view to a layer somehow.
         this.AnnotationView = new SA.View(viewerDiv);
-        this.AnnotationView.CanvasDiv.css({'z-index':'100'});
+
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
 
@@ -267,7 +267,6 @@
         // Scale widget is unique. Deal with it separately so it is not
         // saved with the notes.
         this.ScaleWidget = new SAM.ScaleWidget(this, false);
-
 
         var self = this;
         var can = this.AnnotationView.CanvasDiv;

@@ -38,13 +38,26 @@ function Viewer (parent) {
             self.UpdateSize();
         });
 
+
     this.LayerDiv = $('<div>')
         .appendTo(this.Div)
         .css({'position':'relative',
               'border-width':'0px',
               'width':'100%',
               'height':'100%',
-              'box-sizing':'border-box'})
+              'box-sizing':'border-box',
+              'z-index':'100'})
+        .addClass('sa-resize');
+
+    // Seeing what this does to events.
+    this.HeatMapDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'relative',
+              'border-width':'0px',
+              'width':'100%',
+              'height':'100%',
+              'box-sizing':'border-box',
+              'z-index':'150'})
         .addClass('sa-resize');
 
     // I am moving the eventually render feature into viewers.
@@ -116,7 +129,7 @@ function Viewer (parent) {
             });
         // Try to make the overview be on top of the rotate icon
         // It should receive events before the rotate icon.
-        this.OverView.CanvasDiv.css({'z-index':'200'});
+        this.OverViewDiv.css({'z-index':'200'});
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
