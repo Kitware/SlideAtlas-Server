@@ -1,5 +1,4 @@
 // TODO: 
-//    $('#slideInformation')
 //  ShowViewBrowser();});
 // get rid of these.
 
@@ -254,17 +253,11 @@ ViewEditMenu.prototype.CopyZoom = function() {
 
 ViewEditMenu.prototype.ShowSlideInformation = function() {
     this.Tab.PanelOff();
-    
+
     imageObj = this.Viewer.MainView.Section.Caches[0].Image;
 
-    $('#slideInformation')
-        .html("File Name: " + imageObj.filename
-              + "<br>Dimensions: " + imageObj.dimensions[0] + ", "
-              + imageObj.dimensions[1]
-              + "<br>Levels: " + imageObj.levels)
-        .show();
+    SA.SlideInformation.Open(imageObj);
 }
-
 
 // Mirror image
 ViewEditMenu.prototype.FlipHorizontal = function() {
@@ -661,11 +654,8 @@ var DownloadImage = (function () {
         d.PxWidthInput.val((width*pixelsPerInch).toFixed());
     }
 
-
-
     return DownloadImage;
 })();
-
 
 
 // Create a selection list of sessions.
@@ -690,7 +680,7 @@ function InitSlideSelector(parent) {
         .attr('id', 'sessionMenu').hide()
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
-    
+
     // Create a selector for views.
     $('<div>')
         .appendTo(parent)
@@ -711,8 +701,16 @@ function InitSlideSelector(parent) {
         .attr('id', 'viewMenu').hide()
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
-    
-    $('<div>')
+
+    SA.SlideInformation = new ImageInformationDialog(parent, true);
+}
+
+function ImageInformationDialog (parent, editable) {
+    var self = this;
+
+    this.Editable = editable;
+
+    this.Body = $('<div>')
         .appendTo(parent)
         .css({
             'background-color': 'white',
@@ -724,17 +722,152 @@ function InitSlideSelector(parent) {
             'left' : '30%',
             'width': '40%',
             'height': '40%',
+            'overflow': 'auto',
+            'padding': '10px',
             'z-index': '4',
             'color': '#303030',
             'font-size': '20px'})
-        .attr('id', 'slideInformation')
         .hide()
-        .mouseleave(function(){$(this).fadeOut();});
+        .mouseleave(function(){self.Close();});
+
+    this.TitleInput =
+        $('<div>')
+        .css({'width':'100%',
+              'cursor':'text',
+              'white-space':'nowrap',
+              'margin-bottom':'5px'})
+        .appendTo(this.Body)
+        .keypress(function(event) { return event.keyCode != 13; });
+    if (editable) {
+        this.TitleInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff'});
+    }
+
+    this.CopyrightDiv =
+        $('<div>')
+        .css({'width':'100%',
+              'display':'inline-block'})
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.CopyrightLabel =
+        $('<div>')
+        .appendTo(this.CopyrightDiv)
+        .text("Copyright:");
+    this.CopyrightInput =
+        $('<div>')
+        .css({'width':'300px',
+              'cursor':'text'})
+        .appendTo(this.CopyrightDiv)
+        .keypress(function(event) { return event.keyCode != 13; });
+    if (editable) {
+        this.CopyrightInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff'});
+    }
+
+    this.ResolutionDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.ResolutionLabel =
+        $('<div>')
+        .appendTo(this.ResolutionDiv)
+        .text("Resolution:")
+        .addClass("sa-view-annotation-modal-input-label");
+    this.ResolutionInput =
+        $('<div>')
+        .appendTo(this.ResolutionDiv);
+    this.ResolutionUnitsInput =
+        $('<div>')
+        .appendTo(this.ResolutionDiv);
+    if (editable) {
+        this.ResolutionInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff',
+                  'cursor':'text'})
+            .keypress(function(event) { return event.keyCode != 13; });
+        this.ResolutionUnitsInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff',
+                  'cursor':'text'})
+            .attr('contenteditable', 'true')
+            .keypress(function(event) { return event.keyCode != 13; });
+    }
+
+    // Non editable strings.
+    this.FileNameDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.CreatedDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.DimensionsDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.LevelsDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
 }
 
+ImageInformationDialog.prototype.Open = function(imageObj) {
+    // Save so we can modify it on close.
+    this.ImageObj = imageObj;
+    this.TitleInput.text(imageObj.label);
+    this.FileNameDiv.text("File Name: " + imageObj.filename);
+    this.CreatedDiv.text("Created: " + imageObj.uploaded_at);
+    this.DimensionsDiv.text("Dimensions: " +
+                            imageObj.dimensions[0] + ", "+
+                            imageObj.dimensions[1]);
+    this.LevelsDiv.text("Levels: " + imageObj.levels);
+    this.CopyrightInput.text(imageObj.copyright);
+
+    var spacing;
+    if (imageObj.units) {
+        spacing = {value: imageObj.spacing[0],
+                   units: imageObj.units};
+    } else {
+        spacing = {value: 0.25,
+                   units: "\xB5m"}; // um / micro meters
+    }
+
+    SAMConvertForGui(spacing);
+    this.ResolutionInput.text(spacing.value.toString());
+    this.ResolutionUnitsInput.text(spacing.units.toString());
+
+    this.Body.show();
+}
+
+ImageInformationDialog.prototype.Close = function(imageObj) 
+{
+    if (this.Editable) {
+        this.ImageObj.label = this.TitleInput.text();
+        this.ImageObj.copyright = this.CopyrightInput.text();
+        var spacing = {value: parseFloat(this.ResolutionInput.text()),
+                       units: this.ResolutionUnitsInput.text()};
+        SAMConvertToMeters(spacing);
+        this.ImageObj.spacing[0] = this.ImageObj.spacing[1] = spacing.value;
+        this.ImageObj.units = spacing.units;
+    }
 
 
+    if (this.ImageObj.dimensions.length < 3) {
+        this.ImageObj.dimensions.push(1);
+    }
 
+    // Save the image meta data.
+    $.ajax({
+        type: "post",
+        url: "webgl-viewer/saveimagedata",
+        data: {"metadata" : JSON.stringify(this.ImageObj)},
+        success: function(data,status) {},
+        error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
+    });
 
-
+    this.Body.fadeOut();
+}
 

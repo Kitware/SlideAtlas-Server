@@ -44,6 +44,11 @@ ViewerRecord.prototype.DeepCopy = function(source) {
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
+    if ( ! obj.Image.units) {
+        obj.Image.spacing[0] = obj.Image.spacing[1] = 0.25;
+        obj.Image.units = "\xB5m"; // um / micro meters
+    }
+
     if ( ! obj.Camera) {
         var bds = obj.Image.bounds;
         if (bds) {

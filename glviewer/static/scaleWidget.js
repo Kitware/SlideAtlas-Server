@@ -105,7 +105,8 @@
     // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
         // Compute the number of screen pixels in a meter.
-        var scale = Math.round(4e6 * this.Layer.GetPixelsPerUnit());
+        var scale = Math.round(
+            this.Viewer.GetPixelsPerUnit() / this.Viewer.GetMetersPerUnit());
         if (this.PixelsPerMeter == scale) {
             return;
         }

@@ -97,6 +97,7 @@ View.prototype.InitializeViewport = function(viewport) {
 
 
 // Get the current scale factor between pixels and world units.
+// World unit is the highest resolution image pixel.
 // Returns the size of a world pixel in screen pixels.
 // factor: screen/world
 // The default world pixel = 0.25e-6 meters
@@ -108,6 +109,18 @@ View.prototype.GetPixelsPerUnit = function() {
     return 0.5*this.Viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
 }
 
+View.prototype.GetMetersPerUnit = function() {
+    var cache = this.GetCache();
+    if ( ! cache) {
+        dist = {value : 250,
+                units : 'nm'};
+    } else {
+        dist = {value : cache.Image.spacing[0],
+                units : cache.Image.units};
+    }
+    SAMConvertToMeters(dist);
+    return dist.value;
+}
 
 // TODO: Get rid of these since the user can manipulate the parent / canvas
 // div which can be passed into the constructor.

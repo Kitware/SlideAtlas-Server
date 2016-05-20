@@ -7896,8 +7896,25 @@ function getCookie(c_name)
       }
 }
 
+<<<<<<< HEAD
 //var objectId = new ObjectId(0, 0, 0, 0x00ffffff);
 //      var objectIdString = objectId.toString();
+=======
+// TODO: 
+//  ShowViewBrowser();});
+// get rid of these.
+
+//function ComparisonSaveAnnotations() {} (used wrongly in text widget.)
+//function ShowViewerEditMenu(viewer) {
+
+// Empty
+//ViewEditMenu.prototype.SessionAdvanceAjax = function() {
+
+
+// All edit menus share a ViewBrowser.  Next to consider.  Share the
+// presentation browser panel.
+var VIEW_BROWSER;
+>>>>>>> image-info
 
 
 /*
@@ -8118,6 +8135,7 @@ function ZERO_PAD(i, n) {
         SA.ProgressCount += 1;
     }
 
+<<<<<<< HEAD
     SA.PopProgress = function() {
         SA.ProgressCount -= 1;
         if (SA.ProgressCount <= 0) {
@@ -8160,6 +8178,21 @@ function ZERO_PAD(i, n) {
         if (SA.SessionId == "" ||SA.SessionId == "None") {
             delete SA.SessionId;
         }
+=======
+ViewEditMenu.prototype.ShowSlideInformation = function() {
+    this.Tab.PanelOff();
+
+    imageObj = this.Viewer.MainView.Section.Caches[0].Image;
+
+    SA.SlideInformation.Open(imageObj);
+}
+
+// Mirror image
+ViewEditMenu.prototype.FlipHorizontal = function() {
+    this.Tab.PanelOff();
+    // When the circle button is pressed, create the widget.
+    if ( ! this.Viewer) { return; }
+>>>>>>> image-info
 
         // We need to get the view so we know how to initialize the app.
         var rootNote = new SA.Note();
@@ -8533,6 +8566,7 @@ function GetViewId () {
     return "";
 }
 
+<<<<<<< HEAD
 // WebGL Initializationf
 
 function doesBrowserSupportWebGL(canvas) {
@@ -8548,9 +8582,14 @@ function doesBrowserSupportWebGL(canvas) {
    return true;
 }
 
+=======
+    return DownloadImage;
+})();
+>>>>>>> image-info
 
 function initGL() {
 
+<<<<<<< HEAD
     // Add a new canvas.
     CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
     //this.canvas.onselectstart = function() {return false;};
@@ -8563,10 +8602,178 @@ function initGL() {
     initImageTileBuffers();
     GL.clearColor(1.0, 1.0, 1.0, 1.0);
     GL.enable(GL.DEPTH_TEST);
+=======
+// Create a selection list of sessions.
+// This does not belong here.
+function InitSlideSelector(parent) {
+    $('<div>')
+        .appendTo(parent)
+        .css({
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '35px',
+            'left' : '35px',
+            'width' : '500px',
+            'height' : '700px',
+            'overflow': 'auto',
+            'z-index': '4',
+            'color': '#303030',
+            'font-size': '20px' })
+        .attr('id', 'sessionMenu').hide()
+        .mouseleave(function(){$(this).fadeOut();});
+    $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
+
+    // Create a selector for views.
+    $('<div>')
+        .appendTo(parent)
+        .css({
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '135px',
+            'left' : '135px',
+            'width' : '500px',
+            'height' : '700px',
+            'overflow': 'auto',
+            'z-index': '4',
+            'color': '#303030',
+            'font-size': '20px' })
+        .attr('id', 'viewMenu').hide()
+        .mouseleave(function(){$(this).fadeOut();});
+    $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
+
+    SA.SlideInformation = new ImageInformationDialog(parent, true);
 }
 
+function ImageInformationDialog (parent, editable) {
+    var self = this;
 
+    this.Editable = editable;
 
+    this.Body = $('<div>')
+        .appendTo(parent)
+        .css({
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '30%',
+            'left' : '30%',
+            'width': '40%',
+            'height': '40%',
+            'overflow': 'auto',
+            'padding': '10px',
+            'z-index': '4',
+            'color': '#303030',
+            'font-size': '20px'})
+        .hide()
+        .mouseleave(function(){self.Close();});
+
+    this.TitleInput =
+        $('<div>')
+        .css({'width':'100%',
+              'cursor':'text',
+              'white-space':'nowrap',
+              'margin-bottom':'5px'})
+        .appendTo(this.Body)
+        .keypress(function(event) { return event.keyCode != 13; });
+    if (editable) {
+        this.TitleInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff'});
+    }
+
+    this.CopyrightDiv =
+        $('<div>')
+        .css({'width':'100%',
+              'display':'inline-block'})
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.CopyrightLabel =
+        $('<div>')
+        .appendTo(this.CopyrightDiv)
+        .text("Copyright:");
+    this.CopyrightInput =
+        $('<div>')
+        .css({'width':'300px',
+              'cursor':'text'})
+        .appendTo(this.CopyrightDiv)
+        .keypress(function(event) { return event.keyCode != 13; });
+    if (editable) {
+        this.CopyrightInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff'});
+    }
+
+    this.ResolutionDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.ResolutionLabel =
+        $('<div>')
+        .appendTo(this.ResolutionDiv)
+        .text("Resolution:")
+        .addClass("sa-view-annotation-modal-input-label");
+    this.ResolutionInput =
+        $('<div>')
+        .appendTo(this.ResolutionDiv)
+        .css({'cursor':'text'})
+        .attr('contenteditable', editable?'true':'false')
+        .keypress(function(event) { return event.keyCode != 13; });
+    this.ResolutionUnitsInput =
+        $('<input type="text">')
+        .appendTo(this.ResolutionDiv)
+        .css({'cursor':'text'})
+        .attr('contenteditable', editable?'true':'false')
+        .keypress(function(event) { return event.keyCode != 13; });
+    if (editable) {
+        this.ResolutionInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff'});
+        this.ResolutionUnitsInput
+            .attr('contenteditable', 'true')
+            .css({'background':'#f0f0ff'});
+    }
+
+    // Non editable strings.
+    this.FileNameDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.CreatedDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.DimensionsDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+    this.LevelsDiv =
+        $('<div>')
+        .appendTo(this.Body)
+        .addClass("sa-view-annotation-modal-div");
+>>>>>>> image-info
+}
+
+ImageInformationDialog.prototype.Open = function(imageObj) {
+    // Save so we can modify it on close.
+    this.ImageObj = imageObj;
+    this.FileNameDiv.text("File Name: " + imageObj.filename);
+    this.CreatedDiv.text("Created: " + imageObj.uploaded_at);
+    this.DimensionsDiv.text("Dimensions: " +
+                            imageObj.dimensions[0] + ", "+
+                            imageObj.dimensions[1]);
+    this.LevelsDiv.text("Levels: " + imageObj.levels);
+
+    imageObj.units = imageObj.units | "";
+
+<<<<<<< HEAD
 function getShader(gl, id) {
     var shaderScript = document.getElementById(id);
     if (!shaderScript) {
@@ -8581,6 +8788,29 @@ function getShader(gl, id) {
         }
         k = k.nextSibling;
     }
+=======
+    if (this.Editable) {
+        this.TitleInput.text(imageObj.label);
+        this.CopyrightInput.text(imageObj.copyright);
+        this.ResolutionInput.text(imageObj.spacing[0]);
+        this.ResolutionUnitsInput.text(imageObj.units);
+    }
+
+    this.Body.show();
+}
+
+ImageInformationDialog.prototype.Close = function(imageObj) 
+{
+    if (this.Editable) {
+         this.ImageObj.label = this.TitleInput.text();
+         this.ImageObj.copyright = this.CopyrightInput.text();
+         this.ImageObj.spacing[0] = this.ImageObj[1] =
+            parseFloat(this.ResolutionInput.text());
+         this.ImageObj.units = this.ResolutionUnitsInput.text();
+    }
+    this.Body.fadeOut();
+}
+>>>>>>> image-info
 
     var shader;
     if (shaderScript.type == "x-shader/x-fragment") {

@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import pdb
 import json
 from operator import itemgetter
 import urllib2
@@ -417,6 +418,33 @@ def getcomment():
         comment["_id"] = str(comment["_id"])
 
     return jsonify(comment)
+
+
+
+# save a change to an image's meta data.
+@mod.route('/saveimagedata', methods=['POST'])
+def saveimagedata():
+    imageDataStr = request.form['metadata']  # for post
+    imageData = json.loads(imageDataStr)
+
+    pdb.set_trace()
+
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+    #imgDbObj = admindb["database"].find_one({"_id": ObjectId(imageData.database)})
+    if 'database' in imageData:
+        # convert references to string to pass to the client
+        database = models.ImageStore.objects.get_or_404(id=ObjectId(imageData["database"]))
+        imgdb = database.to_pymongo()
+        if 'TileSize' in imageData:
+            del imageData['TileSize']
+        if 'database' in imageData:
+            del imageData['database']
+        if 'metadataready' in imageData:
+            del imageData['metadataready']
+        imageData['_id'] = ObjectId(imageData['_id'])
+        imgdb["images"].save(imageData)
+    return ""
 
 
 # This is close to a general purpose function to insert an object into the database.
