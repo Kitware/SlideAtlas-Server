@@ -776,23 +776,22 @@ function ImageInformationDialog (parent, editable) {
         .addClass("sa-view-annotation-modal-input-label");
     this.ResolutionInput =
         $('<div>')
-        .appendTo(this.ResolutionDiv)
-        .css({'cursor':'text'})
-        .attr('contenteditable', editable?'true':'false')
-        .keypress(function(event) { return event.keyCode != 13; });
+        .appendTo(this.ResolutionDiv);
     this.ResolutionUnitsInput =
-        $('<input type="text">')
-        .appendTo(this.ResolutionDiv)
-        .css({'cursor':'text'})
-        .attr('contenteditable', editable?'true':'false')
-        .keypress(function(event) { return event.keyCode != 13; });
+        $('<div>')
+        .appendTo(this.ResolutionDiv);
     if (editable) {
         this.ResolutionInput
             .attr('contenteditable', 'true')
-            .css({'background':'#f0f0ff'});
+            .css({'background':'#f0f0ff',
+                  'cursor':'text'})
+            .keypress(function(event) { return event.keyCode != 13; });
         this.ResolutionUnitsInput
             .attr('contenteditable', 'true')
-            .css({'background':'#f0f0ff'});
+            .css({'background':'#f0f0ff',
+                  'cursor':'text'})
+            .attr('contenteditable', 'true')
+            .keypress(function(event) { return event.keyCode != 13; });
     }
 
     // Non editable strings.
@@ -817,21 +816,27 @@ function ImageInformationDialog (parent, editable) {
 ImageInformationDialog.prototype.Open = function(imageObj) {
     // Save so we can modify it on close.
     this.ImageObj = imageObj;
+    this.TitleInput.text(imageObj.label);
     this.FileNameDiv.text("File Name: " + imageObj.filename);
     this.CreatedDiv.text("Created: " + imageObj.uploaded_at);
     this.DimensionsDiv.text("Dimensions: " +
                             imageObj.dimensions[0] + ", "+
                             imageObj.dimensions[1]);
     this.LevelsDiv.text("Levels: " + imageObj.levels);
+    this.CopyrightInput.text(imageObj.copyright);
 
-    imageObj.units = imageObj.units | "";
-
-    if (this.Editable) {
-        this.TitleInput.text(imageObj.label);
-        this.CopyrightInput.text(imageObj.copyright);
-        this.ResolutionInput.text(imageObj.spacing[0]);
-        this.ResolutionUnitsInput.text(imageObj.units);
+    var spacing;
+    if (imageObj.units) {
+        spacing = {value: imageObj.spacing[0],
+                   units: imageObj.units};
+    } else {
+        spacing = {value: 0.25,
+                   units: "\xB5m"}; // um / micro meters
     }
+
+    SAMConvertForGui(spacing);
+    this.ResolutionInput.text(spacing.value.toString());
+    this.ResolutionUnitsInput.text(spacing.units.toString());
 
     this.Body.show();
 }
@@ -839,14 +844,29 @@ ImageInformationDialog.prototype.Open = function(imageObj) {
 ImageInformationDialog.prototype.Close = function(imageObj) 
 {
     if (this.Editable) {
-         this.ImageObj.label = this.TitleInput.text();
-         this.ImageObj.copyright = this.CopyrightInput.text();
-         this.ImageObj.spacing[0] = this.ImageObj[1] =
-            parseFloat(this.ResolutionInput.text());
-         this.ImageObj.units = this.ResolutionUnitsInput.text();
+        this.ImageObj.label = this.TitleInput.text();
+        this.ImageObj.copyright = this.CopyrightInput.text();
+        var spacing = {value: parseFloat(this.ResolutionInput.text()),
+                       units: this.ResolutionUnitsInput.text()};
+        SAMConvertToMeters(spacing);
+        this.ImageObj.spacing[0] = this.ImageObj.spacing[1] = spacing.value;
+        this.ImageObj.units = spacing.units;
     }
+
+
+    if (this.ImageObj.dimensions.length < 3) {
+        this.ImageObj.dimensions.push(1);
+    }
+
+    // Save the image meta data.
+    $.ajax({
+        type: "post",
+        url: "webgl-viewer/saveimagedata",
+        data: {"metadata" : JSON.stringify(this.ImageObj)},
+        success: function(data,status) {},
+        error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
+    });
+
     this.Body.fadeOut();
 }
-
-
 

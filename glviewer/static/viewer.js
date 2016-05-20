@@ -2243,6 +2243,10 @@ Viewer.prototype.GetPixelsPerUnit = function() {
     return this.MainView.GetPixelsPerUnit();
 }
 
+Viewer.prototype.GetMetersPerUnit = function() {
+    return this.MainView.GetMetersPerUnit();
+}
+
 // Covert a point from world coordiante system to viewer coordinate system (units pixels).
 Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
     var cam = this.MainView.Camera;
