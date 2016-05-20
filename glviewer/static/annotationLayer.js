@@ -429,6 +429,9 @@
         return this.AnnotationView.GetPixelsPerUnit();
     }
 
+    AnnotationLayer.prototype.GetMetersPerUnit = function() {
+        return this.AnnotationView.GetMetersPerUnit();
+    }
 
     // the view arg is necessary for rendering into a separate canvas for
     // saving large images.
