@@ -835,7 +835,7 @@ ImageInformationDialog.prototype.Open = function(imageObj) {
                    units: "\xB5m"}; // um / micro meters
     }
 
-    SAMConvertForGui(spacing);
+    SAM.ConvertForGui(spacing);
     this.ResolutionInput.text(spacing.value.toString());
     this.ResolutionUnitsInput.text(spacing.units.toString());
 
@@ -849,7 +849,7 @@ ImageInformationDialog.prototype.Close = function(imageObj)
         this.ImageObj.copyright = this.CopyrightInput.text();
         var spacing = {value: parseFloat(this.ResolutionInput.text()),
                        units: this.ResolutionUnitsInput.text()};
-        SAMConvertToMeters(spacing);
+        SAM.ConvertToMeters(spacing);
         this.ImageObj.spacing[0] = this.ImageObj.spacing[1] = spacing.value;
         this.ImageObj.units = spacing.units;
     }

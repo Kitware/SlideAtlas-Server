@@ -118,7 +118,7 @@ View.prototype.GetMetersPerUnit = function() {
         dist = {value : cache.Image.spacing[0],
                 units : cache.Image.units};
     }
-    SAMConvertToMeters(dist);
+    SAM.ConvertToMeters(dist);
     return dist.value;
 }
 

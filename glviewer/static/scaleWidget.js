@@ -106,7 +106,7 @@
     ScaleWidget.prototype.Update = function() {
         // Compute the number of screen pixels in a meter.
         var scale = Math.round(
-            this.Viewer.GetPixelsPerUnit() / this.Viewer.GetMetersPerUnit());
+            this.Layer.GetPixelsPerUnit() / this.Layer.GetMetersPerUnit());
         if (this.PixelsPerMeter == scale) {
             return;
         }
