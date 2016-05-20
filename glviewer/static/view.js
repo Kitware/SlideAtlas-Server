@@ -111,6 +111,7 @@ View.prototype.GetPixelsPerUnit = function() {
 
 View.prototype.GetMetersPerUnit = function() {
     var cache = this.GetCache();
+    var dist;
     if ( ! cache) {
         dist = {value : 250,
                 units : 'nm'};
