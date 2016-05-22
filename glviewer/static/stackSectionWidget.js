@@ -196,7 +196,7 @@
             var polylineObj = obj.shapes[n];
             if ( polylineObj.points) { 
                 var points = polylineObj.points;
-                var shape = new Polyline();
+                var shape = new SAM.Polyline();
                 shape.OutlineColor = this.Color;
                 shape.FixedSize = false;
                 shape.LineWidth = 0;

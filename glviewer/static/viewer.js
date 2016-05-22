@@ -77,6 +77,8 @@ function Viewer (parent) {
 
     this.AnnotationLayer = new SAM.AnnotationLayer(this.LayerDiv, 
                                                    this.MainView.Camera);
+    // Hack so the scale widget can get the spacing.
+    this.AnnotationLayer.ScaleWidget.View = this.MainView;
     // Hack only used for girder testing.
     this.AnnotationLayer.Viewer = this;
 
@@ -333,7 +335,7 @@ Viewer.prototype.SetNote = function(note, viewIdx) {
 }
 Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var self = this;
-    var note = GetNoteFromId(noteId);
+    var note = SA.GetNoteFromId(noteId);
     if ( ! note) {
         note = new SA.Note();
         var self = this;

@@ -240,7 +240,7 @@
     }
 
     // ConvertToMeters.
-    SAM.ConvertToMeters = function (distObj) 
+    window.SAM.ConvertToMeters = function (distObj) 
     {
         if (distObj.units.toLowerCase() == "nm") {
             distObj.units = "m";
@@ -274,10 +274,9 @@
         return distObj.value;
     }
 
-
-    SAM.ConvertForGui = function (distObj) 
+    window.SAM.ConvertForGui = function (distObj) 
     {
-        this.ConvertToMeters(distObj);
+        SAM.ConvertToMeters(distObj);
         if (distObj.value > 1000) {
             distObj.value = distObj.value/1000;
             distObj.units = "km";
@@ -333,8 +332,7 @@
         this.Visibility = true;
         // Scale widget is unique. Deal with it separately so it is not
         // saved with the notes.
-        this.ScaleWidget = new SAM.ScaleWidget(this, false);
-
+        this.ScaleWidget = new SAM.ScaleWidget(this);
 
         var self = this;
         var can = this.AnnotationView.CanvasDiv;
@@ -429,6 +427,9 @@
         return this.AnnotationView.GetPixelsPerUnit();
     }
 
+    AnnotationLayer.prototype.GetMetersPerUnit = function() {
+        return this.AnnotationView.GetMetersPerUnit();
+    }
 
     // the view arg is necessary for rendering into a separate canvas for
     // saving large images.
@@ -1551,7 +1552,7 @@
             var polylineObj = obj.shapes[n];
             if ( polylineObj.points) { 
                 var points = polylineObj.points;
-                var shape = new Polyline();
+                var shape = new SAM.Polyline();
                 shape.OutlineColor = this.Color;
                 shape.FixedSize = false;
                 shape.LineWidth = 0;
@@ -9482,6 +9483,7 @@
     var DRAG_LEFT = 7;
     var DRAG_RIGHT = 8;
 
+    // view argument is the main view (needed to get the spacing...)
     // Viewer coordinates.
     // Horizontal or verticle
     function Scale() {
@@ -9573,9 +9575,10 @@
 
     // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
+        if ( ! this.View) { return;}
         // Compute the number of screen pixels in a meter.
         var scale = Math.round(
-            this.Layer.GetPixelsPerUnit() / this.Layer.GetMetersPerUnit());
+            this.View.GetPixelsPerUnit() / this.View.GetMetersPerUnit());
         if (this.PixelsPerMeter == scale) {
             return;
         }

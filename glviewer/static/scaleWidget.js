@@ -13,6 +13,7 @@
     var DRAG_LEFT = 7;
     var DRAG_RIGHT = 8;
 
+    // view argument is the main view (needed to get the spacing...)
     // Viewer coordinates.
     // Horizontal or verticle
     function Scale() {
@@ -104,9 +105,10 @@
 
     // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
+        if ( ! this.View) { return;}
         // Compute the number of screen pixels in a meter.
         var scale = Math.round(
-            this.Layer.GetPixelsPerUnit() / this.Layer.GetMetersPerUnit());
+            this.View.GetPixelsPerUnit() / this.View.GetMetersPerUnit());
         if (this.PixelsPerMeter == scale) {
             return;
         }

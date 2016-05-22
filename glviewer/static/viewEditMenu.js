@@ -842,7 +842,7 @@ ImageInformationDialog.prototype.Open = function(imageObj) {
     this.Body.show();
 }
 
-ImageInformationDialog.prototype.Close = function(imageObj) 
+ImageInformationDialog.prototype.Close = function() 
 {
     if (this.Editable) {
         this.ImageObj.label = this.TitleInput.text();
@@ -859,11 +859,19 @@ ImageInformationDialog.prototype.Close = function(imageObj)
         this.ImageObj.dimensions.push(1);
     }
 
+    imageObj = {
+        _id       : this.ImageObj._id,
+        database  : this.ImageObj.database,
+        label     : this.ImageObj.label,
+        copyright : this.ImageObj.copyright,
+        spacing   : this.ImageObj.spacing,
+        units     : this.ImageObj.units};
+
     // Save the image meta data.
     $.ajax({
         type: "post",
         url: "webgl-viewer/saveimagedata",
-        data: {"metadata" : JSON.stringify(this.ImageObj)},
+        data: {"metadata" : JSON.stringify(imageObj)},
         success: function(data,status) {},
         error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
     });

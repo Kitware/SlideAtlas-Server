@@ -267,7 +267,7 @@ DualViewWidget.prototype.GetRootNote = function () {
     return note;
 }
 DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
-    var note = GetNoteFromId(noteId);
+    var note = SA.GetNoteFromId(noteId);
     if ( ! note) {
         note = new SA.Note();
         var self = this;

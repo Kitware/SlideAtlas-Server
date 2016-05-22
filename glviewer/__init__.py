@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import pdb
 import json
 from operator import itemgetter
 import urllib2
@@ -427,12 +426,12 @@ def saveimagedata():
     imageDataStr = request.form['metadata']  # for post
     imageData = json.loads(imageDataStr)
 
-    pdb.set_trace()
-
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
     #imgDbObj = admindb["database"].find_one({"_id": ObjectId(imageData.database)})
     if 'database' in imageData:
+        id = ObjectId(imageData['_id'])
+        del imageData["_id"]
         # convert references to string to pass to the client
         database = models.ImageStore.objects.get_or_404(id=ObjectId(imageData["database"]))
         imgdb = database.to_pymongo()
@@ -442,8 +441,7 @@ def saveimagedata():
             del imageData['database']
         if 'metadataready' in imageData:
             del imageData['metadataready']
-        imageData['_id'] = ObjectId(imageData['_id'])
-        imgdb["images"].save(imageData)
+        imgdb["images"].update({"_id":id}, {"$set":imageData})
     return ""
 
 

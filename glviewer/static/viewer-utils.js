@@ -2787,7 +2787,7 @@ jQuery.prototype.saViewer = function(args) {
     args.viewerIndex = args.viewerIndex || 0;
     // get the note object if an id is specified.
     if (args.viewId) {
-        args.note = GetNoteFromId(args.viewId);
+        args.note = SA.GetNoteFromId(args.viewId);
         if (args.note == null) {
             // It has not been loaded yet.  Get if from the server.
             args.note = new SA.Note();

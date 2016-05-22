@@ -240,7 +240,7 @@
     }
 
     // ConvertToMeters.
-    SAM.ConvertToMeters = function (distObj) 
+    window.SAM.ConvertToMeters = function (distObj) 
     {
         if (distObj.units.toLowerCase() == "nm") {
             distObj.units = "m";
@@ -274,10 +274,9 @@
         return distObj.value;
     }
 
-
-    SAM.ConvertForGui = function (distObj) 
+    window.SAM.ConvertForGui = function (distObj) 
     {
-        this.ConvertToMeters(distObj);
+        SAM.ConvertToMeters(distObj);
         if (distObj.value > 1000) {
             distObj.value = distObj.value/1000;
             distObj.units = "km";
@@ -333,8 +332,7 @@
         this.Visibility = true;
         // Scale widget is unique. Deal with it separately so it is not
         // saved with the notes.
-        this.ScaleWidget = new SAM.ScaleWidget(this, false);
-
+        this.ScaleWidget = new SAM.ScaleWidget(this);
 
         var self = this;
         var can = this.AnnotationView.CanvasDiv;
