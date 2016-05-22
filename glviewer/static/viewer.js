@@ -223,6 +223,19 @@ function Viewer (parent) {
     this.CopyrightWrapper = $('<div>')
         .appendTo(this.MainView.CanvasDiv)
         .addClass("sa-view-copyright");
+    if (SA.Session.sessid == "560b5127a7a1412195d13685") {
+        this.Icon = $('<img>')
+            .appendTo(this.MainView.CanvasDiv)
+            .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
+            .prop('title', "UC Davis")
+            .css({'position': 'absolute',
+                  'bottom'  : '80px',
+                  'left'    : '7px',
+                  'width'   : '128px',
+                  'z-index' : '4'});
+    }
+
+
 }
 
 // Try to remove all global references to this viewer.

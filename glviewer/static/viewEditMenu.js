@@ -187,6 +187,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     eventuallyRender();
 
     // Save automatically if user has permission.
+    var self = this;
     if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
         //SA.NotesWidget.SaveCallback();
@@ -198,7 +199,9 @@ ViewEditMenu.prototype.SetViewBounds = function() {
             url: "webgl-viewer/saveviewnotes",
             data: {"note" : noteObj,
                    "date" : d.getTime()},
-            success: function(data,status) {},
+            success: function(data,status) {
+                self.Viewer.EventuallyRender();
+            },
             error: function() { saDebug( "AJAX - error() : saveviewnotes (bounds)" ); },
         });
     }
@@ -256,7 +259,7 @@ ViewEditMenu.prototype.ShowSlideInformation = function() {
 
     imageObj = this.Viewer.MainView.Section.Caches[0].Image;
 
-    SA.SlideInformation.Open(imageObj);
+    SA.SlideInformation.Open(imageObj, this.Viewer);
 }
 
 // Mirror image
@@ -702,7 +705,7 @@ function InitSlideSelector(parent) {
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
 
-    SA.SlideInformation = new ImageInformationDialog(parent, true);
+    SA.SlideInformation = new ImageInformationDialog(parent, SA.Edit);
 }
 
 function ImageInformationDialog (parent, editable) {
@@ -814,7 +817,9 @@ function ImageInformationDialog (parent, editable) {
         .addClass("sa-view-annotation-modal-div");
 }
 
-ImageInformationDialog.prototype.Open = function(imageObj) {
+ImageInformationDialog.prototype.Open = function(imageObj, viewer) {
+    this.Viewer = viewer;
+
     // Save so we can modify it on close.
     this.ImageObj = imageObj;
     this.TitleInput.text(imageObj.label);
@@ -854,6 +859,11 @@ ImageInformationDialog.prototype.Close = function()
         this.ImageObj.units = spacing.units;
     }
 
+    this.Body.fadeOut();
+
+    if ( ! this.Editable) {
+        return;
+    }
 
     if (this.ImageObj.dimensions.length < 3) {
         this.ImageObj.dimensions.push(1);
@@ -868,14 +878,16 @@ ImageInformationDialog.prototype.Close = function()
         units     : this.ImageObj.units};
 
     // Save the image meta data.
+    var self = this;
     $.ajax({
         type: "post",
         url: "webgl-viewer/saveimagedata",
         data: {"metadata" : JSON.stringify(imageObj)},
-        success: function(data,status) {},
+        success: function(data,status) {
+            if (self.Viewer) {self.Viewer.EventuallyRender();}
+        },
         error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
     });
 
-    this.Body.fadeOut();
 }
 
