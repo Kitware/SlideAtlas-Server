@@ -734,6 +734,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
         console.log("Sanity check failed. Not all tiles were available.");
     }
     this.MainView.DrawShapes();
+    // this will probbly not work
     this.AnnotationLayer.Draw(view);
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
@@ -1125,10 +1126,6 @@ Viewer.prototype.Draw = function() {
         GL.disable(GL.DEPTH_TEST);
     }
 
-    if ( this.AnnotationLayer) {
-        this.AnnotationLayer.Clear();
-    }
-
     // If we are still waiting for tiles to load, schedule another render.
     // This works fine, but results in many renders while waiting.
     // TODO: Consider having the tile load callback scheduling the next render.
@@ -1143,7 +1140,12 @@ Viewer.prototype.Draw = function() {
     // This is only necessary for webgl, Canvas2d just uses a border.
     //Even for weggl, the overview will be a canvas
     //this.MainView.DrawOutline(false);
-    this.AnnotationLayer.Draw();
+
+    cam = this.MainView.Camera;
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.UpdateCamera(cam.FocalPoint,cam.Height,cam.Roll);
+    }
+
     // This is not used anymore
     this.MainView.DrawShapes();
     if (this.OverView) {

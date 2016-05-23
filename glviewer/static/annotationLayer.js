@@ -339,10 +339,6 @@
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
 
-        //this.AnnotationView.OutlineColor = [0,0,0];
-        // Uses the same camera.
-        this.AnnotationView.Camera = viewerCamera;
-
         this.WidgetList = [];
         this.ActiveWidget = null;
 
@@ -432,7 +428,7 @@
         this.AnnotationView.Camera.Height = height;
         this.AnnotationView.Camera.Roll = roll;
         this.AnnotationView.Camera.ComputeMatrix();
-        this.EventaullyDraw();
+        this.Draw();
     }
 
     AnnotationLayer.prototype.GetCamera = function () {
