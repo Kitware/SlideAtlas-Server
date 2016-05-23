@@ -151,7 +151,7 @@
                                    parseFloat(points[n][1])];
         }
         this.ComputeActiveCenter();
-        this.Loop.UpdateBuffers();
+        this.Loop.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     LassoWidget.prototype.HandleMouseWheel = function(event) {
@@ -182,7 +182,7 @@
             }
             this.Dialog.LineWidthInput.val(lineWidth);
             this.Loop.SetLineWidth(lineWidth);
-            this.Loop.UpdateBuffers();
+            this.Loop.UpdateBuffers(this.Layer.AnnotationView);
 
             this.Layer.EventuallyDraw();
             return false;
@@ -253,7 +253,7 @@
                 this.CombineStroke();
             } else {
                 this.Stroke.Closed = true;
-                this.Stroke.UpdateBuffers();
+                this.Stroke.UpdateBuffers(this.Layer.AnnotationView);
                 this.Loop = this.Stroke;
                 this.Stroke = false;
             }
@@ -296,7 +296,7 @@
             var shape = this.Stroke;
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
             if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.Layer.EventuallyDraw();
             return false;
@@ -409,7 +409,7 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Loop.SetOutlineColor(hexcolor);
         this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Loop.UpdateBuffers();
+        this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
         this.Layer.EventuallyDraw();
@@ -477,7 +477,7 @@
             shape.Points = newPoints;
         }
 
-        shape.UpdateBuffers();
+        shape.UpdateBuffers(this.Layer.AnnotationView);
     }
     */
     LassoWidget.prototype.CombineStroke = function() {
@@ -582,7 +582,7 @@
 
         // Remove the extra point added at the begining of this method.
         this.Loop.Points.pop();
-        this.Loop.UpdateBuffers();
+        this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.ComputeActiveCenter();
 
         this.Stroke = false;

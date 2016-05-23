@@ -8536,61 +8536,56 @@ function GetViewId () {
 // WebGL Initializationf
 
 function doesBrowserSupportWebGL(canvas) {
+    var gl;
     try {
-        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        GL = canvas.getContext("webgl");
+        //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        gl = canvas.getContext("webgl");
     } catch (e) {
     }
-    if (!GL) {
+    if (!gl) {
         //saDebug("Could not initialise WebGL, sorry :-(");
-        return false;
+        return null;
     }
-   return true;
+   return gl;
 }
 
-
+/*
 function initGL() {
 
     // Add a new canvas.
     CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
     //this.canvas.onselectstart = function() {return false;};
     //this.canvas.onmousedown = function() {return false;};
-    GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+    var gl = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
 
+    if (gl) {
+        // Defined in HTML
+        initShaderPrograms();
+        initOutlineBuffers();
+        initImageTileBuffers();
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.enable(GL.DEPTH_TEST);
+    }
+
+    return gl;
+}
+*/
+
+function initWebGL(gl) {
+    if (imageProgram) { return; }
     // Defined in HTML
-    initShaderPrograms();
-    initOutlineBuffers();
-    initImageTileBuffers();
-    GL.clearColor(1.0, 1.0, 1.0, 1.0);
-    GL.enable(GL.DEPTH_TEST);
+    initShaderPrograms(gl);
+    initOutlineBuffers(gl);
+    initImageTileBuffers(gl);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
 }
 
 
-
-function getShader(gl, id) {
-    var shaderScript = document.getElementById(id);
-    if (!shaderScript) {
-        return null;
-    }
-
-    var str = "";
-    var k = shaderScript.firstChild;
-    while (k) {
-        if (k.nodeType == 3) {
-            str += k.textContent;
-        }
-        k = k.nextSibling;
-    }
-
+function getShader(gl, type, str) {
     var shader;
-    if (shaderScript.type == "x-shader/x-fragment") {
-        shader = gl.createShader(gl.FRAGMENT_SHADER);
-    } else if (shaderScript.type == "x-shader/x-vertex") {
-        shader = gl.createShader(gl.VERTEX_SHADER);
-    } else {
-        return null;
-    }
-
+    shader = gl.createShader(type);
     gl.shaderSource(shader, str);
     gl.compileShader(shader);
 
@@ -8602,56 +8597,125 @@ function getShader(gl, id) {
     return shader;
 }
 
+// Not used because annotations are all canvas.
+// Might be useful in the future.
+/*
+<script id="shader-poly-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  uniform vec3 uColor;
+  void main(void) {
+   gl_FragColor = vec4(uColor, 1.0);
+   //gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
+  }
+</script>
+<script id="shader-poly-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+  }
+</script>
+<script id="shader-text-fs" type="x-shader/x-fragment">
+  precision mediump float;
+
+  varying vec2 vTextureCoord;
+  uniform sampler2D uSampler;
+  uniform vec3 uColor;
+
+  void main(void) {
+    vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    // Use the image pixel value as transparency.
+    gl_FragColor = vec4(uColor, textureColor.rgb[0]);
+  }
+</script>
+<script id="shader-text-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+
+  varying vec2 vTextureCoord;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    vTextureCoord = aTextureCoord;
+  }
+*/
 
 
-function initShaderPrograms() {
-    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs");
-    polyProgram.colorUniform = GL.getUniformLocation(polyProgram, "uColor");
+function initShaderPrograms(gl) {
 
-    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs");
+    var fragmentShaderString = 
+        "precision highp float;" +
+        "uniform sampler2D uSampler;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+        "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
+        "   if (value < 0.3 || value > 2.5) {" +
+        "     textureColor[3] = 0.0;" +
+        "   }" +
+        "   gl_FragColor = textureColor;" +
+        " }";
+    var vertexShaderString = 
+        "attribute vec3 aVertexPosition;" +
+        "attribute vec2 aTextureCoord;" +
+        "uniform mat4 uMVMatrix;" +
+        "uniform mat4 uPMatrix;" +
+        "uniform mat3 uNMatrix;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+        "  vTextureCoord = aTextureCoord;" +
+        "}";
+
+    imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
     // Texture coordinate attribute and texture image uniform
     imageProgram.textureCoordAttribute
-        = GL.getAttribLocation(imageProgram,"aTextureCoord");
-    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute);
-    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");
+        = gl.getAttribLocation(imageProgram,"aTextureCoord");
+    gl.enableVertexAttribArray(imageProgram.textureCoordAttribute);
+    imageProgram.samplerUniform = gl.getUniformLocation(imageProgram, "uSampler");
 
 
+    //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+    //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-    textProgram = createProgram("shader-text-fs", "shader-text-vs");
-    textProgram.textureCoordAttribute
-        = GL.getAttribLocation(textProgram, "aTextureCoord");
-    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);
-    textProgram.samplerUniform
-        = GL.getUniformLocation(textProgram, "uSampler");
-    textProgram.colorUniform = GL.getUniformLocation(textProgram, "uColor");
+    //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+    //textProgram.textureCoordAttribute
+    //    = gl.getAttribLocation(textProgram, "aTextureCoord");
+    //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
+    //textProgram.samplerUniform
+    //    = gl.getUniformLocation(textProgram, "uSampler");
+    //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
 }
 
 
-function createProgram(fragmentShaderID, vertexShaderID) {
-    var fragmentShader = getShader(GL, fragmentShaderID);
-    var vertexShader = getShader(GL, vertexShaderID);
+function createProgram(fragmentShaderString, vertexShaderString, gl) {
+    var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
+    var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
-    var program = GL.createProgram();
-    GL.attachShader(program, vertexShader);
-    GL.attachShader(program, fragmentShader);
-    GL.linkProgram(program);
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
 
-    if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         saDebug("Could not initialise shaders");
     }
 
-    program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
-    GL.enableVertexAttribArray(program.vertexPositionAttribute);
+    program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
+    gl.enableVertexAttribArray(program.vertexPositionAttribute);
 
     // Camera matrix
-    program.pMatrixUniform = GL.getUniformLocation(program, "uPMatrix");
+    program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
     // Model matrix
-    program.mvMatrixUniform = GL.getUniformLocation(program, "uMVMatrix");
+    program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
 
     return program;
 }
 
-function initOutlineBuffers() {
+function initOutlineBuffers(gl) {
     // Outline Square
     vertices = [
         0.0,  0.0,  0.0,
@@ -8659,22 +8723,22 @@ function initOutlineBuffers() {
         1.0, 1.0,  0.0,
         1.0, 0.0,  0.0,
         0.0, 0.0,  0.0];
-    squareOutlinePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    squareOutlinePositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     squareOutlinePositionBuffer.itemSize = 3;
     squareOutlinePositionBuffer.numItems = 5;
 
     // Filled square
-    squarePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
+    squarePositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
     vertices = [
         1.0,  1.0,  0.0,
         0.0,  1.0,  0.0,
         1.0,  0.0,  0.0,
         0.0,  0.0,  0.0
     ];
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     squarePositionBuffer.itemSize = 3;
     squarePositionBuffer.numItems = 4;
 }
@@ -8686,7 +8750,7 @@ function initOutlineBuffers() {
 
 
 
-function initImageTileBuffers() {
+function initImageTileBuffers(gl) {
     var vertexPositionData = [];
     var textureCoordData = [];
 
@@ -8725,21 +8789,21 @@ function initImageTileBuffers() {
     cellData.push(1);
     cellData.push(3);
 
-    tileVertexTextureCoordBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+    tileVertexTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
     tileVertexTextureCoordBuffer.itemSize = 2;
     tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-    tileVertexPositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    tileVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexPositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
     tileVertexPositionBuffer.itemSize = 3;
     tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-    tileCellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+    tileCellBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
     tileCellBuffer.itemSize = 1;
     tileCellBuffer.numItems = cellData.length;
 }
@@ -9275,6 +9339,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     eventuallyRender();
 
     // Save automatically if user has permission.
+    var self = this;
     if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
         //SA.NotesWidget.SaveCallback();
@@ -9286,7 +9351,9 @@ ViewEditMenu.prototype.SetViewBounds = function() {
             url: "webgl-viewer/saveviewnotes",
             data: {"note" : noteObj,
                    "date" : d.getTime()},
-            success: function(data,status) {},
+            success: function(data,status) {
+                self.Viewer.EventuallyRender();
+            },
             error: function() { saDebug( "AJAX - error() : saveviewnotes (bounds)" ); },
         });
     }
@@ -9344,7 +9411,7 @@ ViewEditMenu.prototype.ShowSlideInformation = function() {
 
     imageObj = this.Viewer.MainView.Section.Caches[0].Image;
 
-    SA.SlideInformation.Open(imageObj);
+    SA.SlideInformation.Open(imageObj, this.Viewer);
 }
 
 // Mirror image
@@ -9790,7 +9857,7 @@ function InitSlideSelector(parent) {
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
 
-    SA.SlideInformation = new ImageInformationDialog(parent, true);
+    SA.SlideInformation = new ImageInformationDialog(parent, SA.Edit);
 }
 
 function ImageInformationDialog (parent, editable) {
@@ -9902,7 +9969,9 @@ function ImageInformationDialog (parent, editable) {
         .addClass("sa-view-annotation-modal-div");
 }
 
-ImageInformationDialog.prototype.Open = function(imageObj) {
+ImageInformationDialog.prototype.Open = function(imageObj, viewer) {
+    this.Viewer = viewer;
+
     // Save so we can modify it on close.
     this.ImageObj = imageObj;
     this.TitleInput.text(imageObj.label);
@@ -9942,6 +10011,11 @@ ImageInformationDialog.prototype.Close = function()
         this.ImageObj.units = spacing.units;
     }
 
+    this.Body.fadeOut();
+
+    if ( ! this.Editable) {
+        return;
+    }
 
     if (this.ImageObj.dimensions.length < 3) {
         this.ImageObj.dimensions.push(1);
@@ -9956,15 +10030,17 @@ ImageInformationDialog.prototype.Close = function()
         units     : this.ImageObj.units};
 
     // Save the image meta data.
+    var self = this;
     $.ajax({
         type: "post",
         url: "webgl-viewer/saveimagedata",
         data: {"metadata" : JSON.stringify(imageObj)},
-        success: function(data,status) {},
+        success: function(data,status) {
+            if (self.Viewer) {self.Viewer.EventuallyRender();}
+        },
         error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
     });
 
-    this.Body.fadeOut();
 }
 
 //==============================================================================
@@ -10769,9 +10845,9 @@ DualViewWidget.prototype.CreateThumbnailImage = function(height) {
 }
 
 
-DualViewWidget.prototype.Draw = function () {
-    if (GL) {
-      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+DualViewWidget.prototype.Draw = function (gl) {
+    if (gl) {
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
     // This just changes the camera based on the current time.
@@ -15061,7 +15137,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 
     widget.Shape.Origin = [x, y];
     widget.Shape.Radius = cam.Height / 4.0;
-    widget.Shape.UpdateBuffers();
+    widget.Shape.UpdateBuffers(this.Layer.AnnotationView);
     eventuallyRender();
 
     this.Layer.SetVisibility(true);
@@ -22006,7 +22082,6 @@ Camera.prototype.SetViewport = function (viewport) {
     this.ComputeMatrix();
 }
 
-
 Camera.prototype.Serialize = function () {
   var obj = {};
   obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];
@@ -22281,15 +22356,15 @@ Camera.prototype.AddPoint = function (x, y, z) {
     this.Points.push(z);
 }
 
-Camera.prototype.CreateBuffer = function () {
-  if (GL) {
+Camera.prototype.CreateBuffer = function (gl) {
+  if (gl) {
     if (this.Buffer != null) {
-      GL.deleteBuffer(this.Buffer);
+      gl.deleteBuffer(this.Buffer);
     }
-    this.Buffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.Buffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.Points),
-                  GL.STATIC_DRAW);
+    this.Buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.Buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.Points),
+                  gl.STATIC_DRAW);
   }
 }
 
@@ -22310,7 +22385,7 @@ Camera.prototype.UpdateBuffer = function() {
 
 
 // Camera is already set.
-Camera.prototype.Draw = function (overview) {
+Camera.prototype.Draw = function (overview, gl) {
     var overviewCam = overview.Camera;
     var viewport = overview.Viewport;
 
@@ -22326,7 +22401,7 @@ Camera.prototype.Draw = function (overview) {
     var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5]
                  + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
 
-    if (GL) {
+    if (gl) {
         // I having trouble using the overview camera, so lets just compute
         // the position of the rectangle here.
         var ocx = overviewCam.FocalPoint[0];
@@ -22335,12 +22410,12 @@ Camera.prototype.Draw = function (overview) {
         var ory = overviewCam.GetHeight() * 0.5;
 
         program = polyProgram;
-        GL.useProgram(program);
-        GL.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
+        gl.useProgram(program);
+        gl.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
 
-        GL.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
+        gl.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
         mat4.identity(pMatrix);
-        GL.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
 
         var viewFrontZ = overviewCam.ZRange[0]+0.001;
 
@@ -22353,12 +22428,12 @@ Camera.prototype.Draw = function (overview) {
         mvMatrix[0] = 2*rx/orx;
         mvMatrix[5] = 2*ry/ory;
 
-        GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        GL.vertexAttribPointer(program.vertexPositionAttribute,
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        gl.vertexAttribPointer(program.vertexPositionAttribute,
                                squareOutlinePositionBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);
-        GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
-        GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+                               gl.FLOAT, false, 0, 0);
+        gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
+        gl.drawArrays(gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
     } else {
         // Transform focal point from -1->1 to viewport
         newCx = (1.0 + newCx) * viewport[2] * 0.5;
@@ -22460,7 +22535,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
     var view = new SA.View();
     CUTOUT_VIEW = view;
     view.SetCache(cache);
-    view.InitializeViewport(viewport, 1, true);
+    view.SetViewport(viewport);
     var newCam = view.Camera;
     newCam.SetFocalPoint( focalPoint);
     newCam.SetRoll(roll);
@@ -22850,8 +22925,8 @@ function GenerateContourFromViewer(viewer, threshold) {
     var plWidget = new PolylineWidget(viewer,false);
     plWidget.Shape.Points = slideLoop;
     plWidget.Shape.Closed = true;
-    plWidget.LineWidth = 0;    
-    plWidget.Shape.UpdateBuffers();
+    plWidget.LineWidth = 0;
+    plWidget.Shape.UpdateBuffers(this.Layer.AnnotationView);
     eventuallyRender();
 }
 
@@ -23344,7 +23419,7 @@ Contour.prototype.MakePolyline = function(rgb, view) {
     pl.Points = slidePoints;
     pl.Closed = true;
     pl.LineWidth = 0;
-    pl.UpdateBuffers();
+    pl.UpdateBuffers(view);
     pl.FixedSize = false;
 
     // We do not need to do this here.
@@ -23505,9 +23580,6 @@ Segmentation.prototype.AddPositive = function (ptWorld) {
 
         if (sphere.r2 > 1) {
             this.PositiveSpheres.push(sphere);
-            // Everytime?
-            //this.Update();
-            //this.Draw();
         }
     }
 }
@@ -23538,9 +23610,6 @@ Segmentation.prototype.AddNegative = function (ptWorld) {
                 posSphere.r2 = d2;
             }
         }
-        // Everytime?
-        //this.Update();
-        //this.Draw();
     }
 }
 
@@ -26714,6 +26783,8 @@ function Tile(x, y, z, level, name, cache) {
     mat4.identity(this.Matrix);
     this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
 
+    // TODO: Warping depends on a global GL (which I am getting rid of) Fix
+    // on demand :)
     // Default path is to shared geometry and move/scale it with the matrix.
     // The shared polygon is a square [(0,0),(1,0),(1,1),(0,1)]
     // The matrix transforms it into world coordinates.
@@ -26728,12 +26799,12 @@ function Tile(x, y, z, level, name, cache) {
         this.Matrix[13] = (this.Y+1) * yScale;
         this.Matrix[15] = 1.0;
 
-        if (GL) {
+        //if (GL) {
             // These tiles share the same buffers.  Do not crop when there is no warp.
-            this.VertexPositionBuffer = tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = tileVertexTextureCoordBuffer;
-            this.CellBuffer = tileCellBuffer;
-        }
+            this.VertexPositionBuffer = window.tileVertexPositionBuffer;
+            this.VertexTextureCoordBuffer = window.tileVertexTextureCoordBuffer;
+            this.CellBuffer = window.tileCellBuffer;
+        //}
     } else {
         // Warp model.
         this.CreateWarpBuffer(cache.Warp);
@@ -26742,10 +26813,10 @@ function Tile(x, y, z, level, name, cache) {
     ++SA.NumberOfTiles;
 }
 
-Tile.prototype.destructor=function()
+Tile.prototype.delete=function(gl)
 {
     --SA.NumberOfTiles;
-    this.DeleteTexture();
+    this.DeleteTexture(gl);
     delete this.Matrix;
     this.Matrix = null;
     if (this.Image) {
@@ -26754,7 +26825,7 @@ Tile.prototype.destructor=function()
     }
     for (var i = 0; i < 4; ++i) {
         if (this.Children[i] != null) {
-            this.Children[i].destructor();
+            this.Children[i].delete(gl);
             this.Children[i] = null;
         }
     }
@@ -26803,7 +26874,7 @@ Tile.prototype.LoadQueueAdd = function() {
 
 // This is for connectome stitching.  It uses texture mapping
 // to dynamically warp images.  It only works with webGL.
-Tile.prototype.CreateWarpBuffer = function (warp) {
+Tile.prototype.CreateWarpBuffer = function (warp, gl) {
   // Compute the tile bounds.
   var tileDimensions = this.Cache.TileDimensions;
   var rootSpacing = this.Cache.RootSpacing;
@@ -26820,21 +26891,21 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 
   warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
 
-  this.VertexTextureCoordBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(tCoordsData), GL.STATIC_DRAW);
+  this.VertexTextureCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tCoordsData), gl.STATIC_DRAW);
   this.VertexTextureCoordBuffer.itemSize = 2;
   this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
 
-  this.VertexPositionBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+  this.VertexPositionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
   this.VertexPositionBuffer.itemSize = 3;
   this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-  this.CellBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+  this.CellBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
   this.CellBuffer.itemSize = 1;
   this.CellBuffer.numItems = cellData.length;
 }
@@ -26916,7 +26987,8 @@ Tile.prototype.LoadWebSocket = function (cache) {
     ws.FetchTile(name, image, cache, this.Image);
 }
 
-Tile.prototype.Draw = function (program, context) {
+// TODO: Put program as iVar of view.
+Tile.prototype.Draw = function (program, view) {
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.
   // Load state 1 is: not loaded but in the load queue.
   if ( this.LoadState != 3) {
@@ -26924,49 +26996,49 @@ Tile.prototype.Draw = function (program, context) {
     return;
   }
 
-  if (GL) {
+  if (view.gl) {
     if (this.Texture == null) {
-      this.CreateTexture();
+      this.CreateTexture(view.gl);
     }
     // These are the same for every tile.
     // Vertex points (shifted by tiles matrix)
-    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
     // Needed for outline ??? For some reason, DrawOutline did not work
     // without this call first.
-    context.vertexAttribPointer(imageProgram.vertexPositionAttribute,
+    view.gl.vertexAttribPointer(imageProgram.vertexPositionAttribute,
                           this.VertexPositionBuffer.itemSize,
-                          GL.FLOAT, false, 0, 0);     // Texture coordinates
-    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    context.vertexAttribPointer(imageProgram.textureCoordAttribute,
+                          view.gl.FLOAT, false, 0, 0);     // Texture coordinates
+    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+    view.gl.vertexAttribPointer(imageProgram.textureCoordAttribute,
                           this.VertexTextureCoordBuffer.itemSize,
-                          GL.FLOAT, false, 0, 0);
+                          view.gl.FLOAT, false, 0, 0);
     // Cell Connectivity
-    context.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+    view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
       // Texture
-    context.activeTexture(GL.TEXTURE0);
-    context.bindTexture(GL.TEXTURE_2D, this.Texture);
+    view.gl.activeTexture(view.gl.TEXTURE0);
+    view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
 
-    context.uniform1i(program.samplerUniform, 0);
+    view.gl.uniform1i(program.samplerUniform, 0);
     // Matrix that tranforms the vertex p
-    context.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+    view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-    context.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+    view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
   } else {
     // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
     // WebGL handles this by flipping the texture coordinates.  Here we have to
     // translate the tiles to the correct location.
-    context.save(); // Save the state of the transform so we can restore for the next tile.
+    view.Context2d.save(); // Save the state of the transform so we can restore for the next tile.
 
     // Map tile to world.
     // Matrix is world to 0-1.
-    context.transform(this.Matrix[0], this.Matrix[1],
+    view.Context2d.transform(this.Matrix[0], this.Matrix[1],
                       this.Matrix[4], this.Matrix[5],
                       this.Matrix[12], this.Matrix[13]);
 
 
     // Flip the tile upside down, but leave it in the same place
-    context.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
+    view.Context2d.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
 
     // map pixels to Tile
     var tileSize = this.Cache.Image.TileSize;
@@ -26974,37 +27046,45 @@ Tile.prototype.Draw = function (program, context) {
     if ( tileSize == undefined) {
       tileSize = 256;
     }
-    context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-    context.drawImage(this.Image,0,0);
+    view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
+    view.Context2d.drawImage(this.Image,0,0);
 
     //  Transform to map (0->1, 0->1)
-    context.restore();
+    view.Context2d.restore();
   }
 }
 
-Tile.prototype.CreateTexture = function () {
-  if (this.Texture != null) { return;}
+Tile.prototype.CreateTexture = function (gl) {
+    if (! gl) { 
+        alert("Textures need a gl instance");
+        return;
+    }
+    if (this.Texture != null) { return;}
 
-  ++SA.NumberOfTextures; // To determine when to prune textures.
-  this.Texture = GL.createTexture();
-  var texture = this.Texture;
-  //alert(tile);
-  GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-  GL.bindTexture(GL.TEXTURE_2D, texture);
-  GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
-  GL.bindTexture(GL.TEXTURE_2D, null);
+    ++SA.NumberOfTextures; // To determine when to prune textures.
+    this.Texture = gl.createTexture();
+    var texture = this.Texture;
+    //alert(tile);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.Image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
-Tile.prototype.DeleteTexture = function () {
-  if (this.Texture) {
-    --SA.NumberOfTextures; // To determine when to prune textures.
-    GL.deleteTexture(this.Texture);
-    this.Texture = null;
-  }
+Tile.prototype.DeleteTexture = function (gl) {
+    if (! gl) { 
+        alert("Textures need a gl instance");
+        return;
+    }
+    if (this.Texture) {
+        --SA.NumberOfTextures; // To determine when to prune textures.
+        gl.deleteTexture(this.Texture);
+        this.Texture = null;
+    }
 }
 // I am adding a levels with grids to index tiles in addition
 // to the tree.  Eventually I want to get rid fo the tree.
@@ -27916,23 +27996,23 @@ Section.prototype.FindImage = function (imageCollectionName) {
 // Could the viewport be part of the camera?
 // Returns true if all the tiles to render were available.
 // False implies that the user shoudl render again.
-Section.prototype.Draw = function (view, context) {
+Section.prototype.Draw = function (view) {
     var finishedRendering = true;
-    if (GL) {
+    if (view.gl) {
         var program = imageProgram;
-        context.useProgram(program);
+        view.gl.useProgram(program);
         // Draw tiles.
-        context.viewport(view.Viewport[0], view.Viewport[1],
+        view.gl.viewport(view.Viewport[0], view.Viewport[1],
                          view.Viewport[2], view.Viewport[3]);
-        context.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+        view.gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
     } else {
         // The camera maps the world coordinate system to (-1->1, -1->1).
         var h = 1.0 / view.Camera.Matrix[15];
-        context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
-                          view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
-                          view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
+        view.Context2d.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
+                                 view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
+                                 view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
     }
-    
+
     for (var i = 0; i < this.Caches.length; ++i) {
         var cache = this.Caches[i];
         // Select the tiles to render first.
@@ -27966,7 +28046,7 @@ Section.prototype.Draw = function (view, context) {
 
         // Reverse order to render low res tiles first.
         for (var j = loadedTiles.length-1; j >= 0; --j) {
-            loadedTiles[j].Draw(program, context);
+            loadedTiles[j].Draw(program, view);
         }
     }
     return finishedRendering;
@@ -28017,17 +28097,14 @@ Section.prototype.LoadTilesInView = function (view) {
 // A view has its own camera and list of tiles to display.
 // Views can share a cache for tiles.
 
-var TEXT_VIEW_HACK = null;
 
 (function () {
     "use strict";
 
 
-function View (parent) {
-    // Text needs a context to compute its bounds.
-    if ( ! TEXT_VIEW_HACK) {
-        TEXT_VIEW_HACK = this;
-    }
+function View (parent, useWebGL) {
+    this.Viewport = [0,0, 100,100];
+
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -28051,7 +28128,15 @@ function View (parent) {
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
-    if ( ! GL) {
+
+    if (useWebGL) {
+        this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
+        GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
+        // TODO: Fix this.
+    }
+    if (this.gl) {
+        initWebGL(this.gl);
+    } else {
         this.Context2d = this.Canvas[0].getContext("2d");
     }
 
@@ -28092,6 +28177,8 @@ View.prototype.GetCamera = function() {
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
 View.prototype.InitializeViewport = function(viewport) {
+    alert("legacy init");
+    /*
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
@@ -28105,7 +28192,7 @@ View.prototype.InitializeViewport = function(viewport) {
     // TODO: Get Rid of this.
     //this.CanvasDiv
     //    .addClass('view');
-
+    */
 }
 
 
@@ -28154,10 +28241,6 @@ View.prototype.GetViewport = function() {
   return this.Viewport;
 }
 
-View.prototype.GetViewport = function() {
-  return this.Viewport;
-}
-
 View.prototype.GetWidth = function() {
     return this.CanvasDiv.width();
 }
@@ -28181,50 +28264,31 @@ View.prototype.UpdateCanvasSize = function() {
     // resizable is making width 0 intermitently ????
     if (width <= 0 || height <= 0) { return false; }
 
-    this.Canvas.attr("width", width.toString());
-    this.Canvas.attr("height", height.toString());
-
-    // TODO: Get rid of this.
-    this.Viewport = [pos.left, pos.top, width, height];
-
-    // TODO: Just set the width and height of the camera.
-    // There is no reason, the camera needs to know the
-    // the position of the cameraDiv.
-    this.Camera.SetViewport(this.Viewport);
+    this.SetViewport([pos.left, pos.top, width, height]);
 
     return true;
 }
 
 
-// TODO: Now that the browser in managing the position and size of the
-// canvasDiv, get rid of this function.  I still need to synchronize the
-// canvas with the canvasDiv.  see  UpdateCanvas();
-View.prototype.SetViewport = function(viewport, parent) {
-    parent = parent || this.CanvasDiv;
+// This is meant to be called internally by UpdateCanvasSize.
+// However, if the parent(canvasDiv) is hidden, it might need to be
+// set explcitly.
+// TODO: Change this to simply width and height.
+View.prototype.SetViewport = function(viewport) {
+    var width = viewport[2];
+    var height = viewport[3];
 
-    for (var i = 0; i < 4; ++i) {
-        viewport[i] = Math.round(viewport[i]);
-    }
-    // Allow for border.
-    viewport[2] -=2;
-    viewport[3] -=2;
-    if (parent) {
-        parent.css({
-            'left'  : viewport[0]+"px",
-            'width' : viewport[2]+"px",
-            'top'   : viewport[1]+"px",
-            'height': viewport[3]+"px"
-        });
-        // Needed for canvas to have the correct drawing transformation.
-        this.Canvas.attr("width", viewport[2].toString());
-        this.Canvas.attr("height", viewport[3].toString());
-    }
+    this.Canvas.attr("width", width.toString());
+    this.Canvas.attr("height", height.toString());
 
+    // TODO: Get rid of this ivar
     this.Viewport = viewport;
+
+    // TODO: Just set the width and height of the camera.
+    // There is no reason, the camera needs to know the
+    // the position of the cameraDiv.
     this.Camera.SetViewport(viewport);
 }
-
-
 
 
 View.prototype.CaptureImage = function() {
@@ -28297,11 +28361,11 @@ View.prototype.DrawTiles = function () {
     //    return;
     //}
     //console.time("  ViewDraw");
-    if ( GL) {
+    if ( this.gl) {
         if (MASK_HACK ) {
             return;
         }
-        return this.Section.Draw(this, GL);
+        return this.Section.Draw(this);
     } else {
         this.Clear();
         // Clear the canvas to start drawing.
@@ -28323,13 +28387,13 @@ View.prototype.DrawTiles = function () {
         if (MASK_HACK ) {
             return;
         }
-        return this.Section.Draw(this, this.Context2d);
+        return this.Section.Draw(this);
     }
 }
 
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawHistory = function (windowHeight) {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing history does not work with webGl yet.");
     } else {
         var ctx = this.Context2d;
@@ -28386,7 +28450,7 @@ View.prototype.DrawHistory = function (windowHeight) {
 
 // Draw a cross hair in the center of the view.
 View.prototype.DrawFocalPoint = function () {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing focal point does not work with webGl yet.");
     } else {
         var x = this.Viewport[2] * 0.5;
@@ -28442,7 +28506,7 @@ View.prototype.DrawFocalPoint = function () {
 // Draw a cross hair at each correlation point.
 // pointIdx is 0 or 1.  It indicates which correlation point should be drawn.
 View.prototype.DrawCorrelations = function (correlations, pointIdx) {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing correlations does not work with webGl yet.");
     } else {
         var ctx = this.Context2d;
@@ -28478,7 +28542,7 @@ View.prototype.DrawCopyright = function (copyright) {
   if (copyright == undefined || MASK_HACK) {
     return;
   }
-  if ( GL) {
+  if ( this.gl) {
     // not implemented yet.
   } else {
     this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
@@ -28494,11 +28558,11 @@ View.prototype.DrawCopyright = function (copyright) {
 
 
 View.prototype.DrawOutline = function(backgroundFlag) {
-    if (GL) {
-        program = polyProgram;
-        GL.useProgram(program);
+    if (this.gl) {
+        var program = polyProgram;
+        this.gl.useProgram(program);
 
-        GL.viewport(this.Viewport[0], 
+        this.gl.viewport(this.Viewport[0], 
                     this.Viewport[3]-this.Viewport[1], 
                     this.Viewport[2], 
                     this.Viewport[3]);
@@ -28516,29 +28580,29 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 
         mat4.identity(this.OutlineMatrix);
 
-        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
+        this.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
 
         if (backgroundFlag) {
             // White background fill
             this.OutlineCamMatrix[14] = viewBackZ; // back plane
-            GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-            GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
-            GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+            this.gl.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squarePositionBuffer);
+            this.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    squarePositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);
-            GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
+                                   this.gl.FLOAT, false, 0, 0);
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
         }
 
         // outline
         this.OutlineCamMatrix[14] = viewFrontZ; // force in front
-        GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-        GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
-        GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        GL.vertexAttribPointer(program.vertexPositionAttribute,
+        this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+        this.gl.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        this.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                squareOutlinePositionBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);
-        GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+                               this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(this.gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
     }
 }
 
@@ -28586,20 +28650,66 @@ function Viewer (parent) {
             self.UpdateSize();
         });
 
+
     this.LayerDiv = $('<div>')
         .appendTo(this.Div)
-        .css({'position':'relative',
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
               'border-width':'0px',
               'width':'100%',
               'height':'100%',
-              'box-sizing':'border-box'})
+              'box-sizing':'border-box',
+              'z-index':'100'})
         .addClass('sa-resize');
+
+    // ==============================
+    // Experiment wit combining tranparent webgl ontop of canvas.
+    // did not work
+    /*
+    this.HeatMapDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
+              'border-width':'0px',
+              'width':'100%',
+              'height':'100%',
+              'box-sizing':'border-box',
+              'z-index':'150'})
+        .addClass('sa-resize');
+
+    this.HeatMapDiv.saOnResize(
+        function() {
+            self.HeatMap.UpdateCanvasSize();
+            // Rendering will be a slave to the view because it needs the
+            // view's camera anyway.
+        });
+
+    this.HeatMap = new SA.View(this.HeatMapDiv,true);
+
+    var heatMapSource = new SlideAtlasSource();
+    heatMapSource.Prefix = "/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name="
+    var heatMapCache = new Cache();
+    heatMapCache.TileSource = heatMapSource;
+    heatMapCache.SetImageData(
+        {levels:     12,
+         dimensions: [419168, 290400, 1],
+         bounds: [0,419167, 0, 290399, 0,0]});
+    this.HeatMap.SetCache(heatMapCache);
+
+    this.HeatMap.Camera.Load(
+        {FocalPoint: [209808, 145200],
+         Roll: 0,
+         Height: 419617});
+    this.HeatMap.Camera.ComputeMatrix();
+    this.HeatMap.UpdateCanvasSize();
+    */
+    // ==============================
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
-    // TODO: Get rid of this viewport stuff
-    var viewport = [0,0,100,100];
 
     this.HistoryFlag = false;
 
@@ -28618,7 +28728,7 @@ function Viewer (parent) {
     this.TranslateTarget = [0.0,0.0];
 
     this.MainView = new SA.View(this.Div);
-    this.MainView.InitializeViewport(viewport);
+    // webgl for main view.
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
@@ -28633,13 +28743,11 @@ function Viewer (parent) {
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
         this.OverViewScale = 0.02; // Experimenting with scroll
-	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
-                             viewport[2]*0.18, viewport[3]*0.18];
+	      this.OverViewport = [80, 20, 180, 180];
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
         this.OverView = new SA.View(this.OverViewDiv);
-	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -28665,7 +28773,7 @@ function Viewer (parent) {
             });
         // Try to make the overview be on top of the rotate icon
         // It should receive events before the rotate icon.
-        this.OverView.CanvasDiv.css({'z-index':'200'});
+        this.OverViewDiv.css({'z-index':'200'});
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
@@ -28771,6 +28879,19 @@ function Viewer (parent) {
     this.CopyrightWrapper = $('<div>')
         .appendTo(this.MainView.CanvasDiv)
         .addClass("sa-view-copyright");
+    if (SA.Session.sessid == "560b5127a7a1412195d13685") {
+        this.Icon = $('<img>')
+            .appendTo(this.MainView.CanvasDiv)
+            .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
+            .prop('title', "UC Davis")
+            .css({'position': 'absolute',
+                  'bottom'  : '80px',
+                  'left'    : '7px',
+                  'width'   : '128px',
+                  'z-index' : '4'});
+    }
+
+
 }
 
 // Try to remove all global references to this viewer.
@@ -28997,7 +29118,6 @@ Viewer.prototype.RollMove = function (e) {
     return false;
 }
 
-// TODO: Get rid of viewer::SetViewport.
 // onresize callback.  Canvas width and height and the camera need
 // to be synchronized with the canvas div.
 Viewer.prototype.UpdateSize = function () {
@@ -29007,10 +29127,6 @@ Viewer.prototype.UpdateSize = function () {
 
     if (this.MainView.UpdateCanvasSize() ) {
         this.EventuallyRender();
-    }
-
-    if (this.AnnotationLayer) {
-        this.AnnotationLayer.UpdateSize();
     }
 
     // I do not know the way the viewport is used to place
@@ -29038,9 +29154,13 @@ Viewer.prototype.UpdateSize = function () {
         this.OverViewport = [width-radius-w/2,
                              radius-h/2,
                              w, h];
-
-        this.OverView.SetViewport(this.OverViewport);
-        this.OverView.Camera.ComputeMatrix();
+        this.OverViewDiv.css({
+            'left'  : this.OverViewport[0]+"px",
+            'width' : this.OverViewport[2]+"px",
+            'top'   : this.OverViewport[1]+"px",
+            'height': this.OverViewport[3]+"px"
+        });
+        this.OverView.UpdateCanvasSize();
     }
 }
 
@@ -29188,7 +29308,6 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     // Clone the main view.
     var view = new SA.View();
-    view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -29408,8 +29527,8 @@ Viewer.prototype.SetViewport = function(viewport) {
     // TODO: Get rid of this positioning hack.
     // Caller should be positioning the parent.
     // The whole "viewport" concept needs to be eliminated.
-    this.MainView.SetViewport(viewport, this.Parent);
-    this.MainView.Camera.ComputeMatrix();
+    //this.MainView.SetViewport(viewport, this.Parent);
+    //this.MainView.Camera.ComputeMatrix();
 
     // I do not know the way the viewport is used to place
     // this overview.  It should be like other widgets
@@ -29435,8 +29554,13 @@ Viewer.prototype.SetViewport = function(viewport) {
                              viewport[1]+radius-h/2,
                              w, h];
 
-        this.OverView.SetViewport(this.OverViewport);
-        this.OverView.Camera.ComputeMatrix();
+        this.OverViewDiv.css({
+            'left'  : this.OverViewport[0]+"px",
+            'width' : this.OverViewport[2]+"px",
+            'top'   : this.OverViewport[1]+"px",
+            'height': this.OverViewport[3]+"px"
+        });
+        this.OverView.UpdateCanvasSize();
     }
 }
 
@@ -29634,8 +29758,13 @@ Viewer.prototype.Draw = function() {
         this.EventuallyRender();
     }
 
+    if (this.HeatMap) {
+        this.HeatMap.DrawTiles();
+    }
+
     // This is only necessary for webgl, Canvas2d just uses a border.
-    this.MainView.DrawOutline(false);
+    //Even for weggl, the overview will be a canvas
+    //this.MainView.DrawOutline(false);
     this.AnnotationLayer.Draw();
     // This is not used anymore
     this.MainView.DrawShapes();

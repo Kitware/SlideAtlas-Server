@@ -97,6 +97,7 @@
             });
 
             $(".sa-handle").css({"cursor":"ns-resize"});
+            $(".sa-handle").find("img").css({'border':'1px solid gray'});
             $(".sa-sortable")
                 .sortable({handle: ".sa-handle",
                            stop: function( event, ui ) {

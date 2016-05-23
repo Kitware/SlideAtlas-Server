@@ -4,17 +4,14 @@
 // A view has its own camera and list of tiles to display.
 // Views can share a cache for tiles.
 
-var TEXT_VIEW_HACK = null;
 
 (function () {
     "use strict";
 
 
-function View (parent) {
-    // Text needs a context to compute its bounds.
-    if ( ! TEXT_VIEW_HACK) {
-        TEXT_VIEW_HACK = this;
-    }
+function View (parent, useWebGL) {
+    this.Viewport = [0,0, 100,100];
+
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -38,7 +35,15 @@ function View (parent) {
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
-    if ( ! GL) {
+
+    if (useWebGL) {
+        this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
+        GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
+        // TODO: Fix this.
+    }
+    if (this.gl) {
+        initWebGL(this.gl);
+    } else {
         this.Context2d = this.Canvas[0].getContext("2d");
     }
 
@@ -79,6 +84,8 @@ View.prototype.GetCamera = function() {
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
 View.prototype.InitializeViewport = function(viewport) {
+    alert("legacy init");
+    /*
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
@@ -92,7 +99,7 @@ View.prototype.InitializeViewport = function(viewport) {
     // TODO: Get Rid of this.
     //this.CanvasDiv
     //    .addClass('view');
-
+    */
 }
 
 
@@ -141,10 +148,6 @@ View.prototype.GetViewport = function() {
   return this.Viewport;
 }
 
-View.prototype.GetViewport = function() {
-  return this.Viewport;
-}
-
 View.prototype.GetWidth = function() {
     return this.CanvasDiv.width();
 }
@@ -168,50 +171,31 @@ View.prototype.UpdateCanvasSize = function() {
     // resizable is making width 0 intermitently ????
     if (width <= 0 || height <= 0) { return false; }
 
-    this.Canvas.attr("width", width.toString());
-    this.Canvas.attr("height", height.toString());
-
-    // TODO: Get rid of this.
-    this.Viewport = [pos.left, pos.top, width, height];
-
-    // TODO: Just set the width and height of the camera.
-    // There is no reason, the camera needs to know the
-    // the position of the cameraDiv.
-    this.Camera.SetViewport(this.Viewport);
+    this.SetViewport([pos.left, pos.top, width, height]);
 
     return true;
 }
 
 
-// TODO: Now that the browser in managing the position and size of the
-// canvasDiv, get rid of this function.  I still need to synchronize the
-// canvas with the canvasDiv.  see  UpdateCanvas();
-View.prototype.SetViewport = function(viewport, parent) {
-    parent = parent || this.CanvasDiv;
+// This is meant to be called internally by UpdateCanvasSize.
+// However, if the parent(canvasDiv) is hidden, it might need to be
+// set explcitly.
+// TODO: Change this to simply width and height.
+View.prototype.SetViewport = function(viewport) {
+    var width = viewport[2];
+    var height = viewport[3];
 
-    for (var i = 0; i < 4; ++i) {
-        viewport[i] = Math.round(viewport[i]);
-    }
-    // Allow for border.
-    viewport[2] -=2;
-    viewport[3] -=2;
-    if (parent) {
-        parent.css({
-            'left'  : viewport[0]+"px",
-            'width' : viewport[2]+"px",
-            'top'   : viewport[1]+"px",
-            'height': viewport[3]+"px"
-        });
-        // Needed for canvas to have the correct drawing transformation.
-        this.Canvas.attr("width", viewport[2].toString());
-        this.Canvas.attr("height", viewport[3].toString());
-    }
+    this.Canvas.attr("width", width.toString());
+    this.Canvas.attr("height", height.toString());
 
+    // TODO: Get rid of this ivar
     this.Viewport = viewport;
+
+    // TODO: Just set the width and height of the camera.
+    // There is no reason, the camera needs to know the
+    // the position of the cameraDiv.
     this.Camera.SetViewport(viewport);
 }
-
-
 
 
 View.prototype.CaptureImage = function() {
@@ -284,11 +268,11 @@ View.prototype.DrawTiles = function () {
     //    return;
     //}
     //console.time("  ViewDraw");
-    if ( GL) {
+    if ( this.gl) {
         if (MASK_HACK ) {
             return;
         }
-        return this.Section.Draw(this, GL);
+        return this.Section.Draw(this);
     } else {
         this.Clear();
         // Clear the canvas to start drawing.
@@ -310,13 +294,13 @@ View.prototype.DrawTiles = function () {
         if (MASK_HACK ) {
             return;
         }
-        return this.Section.Draw(this, this.Context2d);
+        return this.Section.Draw(this);
     }
 }
 
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawHistory = function (windowHeight) {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing history does not work with webGl yet.");
     } else {
         var ctx = this.Context2d;
@@ -373,7 +357,7 @@ View.prototype.DrawHistory = function (windowHeight) {
 
 // Draw a cross hair in the center of the view.
 View.prototype.DrawFocalPoint = function () {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing focal point does not work with webGl yet.");
     } else {
         var x = this.Viewport[2] * 0.5;
@@ -429,7 +413,7 @@ View.prototype.DrawFocalPoint = function () {
 // Draw a cross hair at each correlation point.
 // pointIdx is 0 or 1.  It indicates which correlation point should be drawn.
 View.prototype.DrawCorrelations = function (correlations, pointIdx) {
-    if ( GL) {
+    if ( this.gl) {
         alert("Drawing correlations does not work with webGl yet.");
     } else {
         var ctx = this.Context2d;
@@ -465,7 +449,7 @@ View.prototype.DrawCopyright = function (copyright) {
   if (copyright == undefined || MASK_HACK) {
     return;
   }
-  if ( GL) {
+  if ( this.gl) {
     // not implemented yet.
   } else {
     this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
@@ -481,11 +465,11 @@ View.prototype.DrawCopyright = function (copyright) {
 
 
 View.prototype.DrawOutline = function(backgroundFlag) {
-    if (GL) {
-        program = polyProgram;
-        GL.useProgram(program);
+    if (this.gl) {
+        var program = polyProgram;
+        this.gl.useProgram(program);
 
-        GL.viewport(this.Viewport[0], 
+        this.gl.viewport(this.Viewport[0], 
                     this.Viewport[3]-this.Viewport[1], 
                     this.Viewport[2], 
                     this.Viewport[3]);
@@ -503,29 +487,29 @@ View.prototype.DrawOutline = function(backgroundFlag) {
 
         mat4.identity(this.OutlineMatrix);
 
-        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
+        this.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
 
         if (backgroundFlag) {
             // White background fill
             this.OutlineCamMatrix[14] = viewBackZ; // back plane
-            GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-            GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
-            GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+            this.gl.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squarePositionBuffer);
+            this.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    squarePositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);
-            GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
+                                   this.gl.FLOAT, false, 0, 0);
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
         }
 
         // outline
         this.OutlineCamMatrix[14] = viewFrontZ; // force in front
-        GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-        GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
-        GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        GL.vertexAttribPointer(program.vertexPositionAttribute,
+        this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+        this.gl.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        this.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                squareOutlinePositionBuffer.itemSize,
-                               GL.FLOAT, false, 0, 0);
-        GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+                               this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(this.gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
     }
 }
 

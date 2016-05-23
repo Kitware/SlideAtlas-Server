@@ -76,7 +76,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 
     widget.Shape.Origin = [x, y];
     widget.Shape.Radius = cam.Height / 4.0;
-    widget.Shape.UpdateBuffers();
+    widget.Shape.UpdateBuffers(this.Layer.AnnotationView);
     eventuallyRender();
 
     this.Layer.SetVisibility(true);

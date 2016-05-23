@@ -85,23 +85,23 @@ Section.prototype.FindImage = function (imageCollectionName) {
 // Could the viewport be part of the camera?
 // Returns true if all the tiles to render were available.
 // False implies that the user shoudl render again.
-Section.prototype.Draw = function (view, context) {
+Section.prototype.Draw = function (view) {
     var finishedRendering = true;
-    if (GL) {
+    if (view.gl) {
         var program = imageProgram;
-        context.useProgram(program);
+        view.gl.useProgram(program);
         // Draw tiles.
-        context.viewport(view.Viewport[0], view.Viewport[1],
+        view.gl.viewport(view.Viewport[0], view.Viewport[1],
                          view.Viewport[2], view.Viewport[3]);
-        context.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+        view.gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
     } else {
         // The camera maps the world coordinate system to (-1->1, -1->1).
         var h = 1.0 / view.Camera.Matrix[15];
-        context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
-                          view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
-                          view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
+        view.Context2d.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
+                                 view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
+                                 view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
     }
-    
+
     for (var i = 0; i < this.Caches.length; ++i) {
         var cache = this.Caches[i];
         // Select the tiles to render first.
@@ -135,7 +135,7 @@ Section.prototype.Draw = function (view, context) {
 
         // Reverse order to render low res tiles first.
         for (var j = loadedTiles.length-1; j >= 0; --j) {
-            loadedTiles[j].Draw(program, context);
+            loadedTiles[j].Draw(program, view);
         }
     }
     return finishedRendering;

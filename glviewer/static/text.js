@@ -76,13 +76,14 @@
         alert("Could not load font");
     }
 
-    function Text() {
+    function Text(gl) {
         // All text objects sare the same texture map.
         //if (TEXT_TEXTURE == undefined ) {
         //}
-        if (GL) {
+        if (gl) {
+            this.gl = gl;
             this.TextureLoaded = false;
-            this.Texture = GL.createTexture();
+            this.Texture = gl.createTexture();
             this.Image = new Image();
             this.Image.onload = GetTextureLoadedFunction(this);
             //this.Image.onerror = TextError(); // Always fires for some reason.
@@ -120,15 +121,15 @@
     // TODO: Although this only used for the webL renderer, we should really
     // Hava a callback and let the application (or widget) call eventually render.
     Text.prototype.HandleLoadedTexture = function() {
-        if (GL) {
+        if (this.gl) {
             var texture = this.Texture;
-            GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-            GL.bindTexture(GL.TEXTURE_2D, texture);
-            GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-            GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-            GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
-            GL.generateMipmap(GL.TEXTURE_2D);
-            GL.bindTexture(GL.TEXTURE_2D, null);
+            this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.Image);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
+            this.gl.generateMipmap(this.gl.TEXTURE_2D);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
             this.TextureLoaded = true;
         }
         eventuallyRender();
@@ -147,55 +148,55 @@
             x = view.Viewport[2]*(0.5*(1.0+x));
             y = view.Viewport[3]*(0.5*(1.0-y));
         }
-  
+
         // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
         if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
             this.Anchor = [-50, 0];
         }
 
-        if (GL) {
+        if (view.gl) {
             if (this.TextureLoaded == false) {
                 return;
             }
             if (this.Matrix == undefined) {
-                this.UpdateBuffers();
+                this.UpdateBuffers(view);
                 this.Matrix = mat4.create();
                 mat4.identity(this.Matrix);
             }
             var program = textProgram;
-            GL.useProgram(program);
+            view.gl.useProgram(program);
 
             //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
             //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
             //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
-            //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
-            GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-            GL.enable(GL.BLEND);
-            //GL.disable(GL.DEPTH_TEST);
+            //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            view.gl.blendFunc(view.gl.SRC_ALPHA, view.gl.ONE_MINUS_SRC_ALPHA);
+            view.gl.enable(view.gl.BLEND);
+            //view.gl.disable(view.gl.DEPTH_TEST);
 
             // These are the same for every tile.
             // Vertex points (shifted by tiles matrix)
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
             // Needed for outline ??? For some reason, DrawOutline did not work
             // without this call first.
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            view.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    this.VertexPositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);     // Texture coordinates
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-            GL.vertexAttribPointer(program.textureCoordAttribute,
+                                   view.gl.FLOAT, false, 0, 0);     // Texture coordinates
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+            view.gl.vertexAttribPointer(program.textureCoordAttribute,
                                    this.VertexTextureCoordBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);
+                                   view.gl.FLOAT, false, 0, 0);
             // Cell Connectivity
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
             // Color of text
             if (this.Active) {
-                GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+                view.gl.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
             } else {
-                GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+                view.gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
             }
             // Draw characters.
-            GL.viewport(view.Viewport[0], view.Viewport[1],
+            view.gl.viewport(view.Viewport[0], view.Viewport[1],
                         view.Viewport[2], view.Viewport[3]);
 
             var viewFrontZ = view.Camera.ZRange[0]+0.01;
@@ -209,18 +210,18 @@
             camMatrix[5] = -2.0 / view.Viewport[3];
             camMatrix[13] = 1.0;
             camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
-            GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+            view.gl.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
 
             // Translate the anchor to x,y
             this.Matrix[12] = x - this.Anchor[0];
             this.Matrix[13] = y - this.Anchor[1];
-            GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+            view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-            GL.activeTexture(GL.TEXTURE0);
-            GL.bindTexture(GL.TEXTURE_2D, this.Texture);
-            GL.uniform1i(program.samplerUniform, 0);
+            view.gl.activeTexture(view.gl.TEXTURE0);
+            view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
+            view.gl.uniform1i(program.samplerUniform, 0);
 
-            GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
+            view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT,0);
         } else {
             // (x,y) is the screen position of the text.
             // Canvas text location is lower left of first letter.
@@ -291,8 +292,8 @@
         ctx.fill();
     }
 
-    Text.prototype.UpdateBuffers = function() {
-        if ( ! GL) { 
+    Text.prototype.UpdateBuffers = function(view) {
+        if ( ! view.gl) { 
             // Canvas.  Compute pixel bounds.
             var strArray = this.String.split("\n");
             var height = this.Size * LINE_SPACING * strArray.length;
@@ -300,7 +301,7 @@
             // Hack: use a global viewer because I do not have the viewer.
             // Maybe it should be passed in as an argument, or store the context
             // as an instance variable.
-            var ctx = TEXT_VIEW_HACK.Context2d;
+            var ctx = view.Context2d;
             ctx.save();
             ctx.setTransform(1,0,0,1,0,0);
             ctx.font = this.Size+'pt Calibri';
@@ -385,21 +386,21 @@
             }
         }
 
-        this.VertexTextureCoordBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+        this.VertexTextureCoordBuffer = view.gl.createBuffer();
+        view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+        view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(textureCoordData), view.gl.STATIC_DRAW);
         this.VertexTextureCoordBuffer.itemSize = 2;
         this.VertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-        this.VertexPositionBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+        this.VertexPositionBuffer = view.gl.createBuffer();
+        view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+        view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), view.gl.STATIC_DRAW);
         this.VertexPositionBuffer.itemSize = 3;
         this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-        this.CellBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+        this.CellBuffer = view.gl.createBuffer();
+        view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
         this.CellBuffer.itemSize = 1;
         this.CellBuffer.numItems = cellData.length;
     }

@@ -73,7 +73,7 @@
     }
 
     // Adds origin to points and sets origin to 0.
-    Polyline.prototype.ResetOrigin = function() {
+    Polyline.prototype.ResetOrigin = function(view) {
         for (var i = 0; i < this.Points.length; ++i) {
             var pt = this.Points[i];
             pt[0] += this.Origin[0];
@@ -81,7 +81,7 @@
         }
         this.Origin[0] = 0;
         this.Origin[1] = 0;
-        this.UpdateBuffers();
+        this.UpdateBuffers(view);
     }
 
 
@@ -151,7 +151,7 @@
         return bestPt;
     }
 
-    Polyline.prototype.MergePoints = function (thresh) {
+    Polyline.prototype.MergePoints = function (thresh, view) {
         thresh = thresh * thresh;
         var modified = false;
         for (var i = 1; i < this.Points.length; ++i) {
@@ -166,13 +166,13 @@
             }
         }
         if (modified) {
-            this.UpdateBuffers();
+            this.UpdateBuffers(view);
         }
     }
 
     // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
     // Pass in the spacing as a hint to get rid of aliasing.
-    Polyline.prototype.Decimate = function (spacing) {
+    Polyline.prototype.Decimate = function (spacing, view) {
         // Keep looping over the line removing points until the line does not change.
         var modified = true;
         while (modified) {
@@ -221,7 +221,7 @@
             }
             this.Points = newPoints;
         }
-        this.UpdateBuffers();
+        this.UpdateBuffers(view);
     }
 
     Polyline.prototype.AddPointToBounds = function(pt, radius) {
@@ -242,7 +242,7 @@
 
     // NOTE: Line thickness is handled by style in canvas.
     // I think the GL version that uses triangles is broken.
-    Polyline.prototype.UpdateBuffers = function() {
+    Polyline.prototype.UpdateBuffers = function(view) {
         var points = this.Points.slice(0);
         if (this.Closed && points.length > 2) {
             points.push(points[0]);
@@ -257,7 +257,7 @@
         // xMin,xMax, yMin,yMax
         this.Bounds = [points[0][0],points[0][0],points[0][1],points[0][1]];
 
-        if (this.LineWidth == 0 || !GL ) {
+        if (this.LineWidth == 0 || !view.gl ) {
             for (var i = 0; i < points.length; ++i) {
                 this.PointBuffer.push(points[i][0]);
                 this.PointBuffer.push(points[i][1]);
@@ -338,23 +338,23 @@
             }
         }
 
-        if (GL) {
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+        if (view.gl) {
+            this.VertexPositionBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
             this.VertexPositionBuffer.itemSize = 3;
             this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
             this.CellBuffer.itemSize = 1;
             this.CellBuffer.numItems = cellData.length;
 
             if (this.LineWidth != 0) {
-                this.LineCellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+                this.LineCellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), view.gl.STATIC_DRAW);
                 this.LineCellBuffer.itemSize = 1;
                 this.LineCellBuffer.numItems = lineCellData.length;
             }

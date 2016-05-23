@@ -44,9 +44,9 @@
         return false;
     }
 
-    ShapeGroup.prototype.UpdateBuffers = function() {
+    ShapeGroup.prototype.UpdateBuffers = function(view) {
         for (var i = 0; i < this.Shapes.length; ++i) {
-            this.Shapes.UpdateBuffers();
+            this.Shapes.UpdateBuffers(view);
         }
     }
 
@@ -143,9 +143,9 @@
         return [0,0,0];
     }
 
-    ShapeGroup.prototype.UpdateBuffers = function() {
+    ShapeGroup.prototype.UpdateBuffers = function(view) {
         for (var i = 0; i < this.Shapes.length; ++i) {
-            this.Shapes[i].UpdateBuffers();
+            this.Shapes[i].UpdateBuffers(view);
         }
     }
 

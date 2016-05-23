@@ -1,6 +1,6 @@
 //==============================================================================
 // This widget will first be setup to define an arrow.
-// Viewer will forward events to the arrow.
+// Layer will forward events to the arrow.
 // TODO: I need to indicate that the base of the arrow has different active
 // state than the rest.
 
@@ -21,12 +21,12 @@
     var ARROW_WIDGET_PROPERTIES_DIALOG = 6; // Properties dialog is up
 
 
-    // We might get rid of the new flag by passing in a null viewer.
-    function ArrowWidget (viewer, newFlag) {
-        if (viewer == null) {
+    // We might get rid of the new flag by passing in a null layer.
+    function ArrowWidget (layer, newFlag) {
+        if (layer == null) {
             return null;
         }
-        this.Viewer = viewer;
+        this.Layer = layer;
 
         // Wait to create this until the first move event.
         this.Shape = new Arrow();
@@ -40,11 +40,11 @@
         this.TipPosition = [0,0];
         this.TipOffset = [0,0];
 
-        if (viewer) {
-            viewer.AddWidget(this);
-            if (newFlag && viewer) {
+        if (layer) {
+            layer.AddWidget(this);
+            if (newFlag && layer) {
                 this.State = ARROW_WIDGET_NEW;
-                this.Viewer.ActivateWidget(this);
+                this.Layer.ActivateWidget(this);
                 return;
             }
         }
@@ -57,9 +57,9 @@
     }
 
 
-    ArrowWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.Viewer.RemoveWidget(this);
+    ArrowWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.Layer.RemoveWidget(this);
         }
     }
 
@@ -103,7 +103,7 @@
             this.Shape.FixedOrientation = (obj.fixedorientation == "true");
         }
 
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     // When we toggle fixed size, we have to convert the length of the arrow
@@ -112,7 +112,7 @@
         if (this.Shape.FixedSize == fixedSizeFlag) {
             return;
         }
-        var pixelsPerUnit = this.Viewer.GetPixelsPerUnit();
+        var pixelsPerUnit = this.Layer.GetPixelsPerUnit();
 
         if (fixedSizeFlag) {
             // Convert length from world to viewer.
@@ -137,17 +137,17 @@
             return;
         }
         if (this.State == ARROW_WIDGET_NEW) {
-            this.TipPosition = [this.Viewer.MouseX, this.Viewer.MouseY];
+            this.TipPosition = [this.Layer.MouseX, this.Layer.MouseY];
             this.State = ARROW_WIDGET_DRAG_TAIL;
         }
         if (this.State == ARROW_WIDGET_ACTIVE) {
             if (this.ActiveTail) {
-                this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+                this.TipPosition = this.Layer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
                 this.State = ARROW_WIDGET_DRAG_TAIL;
             } else {
-                var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-                this.TipOffset[0] = tipPosition[0] - this.Viewer.MouseX;
-                this.TipOffset[1] = tipPosition[1] - this.Viewer.MouseY;
+                var tipPosition = this.Layer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+                this.TipOffset[0] = tipPosition[0] - this.Layer.MouseX;
+                this.TipOffset[1] = tipPosition[1] - this.Layer.MouseY;
                 this.State = ARROW_WIDGET_DRAG;
             }
         }
@@ -168,17 +168,17 @@
     }
 
     ArrowWidget.prototype.HandleMouseMove = function(event) {
-        var x = this.Viewer.MouseX;
-        var y = this.Viewer.MouseY;
+        var x = this.Layer.MouseX;
+        var y = this.Layer.MouseY;
 
-        if (this.Viewer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
+        if (this.Layer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
             this.CheckActive(event);
             return;
         }
 
         if (this.State == ARROW_WIDGET_NEW || this.State == ARROW_WIDGET_DRAG) {
-            var viewport = this.Viewer.GetViewport();
-            this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x+this.TipOffset[0], y+this.TipOffset[1]);
+            var viewport = this.Layer.GetViewport();
+            this.Shape.Origin = this.Layer.ConvertPointViewerToWorld(x+this.TipOffset[0], y+this.TipOffset[1]);
             eventuallyRender();
         }
 
@@ -186,7 +186,7 @@
             var dx = x-this.TipPosition[0];
             var dy = y-this.TipPosition[1];
             if ( ! this.Shape.FixedSize) {
-                var pixelsPerUnit = this.Viewer.GetPixelsPerUnit();
+                var pixelsPerUnit = this.Layer.GetPixelsPerUnit();
                 dx /= pixelsPerUnit;
                 dy /= pixelsPerUnit;
             }
@@ -202,8 +202,8 @@
     }
 
     ArrowWidget.prototype.CheckActive = function(event) {
-        var viewport = this.Viewer.GetViewport();
-        var cam = this.Viewer.MainView.Camera;
+        var viewport = this.Layer.GetViewport();
+        var cam = this.Layer.MainView.Camera;
         var m = cam.Matrix;
         // Compute tip point in screen coordinates.
         var x = this.Shape.Origin[0];
@@ -217,8 +217,8 @@
         yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
 
         // Use this point as the origin.
-        x = this.Viewer.MouseX - xNew;
-        y = this.Viewer.MouseY - yNew;
+        x = this.Layer.MouseX - xNew;
+        y = this.Layer.MouseY - yNew;
         // Rotate so arrow lies along the x axis.
         var tmp = this.Shape.Orientation * Math.PI / 180.0;
         var ct = Math.cos(tmp);
@@ -229,7 +229,7 @@
         var length = this.Shape.Length;
         var halfWidth = this.Shape.Width / 2.0;
         if ( ! this.Shape.FixedSize) {
-            var pixelsPerUnit = this.Viewer.GetPixelsPerUnit();
+            var pixelsPerUnit = this.Layer.GetPixelsPerUnit();
             length *= pixelsPerUnit;
             halfWidth *= pixelsPerUnit;
         }
@@ -267,12 +267,12 @@
         if (flag) {
             this.State = ARROW_WIDGET_ACTIVE;
             this.Shape.Active = true;
-            this.Viewer.ActivateWidget(this);
+            this.Layer.ActivateWidget(this);
             eventuallyRender();
         } else {
             this.State = ARROW_WIDGET_WAITING;
             this.Shape.Active = false;
-            this.Viewer.DeactivateWidget(this);
+            this.Layer.DeactivateWidget(this);
             eventuallyRender();
         }
     }
@@ -329,10 +329,10 @@
     function ArrowPropertyDialogDelete() {
         var widget = ARROW_WIDGET_DIALOG_SELF;
         if (widget != null) {
-            viewer.ActiveWidget = null;
+            this.Layer.ActiveWidget = null;
             // We need to remove an item from a list.
             // shape list and widget list.
-            widget.RemoveFromViewer();
+            widget.RemoveFromLayer();
             eventuallyRender();
         }
     }

@@ -311,17 +311,22 @@
     function AnnotationLayer (viewerDiv, viewerCamera) {
         var self = this;
 
+        // I do not like modifying the parent.
+        var self = this;
+        viewerDiv.saOnResize(
+            function() {
+                self.UpdateSize();
+            });
+
         // Hack for debugging
         SAM.DebugLayer = this;
 
         // TODO: Abstract the view to a layer somehow.
         this.AnnotationView = new SA.View(viewerDiv);
-        this.AnnotationView.CanvasDiv.css({'z-index':'100'});
+
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
 
-        // TODO: Get rid of this.
-        this.AnnotationView.InitializeViewport([0,0,100,100]);
         //this.AnnotationView.OutlineColor = [0,0,0];
         // Uses the same camera.
         this.AnnotationView.Camera = viewerCamera;

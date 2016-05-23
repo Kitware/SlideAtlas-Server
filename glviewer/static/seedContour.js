@@ -193,8 +193,8 @@ function GenerateContourFromViewer(viewer, threshold) {
     var plWidget = new PolylineWidget(viewer,false);
     plWidget.Shape.Points = slideLoop;
     plWidget.Shape.Closed = true;
-    plWidget.LineWidth = 0;    
-    plWidget.Shape.UpdateBuffers();
+    plWidget.LineWidth = 0;
+    plWidget.Shape.UpdateBuffers(this.Layer.AnnotationView);
     eventuallyRender();
 }
 

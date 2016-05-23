@@ -514,61 +514,56 @@ function GetViewId () {
 // WebGL Initializationf
 
 function doesBrowserSupportWebGL(canvas) {
+    var gl;
     try {
-        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        GL = canvas.getContext("webgl");
+        //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        gl = canvas.getContext("webgl");
     } catch (e) {
     }
-    if (!GL) {
+    if (!gl) {
         //saDebug("Could not initialise WebGL, sorry :-(");
-        return false;
+        return null;
     }
-   return true;
+   return gl;
 }
 
-
+/*
 function initGL() {
 
     // Add a new canvas.
     CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
     //this.canvas.onselectstart = function() {return false;};
     //this.canvas.onmousedown = function() {return false;};
-    GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+    var gl = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
 
+    if (gl) {
+        // Defined in HTML
+        initShaderPrograms();
+        initOutlineBuffers();
+        initImageTileBuffers();
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.enable(GL.DEPTH_TEST);
+    }
+
+    return gl;
+}
+*/
+
+function initWebGL(gl) {
+    if (imageProgram) { return; }
     // Defined in HTML
-    initShaderPrograms();
-    initOutlineBuffers();
-    initImageTileBuffers();
-    GL.clearColor(1.0, 1.0, 1.0, 1.0);
-    GL.enable(GL.DEPTH_TEST);
+    initShaderPrograms(gl);
+    initOutlineBuffers(gl);
+    initImageTileBuffers(gl);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
 }
 
 
-
-function getShader(gl, id) {
-    var shaderScript = document.getElementById(id);
-    if (!shaderScript) {
-        return null;
-    }
-
-    var str = "";
-    var k = shaderScript.firstChild;
-    while (k) {
-        if (k.nodeType == 3) {
-            str += k.textContent;
-        }
-        k = k.nextSibling;
-    }
-
+function getShader(gl, type, str) {
     var shader;
-    if (shaderScript.type == "x-shader/x-fragment") {
-        shader = gl.createShader(gl.FRAGMENT_SHADER);
-    } else if (shaderScript.type == "x-shader/x-vertex") {
-        shader = gl.createShader(gl.VERTEX_SHADER);
-    } else {
-        return null;
-    }
-
+    shader = gl.createShader(type);
     gl.shaderSource(shader, str);
     gl.compileShader(shader);
 
@@ -580,56 +575,125 @@ function getShader(gl, id) {
     return shader;
 }
 
+// Not used because annotations are all canvas.
+// Might be useful in the future.
+/*
+<script id="shader-poly-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  uniform vec3 uColor;
+  void main(void) {
+   gl_FragColor = vec4(uColor, 1.0);
+   //gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
+  }
+</script>
+<script id="shader-poly-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+  }
+</script>
+<script id="shader-text-fs" type="x-shader/x-fragment">
+  precision mediump float;
+
+  varying vec2 vTextureCoord;
+  uniform sampler2D uSampler;
+  uniform vec3 uColor;
+
+  void main(void) {
+    vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    // Use the image pixel value as transparency.
+    gl_FragColor = vec4(uColor, textureColor.rgb[0]);
+  }
+</script>
+<script id="shader-text-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+
+  varying vec2 vTextureCoord;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    vTextureCoord = aTextureCoord;
+  }
+*/
 
 
-function initShaderPrograms() {
-    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs");
-    polyProgram.colorUniform = GL.getUniformLocation(polyProgram, "uColor");
+function initShaderPrograms(gl) {
 
-    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs");
+    var fragmentShaderString = 
+        "precision highp float;" +
+        "uniform sampler2D uSampler;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+        "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
+        "   if (value < 0.3 || value > 2.5) {" +
+        "     textureColor[3] = 0.0;" +
+        "   }" +
+        "   gl_FragColor = textureColor;" +
+        " }";
+    var vertexShaderString = 
+        "attribute vec3 aVertexPosition;" +
+        "attribute vec2 aTextureCoord;" +
+        "uniform mat4 uMVMatrix;" +
+        "uniform mat4 uPMatrix;" +
+        "uniform mat3 uNMatrix;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+        "  vTextureCoord = aTextureCoord;" +
+        "}";
+
+    imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
     // Texture coordinate attribute and texture image uniform
     imageProgram.textureCoordAttribute
-        = GL.getAttribLocation(imageProgram,"aTextureCoord");
-    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute);
-    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");
+        = gl.getAttribLocation(imageProgram,"aTextureCoord");
+    gl.enableVertexAttribArray(imageProgram.textureCoordAttribute);
+    imageProgram.samplerUniform = gl.getUniformLocation(imageProgram, "uSampler");
 
 
+    //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+    //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-    textProgram = createProgram("shader-text-fs", "shader-text-vs");
-    textProgram.textureCoordAttribute
-        = GL.getAttribLocation(textProgram, "aTextureCoord");
-    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);
-    textProgram.samplerUniform
-        = GL.getUniformLocation(textProgram, "uSampler");
-    textProgram.colorUniform = GL.getUniformLocation(textProgram, "uColor");
+    //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+    //textProgram.textureCoordAttribute
+    //    = gl.getAttribLocation(textProgram, "aTextureCoord");
+    //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
+    //textProgram.samplerUniform
+    //    = gl.getUniformLocation(textProgram, "uSampler");
+    //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
 }
 
 
-function createProgram(fragmentShaderID, vertexShaderID) {
-    var fragmentShader = getShader(GL, fragmentShaderID);
-    var vertexShader = getShader(GL, vertexShaderID);
+function createProgram(fragmentShaderString, vertexShaderString, gl) {
+    var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
+    var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
-    var program = GL.createProgram();
-    GL.attachShader(program, vertexShader);
-    GL.attachShader(program, fragmentShader);
-    GL.linkProgram(program);
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
 
-    if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         saDebug("Could not initialise shaders");
     }
 
-    program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
-    GL.enableVertexAttribArray(program.vertexPositionAttribute);
+    program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
+    gl.enableVertexAttribArray(program.vertexPositionAttribute);
 
     // Camera matrix
-    program.pMatrixUniform = GL.getUniformLocation(program, "uPMatrix");
+    program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
     // Model matrix
-    program.mvMatrixUniform = GL.getUniformLocation(program, "uMVMatrix");
+    program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
 
     return program;
 }
 
-function initOutlineBuffers() {
+function initOutlineBuffers(gl) {
     // Outline Square
     vertices = [
         0.0,  0.0,  0.0,
@@ -637,22 +701,22 @@ function initOutlineBuffers() {
         1.0, 1.0,  0.0,
         1.0, 0.0,  0.0,
         0.0, 0.0,  0.0];
-    squareOutlinePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    squareOutlinePositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     squareOutlinePositionBuffer.itemSize = 3;
     squareOutlinePositionBuffer.numItems = 5;
 
     // Filled square
-    squarePositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
+    squarePositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
     vertices = [
         1.0,  1.0,  0.0,
         0.0,  1.0,  0.0,
         1.0,  0.0,  0.0,
         0.0,  0.0,  0.0
     ];
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertices), GL.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     squarePositionBuffer.itemSize = 3;
     squarePositionBuffer.numItems = 4;
 }
@@ -664,7 +728,7 @@ function initOutlineBuffers() {
 
 
 
-function initImageTileBuffers() {
+function initImageTileBuffers(gl) {
     var vertexPositionData = [];
     var textureCoordData = [];
 
@@ -703,21 +767,21 @@ function initImageTileBuffers() {
     cellData.push(1);
     cellData.push(3);
 
-    tileVertexTextureCoordBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+    tileVertexTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
     tileVertexTextureCoordBuffer.itemSize = 2;
     tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-    tileVertexPositionBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    tileVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexPositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
     tileVertexPositionBuffer.itemSize = 3;
     tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-    tileCellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+    tileCellBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
     tileCellBuffer.itemSize = 1;
     tileCellBuffer.numItems = cellData.length;
 }

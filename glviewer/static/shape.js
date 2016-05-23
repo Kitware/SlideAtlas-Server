@@ -44,10 +44,10 @@
             return;
         }
         if (this.Matrix == undefined) {
-            this.UpdateBuffers();
+            this.UpdateBuffers(view);
         }
 
-        if (GL) {
+        if (view.gl) {
             // Lets use the camera to change coordinate system to pixels.
             // TODO: Put this camera in the view or viewer to avoid creating one each render.
             var camMatrix = mat4.create();
@@ -90,73 +90,73 @@
 
             var program = polyProgram;
 
-            GL.useProgram(program);
-            GL.disable(GL.BLEND);
-            GL.enable(GL.DEPTH_TEST);
+            view.gl.useProgram(program);
+            view.gl.disable(view.gl.BLEND);
+            view.gl.enable(view.gl.DEPTH_TEST);
 
             // This does not work.
             // I will need to make thick lines with polygons.
-            //GL.lineWidth(5);
+            //view.gl.lineWidth(5);
 
             // These are the same for every tile.
             // Vertex points (shifted by tiles matrix)
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
             // Needed for outline ??? For some reason, DrawOutline did not work
             // without this call first.
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            view.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    this.VertexPositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);     // Texture coordinates
+                                   view.gl.FLOAT, false, 0, 0);     // Texture coordinates
             // Local view.
-            GL.viewport(view.Viewport[0], view.Viewport[1],
+            view.gl.viewport(view.Viewport[0], view.Viewport[1],
                         view.Viewport[2], view.Viewport[3]);
 
-            GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+            view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
             if (this.FixedSize) {
-                GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+                view.gl.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
             } else {
                 // Use main views camera to convert world to view.
-                GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+                view.gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
             }
 
             // Fill color
             if (this.FillColor != undefined) {
                 if (this.Active) {
-                    GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.ActiveColor[0],
                                  this.ActiveColor[1], this.ActiveColor[2]);
                 } else {
-                    GL.uniform3f(program.colorUniform, this.FillColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.FillColor[0],
                                  this.FillColor[1], this.FillColor[2]);
                 }
                 // Cell Connectivity
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
-                GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
-                                GL.UNSIGNED_SHORT,0);
+                view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems,
+                                view.gl.UNSIGNED_SHORT,0);
             }
 
             if (this.OutlineColor != undefined) {
                 if (this.Active) {
-                    GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.ActiveColor[0],
                                  this.ActiveColor[1], this.ActiveColor[2]);
                 } else {
-                    GL.uniform3f(program.colorUniform, this.OutlineColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.OutlineColor[0],
                                  this.OutlineColor[1], this.OutlineColor[2]);
                 }
 
                 if (this.LineWidth == 0) {
                     if (this.WireFrame) {
-                        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-                        GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems,
-                                        GL.UNSIGNED_SHORT,0);
+                        view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                        view.gl.drawElements(view.gl.LINE_LOOP, this.CellBuffer.numItems,
+                                        view.gl.UNSIGNED_SHORT,0);
                     } else {
                         // Outline. This only works for polylines
-                        GL.drawArrays(GL.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
+                        view.gl.drawArrays(view.gl.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
                     }
                 } else {
                     // Cell Connectivity
-                    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-                    GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems,
-                                    GL.UNSIGNED_SHORT,0);
+                    view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                    view.gl.drawElements(view.gl.TRIANGLES, this.LineCellBuffer.numItems,
+                                    view.gl.UNSIGNED_SHORT,0);
                 }
             }
         } else { // 2d Canvas -----------------------------------------------
@@ -304,7 +304,7 @@
         return false;
     }
 
-    //Shape.prototype.UpdateBuffers = function() {
+    //Shape.prototype.UpdateBuffers = function(view) {
     //    // The superclass does not implement this method.
     //}
 

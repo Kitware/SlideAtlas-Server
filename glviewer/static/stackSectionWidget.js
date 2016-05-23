@@ -207,7 +207,7 @@
                 for (var m = 0; m < points.length; ++m) {
                     shape.Points[m] = [points[m][0], points[m][1]];
                 }
-                shape.UpdateBuffers();
+                shape.UpdateBuffers(this.Layer.AnnotationView);
             }
         }
     }
@@ -508,7 +508,7 @@
                 pt[0] = x + (rx-vx) + shift[0];
                 pt[1] = y + (ry-vy) + shift[1];
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
     }
 
@@ -522,7 +522,7 @@
                 pt[0] += shift[0];
                 pt[1] += shift[1];
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
     }
 
@@ -546,7 +546,7 @@
                     p0 = p1;
                 }
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
     }
 
