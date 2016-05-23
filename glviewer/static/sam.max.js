@@ -245,17 +245,22 @@
     function AnnotationLayer (viewerDiv, viewerCamera) {
         var self = this;
 
+        // I do not like modifying the parent.
+        var self = this;
+        viewerDiv.saOnResize(
+            function() {
+                self.UpdateSize();
+            });
+
         // Hack for debugging
         SAM.DebugLayer = this;
 
         // TODO: Abstract the view to a layer somehow.
         this.AnnotationView = new SA.View(viewerDiv);
-        this.AnnotationView.CanvasDiv.css({'z-index':'100'});
+
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
 
-        // TODO: Get rid of this.
-        this.AnnotationView.InitializeViewport([0,0,100,100]);
         //this.AnnotationView.OutlineColor = [0,0,0];
         // Uses the same camera.
         this.AnnotationView.Camera = viewerCamera;
@@ -267,7 +272,6 @@
         // Scale widget is unique. Deal with it separately so it is not
         // saved with the notes.
         this.ScaleWidget = new SAM.ScaleWidget(this, false);
-
 
         var self = this;
         var can = this.AnnotationView.CanvasDiv;
@@ -837,10 +841,10 @@
             return;
         }
         if (this.Matrix == undefined) {
-            this.UpdateBuffers();
+            this.UpdateBuffers(view);
         }
 
-        if (GL) {
+        if (view.gl) {
             // Lets use the camera to change coordinate system to pixels.
             // TODO: Put this camera in the view or viewer to avoid creating one each render.
             var camMatrix = mat4.create();
@@ -883,73 +887,73 @@
 
             var program = polyProgram;
 
-            GL.useProgram(program);
-            GL.disable(GL.BLEND);
-            GL.enable(GL.DEPTH_TEST);
+            view.gl.useProgram(program);
+            view.gl.disable(view.gl.BLEND);
+            view.gl.enable(view.gl.DEPTH_TEST);
 
             // This does not work.
             // I will need to make thick lines with polygons.
-            //GL.lineWidth(5);
+            //view.gl.lineWidth(5);
 
             // These are the same for every tile.
             // Vertex points (shifted by tiles matrix)
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
             // Needed for outline ??? For some reason, DrawOutline did not work
             // without this call first.
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            view.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    this.VertexPositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);     // Texture coordinates
+                                   view.gl.FLOAT, false, 0, 0);     // Texture coordinates
             // Local view.
-            GL.viewport(view.Viewport[0], view.Viewport[1],
+            view.gl.viewport(view.Viewport[0], view.Viewport[1],
                         view.Viewport[2], view.Viewport[3]);
 
-            GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+            view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
             if (this.FixedSize) {
-                GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+                view.gl.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
             } else {
                 // Use main views camera to convert world to view.
-                GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+                view.gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
             }
 
             // Fill color
             if (this.FillColor != undefined) {
                 if (this.Active) {
-                    GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.ActiveColor[0],
                                  this.ActiveColor[1], this.ActiveColor[2]);
                 } else {
-                    GL.uniform3f(program.colorUniform, this.FillColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.FillColor[0],
                                  this.FillColor[1], this.FillColor[2]);
                 }
                 // Cell Connectivity
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
-                GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
-                                GL.UNSIGNED_SHORT,0);
+                view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems,
+                                view.gl.UNSIGNED_SHORT,0);
             }
 
             if (this.OutlineColor != undefined) {
                 if (this.Active) {
-                    GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.ActiveColor[0],
                                  this.ActiveColor[1], this.ActiveColor[2]);
                 } else {
-                    GL.uniform3f(program.colorUniform, this.OutlineColor[0],
+                    view.gl.uniform3f(program.colorUniform, this.OutlineColor[0],
                                  this.OutlineColor[1], this.OutlineColor[2]);
                 }
 
                 if (this.LineWidth == 0) {
                     if (this.WireFrame) {
-                        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-                        GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems,
-                                        GL.UNSIGNED_SHORT,0);
+                        view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                        view.gl.drawElements(view.gl.LINE_LOOP, this.CellBuffer.numItems,
+                                        view.gl.UNSIGNED_SHORT,0);
                     } else {
                         // Outline. This only works for polylines
-                        GL.drawArrays(GL.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
+                        view.gl.drawArrays(view.gl.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
                     }
                 } else {
                     // Cell Connectivity
-                    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-                    GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems,
-                                    GL.UNSIGNED_SHORT,0);
+                    view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                    view.gl.drawElements(view.gl.TRIANGLES, this.LineCellBuffer.numItems,
+                                    view.gl.UNSIGNED_SHORT,0);
                 }
             }
         } else { // 2d Canvas -----------------------------------------------
@@ -1097,7 +1101,7 @@
         return false;
     }
 
-    //Shape.prototype.UpdateBuffers = function() {
+    //Shape.prototype.UpdateBuffers = function(view) {
     //    // The superclass does not implement this method.
     //}
 
@@ -1177,9 +1181,9 @@
         return false;
     }
 
-    ShapeGroup.prototype.UpdateBuffers = function() {
+    ShapeGroup.prototype.UpdateBuffers = function(view) {
         for (var i = 0; i < this.Shapes.length; ++i) {
-            this.Shapes.UpdateBuffers();
+            this.Shapes.UpdateBuffers(view);
         }
     }
 
@@ -1276,9 +1280,9 @@
         return [0,0,0];
     }
 
-    ShapeGroup.prototype.UpdateBuffers = function() {
+    ShapeGroup.prototype.UpdateBuffers = function(view) {
         for (var i = 0; i < this.Shapes.length; ++i) {
-            this.Shapes[i].UpdateBuffers();
+            this.Shapes[i].UpdateBuffers(view);
         }
     }
 
@@ -1495,7 +1499,7 @@
                 for (var m = 0; m < points.length; ++m) {
                     shape.Points[m] = [points[m][0], points[m][1]];
                 }
-                shape.UpdateBuffers();
+                shape.UpdateBuffers(this.Layer.AnnotationView);
             }
         }
     }
@@ -1796,7 +1800,7 @@
                 pt[0] = x + (rx-vx) + shift[0];
                 pt[1] = y + (ry-vy) + shift[1];
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
     }
 
@@ -1810,7 +1814,7 @@
                 pt[0] += shift[0];
                 pt[1] += shift[1];
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
     }
 
@@ -1834,7 +1838,7 @@
                     p0 = p1;
                 }
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
     }
 
@@ -2935,13 +2939,14 @@
         alert("Could not load font");
     }
 
-    function Text() {
+    function Text(gl) {
         // All text objects sare the same texture map.
         //if (TEXT_TEXTURE == undefined ) {
         //}
-        if (GL) {
+        if (gl) {
+            this.gl = gl;
             this.TextureLoaded = false;
-            this.Texture = GL.createTexture();
+            this.Texture = gl.createTexture();
             this.Image = new Image();
             this.Image.onload = GetTextureLoadedFunction(this);
             //this.Image.onerror = TextError(); // Always fires for some reason.
@@ -2979,15 +2984,15 @@
     // TODO: Although this only used for the webL renderer, we should really
     // Hava a callback and let the application (or widget) call eventually render.
     Text.prototype.HandleLoadedTexture = function() {
-        if (GL) {
+        if (this.gl) {
             var texture = this.Texture;
-            GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-            GL.bindTexture(GL.TEXTURE_2D, texture);
-            GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-            GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-            GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
-            GL.generateMipmap(GL.TEXTURE_2D);
-            GL.bindTexture(GL.TEXTURE_2D, null);
+            this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.Image);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
+            this.gl.generateMipmap(this.gl.TEXTURE_2D);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
             this.TextureLoaded = true;
         }
         eventuallyRender();
@@ -3006,55 +3011,55 @@
             x = view.Viewport[2]*(0.5*(1.0+x));
             y = view.Viewport[3]*(0.5*(1.0-y));
         }
-  
+
         // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
         if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
             this.Anchor = [-50, 0];
         }
 
-        if (GL) {
+        if (view.gl) {
             if (this.TextureLoaded == false) {
                 return;
             }
             if (this.Matrix == undefined) {
-                this.UpdateBuffers();
+                this.UpdateBuffers(view);
                 this.Matrix = mat4.create();
                 mat4.identity(this.Matrix);
             }
             var program = textProgram;
-            GL.useProgram(program);
+            view.gl.useProgram(program);
 
             //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
             //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
             //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
-            //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
-            GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-            GL.enable(GL.BLEND);
-            //GL.disable(GL.DEPTH_TEST);
+            //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            view.gl.blendFunc(view.gl.SRC_ALPHA, view.gl.ONE_MINUS_SRC_ALPHA);
+            view.gl.enable(view.gl.BLEND);
+            //view.gl.disable(view.gl.DEPTH_TEST);
 
             // These are the same for every tile.
             // Vertex points (shifted by tiles matrix)
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
             // Needed for outline ??? For some reason, DrawOutline did not work
             // without this call first.
-            GL.vertexAttribPointer(program.vertexPositionAttribute,
+            view.gl.vertexAttribPointer(program.vertexPositionAttribute,
                                    this.VertexPositionBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);     // Texture coordinates
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-            GL.vertexAttribPointer(program.textureCoordAttribute,
+                                   view.gl.FLOAT, false, 0, 0);     // Texture coordinates
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+            view.gl.vertexAttribPointer(program.textureCoordAttribute,
                                    this.VertexTextureCoordBuffer.itemSize,
-                                   GL.FLOAT, false, 0, 0);
+                                   view.gl.FLOAT, false, 0, 0);
             // Cell Connectivity
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
             // Color of text
             if (this.Active) {
-                GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+                view.gl.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
             } else {
-                GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+                view.gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
             }
             // Draw characters.
-            GL.viewport(view.Viewport[0], view.Viewport[1],
+            view.gl.viewport(view.Viewport[0], view.Viewport[1],
                         view.Viewport[2], view.Viewport[3]);
 
             var viewFrontZ = view.Camera.ZRange[0]+0.01;
@@ -3068,18 +3073,18 @@
             camMatrix[5] = -2.0 / view.Viewport[3];
             camMatrix[13] = 1.0;
             camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
-            GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+            view.gl.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
 
             // Translate the anchor to x,y
             this.Matrix[12] = x - this.Anchor[0];
             this.Matrix[13] = y - this.Anchor[1];
-            GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+            view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-            GL.activeTexture(GL.TEXTURE0);
-            GL.bindTexture(GL.TEXTURE_2D, this.Texture);
-            GL.uniform1i(program.samplerUniform, 0);
+            view.gl.activeTexture(view.gl.TEXTURE0);
+            view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
+            view.gl.uniform1i(program.samplerUniform, 0);
 
-            GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
+            view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT,0);
         } else {
             // (x,y) is the screen position of the text.
             // Canvas text location is lower left of first letter.
@@ -3150,8 +3155,8 @@
         ctx.fill();
     }
 
-    Text.prototype.UpdateBuffers = function() {
-        if ( ! GL) { 
+    Text.prototype.UpdateBuffers = function(view) {
+        if ( ! view.gl) { 
             // Canvas.  Compute pixel bounds.
             var strArray = this.String.split("\n");
             var height = this.Size * LINE_SPACING * strArray.length;
@@ -3159,7 +3164,7 @@
             // Hack: use a global viewer because I do not have the viewer.
             // Maybe it should be passed in as an argument, or store the context
             // as an instance variable.
-            var ctx = TEXT_VIEW_HACK.Context2d;
+            var ctx = view.Context2d;
             ctx.save();
             ctx.setTransform(1,0,0,1,0,0);
             ctx.font = this.Size+'pt Calibri';
@@ -3244,21 +3249,21 @@
             }
         }
 
-        this.VertexTextureCoordBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
+        this.VertexTextureCoordBuffer = view.gl.createBuffer();
+        view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+        view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(textureCoordData), view.gl.STATIC_DRAW);
         this.VertexTextureCoordBuffer.itemSize = 2;
         this.VertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-        this.VertexPositionBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+        this.VertexPositionBuffer = view.gl.createBuffer();
+        view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+        view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), view.gl.STATIC_DRAW);
         this.VertexPositionBuffer.itemSize = 3;
         this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-        this.CellBuffer = GL.createBuffer();
-        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+        this.CellBuffer = view.gl.createBuffer();
+        view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
         this.CellBuffer.itemSize = 1;
         this.CellBuffer.numItems = cellData.length;
     }
@@ -3426,7 +3431,7 @@
 
         this.Text = new SAM.Text();
         this.Text.String = string;
-        this.Text.UpdateBuffers(); // Needed to get the bounds.
+        this.Text.UpdateBuffers(this.Layer.AnnotationView); // Needed to get the bounds.
         this.Text.Color = [0.0, 0.0, 1.0];
         this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
                             0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
@@ -3440,13 +3445,13 @@
         this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
         this.Arrow.Length = 50;
         this.Arrow.Width = 10;
-        this.Arrow.UpdateBuffers();
+        this.Arrow.UpdateBuffers(this.Layer.AnnotationView);
         this.Arrow.Visibility = true;
         this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
         this.Arrow.FillColor = [0,0,1];
         this.Arrow.OutlineColor = [1,1,0];
         this.Arrow.ZOffset = 0.2;
-        this.Arrow.UpdateBuffers();
+        this.Arrow.UpdateBuffers(this.Layer.AnnotationView);
 
         layer.AddWidget(this);
         this.ActiveReason = 1;
@@ -3577,7 +3582,7 @@
         this.Arrow.SetFillColor(rgb);
         this.Arrow.ChooseOutlineColor();
 
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
         this.UpdateArrow();
     }
 
@@ -3613,7 +3618,7 @@
             // save the old anchor incase glyph is turned back on.
             this.SavedTextAnchor = this.Text.Anchor.slice(0);
             // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
-            this.Text.UpdateBuffers(); // computes pixel bounds.
+            this.Text.UpdateBuffers(this.Layer.AnnotationView); // computes pixel bounds.
             this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
             this.Arrow.Visibility = false;
         }
@@ -3647,7 +3652,7 @@
         length = length - min - 5;
         if (length < 5) { length = 5;}
         this.Arrow.Length = length;
-        this.Arrow.UpdateBuffers();
+        this.Arrow.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     TextWidget.prototype.HandleMouseWheel = function(event) {
@@ -3924,7 +3929,7 @@
         var fontSize = this.Dialog.FontInput.val();
         this.Text.String = string;
         this.Text.Size = parseFloat(fontSize);
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
             this.SetVisibilityMode(0);
@@ -4076,7 +4081,7 @@
     }
 
     // Adds origin to points and sets origin to 0.
-    Polyline.prototype.ResetOrigin = function() {
+    Polyline.prototype.ResetOrigin = function(view) {
         for (var i = 0; i < this.Points.length; ++i) {
             var pt = this.Points[i];
             pt[0] += this.Origin[0];
@@ -4084,7 +4089,7 @@
         }
         this.Origin[0] = 0;
         this.Origin[1] = 0;
-        this.UpdateBuffers();
+        this.UpdateBuffers(view);
     }
 
 
@@ -4154,7 +4159,7 @@
         return bestPt;
     }
 
-    Polyline.prototype.MergePoints = function (thresh) {
+    Polyline.prototype.MergePoints = function (thresh, view) {
         thresh = thresh * thresh;
         var modified = false;
         for (var i = 1; i < this.Points.length; ++i) {
@@ -4169,13 +4174,13 @@
             }
         }
         if (modified) {
-            this.UpdateBuffers();
+            this.UpdateBuffers(view);
         }
     }
 
     // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
     // Pass in the spacing as a hint to get rid of aliasing.
-    Polyline.prototype.Decimate = function (spacing) {
+    Polyline.prototype.Decimate = function (spacing, view) {
         // Keep looping over the line removing points until the line does not change.
         var modified = true;
         while (modified) {
@@ -4224,7 +4229,7 @@
             }
             this.Points = newPoints;
         }
-        this.UpdateBuffers();
+        this.UpdateBuffers(view);
     }
 
     Polyline.prototype.AddPointToBounds = function(pt, radius) {
@@ -4245,7 +4250,7 @@
 
     // NOTE: Line thickness is handled by style in canvas.
     // I think the GL version that uses triangles is broken.
-    Polyline.prototype.UpdateBuffers = function() {
+    Polyline.prototype.UpdateBuffers = function(view) {
         var points = this.Points.slice(0);
         if (this.Closed && points.length > 2) {
             points.push(points[0]);
@@ -4260,7 +4265,7 @@
         // xMin,xMax, yMin,yMax
         this.Bounds = [points[0][0],points[0][0],points[0][1],points[0][1]];
 
-        if (this.LineWidth == 0 || !GL ) {
+        if (this.LineWidth == 0 || !view.gl ) {
             for (var i = 0; i < points.length; ++i) {
                 this.PointBuffer.push(points[i][0]);
                 this.PointBuffer.push(points[i][1]);
@@ -4341,23 +4346,23 @@
             }
         }
 
-        if (GL) {
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+        if (view.gl) {
+            this.VertexPositionBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
             this.VertexPositionBuffer.itemSize = 3;
             this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
             this.CellBuffer.itemSize = 1;
             this.CellBuffer.numItems = cellData.length;
 
             if (this.LineWidth != 0) {
-                this.LineCellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+                this.LineCellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), view.gl.STATIC_DRAW);
                 this.LineCellBuffer.itemSize = 1;
                 this.LineCellBuffer.numItems = lineCellData.length;
             }
@@ -4529,7 +4534,7 @@
         // when the actual line with is too thin.
         this.Polyline.LineWidth =this.LineWidth;
         this.Circle.Radius = this.LineWidth;
-        this.Circle.UpdateBuffers();
+        this.Circle.UpdateBuffers(this.Layer.AnnotationView);
 
         // ActiveVertex and Edge are for placing the circle handle.
         this.ActiveVertex = -1;
@@ -4680,7 +4685,7 @@
             this.Polyline.Points[i][0] += xOffset;
             this.Polyline.Points[i][1] += yOffset;
         }
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
 
         this.Layer.EventuallyDraw(true);
@@ -4718,7 +4723,7 @@
                                     parseFloat(obj.points[n][1])];
         }
         this.Polyline.Closed = obj.closedloop;
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.view_height !== undefined) {
@@ -4782,7 +4787,7 @@
                 console.log("No vertex or edge is active.");
                 return false;
             }
-            this.Polyline.UpdateBuffers();
+            this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
             this.SetCursorToDrawing();
             // Transition to drawing edge when we know which way the user
             // is dragging.
@@ -4866,7 +4871,7 @@
             // Insert another point to drag around.
             this.DrawingVertex += 1;
             this.Polyline.Points.splice(this.DrawingVertex,0,pt);
-            this.Polyline.UpdateBuffers();
+            this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
             this.Layer.EventuallyDraw(true);
             return false;
         }
@@ -4916,7 +4921,7 @@
         this.Polyline.Points[this.ActiveVertex] = pt;
         // Move the hightlight circle with the vertex.
         this.Circle.Origin = pt;
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
         // TODO: Fix this hack.
         if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
@@ -4982,7 +4987,7 @@
         if (this.State == DRAWING_EDGE) {
             // Move the active point to follor the cursor.
             this.Polyline.Points[this.DrawingVertex] = pt;
-            this.Polyline.UpdateBuffers();
+            this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
             // This higlights the first vertex when a loop is possible.
             var idx = this.Polyline.PointOnVertex(pt, this.Circle.Radius);
@@ -5065,7 +5070,7 @@
             this.Circle.Radius = VERTEX_RADIUS / this.Layer.GetPixelsPerUnit();
             this.CircleRadius = Math.max(this.CircleRadius,
                                          this.Polyline.GetLineWidth() * 1.5);
-            this.Circle.UpdateBuffers();
+            this.Circle.UpdateBuffers(this.Layer.AnnotationView);
             this.Circle.Origin = this.Polyline.Points[vertexIdx];
         }
         this.ActiveVertex = vertexIdx;
@@ -5090,7 +5095,7 @@
             var x = pt0[0] + this.ActiveEdge[2]*(pt1[0]-pt0[0]);
             var y = pt0[1] + this.ActiveEdge[2]*(pt1[1]-pt0[1]);
             this.Circle.Origin = [x,y,0];
-            this.Circle.UpdateBuffers();
+            this.Circle.UpdateBuffers(this.Layer.AnnotationView);
         } else {
             // Not active.
             this.Circle.Visibility = false;
@@ -5224,7 +5229,7 @@
         // Cannot use the shap line width because it is set to zero (single pixel)
         // it the dialog value is too thin.
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Polyline.UpdateBuffers();
+        this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
         this.Layer.EventuallyDraw(false);
@@ -5574,7 +5579,7 @@
             for (var m = 0; m < points.length; ++m) {
                 shape.Points[m] = [points[m][0], points[m][1]];
             }
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
         }
 
         // How zoomed in was the view when the annotation was created.
@@ -5634,7 +5639,7 @@
             }
             this.Dialog.LineWidthInput.val(lineWidth);
             this.Shapes.SetLineWidth(lineWidth);
-            this.Shapes.UpdateBuffers();
+            this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
 
             this.Layer.EventuallyDraw();
             return false;
@@ -5723,7 +5728,7 @@
             var shape = this.Shapes.GetShape(last);
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
             if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
             this.Layer.EventuallyDraw();
             return false;
@@ -5836,7 +5841,7 @@
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Shapes.SetOutlineColor(hexcolor);
         this.Shapes.SetLineWidth(parseFloat(this.Dialog.LineWidthInput.val()));
-        this.Shapes.UpdateBuffers();
+        this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
         this.Layer.EventuallyDraw();
@@ -5899,7 +5904,7 @@
             shape.Points = newPoints;
         }
 
-        shape.UpdateBuffers();
+        shape.UpdateBuffers(this.Layer.AnnotationView);
     }
     */
 
@@ -6034,7 +6039,7 @@
           for (var m = 0; m < points.length; ++m) {
           shape.Points[m] = [points[m][0], points[m][1]];
           }
-          shape.UpdateBuffers();
+          shape.UpdateBuffers(this.Viewer.AnnotationView);
           }
 
           // How zoomed in was the view when the annotation was created.
@@ -6208,7 +6213,7 @@
         for (var i = 0; i < this.Shapes.length; ++i) {
             this.Shapes[i].SetOutlineColor(hexcolor);
             this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-            this.Shapes[i].UpdateBuffers();
+            this.Shapes[i].UpdateBuffers(this.Viewer.AnnotationView);
         }
         this.SetActive(false);
         RecordState();
@@ -6374,7 +6379,7 @@
                                    parseFloat(points[n][1])];
         }
         this.ComputeActiveCenter();
-        this.Loop.UpdateBuffers();
+        this.Loop.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     LassoWidget.prototype.HandleMouseWheel = function(event) {
@@ -6405,7 +6410,7 @@
             }
             this.Dialog.LineWidthInput.val(lineWidth);
             this.Loop.SetLineWidth(lineWidth);
-            this.Loop.UpdateBuffers();
+            this.Loop.UpdateBuffers(this.Layer.AnnotationView);
 
             this.Layer.EventuallyDraw();
             return false;
@@ -6476,7 +6481,7 @@
                 this.CombineStroke();
             } else {
                 this.Stroke.Closed = true;
-                this.Stroke.UpdateBuffers();
+                this.Stroke.UpdateBuffers(this.Layer.AnnotationView);
                 this.Loop = this.Stroke;
                 this.Stroke = false;
             }
@@ -6519,7 +6524,7 @@
             var shape = this.Stroke;
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-            shape.UpdateBuffers();
+            shape.UpdateBuffers(this.Layer.AnnotationView);
             if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.Layer.EventuallyDraw();
             return false;
@@ -6632,7 +6637,7 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Loop.SetOutlineColor(hexcolor);
         this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Loop.UpdateBuffers();
+        this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
         this.Layer.EventuallyDraw();
@@ -6700,7 +6705,7 @@
             shape.Points = newPoints;
         }
 
-        shape.UpdateBuffers();
+        shape.UpdateBuffers(this.Layer.AnnotationView);
     }
     */
     LassoWidget.prototype.CombineStroke = function() {
@@ -6805,7 +6810,7 @@
 
         // Remove the extra point added at the begining of this method.
         this.Loop.Points.pop();
-        this.Loop.UpdateBuffers();
+        this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.ComputeActiveCenter();
 
         this.Stroke = false;
@@ -7037,7 +7042,7 @@
         // Get rid of the buffers?
     }
 
-    CrossHairs.prototype.UpdateBuffers = function() {
+    CrossHairs.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
         var cellData = [];
         var halfLength = (this.Length * 0.5) + 0.5;
@@ -7114,16 +7119,16 @@
         cellData.push(10);
         cellData.push(11);
 
-        if (GL) {
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+        if (view.gl) {
+            this.VertexPositionBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
             this.VertexPositionBuffer.itemSize = 3;
             this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
             this.CellBuffer.itemSize = 1;
             this.CellBuffer.numItems = cellData.length;
         }
@@ -7169,7 +7174,7 @@
     }
 
 
-    Arrow.prototype.UpdateBuffers = function() {
+    Arrow.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
         var cellData = [];
         var hw = this.Width * 0.5;
@@ -7210,7 +7215,7 @@
         this.PointBuffer.push(0.0);
         this.PointBuffer.push(0.0);
 
-        if (GL) {
+        if (view.gl) {
             // Now create the triangles
             cellData.push(0);
             cellData.push(1);
@@ -7232,15 +7237,15 @@
             cellData.push(4);
             cellData.push(5);
 
-            this.VertexPositionBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-            GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+            this.VertexPositionBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
             this.VertexPositionBuffer.itemSize = 3;
             this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-            this.CellBuffer = GL.createBuffer();
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-            GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+            this.CellBuffer = view.gl.createBuffer();
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
             this.CellBuffer.itemSize = 1;
             this.CellBuffer.numItems = cellData.length;
         }
@@ -7251,7 +7256,7 @@
 })();
 //==============================================================================
 // This widget will first be setup to define an arrow.
-// Viewer will forward events to the arrow.
+// Layer will forward events to the arrow.
 // TODO: I need to indicate that the base of the arrow has different active
 // state than the rest.
 
@@ -7272,12 +7277,12 @@
     var ARROW_WIDGET_PROPERTIES_DIALOG = 6; // Properties dialog is up
 
 
-    // We might get rid of the new flag by passing in a null viewer.
-    function ArrowWidget (viewer, newFlag) {
-        if (viewer == null) {
+    // We might get rid of the new flag by passing in a null layer.
+    function ArrowWidget (layer, newFlag) {
+        if (layer == null) {
             return null;
         }
-        this.Viewer = viewer;
+        this.Layer = layer;
 
         // Wait to create this until the first move event.
         this.Shape = new Arrow();
@@ -7291,11 +7296,11 @@
         this.TipPosition = [0,0];
         this.TipOffset = [0,0];
 
-        if (viewer) {
-            viewer.AddWidget(this);
-            if (newFlag && viewer) {
+        if (layer) {
+            layer.AddWidget(this);
+            if (newFlag && layer) {
                 this.State = ARROW_WIDGET_NEW;
-                this.Viewer.ActivateWidget(this);
+                this.Layer.ActivateWidget(this);
                 return;
             }
         }
@@ -7308,9 +7313,9 @@
     }
 
 
-    ArrowWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer) {
-            this.Viewer.RemoveWidget(this);
+    ArrowWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.Layer.RemoveWidget(this);
         }
     }
 
@@ -7354,7 +7359,7 @@
             this.Shape.FixedOrientation = (obj.fixedorientation == "true");
         }
 
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     // When we toggle fixed size, we have to convert the length of the arrow
@@ -7363,7 +7368,7 @@
         if (this.Shape.FixedSize == fixedSizeFlag) {
             return;
         }
-        var pixelsPerUnit = this.Viewer.GetPixelsPerUnit();
+        var pixelsPerUnit = this.Layer.GetPixelsPerUnit();
 
         if (fixedSizeFlag) {
             // Convert length from world to viewer.
@@ -7388,17 +7393,17 @@
             return;
         }
         if (this.State == ARROW_WIDGET_NEW) {
-            this.TipPosition = [this.Viewer.MouseX, this.Viewer.MouseY];
+            this.TipPosition = [this.Layer.MouseX, this.Layer.MouseY];
             this.State = ARROW_WIDGET_DRAG_TAIL;
         }
         if (this.State == ARROW_WIDGET_ACTIVE) {
             if (this.ActiveTail) {
-                this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+                this.TipPosition = this.Layer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
                 this.State = ARROW_WIDGET_DRAG_TAIL;
             } else {
-                var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-                this.TipOffset[0] = tipPosition[0] - this.Viewer.MouseX;
-                this.TipOffset[1] = tipPosition[1] - this.Viewer.MouseY;
+                var tipPosition = this.Layer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+                this.TipOffset[0] = tipPosition[0] - this.Layer.MouseX;
+                this.TipOffset[1] = tipPosition[1] - this.Layer.MouseY;
                 this.State = ARROW_WIDGET_DRAG;
             }
         }
@@ -7419,17 +7424,17 @@
     }
 
     ArrowWidget.prototype.HandleMouseMove = function(event) {
-        var x = this.Viewer.MouseX;
-        var y = this.Viewer.MouseY;
+        var x = this.Layer.MouseX;
+        var y = this.Layer.MouseY;
 
-        if (this.Viewer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
+        if (this.Layer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
             this.CheckActive(event);
             return;
         }
 
         if (this.State == ARROW_WIDGET_NEW || this.State == ARROW_WIDGET_DRAG) {
-            var viewport = this.Viewer.GetViewport();
-            this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x+this.TipOffset[0], y+this.TipOffset[1]);
+            var viewport = this.Layer.GetViewport();
+            this.Shape.Origin = this.Layer.ConvertPointViewerToWorld(x+this.TipOffset[0], y+this.TipOffset[1]);
             eventuallyRender();
         }
 
@@ -7437,7 +7442,7 @@
             var dx = x-this.TipPosition[0];
             var dy = y-this.TipPosition[1];
             if ( ! this.Shape.FixedSize) {
-                var pixelsPerUnit = this.Viewer.GetPixelsPerUnit();
+                var pixelsPerUnit = this.Layer.GetPixelsPerUnit();
                 dx /= pixelsPerUnit;
                 dy /= pixelsPerUnit;
             }
@@ -7453,8 +7458,8 @@
     }
 
     ArrowWidget.prototype.CheckActive = function(event) {
-        var viewport = this.Viewer.GetViewport();
-        var cam = this.Viewer.MainView.Camera;
+        var viewport = this.Layer.GetViewport();
+        var cam = this.Layer.MainView.Camera;
         var m = cam.Matrix;
         // Compute tip point in screen coordinates.
         var x = this.Shape.Origin[0];
@@ -7468,8 +7473,8 @@
         yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
 
         // Use this point as the origin.
-        x = this.Viewer.MouseX - xNew;
-        y = this.Viewer.MouseY - yNew;
+        x = this.Layer.MouseX - xNew;
+        y = this.Layer.MouseY - yNew;
         // Rotate so arrow lies along the x axis.
         var tmp = this.Shape.Orientation * Math.PI / 180.0;
         var ct = Math.cos(tmp);
@@ -7480,7 +7485,7 @@
         var length = this.Shape.Length;
         var halfWidth = this.Shape.Width / 2.0;
         if ( ! this.Shape.FixedSize) {
-            var pixelsPerUnit = this.Viewer.GetPixelsPerUnit();
+            var pixelsPerUnit = this.Layer.GetPixelsPerUnit();
             length *= pixelsPerUnit;
             halfWidth *= pixelsPerUnit;
         }
@@ -7518,12 +7523,12 @@
         if (flag) {
             this.State = ARROW_WIDGET_ACTIVE;
             this.Shape.Active = true;
-            this.Viewer.ActivateWidget(this);
+            this.Layer.ActivateWidget(this);
             eventuallyRender();
         } else {
             this.State = ARROW_WIDGET_WAITING;
             this.Shape.Active = false;
-            this.Viewer.DeactivateWidget(this);
+            this.Layer.DeactivateWidget(this);
             eventuallyRender();
         }
     }
@@ -7580,10 +7585,10 @@
     function ArrowPropertyDialogDelete() {
         var widget = ARROW_WIDGET_DIALOG_SELF;
         if (widget != null) {
-            viewer.ActiveWidget = null;
+            this.Layer.ActiveWidget = null;
             // We need to remove an item from a list.
             // shape list and widget list.
-            widget.RemoveFromViewer();
+            widget.RemoveFromLayer();
             eventuallyRender();
         }
     }
@@ -7616,7 +7621,7 @@
         // Get rid of the buffers?
     }
 
-    Circle.prototype.UpdateBuffers = function() {
+    Circle.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
         var cellData = [];
         var lineCellData = [];
@@ -7630,7 +7635,7 @@
         this.Matrix = mat4.create();
         mat4.identity(this.Matrix);
 
-        if  (GL) {
+        if  (view.gl) {
             if (this.LineWidth == 0) {
                 for (var i = 0; i <= numEdges; ++i) {
                     var theta = i*2*3.14159265359/numEdges;
@@ -7648,15 +7653,15 @@
                     cellData.push(i);
                 }
 
-                this.VertexPositionBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-                GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+                this.VertexPositionBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+                view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
                 this.VertexPositionBuffer.itemSize = 3;
                 this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-                this.CellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+                this.CellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
                 this.CellBuffer.itemSize = 1;
                 this.CellBuffer.numItems = cellData.length;
             } else {
@@ -7673,9 +7678,9 @@
                     this.PointBuffer.push(maxRad*Math.sin(theta));
                     this.PointBuffer.push(0.0);
                 }
-                this.VertexPositionBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-                GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+                this.VertexPositionBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+                view.gl.bufferData(view.gl.ARRAY_BUFFER, new Float32Array(this.PointBuffer), view.gl.STATIC_DRAW);
                 this.VertexPositionBuffer.itemSize = 3;
                 this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
@@ -7687,9 +7692,9 @@
                     cellData.push((i-1)*2);
                     cellData.push(i*2);
                 }
-                this.CellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+                this.CellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), view.gl.STATIC_DRAW);
                 this.CellBuffer.itemSize = 1;
                 this.CellBuffer.numItems = cellData.length;
 
@@ -7702,9 +7707,9 @@
                     lineCellData.push(3 + i*2);
                     lineCellData.push(2 + i*2);
                 }
-                this.LineCellBuffer = GL.createBuffer();
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-                GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+                this.LineCellBuffer = view.gl.createBuffer();
+                view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                view.gl.bufferData(view.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), view.gl.STATIC_DRAW);
                 this.LineCellBuffer.itemSize = 1;
                 this.LineCellBuffer.numItems = lineCellData.length;
             }
@@ -7888,7 +7893,7 @@
         this.Shape.Radius = parseFloat(obj.radius);
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -7988,7 +7993,7 @@
             var dy = y-this.OriginViewer[1];
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
-            this.Shape.UpdateBuffers();
+            this.Shape.UpdateBuffers(this.Layer.AnnotationView);
             if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -8019,7 +8024,7 @@
 
     CircleWidget.prototype.HandleTouchPinch = function(event) {
         this.Shape.Radius *= event.PinchScale;
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
         this.Layer.EventuallyDraw();
         return false;
@@ -8158,7 +8163,7 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Shape.SetOutlineColor(hexcolor);
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
         RecordState();
 
@@ -8207,7 +8212,7 @@
         // Get rid of the buffers?
     };
 
-    Rect.prototype.UpdateBuffers = function() {
+    Rect.prototype.UpdateBuffers = function(view) {
         this.PointBuffer = [];
 
         this.Matrix = mat4.create();
@@ -8392,7 +8397,7 @@
         this.Shape.Orientation = parseFloat(obj.orientation);
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -8478,7 +8483,7 @@
             var dy = y-this.OriginViewer[1];
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
-            this.Shape.UpdateBuffers();
+            this.Shape.UpdateBuffers(this.Layer.AnnotationView);
             this.PlacePopup();
             eventuallyRender();
         }
@@ -8512,7 +8517,7 @@
                     this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
                  }
 
-                this.Shape.UpdateBuffers();
+                this.Shape.UpdateBuffers(this.Layer.AnnotationView);
                 this.PlacePopup();
                 eventuallyRender();
             }
@@ -8537,7 +8542,7 @@
 
     RectWidget.prototype.HandleTouchPinch = function(event) {
       this.Shape.Radius *= event.PinchScale;
-      this.Shape.UpdateBuffers();
+      this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       eventuallyRender();
     };
 
@@ -8663,7 +8668,7 @@
       var hexcolor = this.Dialog.ColorInput.val();
       this.Shape.SetOutlineColor(hexcolor);
       this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-      this.Shape.UpdateBuffers();
+      this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       this.SetActive(false);
       RecordState();
       eventuallyRender();
@@ -8711,7 +8716,7 @@
         // Get rid of the buffers?
     };
 
-    Grid.prototype.UpdateBuffers = function() {
+    Grid.prototype.UpdateBuffers = function(view) {
         // TODO: Having a single poly line for a shape is to simple.
         // Add cell arrays.
         this.PointBuffer = [];
@@ -8903,7 +8908,7 @@
         this.Grid.Dimensions[0] = Math.floor(width / this.Grid.BinWidth);
         var height = 0.8 * viewport[3] / layer.GetPixelsPerUnit();
         this.Grid.Dimensions[1] = Math.floor(height / this.Grid.BinHeight);
-        this.Grid.UpdateBuffers();
+        this.Grid.UpdateBuffers(this.Layer.AnnotationView);
 
         this.Text = new SAM.Text();
         // Shallow copy is dangerous
@@ -8911,7 +8916,7 @@
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         // Get default properties.
         if (localStorage.GridWidgetDefaults) {
@@ -9052,12 +9057,12 @@
         this.Grid.Orientation = parseFloat(obj.orientation);
         this.Grid.LineWidth = parseFloat(obj.linewidth);
         this.Grid.FixedSize = false;
-        this.Grid.UpdateBuffers();
+        this.Grid.UpdateBuffers(this.Layer.AnnotationView);
 
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         // Shallow copy is dangerous
         this.Text.Position = this.Grid.Origin;
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -9175,7 +9180,7 @@
                     y = c*dy - s*dx;
                     this.Grid.Origin[0] += x;
                     this.Grid.Origin[1] += y;
-                    this.Grid.UpdateBuffers();
+                    this.Grid.UpdateBuffers(this.Layer.AnnotationView);
                 }
             }
             this.Layer.EventuallyDraw();
@@ -9214,7 +9219,7 @@
                     this.Grid.Orientation = this.Grid.Orientation + 3 * direction;
                  }
 
-                this.Grid.UpdateBuffers();
+                this.Grid.UpdateBuffers(this.Layer.AnnotationView);
                 this.PlacePopup();
                 this.Layer.EventuallyDraw();
             }
@@ -9242,7 +9247,7 @@
 
 
     GridWidget.prototype.HandleTouchPinch = function(event) {
-        //this.Grid.UpdateBuffers();
+        //this.Grid.UpdateBuffers(this.Layer.AnnotationView);
         //this.Layer.EventuallyDraw();
         return true;
     };
@@ -9385,11 +9390,11 @@
         this.Grid.BinWidth = SAM.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
         this.Grid.BinHeight = SAM.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
         this.Grid.Orientation = parseFloat(this.Dialog.RotationInput.val());
-        this.Grid.UpdateBuffers();
+        this.Grid.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
 
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
         RecordState();
         this.Layer.EventuallyDraw();
@@ -9436,7 +9441,7 @@
         // Get rid of the buffers?
     };
 
-    Scale.prototype.UpdateBuffers = function() {
+    Scale.prototype.UpdateBuffers = function(view) {
         // TODO: Having a single poly line for a shape is to simple.
         // Add cell arrays.
         this.PointBuffer = [];
@@ -9563,11 +9568,11 @@
 
         // Update the label text and position
         this.Text.String = this.Label;
-        this.Text.UpdateBuffers();
+        this.Text.UpdateBuffers(this.Layer.AnnotationView);
         this.Text.Position = [this.Shape.Origin[0]+(scaleLengthViewer/2),
                               this.Shape.Origin[1]-15];
 
-        this.Shape.UpdateBuffers();
+        this.Shape.UpdateBuffers(this.Layer.AnnotationView);
     }
 
     ScaleWidget.prototype.Draw = function(view) {
@@ -9679,7 +9684,7 @@
                     y = c*dy - s*dx;
                     this.Shape.Origin[0] += x;
                     this.Shape.Origin[1] += y;
-                    this.Shape.UpdateBuffers();
+                    this.Shape.UpdateBuffers(this.Layer.AnnotationView);
                 }
             }
             eventuallyRender();
@@ -9715,7 +9720,7 @@
                     this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
                  }
 
-                this.Shape.UpdateBuffers();
+                this.Shape.UpdateBuffers(this.Layer.AnnotationView);
                 this.PlacePopup();
                 eventuallyRender();
             }
@@ -9743,7 +9748,7 @@
 
 
     ScaleWidget.prototype.HandleTouchPinch = function(event) {
-        //this.Shape.UpdateBuffers();
+        //this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         //eventuallyRender();
         return true;
     };

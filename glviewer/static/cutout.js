@@ -57,7 +57,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
     var view = new SA.View();
     CUTOUT_VIEW = view;
     view.SetCache(cache);
-    view.InitializeViewport(viewport, 1, true);
+    view.SetViewport(viewport);
     var newCam = view.Camera;
     newCam.SetFocalPoint( focalPoint);
     newCam.SetRoll(roll);

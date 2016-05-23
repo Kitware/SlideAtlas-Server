@@ -50,7 +50,6 @@ Camera.prototype.SetViewport = function (viewport) {
     this.ComputeMatrix();
 }
 
-
 Camera.prototype.Serialize = function () {
   var obj = {};
   obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];

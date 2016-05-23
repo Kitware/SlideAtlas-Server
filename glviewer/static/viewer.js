@@ -41,7 +41,9 @@ function Viewer (parent) {
 
     this.LayerDiv = $('<div>')
         .appendTo(this.Div)
-        .css({'position':'relative',
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
               'border-width':'0px',
               'width':'100%',
               'height':'100%',
@@ -49,10 +51,13 @@ function Viewer (parent) {
               'z-index':'100'})
         .addClass('sa-resize');
 
+    // ==============================
     // Seeing what this does to events.
     this.HeatMapDiv = $('<div>')
         .appendTo(this.Div)
-        .css({'position':'relative',
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
               'border-width':'0px',
               'width':'100%',
               'height':'100%',
@@ -60,11 +65,37 @@ function Viewer (parent) {
               'z-index':'150'})
         .addClass('sa-resize');
 
+    this.HeatMapDiv.saOnResize(
+        function() {
+            self.HeatMap.UpdateCanvasSize();
+            // Rendering will be a slave to the view because it needs the
+            // view's camera anyway.
+        });
+
+    this.HeatMap = new SA.View(this.HeatMapDiv,true);
+
+    var heatMapSource = new SlideAtlasSource();
+    heatMapSource.Prefix = "/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name="
+    var heatMapCache = new Cache();
+    heatMapCache.TileSource = heatMapSource;
+    heatMapCache.SetImageData(
+        {levels:     12,
+         dimensions: [419168, 290400, 1],
+         bounds: [0,419167, 0, 290399, 0,0]});
+    this.HeatMap.SetCache(heatMapCache);
+
+    this.HeatMap.Camera.Load(
+        {FocalPoint: [209808, 145200],
+         Roll: 0,
+         Height: 419617});
+    this.HeatMap.Camera.ComputeMatrix();
+    this.HeatMap.UpdateCanvasSize();
+    //$(window).trigger('resize');
+    // ==============================
+
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
-    // TODO: Get rid of this viewport stuff
-    var viewport = [0,0,100,100];
 
     this.HistoryFlag = false;
 
@@ -82,9 +113,8 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new SA.View(this.Div, true); // Experiment enabling
+    this.MainView = new SA.View(this.Div);
     // webgl for main view.
-    this.MainView.InitializeViewport(viewport);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
@@ -97,13 +127,11 @@ function Viewer (parent) {
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
         this.OverViewScale = 0.02; // Experimenting with scroll
-	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
-                             viewport[2]*0.18, viewport[3]*0.18];
+	      this.OverViewport = [80, 20, 180, 180];
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
         this.OverView = new SA.View(this.OverViewDiv);
-	      this.OverView.InitializeViewport(this.OverViewport);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -461,7 +489,6 @@ Viewer.prototype.RollMove = function (e) {
     return false;
 }
 
-// TODO: Get rid of viewer::SetViewport.
 // onresize callback.  Canvas width and height and the camera need
 // to be synchronized with the canvas div.
 Viewer.prototype.UpdateSize = function () {
@@ -471,10 +498,6 @@ Viewer.prototype.UpdateSize = function () {
 
     if (this.MainView.UpdateCanvasSize() ) {
         this.EventuallyRender();
-    }
-
-    if (this.AnnotationLayer) {
-        this.AnnotationLayer.UpdateSize();
     }
 
     // I do not know the way the viewport is used to place
@@ -502,9 +525,13 @@ Viewer.prototype.UpdateSize = function () {
         this.OverViewport = [width-radius-w/2,
                              radius-h/2,
                              w, h];
-
-        this.OverView.SetViewport(this.OverViewport);
-        this.OverView.Camera.ComputeMatrix();
+        this.OverViewDiv.css({
+            'left'  : this.OverViewport[0]+"px",
+            'width' : this.OverViewport[2]+"px",
+            'top'   : this.OverViewport[1]+"px",
+            'height': this.OverViewport[3]+"px"
+        });
+        this.OverView.UpdateCanvasSize();
     }
 }
 
@@ -652,7 +679,6 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     // Clone the main view.
     var view = new SA.View();
-    view.InitializeViewport(viewport);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -872,8 +898,8 @@ Viewer.prototype.SetViewport = function(viewport) {
     // TODO: Get rid of this positioning hack.
     // Caller should be positioning the parent.
     // The whole "viewport" concept needs to be eliminated.
-    this.MainView.SetViewport(viewport, this.Parent);
-    this.MainView.Camera.ComputeMatrix();
+    //this.MainView.SetViewport(viewport, this.Parent);
+    //this.MainView.Camera.ComputeMatrix();
 
     // I do not know the way the viewport is used to place
     // this overview.  It should be like other widgets
@@ -899,8 +925,13 @@ Viewer.prototype.SetViewport = function(viewport) {
                              viewport[1]+radius-h/2,
                              w, h];
 
-        this.OverView.SetViewport(this.OverViewport);
-        this.OverView.Camera.ComputeMatrix();
+        this.OverViewDiv.css({
+            'left'  : this.OverViewport[0]+"px",
+            'width' : this.OverViewport[2]+"px",
+            'top'   : this.OverViewport[1]+"px",
+            'height': this.OverViewport[3]+"px"
+        });
+        this.OverView.UpdateCanvasSize();
     }
 }
 
@@ -1096,6 +1127,10 @@ Viewer.prototype.Draw = function() {
     // TODO: Consider having the tile load callback scheduling the next render.
     if ( ! this.MainView.DrawTiles() ) {
         this.EventuallyRender();
+    }
+
+    if (this.HeatMap) {
+        this.HeatMap.DrawTiles();
     }
 
     // This is only necessary for webgl, Canvas2d just uses a border.

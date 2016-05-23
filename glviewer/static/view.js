@@ -10,6 +10,8 @@
 
 
 function View (parent, useWebGL) {
+    this.Viewport = [0,0, 100,100];
+
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -82,6 +84,8 @@ View.prototype.GetCamera = function() {
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
 View.prototype.InitializeViewport = function(viewport) {
+    alert("legacy init");
+    /*
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
@@ -95,7 +99,7 @@ View.prototype.InitializeViewport = function(viewport) {
     // TODO: Get Rid of this.
     //this.CanvasDiv
     //    .addClass('view');
-
+    */
 }
 
 
@@ -130,10 +134,6 @@ View.prototype.GetViewport = function() {
   return this.Viewport;
 }
 
-View.prototype.GetViewport = function() {
-  return this.Viewport;
-}
-
 View.prototype.GetWidth = function() {
     return this.CanvasDiv.width();
 }
@@ -157,50 +157,31 @@ View.prototype.UpdateCanvasSize = function() {
     // resizable is making width 0 intermitently ????
     if (width <= 0 || height <= 0) { return false; }
 
-    this.Canvas.attr("width", width.toString());
-    this.Canvas.attr("height", height.toString());
-
-    // TODO: Get rid of this.
-    this.Viewport = [pos.left, pos.top, width, height];
-
-    // TODO: Just set the width and height of the camera.
-    // There is no reason, the camera needs to know the
-    // the position of the cameraDiv.
-    this.Camera.SetViewport(this.Viewport);
+    this.SetViewport([pos.left, pos.top, width, height]);
 
     return true;
 }
 
 
-// TODO: Now that the browser in managing the position and size of the
-// canvasDiv, get rid of this function.  I still need to synchronize the
-// canvas with the canvasDiv.  see  UpdateCanvas();
-View.prototype.SetViewport = function(viewport, parent) {
-    parent = parent || this.CanvasDiv;
+// This is meant to be called internally by UpdateCanvasSize.
+// However, if the parent(canvasDiv) is hidden, it might need to be
+// set explcitly.
+// TODO: Change this to simply width and height.
+View.prototype.SetViewport = function(viewport) {
+    var width = viewport[2];
+    var height = viewport[3];
 
-    for (var i = 0; i < 4; ++i) {
-        viewport[i] = Math.round(viewport[i]);
-    }
-    // Allow for border.
-    viewport[2] -=2;
-    viewport[3] -=2;
-    if (parent) {
-        parent.css({
-            'left'  : viewport[0]+"px",
-            'width' : viewport[2]+"px",
-            'top'   : viewport[1]+"px",
-            'height': viewport[3]+"px"
-        });
-        // Needed for canvas to have the correct drawing transformation.
-        this.Canvas.attr("width", viewport[2].toString());
-        this.Canvas.attr("height", viewport[3].toString());
-    }
+    this.Canvas.attr("width", width.toString());
+    this.Canvas.attr("height", height.toString());
 
+    // TODO: Get rid of this ivar
     this.Viewport = viewport;
+
+    // TODO: Just set the width and height of the camera.
+    // There is no reason, the camera needs to know the
+    // the position of the cameraDiv.
     this.Camera.SetViewport(viewport);
 }
-
-
 
 
 View.prototype.CaptureImage = function() {
