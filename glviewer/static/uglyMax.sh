@@ -2,20 +2,8 @@ rm css/sa.css
 rm sa.max.js
 rm sam.max.js
 
-echo "// slide atlas" > css/sa.css
-cat css/main.css >> css/sa.css
-cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css >> css/sa.css
-cat css/saViewer.css >> css/sa.css
-cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
-cat ../../slideatlas/static/thirdparty/spectrum/spectrum.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/webgl-utils/webgl-utils.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/blob/g7246d68/Blob.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/filesaver/g4d049e9/FileSaver.js >> sa.max.js
-cat ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.max.js
 
+cat ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sam.max.js
 
 cat annotationLayer.js >> sam.max.js 
 cat shape.js >> sam.max.js 
@@ -43,7 +31,24 @@ cat cutoutWidget.js >> sam.max.js
 cat imageAnnotation.js >> sam.max.js 
 cat dialog.js >> sam.max.js 
 cat girderWidget.js >> sam.max.js 
+cat view.js >> sam.max.js 
 
+
+
+
+
+echo "// slide atlas" > css/sa.css
+cat css/main.css >> css/sa.css
+cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css >> css/sa.css
+cat css/saViewer.css >> css/sa.css
+cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js >> sa.max.js
+cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
+cat ../../slideatlas/static/thirdparty/spectrum/spectrum.js >> sa.max.js
+cat ../../slideatlas/static/thirdparty/webgl-utils/webgl-utils.js >> sa.max.js
+cat ../../slideatlas/static/thirdparty/blob/g7246d68/Blob.js >> sa.max.js
+cat ../../slideatlas/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js >> sa.max.js
+cat ../../slideatlas/static/thirdparty/filesaver/g4d049e9/FileSaver.js >> sa.max.js
+cat ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.max.js
 
 cat cookies.js >> sa.max.js 
 cat objectId.js >> sa.max.js 
@@ -72,7 +77,7 @@ cat align.js >> sa.max.js
 cat tile.js >> sa.max.js 
 cat cache.js >> sa.max.js 
 cat section.js >> sa.max.js 
-cat view.js >> sa.max.js 
+cat tileView.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
 

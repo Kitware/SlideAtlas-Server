@@ -175,7 +175,7 @@ Contour.prototype.DeepCopy = function (contourIn) {
     }
     this.World = contourIn.World;
     if (contourIn.Camera) {
-        this.Camera = new Camera();
+        this.Camera = new SAM.Camera();
         this.Camera.DeepCopy(contourIn.Camera);
     }
 
@@ -1708,7 +1708,7 @@ function GetImageData(view) {
     var height = Math.floor(cam.ViewportHeight);
     var ctx  = view.Context2d;
     var data = ctx.getImageData(0,0,width,height);
-    data.Camera = new Camera();
+    data.Camera = new SAM.Camera();
     data.Camera.DeepCopy(view.Camera);
     data.__proto__ = new ImageData();
     data.IncX = 4;

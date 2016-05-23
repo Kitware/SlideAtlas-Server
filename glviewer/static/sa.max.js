@@ -2319,38 +2319,6 @@
     });
 
 });
-// glMatrix v0.9.5
-glMatrixArrayType=typeof Float32Array!="undefined"?Float32Array:typeof WebGLFloatArray!="undefined"?WebGLFloatArray:Array;var vec3={};vec3.create=function(a){var b=new glMatrixArrayType(3);if(a){b[0]=a[0];b[1]=a[1];b[2]=a[2]}return b};vec3.set=function(a,b){b[0]=a[0];b[1]=a[1];b[2]=a[2];return b};vec3.add=function(a,b,c){if(!c||a==c){a[0]+=b[0];a[1]+=b[1];a[2]+=b[2];return a}c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];return c};
-vec3.subtract=function(a,b,c){if(!c||a==c){a[0]-=b[0];a[1]-=b[1];a[2]-=b[2];return a}c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];return c};vec3.negate=function(a,b){b||(b=a);b[0]=-a[0];b[1]=-a[1];b[2]=-a[2];return b};vec3.scale=function(a,b,c){if(!c||a==c){a[0]*=b;a[1]*=b;a[2]*=b;return a}c[0]=a[0]*b;c[1]=a[1]*b;c[2]=a[2]*b;return c};
-vec3.normalize=function(a,b){b||(b=a);var c=a[0],d=a[1],e=a[2],g=Math.sqrt(c*c+d*d+e*e);if(g){if(g==1){b[0]=c;b[1]=d;b[2]=e;return b}}else{b[0]=0;b[1]=0;b[2]=0;return b}g=1/g;b[0]=c*g;b[1]=d*g;b[2]=e*g;return b};vec3.cross=function(a,b,c){c||(c=a);var d=a[0],e=a[1];a=a[2];var g=b[0],f=b[1];b=b[2];c[0]=e*b-a*f;c[1]=a*g-d*b;c[2]=d*f-e*g;return c};vec3.length=function(a){var b=a[0],c=a[1];a=a[2];return Math.sqrt(b*b+c*c+a*a)};vec3.dot=function(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]};
-vec3.direction=function(a,b,c){c||(c=a);var d=a[0]-b[0],e=a[1]-b[1];a=a[2]-b[2];b=Math.sqrt(d*d+e*e+a*a);if(!b){c[0]=0;c[1]=0;c[2]=0;return c}b=1/b;c[0]=d*b;c[1]=e*b;c[2]=a*b;return c};vec3.lerp=function(a,b,c,d){d||(d=a);d[0]=a[0]+c*(b[0]-a[0]);d[1]=a[1]+c*(b[1]-a[1]);d[2]=a[2]+c*(b[2]-a[2]);return d};vec3.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+"]"};var mat3={};
-mat3.create=function(a){var b=new glMatrixArrayType(9);if(a){b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];b[4]=a[4];b[5]=a[5];b[6]=a[6];b[7]=a[7];b[8]=a[8];b[9]=a[9]}return b};mat3.set=function(a,b){b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];b[4]=a[4];b[5]=a[5];b[6]=a[6];b[7]=a[7];b[8]=a[8];return b};mat3.identity=function(a){a[0]=1;a[1]=0;a[2]=0;a[3]=0;a[4]=1;a[5]=0;a[6]=0;a[7]=0;a[8]=1;return a};
-mat3.transpose=function(a,b){if(!b||a==b){var c=a[1],d=a[2],e=a[5];a[1]=a[3];a[2]=a[6];a[3]=c;a[5]=a[7];a[6]=d;a[7]=e;return a}b[0]=a[0];b[1]=a[3];b[2]=a[6];b[3]=a[1];b[4]=a[4];b[5]=a[7];b[6]=a[2];b[7]=a[5];b[8]=a[8];return b};mat3.toMat4=function(a,b){b||(b=mat4.create());b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=0;b[4]=a[3];b[5]=a[4];b[6]=a[5];b[7]=0;b[8]=a[6];b[9]=a[7];b[10]=a[8];b[11]=0;b[12]=0;b[13]=0;b[14]=0;b[15]=1;return b};
-mat3.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+", "+a[4]+", "+a[5]+", "+a[6]+", "+a[7]+", "+a[8]+"]"};var mat4={};mat4.create=function(a){var b=new glMatrixArrayType(16);if(a){b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];b[4]=a[4];b[5]=a[5];b[6]=a[6];b[7]=a[7];b[8]=a[8];b[9]=a[9];b[10]=a[10];b[11]=a[11];b[12]=a[12];b[13]=a[13];b[14]=a[14];b[15]=a[15]}return b};
-mat4.set=function(a,b){b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];b[4]=a[4];b[5]=a[5];b[6]=a[6];b[7]=a[7];b[8]=a[8];b[9]=a[9];b[10]=a[10];b[11]=a[11];b[12]=a[12];b[13]=a[13];b[14]=a[14];b[15]=a[15];return b};mat4.identity=function(a){a[0]=1;a[1]=0;a[2]=0;a[3]=0;a[4]=0;a[5]=1;a[6]=0;a[7]=0;a[8]=0;a[9]=0;a[10]=1;a[11]=0;a[12]=0;a[13]=0;a[14]=0;a[15]=1;return a};
-mat4.transpose=function(a,b){if(!b||a==b){var c=a[1],d=a[2],e=a[3],g=a[6],f=a[7],h=a[11];a[1]=a[4];a[2]=a[8];a[3]=a[12];a[4]=c;a[6]=a[9];a[7]=a[13];a[8]=d;a[9]=g;a[11]=a[14];a[12]=e;a[13]=f;a[14]=h;return a}b[0]=a[0];b[1]=a[4];b[2]=a[8];b[3]=a[12];b[4]=a[1];b[5]=a[5];b[6]=a[9];b[7]=a[13];b[8]=a[2];b[9]=a[6];b[10]=a[10];b[11]=a[14];b[12]=a[3];b[13]=a[7];b[14]=a[11];b[15]=a[15];return b};
-mat4.determinant=function(a){var b=a[0],c=a[1],d=a[2],e=a[3],g=a[4],f=a[5],h=a[6],i=a[7],j=a[8],k=a[9],l=a[10],o=a[11],m=a[12],n=a[13],p=a[14];a=a[15];return m*k*h*e-j*n*h*e-m*f*l*e+g*n*l*e+j*f*p*e-g*k*p*e-m*k*d*i+j*n*d*i+m*c*l*i-b*n*l*i-j*c*p*i+b*k*p*i+m*f*d*o-g*n*d*o-m*c*h*o+b*n*h*o+g*c*p*o-b*f*p*o-j*f*d*a+g*k*d*a+j*c*h*a-b*k*h*a-g*c*l*a+b*f*l*a};
-mat4.inverse=function(a,b){b||(b=a);var c=a[0],d=a[1],e=a[2],g=a[3],f=a[4],h=a[5],i=a[6],j=a[7],k=a[8],l=a[9],o=a[10],m=a[11],n=a[12],p=a[13],r=a[14],s=a[15],A=c*h-d*f,B=c*i-e*f,t=c*j-g*f,u=d*i-e*h,v=d*j-g*h,w=e*j-g*i,x=k*p-l*n,y=k*r-o*n,z=k*s-m*n,C=l*r-o*p,D=l*s-m*p,E=o*s-m*r,q=1/(A*E-B*D+t*C+u*z-v*y+w*x);b[0]=(h*E-i*D+j*C)*q;b[1]=(-d*E+e*D-g*C)*q;b[2]=(p*w-r*v+s*u)*q;b[3]=(-l*w+o*v-m*u)*q;b[4]=(-f*E+i*z-j*y)*q;b[5]=(c*E-e*z+g*y)*q;b[6]=(-n*w+r*t-s*B)*q;b[7]=(k*w-o*t+m*B)*q;b[8]=(f*D-h*z+j*x)*q;
-b[9]=(-c*D+d*z-g*x)*q;b[10]=(n*v-p*t+s*A)*q;b[11]=(-k*v+l*t-m*A)*q;b[12]=(-f*C+h*y-i*x)*q;b[13]=(c*C-d*y+e*x)*q;b[14]=(-n*u+p*B-r*A)*q;b[15]=(k*u-l*B+o*A)*q;return b};mat4.toRotationMat=function(a,b){b||(b=mat4.create());b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];b[4]=a[4];b[5]=a[5];b[6]=a[6];b[7]=a[7];b[8]=a[8];b[9]=a[9];b[10]=a[10];b[11]=a[11];b[12]=0;b[13]=0;b[14]=0;b[15]=1;return b};
-mat4.toMat3=function(a,b){b||(b=mat3.create());b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[4];b[4]=a[5];b[5]=a[6];b[6]=a[8];b[7]=a[9];b[8]=a[10];return b};mat4.toInverseMat3=function(a,b){var c=a[0],d=a[1],e=a[2],g=a[4],f=a[5],h=a[6],i=a[8],j=a[9],k=a[10],l=k*f-h*j,o=-k*g+h*i,m=j*g-f*i,n=c*l+d*o+e*m;if(!n)return null;n=1/n;b||(b=mat3.create());b[0]=l*n;b[1]=(-k*d+e*j)*n;b[2]=(h*d-e*f)*n;b[3]=o*n;b[4]=(k*c-e*i)*n;b[5]=(-h*c+e*g)*n;b[6]=m*n;b[7]=(-j*c+d*i)*n;b[8]=(f*c-d*g)*n;return b};
-mat4.multiply=function(a,b,c){c||(c=a);var d=a[0],e=a[1],g=a[2],f=a[3],h=a[4],i=a[5],j=a[6],k=a[7],l=a[8],o=a[9],m=a[10],n=a[11],p=a[12],r=a[13],s=a[14];a=a[15];var A=b[0],B=b[1],t=b[2],u=b[3],v=b[4],w=b[5],x=b[6],y=b[7],z=b[8],C=b[9],D=b[10],E=b[11],q=b[12],F=b[13],G=b[14];b=b[15];c[0]=A*d+B*h+t*l+u*p;c[1]=A*e+B*i+t*o+u*r;c[2]=A*g+B*j+t*m+u*s;c[3]=A*f+B*k+t*n+u*a;c[4]=v*d+w*h+x*l+y*p;c[5]=v*e+w*i+x*o+y*r;c[6]=v*g+w*j+x*m+y*s;c[7]=v*f+w*k+x*n+y*a;c[8]=z*d+C*h+D*l+E*p;c[9]=z*e+C*i+D*o+E*r;c[10]=z*
-g+C*j+D*m+E*s;c[11]=z*f+C*k+D*n+E*a;c[12]=q*d+F*h+G*l+b*p;c[13]=q*e+F*i+G*o+b*r;c[14]=q*g+F*j+G*m+b*s;c[15]=q*f+F*k+G*n+b*a;return c};mat4.multiplyVec3=function(a,b,c){c||(c=b);var d=b[0],e=b[1];b=b[2];c[0]=a[0]*d+a[4]*e+a[8]*b+a[12];c[1]=a[1]*d+a[5]*e+a[9]*b+a[13];c[2]=a[2]*d+a[6]*e+a[10]*b+a[14];return c};
-mat4.multiplyVec4=function(a,b,c){c||(c=b);var d=b[0],e=b[1],g=b[2];b=b[3];c[0]=a[0]*d+a[4]*e+a[8]*g+a[12]*b;c[1]=a[1]*d+a[5]*e+a[9]*g+a[13]*b;c[2]=a[2]*d+a[6]*e+a[10]*g+a[14]*b;c[3]=a[3]*d+a[7]*e+a[11]*g+a[15]*b;return c};
-mat4.translate=function(a,b,c){var d=b[0],e=b[1];b=b[2];if(!c||a==c){a[12]=a[0]*d+a[4]*e+a[8]*b+a[12];a[13]=a[1]*d+a[5]*e+a[9]*b+a[13];a[14]=a[2]*d+a[6]*e+a[10]*b+a[14];a[15]=a[3]*d+a[7]*e+a[11]*b+a[15];return a}var g=a[0],f=a[1],h=a[2],i=a[3],j=a[4],k=a[5],l=a[6],o=a[7],m=a[8],n=a[9],p=a[10],r=a[11];c[0]=g;c[1]=f;c[2]=h;c[3]=i;c[4]=j;c[5]=k;c[6]=l;c[7]=o;c[8]=m;c[9]=n;c[10]=p;c[11]=r;c[12]=g*d+j*e+m*b+a[12];c[13]=f*d+k*e+n*b+a[13];c[14]=h*d+l*e+p*b+a[14];c[15]=i*d+o*e+r*b+a[15];return c};
-mat4.scale=function(a,b,c){var d=b[0],e=b[1];b=b[2];if(!c||a==c){a[0]*=d;a[1]*=d;a[2]*=d;a[3]*=d;a[4]*=e;a[5]*=e;a[6]*=e;a[7]*=e;a[8]*=b;a[9]*=b;a[10]*=b;a[11]*=b;return a}c[0]=a[0]*d;c[1]=a[1]*d;c[2]=a[2]*d;c[3]=a[3]*d;c[4]=a[4]*e;c[5]=a[5]*e;c[6]=a[6]*e;c[7]=a[7]*e;c[8]=a[8]*b;c[9]=a[9]*b;c[10]=a[10]*b;c[11]=a[11]*b;c[12]=a[12];c[13]=a[13];c[14]=a[14];c[15]=a[15];return c};
-mat4.rotate=function(a,b,c,d){var e=c[0],g=c[1];c=c[2];var f=Math.sqrt(e*e+g*g+c*c);if(!f)return null;if(f!=1){f=1/f;e*=f;g*=f;c*=f}var h=Math.sin(b),i=Math.cos(b),j=1-i;b=a[0];f=a[1];var k=a[2],l=a[3],o=a[4],m=a[5],n=a[6],p=a[7],r=a[8],s=a[9],A=a[10],B=a[11],t=e*e*j+i,u=g*e*j+c*h,v=c*e*j-g*h,w=e*g*j-c*h,x=g*g*j+i,y=c*g*j+e*h,z=e*c*j+g*h;e=g*c*j-e*h;g=c*c*j+i;if(d){if(a!=d){d[12]=a[12];d[13]=a[13];d[14]=a[14];d[15]=a[15]}}else d=a;d[0]=b*t+o*u+r*v;d[1]=f*t+m*u+s*v;d[2]=k*t+n*u+A*v;d[3]=l*t+p*u+B*
-v;d[4]=b*w+o*x+r*y;d[5]=f*w+m*x+s*y;d[6]=k*w+n*x+A*y;d[7]=l*w+p*x+B*y;d[8]=b*z+o*e+r*g;d[9]=f*z+m*e+s*g;d[10]=k*z+n*e+A*g;d[11]=l*z+p*e+B*g;return d};mat4.rotateX=function(a,b,c){var d=Math.sin(b);b=Math.cos(b);var e=a[4],g=a[5],f=a[6],h=a[7],i=a[8],j=a[9],k=a[10],l=a[11];if(c){if(a!=c){c[0]=a[0];c[1]=a[1];c[2]=a[2];c[3]=a[3];c[12]=a[12];c[13]=a[13];c[14]=a[14];c[15]=a[15]}}else c=a;c[4]=e*b+i*d;c[5]=g*b+j*d;c[6]=f*b+k*d;c[7]=h*b+l*d;c[8]=e*-d+i*b;c[9]=g*-d+j*b;c[10]=f*-d+k*b;c[11]=h*-d+l*b;return c};
-mat4.rotateY=function(a,b,c){var d=Math.sin(b);b=Math.cos(b);var e=a[0],g=a[1],f=a[2],h=a[3],i=a[8],j=a[9],k=a[10],l=a[11];if(c){if(a!=c){c[4]=a[4];c[5]=a[5];c[6]=a[6];c[7]=a[7];c[12]=a[12];c[13]=a[13];c[14]=a[14];c[15]=a[15]}}else c=a;c[0]=e*b+i*-d;c[1]=g*b+j*-d;c[2]=f*b+k*-d;c[3]=h*b+l*-d;c[8]=e*d+i*b;c[9]=g*d+j*b;c[10]=f*d+k*b;c[11]=h*d+l*b;return c};
-mat4.rotateZ=function(a,b,c){var d=Math.sin(b);b=Math.cos(b);var e=a[0],g=a[1],f=a[2],h=a[3],i=a[4],j=a[5],k=a[6],l=a[7];if(c){if(a!=c){c[8]=a[8];c[9]=a[9];c[10]=a[10];c[11]=a[11];c[12]=a[12];c[13]=a[13];c[14]=a[14];c[15]=a[15]}}else c=a;c[0]=e*b+i*d;c[1]=g*b+j*d;c[2]=f*b+k*d;c[3]=h*b+l*d;c[4]=e*-d+i*b;c[5]=g*-d+j*b;c[6]=f*-d+k*b;c[7]=h*-d+l*b;return c};
-mat4.frustum=function(a,b,c,d,e,g,f){f||(f=mat4.create());var h=b-a,i=d-c,j=g-e;f[0]=e*2/h;f[1]=0;f[2]=0;f[3]=0;f[4]=0;f[5]=e*2/i;f[6]=0;f[7]=0;f[8]=(b+a)/h;f[9]=(d+c)/i;f[10]=-(g+e)/j;f[11]=-1;f[12]=0;f[13]=0;f[14]=-(g*e*2)/j;f[15]=0;return f};mat4.perspective=function(a,b,c,d,e){a=c*Math.tan(a*Math.PI/360);b=a*b;return mat4.frustum(-b,b,-a,a,c,d,e)};
-mat4.ortho=function(a,b,c,d,e,g,f){f||(f=mat4.create());var h=b-a,i=d-c,j=g-e;f[0]=2/h;f[1]=0;f[2]=0;f[3]=0;f[4]=0;f[5]=2/i;f[6]=0;f[7]=0;f[8]=0;f[9]=0;f[10]=-2/j;f[11]=0;f[12]=-(a+b)/h;f[13]=-(d+c)/i;f[14]=-(g+e)/j;f[15]=1;return f};
-mat4.lookAt=function(a,b,c,d){d||(d=mat4.create());var e=a[0],g=a[1];a=a[2];var f=c[0],h=c[1],i=c[2];c=b[1];var j=b[2];if(e==b[0]&&g==c&&a==j)return mat4.identity(d);var k,l,o,m;c=e-b[0];j=g-b[1];b=a-b[2];m=1/Math.sqrt(c*c+j*j+b*b);c*=m;j*=m;b*=m;k=h*b-i*j;i=i*c-f*b;f=f*j-h*c;if(m=Math.sqrt(k*k+i*i+f*f)){m=1/m;k*=m;i*=m;f*=m}else f=i=k=0;h=j*f-b*i;l=b*k-c*f;o=c*i-j*k;if(m=Math.sqrt(h*h+l*l+o*o)){m=1/m;h*=m;l*=m;o*=m}else o=l=h=0;d[0]=k;d[1]=h;d[2]=c;d[3]=0;d[4]=i;d[5]=l;d[6]=j;d[7]=0;d[8]=f;d[9]=
-o;d[10]=b;d[11]=0;d[12]=-(k*e+i*g+f*a);d[13]=-(h*e+l*g+o*a);d[14]=-(c*e+j*g+b*a);d[15]=1;return d};mat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+", "+a[4]+", "+a[5]+", "+a[6]+", "+a[7]+", "+a[8]+", "+a[9]+", "+a[10]+", "+a[11]+", "+a[12]+", "+a[13]+", "+a[14]+", "+a[15]+"]"};quat4={};quat4.create=function(a){var b=new glMatrixArrayType(4);if(a){b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3]}return b};quat4.set=function(a,b){b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];return b};
-quat4.calculateW=function(a,b){var c=a[0],d=a[1],e=a[2];if(!b||a==b){a[3]=-Math.sqrt(Math.abs(1-c*c-d*d-e*e));return a}b[0]=c;b[1]=d;b[2]=e;b[3]=-Math.sqrt(Math.abs(1-c*c-d*d-e*e));return b};quat4.inverse=function(a,b){if(!b||a==b){a[0]*=1;a[1]*=1;a[2]*=1;return a}b[0]=-a[0];b[1]=-a[1];b[2]=-a[2];b[3]=a[3];return b};quat4.length=function(a){var b=a[0],c=a[1],d=a[2];a=a[3];return Math.sqrt(b*b+c*c+d*d+a*a)};
-quat4.normalize=function(a,b){b||(b=a);var c=a[0],d=a[1],e=a[2],g=a[3],f=Math.sqrt(c*c+d*d+e*e+g*g);if(f==0){b[0]=0;b[1]=0;b[2]=0;b[3]=0;return b}f=1/f;b[0]=c*f;b[1]=d*f;b[2]=e*f;b[3]=g*f;return b};quat4.multiply=function(a,b,c){c||(c=a);var d=a[0],e=a[1],g=a[2];a=a[3];var f=b[0],h=b[1],i=b[2];b=b[3];c[0]=d*b+a*f+e*i-g*h;c[1]=e*b+a*h+g*f-d*i;c[2]=g*b+a*i+d*h-e*f;c[3]=a*b-d*f-e*h-g*i;return c};
-quat4.multiplyVec3=function(a,b,c){c||(c=b);var d=b[0],e=b[1],g=b[2];b=a[0];var f=a[1],h=a[2];a=a[3];var i=a*d+f*g-h*e,j=a*e+h*d-b*g,k=a*g+b*e-f*d;d=-b*d-f*e-h*g;c[0]=i*a+d*-b+j*-h-k*-f;c[1]=j*a+d*-f+k*-b-i*-h;c[2]=k*a+d*-h+i*-f-j*-b;return c};quat4.toMat3=function(a,b){b||(b=mat3.create());var c=a[0],d=a[1],e=a[2],g=a[3],f=c+c,h=d+d,i=e+e,j=c*f,k=c*h;c=c*i;var l=d*h;d=d*i;e=e*i;f=g*f;h=g*h;g=g*i;b[0]=1-(l+e);b[1]=k-g;b[2]=c+h;b[3]=k+g;b[4]=1-(j+e);b[5]=d-f;b[6]=c-h;b[7]=d+f;b[8]=1-(j+l);return b};
-quat4.toMat4=function(a,b){b||(b=mat4.create());var c=a[0],d=a[1],e=a[2],g=a[3],f=c+c,h=d+d,i=e+e,j=c*f,k=c*h;c=c*i;var l=d*h;d=d*i;e=e*i;f=g*f;h=g*h;g=g*i;b[0]=1-(l+e);b[1]=k-g;b[2]=c+h;b[3]=0;b[4]=k+g;b[5]=1-(j+e);b[6]=d-f;b[7]=0;b[8]=c-h;b[9]=d+f;b[10]=1-(j+l);b[11]=0;b[12]=0;b[13]=0;b[14]=0;b[15]=1;return b};quat4.slerp=function(a,b,c,d){d||(d=a);var e=c;if(a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3]<0)e=-1*c;d[0]=1-c*a[0]+e*b[0];d[1]=1-c*a[1]+e*b[1];d[2]=1-c*a[2]+e*b[2];d[3]=1-c*a[3]+e*b[3];return d};
-quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 /*
  * Copyright 2010, Google Inc.
  * All rights reserved.
@@ -8646,7 +8614,8 @@ function getShader(gl, type, str) {
 
 function initShaderPrograms(gl) {
 
-    var fragmentShaderString = 
+    // An experiment to make rgb have an alpha channel
+    var heatMapFragmentShaderString = 
         "precision highp float;" +
         "uniform sampler2D uSampler;" +
         "varying vec2 vTextureCoord;" +
@@ -8656,6 +8625,14 @@ function initShaderPrograms(gl) {
         "   if (value < 0.3 || value > 2.5) {" +
         "     textureColor[3] = 0.0;" +
         "   }" +
+        "   gl_FragColor = textureColor;" +
+        " }";
+    var fragmentShaderString = 
+        "precision highp float;" +
+        "uniform sampler2D uSampler;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
         "   gl_FragColor = textureColor;" +
         " }";
     var vertexShaderString = 
@@ -10956,8 +10933,8 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     // Hard coded for two viewers (recored 0 and 1 too).
     // First place all the cameras into an array for code simplicity.
     // Cameras used for preloading.
-    if (! note.PreCamera) { note.PreCamera = new Camera();}
-    if (! note.PostCamera) { note.PostCamera = new Camera();}
+    if (! note.PreCamera) { note.PreCamera = new SAM.Camera();}
+    if (! note.PostCamera) { note.PostCamera = new SAM.Camera();}
     var cameras = [note.PreCamera,
                    this.GetViewer(0).GetCamera(),
                    this.GetViewer(1).GetCamera(),
@@ -13853,7 +13830,7 @@ function ViewerRecord () {
 ViewerRecord.prototype.DeepCopy = function(source) {
     this.AnnotationVisibility = source.AnnotationVisibility;
     this.Annotations = JSON.parse(JSON.stringify(source.Annotations));
-    this.Camera = new Camera();
+    this.Camera = new SAM.Camera();
     this.Camera.DeepCopy(source.Camera);
     this.Image = source.Image;
     this.OverviewBounds = source.OverviewBounds.slice(0);
@@ -14028,7 +14005,7 @@ ViewerRecord.prototype.LoadTiles = function (viewport) {
     // TODO:  I do not like the fact that we are keeping a serialized
     // version of the camera in the record object.  It should be a real 
     // camera that is serialized when it is saved.
-    var cam = new Camera();
+    var cam = new SAM.Camera();
     cam.Load(this.Camera);
     cam.SetViewport(viewport);
     cam.ComputeMatrix();
@@ -22033,445 +22010,437 @@ function LoadQueueError(tile) {
 //==============================================================================
 // Camera Object
 // Set the viewport separately
-function Camera () {
-    // Better managmenet of layers and sub layers.
-    // Assign a range of the z buffer  for the view to use exclusively.
-    // The full range is -1->1.  -1 is in front.
-    this.ZRange = [-1.0,1.0];
-    this.Roll = 0;
-    this.Matrix = mat4.create();
-    this.Height = 256.0 * 64.0;
-    this.Width = this.Height * 1.62;
-    this.FocalPoint = [128.0*64.0, 128.0*64.0];
-    this.ComputeMatrix();
-    // for drawing the view bounds.
-    this.Points = [];
-    this.Buffer = null;
-    this.CreateBuffer();
-    this.Mirror = false;
 
-    // Placeholders
-    this.ViewportWidth = 162;
-    this.ViewportHeight = 100;
-}
 
-// Spacing of pixels of the screen.
-Camera.prototype.GetSpacing = function() {
-    return this.GetHeight() / this.ViewportHeight;
-}
+(function () {
+    "use strict";
 
-Camera.prototype.DeepCopy = function (inCam) {
-    if (inCam.ZRange) { this.ZRange = inCam.ZRange.slice(0); }
-    this.Roll = inCam.Roll;
-    this.Height = inCam.Height;
-    this.Width = inCam.Width;
-    this.SetFocalPoint( inCam.FocalPoint);
-    if (inCam.ViewportWidth) { this.ViewportWidth = inCam.ViewportWidth; }
-    if (inCam.ViewportHeight) { this.ViewportHeight = inCam.ViewportHeight; }
-    this.ComputeMatrix();
-}
-
-Camera.prototype.SetViewport = function (viewport) {
-    if (10*viewport[3] < viewport[2]) {
-        //alert("Unusual viewport " + viewport[3]);
-        return;
-    }
-    this.ViewportWidth = viewport[2];
-    this.ViewportHeight = viewport[3];
-    this.Width = this.Height * this.ViewportWidth / this.ViewportHeight;
-    this.ComputeMatrix();
-}
-
-Camera.prototype.Serialize = function () {
-  var obj = {};
-  obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];
-  obj.Roll = this.Roll;
-  obj.Height = this.GetHeight();
-  obj.Width = this.GetWidth();
-  return obj;
-}
-
-Camera.prototype.Load = function (obj) {
-    this.SetFocalPoint( obj.FocalPoint);
-    this.Roll = obj.Roll;
-    this.Height = obj.Height;
-    if (obj.Width) {
-        this.Width = obj.Width;
-    } else {
+    function Camera () {
+        // Better managmenet of layers and sub layers.
+        // Assign a range of the z buffer  for the view to use exclusively.
+        // The full range is -1->1.  -1 is in front.
+        this.ZRange = [-1.0,1.0];
+        this.Roll = 0;
+        this.Matrix = mat4.create();
+        this.Height = 256.0 * 64.0;
         this.Width = this.Height * 1.62;
+        this.FocalPoint = [128.0*64.0, 128.0*64.0];
+        this.ComputeMatrix();
+        // for drawing the view bounds.
+        this.Points = [];
+        this.Buffer = null;
+        this.CreateBuffer();
+        this.Mirror = false;
+
+        // Placeholders
+        this.ViewportWidth = 162;
+        this.ViewportHeight = 100;
     }
 
-    // Width is computed from height and aspect.
-    this.ComputeMatrix();
-}
-
-
-// Roll is in Radians
-// Rotation is in Degrees
-Camera.prototype.GetRotation = function () {
-    return this.Roll * 180.0 / 3.1415926535;
-}
-
-Camera.prototype.GetFocalPoint = function () {
-  // Copy to avoid bugs because arrays are shared.
-  // These are nasty to find.
-  return [this.FocalPoint[0],this.FocalPoint[1]];
-}
-
-Camera.prototype.SetFocalPoint = function (fp) {
-  if (isNaN(fp[0]) || isNaN(fp[1])) {
-    console.log("Camera 1");
-    return;
-  }
-  this.FocalPoint[0] = fp[0];
-  this.FocalPoint[1] = fp[1];
-  // Ignore z on purpose.
-}
-
-
-Camera.prototype.ConvertPointViewerToWorld = function(x, y) {
-    // Convert to world coordinate system
-    // Compute focal point from inverse overview camera.
-    x = x/this.ViewportWidth;
-    y = y/this.ViewportHeight;
-    x = (x*2.0 - 1.0)*this.Matrix[15];
-    y = (1.0 - y*2.0)*this.Matrix[15];
-    var m = this.Matrix;
-    var det = m[0]*m[5] - m[1]*m[4];
-    var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
-    var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
-
-    return [xNew, yNew];
-}
-
-Camera.prototype.ConvertPointWorldToViewer = function(x, y) {
-    var m = this.Matrix;
-
-    // Convert from world coordinate to view (-1->1);
-    var h = (x*m[3] + y*m[7] + m[15]);
-    var xNew = (x*m[0] + y*m[4] + m[12]) / h;
-    var yNew = (x*m[1] + y*m[5] + m[13]) / h;
-    // Convert from view to screen pixel coordinates.
-    xNew = (1.0+xNew)*0.5*this.ViewportWidth;
-    yNew = (1.0-yNew)*0.5*this.ViewportHeight;
-
-    return [xNew, yNew];
-}
-
-// dx, dy are in view coordinates [-0.5,0.5].
-// The camera matrix converts world to view.
-Camera.prototype.HandleTranslate = function (dx,dy) {
-    // Convert view vector to world vector.
-    // We could invert the matrix to get the transform, but this is easier for now.....
-    var s = Math.sin(this.Roll);
-    var c = Math.cos(this.Roll);
-    var x = this.FocalPoint[0];
-    var y = this.FocalPoint[1];
-    var z = 10;
-    var w = this.GetWidth();
-    var h = this.GetHeight();
-
-    if (this.Mirror) {
-      dy = -dy;
+    // Spacing of pixels of the screen.
+    Camera.prototype.GetSpacing = function() {
+        return this.GetHeight() / this.ViewportHeight;
     }
 
-    // Scale to world.
-    dx = dx * w;
-    dy = dy * w;
-    // Rotate
-    var rx = dx*c + dy*s;
-    var ry = dy*c - dx*s;
-
-    this.Translate(rx,ry,0.0);
-}
-
-// x,y are in display coordiantes (origin at the center).
-// dx,dy are in the same coordinates system (scale).
-// Scale does not matter because we only care about rotation.
-Camera.prototype.HandleRoll = function (x,y, dx, dy) {
-  // Avoid divide by zero / singularity
-  if (x == 0 && y == 0) {
-    return;
-  }
-  // Orthogonal (counter clockwise) dot dVect.
-  var dRoll = -y*dx +x*dy;
-  // Remove magnitude of location.
-  // Scale by R to get correct angle.
-  dRoll = dRoll / (x*x + y*y);
-  if ( this.Mirror) {
-    dRoll = -dRoll;
-  }
-  // Keep roll in radians.
-  this.Roll += dRoll;
-
-  this.ComputeMatrix();
-}
-
-
-Camera.prototype.Translate = function (dx,dy,dz) {
-    if (isNaN(dx) || isNaN(dy) || isNaN(dz)) {
-        console.log("Camera 2");
-        return;
+    Camera.prototype.DeepCopy = function (inCam) {
+        if (inCam.ZRange) { this.ZRange = inCam.ZRange.slice(0); }
+        this.Roll = inCam.Roll;
+        this.Height = inCam.Height;
+        this.Width = inCam.Width;
+        this.SetFocalPoint( inCam.FocalPoint);
+        if (inCam.ViewportWidth) { this.ViewportWidth = inCam.ViewportWidth; }
+        if (inCam.ViewportHeight) { this.ViewportHeight = inCam.ViewportHeight; }
+        this.ComputeMatrix();
     }
-    // I will leave this as an exception.
-    // Everything else uses SetFocalPoint([x,y]);
-    this.FocalPoint[0] += dx;
-    this.FocalPoint[1] += dy;
-    //this.FocalPoint[2] += dz;
-    this.ComputeMatrix();
-}
 
-
-Camera.prototype.GetHeight = function () {
-  return this.Height;
-}
-
-
-Camera.prototype.SetHeight = function (height) {
-    if (isNaN(height)) {
-        console.log("Camera 3");
-        return;
+    Camera.prototype.SetViewport = function (viewport) {
+        if (10*viewport[3] < viewport[2]) {
+            //alert("Unusual viewport " + viewport[3]);
+            return;
+        }
+        this.ViewportWidth = viewport[2];
+        this.ViewportHeight = viewport[3];
+        this.Width = this.Height * this.ViewportWidth / this.ViewportHeight;
+        this.ComputeMatrix();
     }
-    this.Height = height;
-    // Width tracks height.
-    this.Width = height * this.ViewportWidth / this.ViewportHeight;
-}
 
-
-Camera.prototype.GetWidth = function () {
-    return this.Width;
-}
-
-
-Camera.prototype.SetWidth = function (width) {
-    if (isNaN(width)) {
-        console.log("Camera 4");
-        return;
+    Camera.prototype.Serialize = function () {
+        var obj = {};
+        obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];
+        obj.Roll = this.Roll;
+        obj.Height = this.GetHeight();
+        obj.Width = this.GetWidth();
+        return obj;
     }
-    this.Width = width;
-    // Width tracks height.
-    this.Height = width * this.ViewportHeight / this.ViewportWidth;
-}
 
-Camera.prototype.SetRoll = function (roll) {
-    this.Roll = roll;
-}
+    Camera.prototype.Load = function (obj) {
+        this.SetFocalPoint( obj.FocalPoint);
+        this.Roll = obj.Roll;
+        this.Height = obj.Height;
+        if (obj.Width) {
+            this.Width = obj.Width;
+        } else {
+            this.Width = this.Height * 1.62;
+        }
 
-
-
-// Slide coordinates.
-Camera.prototype.GetBounds = function () {
-    var width = this.GetWidth();
-    var bds = new Array(4);
-    bds[0] = this.FocalPoint[0] - (width*0.5);
-    bds[1] = bds[0] + width;
-    bds[2] = this.FocalPoint[1] - (this.Height*0.5);
-    bds[3] = bds[2] + this.Height;
-    return bds;
-}
-
-
-// Camera matrix transforms points into camera coordinate system
-// X:(-1->1)
-// Y:(-1->1) (-1 is bottom)
-// Z:(-1->1) (-1 is front)
-Camera.prototype.ComputeMatrix = function () {
-    var s = Math.sin(this.Roll);
-    var c = Math.cos(this.Roll);
-    var x = this.FocalPoint[0];
-    var y = this.FocalPoint[1];
-    var z = 10;
-    var w = this.GetWidth();
-    // var ht = this.GetHeight();  The iPad got this wrong?????
-    var ht = this.Height;
-
-    if (ht > 1000000) {
-      StartLogging();
-      LogMessage("First height is big " + this.height);
+        // Width is computed from height and aspect.
+        this.ComputeMatrix();
     }
-    if (w < 0) { return; }
 
-    if (this.Mirror) { ht = -ht; }
 
-    mat4.identity(this.Matrix);
-
-    this.Matrix[0] = c;
-    this.Matrix[1] = -s*w/ht;
-    this.Matrix[4] =  -s;
-    this.Matrix[5] =  -c*w/ht;
-    this.Matrix[9] =  0;
-    this.Matrix[10]=  (this.ZRange[1]-this.ZRange[0])*0.5;
-    this.Matrix[12]= -c*x + s*y;
-    this.Matrix[13]= -(w/ht)*(-s*x - c*y);
-    this.Matrix[14]=  -z + (this.ZRange[1]+this.ZRange[0])*0.25*w;
-    this.Matrix[15]=  0.5*w;
-
-  if (Math.abs(this.Matrix[5]) < 0.01 &&
-      Math.abs(this.Matrix[4]) < 0.01) {
-    StartLogging();
-    LogMessage("m[4] " + this.Matrix[4]);
-    LogMessage("m[5] " + this.Matrix[4]);
-    LogMessage("c = " + c);
-    LogMessage("w = " + w);
-    LogMessage("ht = " + ht);
-    LogMessage("height = " + this.Height);
-  }
-}
-
-// TODO: ROOT_SPACING IS UNDEFINED.
-// Reset is not bound to any event.
-Camera.prototype.Reset = function () {
-    // Compute the bounds
-    var bounds = [];
-    bounds[0] = bounds[2] = bounds[4] = 0.0;
-    bounds[1] = TILE_DIMENSIONS[0] * ROOT_SPACING[0];
-    bounds[3] = TILE_DIMENSIONS[1] * ROOT_SPACING[1];
-    bounds[5] = NUMBER_OF_SECTIONS * ROOT_SPACING[2];
-
-    this.SetFocalPoint( [(bounds[0] + bounds[1]) * 0.5,
-                         (bounds[2] + bounds[3]) * 0.5]);
-
-    this.SetHeight(bounds[3]-bounds[2]);
-    this.ComputeMatrix();
-}
-
-// Currenly assumes parallel projection and display z range = [-1,1].
-// Also no rotation!
-// a.k.a. This method does not work.
-Camera.prototype.DisplayToWorld = function (x,y,z) {
-    var scale = this.Height / this.ViewportHeight;
-    x = x - (0.5*this.ViewportWidth);
-    y = y - (0.5*this.ViewportHeight);
-    var worldPt = [];
-    worldPt[0] = this.FocalPoint[0] + (x * scale);
-    worldPt[1] = this.FocalPoint[1] + (y * scale);
-    worldPt[2] = 10 + (z * this.Height * 0.5);
-
-    return worldPt;
-}
-
-Camera.prototype.AddPoint = function (x, y, z) {
-    this.Points.push(x);
-    this.Points.push(y);
-    this.Points.push(z);
-}
-
-Camera.prototype.CreateBuffer = function (gl) {
-  if (gl) {
-    if (this.Buffer != null) {
-      gl.deleteBuffer(this.Buffer);
+    // Roll is in Radians
+    // Rotation is in Degrees
+    Camera.prototype.GetRotation = function () {
+        return this.Roll * 180.0 / 3.1415926535;
     }
-    this.Buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.Buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.Points),
-                  gl.STATIC_DRAW);
-  }
-}
 
-// Getting rid of this.
-Camera.prototype.UpdateBuffer = function() {
-    this.Points = [];
-    var cx = this.FocalPoint[0];
-    var cy = this.FocalPoint[1];
-    var rx = this.GetWidth() * 0.5;
-    var ry = this.GetHeight() * 0.5;
-    this.AddPoint(cx-rx, cy-ry);
-    this.AddPoint(cx+rx, cy-ry);
-    this.AddPoint(cx+rx, cy+ry);
-    this.AddPoint(cx-rx, cy+ry);
-    this.AddPoint(cx-rx, cy-ry);
-    this.CreateBuffer();
-}
+    Camera.prototype.GetFocalPoint = function () {
+        // Copy to avoid bugs because arrays are shared.
+        // These are nasty to find.
+        return [this.FocalPoint[0],this.FocalPoint[1]];
+    }
+
+    Camera.prototype.SetFocalPoint = function (fp) {
+        if (isNaN(fp[0]) || isNaN(fp[1])) {
+            console.log("Camera 1");
+            return;
+        }
+        this.FocalPoint[0] = fp[0];
+        this.FocalPoint[1] = fp[1];
+        // Ignore z on purpose.
+    }
 
 
-// Camera is already set.
-Camera.prototype.Draw = function (overview, gl) {
-    var overviewCam = overview.Camera;
-    var viewport = overview.Viewport;
+    Camera.prototype.ConvertPointViewerToWorld = function(x, y) {
+        // Convert to world coordinate system
+        // Compute focal point from inverse overview camera.
+        x = x/this.ViewportWidth;
+        y = y/this.ViewportHeight;
+        x = (x*2.0 - 1.0)*this.Matrix[15];
+        y = (1.0 - y*2.0)*this.Matrix[15];
+        var m = this.Matrix;
+        var det = m[0]*m[5] - m[1]*m[4];
+        var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
+        var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
 
-    var cx = this.FocalPoint[0];
-    var cy = this.FocalPoint[1];
-    var rx = this.GetWidth() * 0.5;
-    var ry = this.GetHeight() * 0.5;
+        return [xNew, yNew];
+    }
 
-    // To handle rotation, I need to pass the center through
-    // the overview camera matrix. Coordinate system is -1->1
-    var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4]
-                 + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
-    var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5]
-                 + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
+    Camera.prototype.ConvertPointWorldToViewer = function(x, y) {
+        var m = this.Matrix;
 
-    if (gl) {
-        // I having trouble using the overview camera, so lets just compute
-        // the position of the rectangle here.
-        var ocx = overviewCam.FocalPoint[0];
-        var ocy = overviewCam.FocalPoint[1];
-        var orx = overviewCam.GetWidth() * 0.5;
-        var ory = overviewCam.GetHeight() * 0.5;
+        // Convert from world coordinate to view (-1->1);
+        var h = (x*m[3] + y*m[7] + m[15]);
+        var xNew = (x*m[0] + y*m[4] + m[12]) / h;
+        var yNew = (x*m[1] + y*m[5] + m[13]) / h;
+        // Convert from view to screen pixel coordinates.
+        xNew = (1.0+xNew)*0.5*this.ViewportWidth;
+        yNew = (1.0-yNew)*0.5*this.ViewportHeight;
 
-        program = polyProgram;
-        gl.useProgram(program);
-        gl.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
+        return [xNew, yNew];
+    }
 
-        gl.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
-        mat4.identity(pMatrix);
-        gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
-
-        var viewFrontZ = overviewCam.ZRange[0]+0.001;
-
-        mat4.identity(mvMatrix);
-        //mvMatrix[12] = ((cx-rx)-ocx)/orx;
-        //mvMatrix[13] = ((cy-ry)-ocy)/ory;
-        mvMatrix[12] = newCx-(rx/orx);
-        mvMatrix[13] = newCy-(ry/ory);
-        mvMatrix[14] = viewFrontZ;
-        mvMatrix[0] = 2*rx/orx;
-        mvMatrix[5] = 2*ry/ory;
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        gl.vertexAttribPointer(program.vertexPositionAttribute,
-                               squareOutlinePositionBuffer.itemSize,
-                               gl.FLOAT, false, 0, 0);
-        gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
-        gl.drawArrays(gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
-    } else {
-        // Transform focal point from -1->1 to viewport
-        newCx = (1.0 + newCx) * viewport[2] * 0.5;
-        newCy = (1.0 - newCy) * viewport[3] * 0.5;
-        // Scale width and height from world to viewport.
-        rx = rx * viewport[3] / overviewCam.GetHeight();
-        ry = ry * viewport[3] / overviewCam.GetHeight();
-
-        // The 2d canvas was left in world coordinates.
-        var ctx = overview.Context2d;
-        /*
-          ctx.beginPath();
-          //ctx.strokeStyle="#E500E5";
-          ctx.rect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height);
-          //ctx.fillStyle="#E500E5";
-          //ctx.fillRect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height);
-          ctx.stroke();
-        */
-        ctx.save();
-        //ctx.setTransform(1,0,0,1,0,0);
-        // Now that the while slide / overview canvas is rotating
-        // We have to rotate the rectangle.
-        var c = Math.cos(this.Roll);
+    // dx, dy are in view coordinates [-0.5,0.5].
+    // The camera matrix converts world to view.
+    Camera.prototype.HandleTranslate = function (dx,dy) {
+        // Convert view vector to world vector.
+        // We could invert the matrix to get the transform, but this is easier for now.....
         var s = Math.sin(this.Roll);
-        ctx.setTransform(c,-s,+s,c,
-                         (1-c)*newCx-s*newCy,
-                         (1-c)*newCy+s*newCx)
+        var c = Math.cos(this.Roll);
+        var x = this.FocalPoint[0];
+        var y = this.FocalPoint[1];
+        var z = 10;
+        var w = this.GetWidth();
+        var h = this.GetHeight();
 
-        ctx.strokeStyle="#4011E5";
-        ctx.beginPath();
-        ctx.rect(newCx-rx,newCy-ry,2*rx,2*ry);
-        ctx.stroke();
-        ctx.restore();
+        if (this.Mirror) {
+            dy = -dy;
+        }
+
+        // Scale to world.
+        dx = dx * w;
+        dy = dy * w;
+        // Rotate
+        var rx = dx*c + dy*s;
+        var ry = dy*c - dx*s;
+
+        this.Translate(rx,ry,0.0);
     }
 
-}
+    // x,y are in display coordiantes (origin at the center).
+    // dx,dy are in the same coordinates system (scale).
+    // Scale does not matter because we only care about rotation.
+    Camera.prototype.HandleRoll = function (x,y, dx, dy) {
+        // Avoid divide by zero / singularity
+        if (x == 0 && y == 0) {
+            return;
+        }
+        // Orthogonal (counter clockwise) dot dVect.
+        var dRoll = -y*dx +x*dy;
+        // Remove magnitude of location.
+        // Scale by R to get correct angle.
+        dRoll = dRoll / (x*x + y*y);
+        if ( this.Mirror) {
+            dRoll = -dRoll;
+        }
+        // Keep roll in radians.
+        this.Roll += dRoll;
+
+        this.ComputeMatrix();
+    }
 
 
+    Camera.prototype.Translate = function (dx,dy,dz) {
+        if (isNaN(dx) || isNaN(dy) || isNaN(dz)) {
+            console.log("Camera 2");
+            return;
+        }
+        // I will leave this as an exception.
+        // Everything else uses SetFocalPoint([x,y]);
+        this.FocalPoint[0] += dx;
+        this.FocalPoint[1] += dy;
+        //this.FocalPoint[2] += dz;
+        this.ComputeMatrix();
+    }
+
+
+    Camera.prototype.GetHeight = function () {
+        return this.Height;
+    }
+
+
+    Camera.prototype.SetHeight = function (height) {
+        if (isNaN(height)) {
+            console.log("Camera 3");
+            return;
+        }
+        this.Height = height;
+        // Width tracks height.
+        this.Width = height * this.ViewportWidth / this.ViewportHeight;
+    }
+
+
+    Camera.prototype.GetWidth = function () {
+        return this.Width;
+    }
+
+
+    Camera.prototype.SetWidth = function (width) {
+        if (isNaN(width)) {
+            console.log("Camera 4");
+            return;
+        }
+        this.Width = width;
+        // Width tracks height.
+        this.Height = width * this.ViewportHeight / this.ViewportWidth;
+    }
+
+    Camera.prototype.SetRoll = function (roll) {
+        this.Roll = roll;
+    }
+
+
+    // Slide coordinates.
+    Camera.prototype.GetBounds = function () {
+        var width = this.GetWidth();
+        var bds = new Array(4);
+        bds[0] = this.FocalPoint[0] - (width*0.5);
+        bds[1] = bds[0] + width;
+        bds[2] = this.FocalPoint[1] - (this.Height*0.5);
+        bds[3] = bds[2] + this.Height;
+        return bds;
+    }
+
+
+    // Camera matrix transforms points into camera coordinate system
+    // X:(-1->1)
+    // Y:(-1->1) (-1 is bottom)
+    // Z:(-1->1) (-1 is front)
+    Camera.prototype.ComputeMatrix = function () {
+        var s = Math.sin(this.Roll);
+        var c = Math.cos(this.Roll);
+        var x = this.FocalPoint[0];
+        var y = this.FocalPoint[1];
+        var z = 10;
+        var w = this.GetWidth();
+        // var ht = this.GetHeight();  The iPad got this wrong?????
+        var ht = this.Height;
+
+        if (w < 0) { return; }
+
+        if (this.Mirror) { ht = -ht; }
+
+        mat4.identity(this.Matrix);
+
+        this.Matrix[0] = c;
+        this.Matrix[1] = -s*w/ht;
+        this.Matrix[4] =  -s;
+        this.Matrix[5] =  -c*w/ht;
+        this.Matrix[9] =  0;
+        this.Matrix[10]=  (this.ZRange[1]-this.ZRange[0])*0.5;
+        this.Matrix[12]= -c*x + s*y;
+        this.Matrix[13]= -(w/ht)*(-s*x - c*y);
+        this.Matrix[14]=  -z + (this.ZRange[1]+this.ZRange[0])*0.25*w;
+        this.Matrix[15]=  0.5*w;
+    }
+
+    // TODO: ROOT_SPACING IS UNDEFINED.
+    // Reset is not bound to any event.
+    Camera.prototype.Reset = function () {
+        // Compute the bounds
+        var bounds = [];
+        bounds[0] = bounds[2] = bounds[4] = 0.0;
+        bounds[1] = TILE_DIMENSIONS[0] * ROOT_SPACING[0];
+        bounds[3] = TILE_DIMENSIONS[1] * ROOT_SPACING[1];
+        bounds[5] = NUMBER_OF_SECTIONS * ROOT_SPACING[2];
+
+        this.SetFocalPoint( [(bounds[0] + bounds[1]) * 0.5,
+                             (bounds[2] + bounds[3]) * 0.5]);
+
+        this.SetHeight(bounds[3]-bounds[2]);
+        this.ComputeMatrix();
+    }
+
+    // Currenly assumes parallel projection and display z range = [-1,1].
+    // Also no rotation!
+    // a.k.a. This method does not work.
+    Camera.prototype.DisplayToWorld = function (x,y,z) {
+        var scale = this.Height / this.ViewportHeight;
+        x = x - (0.5*this.ViewportWidth);
+        y = y - (0.5*this.ViewportHeight);
+        var worldPt = [];
+        worldPt[0] = this.FocalPoint[0] + (x * scale);
+        worldPt[1] = this.FocalPoint[1] + (y * scale);
+        worldPt[2] = 10 + (z * this.Height * 0.5);
+
+        return worldPt;
+    }
+
+    Camera.prototype.AddPoint = function (x, y, z) {
+        this.Points.push(x);
+        this.Points.push(y);
+        this.Points.push(z);
+    }
+
+    Camera.prototype.CreateBuffer = function (gl) {
+        if (gl) {
+            if (this.Buffer != null) {
+                gl.deleteBuffer(this.Buffer);
+            }
+            this.Buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.Buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.Points),
+                          gl.STATIC_DRAW);
+        }
+    }
+
+    // Getting rid of this.
+    Camera.prototype.UpdateBuffer = function() {
+        this.Points = [];
+        var cx = this.FocalPoint[0];
+        var cy = this.FocalPoint[1];
+        var rx = this.GetWidth() * 0.5;
+        var ry = this.GetHeight() * 0.5;
+        this.AddPoint(cx-rx, cy-ry);
+        this.AddPoint(cx+rx, cy-ry);
+        this.AddPoint(cx+rx, cy+ry);
+        this.AddPoint(cx-rx, cy+ry);
+        this.AddPoint(cx-rx, cy-ry);
+        this.CreateBuffer();
+    }
+
+
+    // Camera is already set.
+    Camera.prototype.Draw = function (overview, gl) {
+        var overviewCam = overview.Camera;
+        var viewport = overview.Viewport;
+
+        var cx = this.FocalPoint[0];
+        var cy = this.FocalPoint[1];
+        var rx = this.GetWidth() * 0.5;
+        var ry = this.GetHeight() * 0.5;
+
+        // To handle rotation, I need to pass the center through
+        // the overview camera matrix. Coordinate system is -1->1
+        var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4]
+                     + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
+        var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5]
+                     + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
+
+        if (gl) {/*
+            // I having trouble using the overview camera, so lets just compute
+            // the position of the rectangle here.
+            var ocx = overviewCam.FocalPoint[0];
+            var ocy = overviewCam.FocalPoint[1];
+            var orx = overviewCam.GetWidth() * 0.5;
+            var ory = overviewCam.GetHeight() * 0.5;
+
+            program = polyProgram;
+            gl.useProgram(program);
+            gl.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
+
+            gl.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
+            mat4.identity(pMatrix);
+            gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
+
+            var viewFrontZ = overviewCam.ZRange[0]+0.001;
+
+            mat4.identity(mvMatrix);
+            //mvMatrix[12] = ((cx-rx)-ocx)/orx;
+            //mvMatrix[13] = ((cy-ry)-ocy)/ory;
+            mvMatrix[12] = newCx-(rx/orx);
+            mvMatrix[13] = newCy-(ry/ory);
+            mvMatrix[14] = viewFrontZ;
+            mvMatrix[0] = 2*rx/orx;
+            mvMatrix[5] = 2*ry/ory;
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+            gl.vertexAttribPointer(program.vertexPositionAttribute,
+                                   squareOutlinePositionBuffer.itemSize,
+                                   gl.FLOAT, false, 0, 0);
+            gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
+            gl.drawArrays(gl.LINE_STRIP, 0,
+            squareOutlinePositionBuffer.numItems);
+            */
+        } else {
+            // Transform focal point from -1->1 to viewport
+            newCx = (1.0 + newCx) * viewport[2] * 0.5;
+            newCy = (1.0 - newCy) * viewport[3] * 0.5;
+            // Scale width and height from world to viewport.
+            rx = rx * viewport[3] / overviewCam.GetHeight();
+            ry = ry * viewport[3] / overviewCam.GetHeight();
+
+            // The 2d canvas was left in world coordinates.
+            var ctx = overview.Context2d;
+            /*
+              ctx.beginPath();
+              //ctx.strokeStyle="#E500E5";
+              ctx.rect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height);
+              //ctx.fillStyle="#E500E5";
+              //ctx.fillRect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height);
+              ctx.stroke();
+            */
+            ctx.save();
+            //ctx.setTransform(1,0,0,1,0,0);
+            // Now that the while slide / overview canvas is rotating
+            // We have to rotate the rectangle.
+            var c = Math.cos(this.Roll);
+            var s = Math.sin(this.Roll);
+            ctx.setTransform(c,-s,+s,c,
+                             (1-c)*newCx-s*newCy,
+                             (1-c)*newCy+s*newCx)
+
+            ctx.strokeStyle="#4011E5";
+            ctx.beginPath();
+            ctx.rect(newCx-rx,newCy-ry,2*rx,2*ry);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+
+    SAM.Camera = Camera;
+})();
 
 
 
@@ -23116,7 +23085,7 @@ Contour.prototype.DeepCopy = function (contourIn) {
     }
     this.World = contourIn.World;
     if (contourIn.Camera) {
-        this.Camera = new Camera();
+        this.Camera = new SAM.Camera();
         this.Camera.DeepCopy(contourIn.Camera);
     }
 
@@ -24649,7 +24618,7 @@ function GetImageData(view) {
     var height = Math.floor(cam.ViewportHeight);
     var ctx  = view.Context2d;
     var data = ctx.getImageData(0,0,width,height);
-    data.Camera = new Camera();
+    data.Camera = new SAM.Camera();
     data.Camera.DeepCopy(view.Camera);
     data.__proto__ = new ImageData();
     data.IncX = 4;
@@ -28092,524 +28061,114 @@ Section.prototype.LoadTilesInView = function (view) {
 
 
 //==============================================================================
-// View Object
-// Viewport (x_lowerleft, y_lowerleft, width, height)
-// A view has its own camera and list of tiles to display.
-// Views can share a cache for tiles.
+// Subclass of view that renders tiled images.
 
 
 (function () {
     "use strict";
 
 
-function View (parent, useWebGL) {
-    this.Viewport = [0,0, 100,100];
+    function TileView (parent, useWebGL) {
+        SAM.View.call(this, parent, useWebGL);
 
-    // Should widgets use shapes?
-    // Should views be used independently to viewers?
-    this.ShapeList = [];
+        // connectome : default section so we cen set cache
+        this.Section = new Section;
 
-    // connectome : default section so we cen set cache
-    this.Section = new Section;
+        this.Tiles = []; // Not really used
 
-    // connectome: remove Cache ivar.
-    this.Camera = new Camera();
-    this.Tiles = []; // Not really used
-    this.OutlineColor = [0,0.5,0];
-    this.OutlineMatrix = mat4.create();
-    this.OutlineCamMatrix = mat4.create();
-
-    this.CanvasDiv = parent;
-    if ( parent) {
-        this.CanvasDiv = parent;
-    } else {
-        this.CanvasDiv = $('<div>');
-    }
-    // 2d canvas
-    // Add a new canvas.
-    this.Canvas = $('<canvas>');
-
-    if (useWebGL) {
-        this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
-        GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
-        // TODO: Fix this.
-    }
-    if (this.gl) {
-        initWebGL(this.gl);
-    } else {
-        this.Context2d = this.Canvas[0].getContext("2d");
-    }
-
-    this.Canvas
-        .appendTo(this.CanvasDiv)
-        .css({'position':'absolute',
-              'left'    : '0%',
-              'top'     : '0%',
-              'width'   :'100%',
-              'height'  :'100%'});
-
-    this.CanvasDiv
-        .addClass("sa-view-canvas-div");
-}
-
-// Try to remove all global and circular references to this view.
-View.prototype.Delete = function() {
-    this.CanvasDiv.off('mousedown.viewer');
-    this.CanvasDiv.off('mousemove.viewer');
-    this.CanvasDiv.off('wheel.viewer');
-    this.CanvasDiv.off('touchstart.viewer');
-    this.CanvasDiv.off('touchmove.viewer');
-    this.CanvasDiv.off('touchend.viewer');
-    this.CanvasDiv.off('keydown.viewer');
-    this.CanvasDiv.off('wheel.viewer');
-    delete this.ShapeList;
-    delete this.Section;
-    delete this.Camera;
-    delete this.Tiles;
-    delete this.CanvasDiv;
-    delete this.Canvas;
-}
-
-View.prototype.GetCamera = function() {
-    return this.Camera;
-}
-
-// Only new thing here is appendTo
-// TODO get rid of this eventually (SetViewport).
-View.prototype.InitializeViewport = function(viewport) {
-    alert("legacy init");
-    /*
-    for (var i = 0; i < 4; ++i) {
-        viewport[i] = Math.round(viewport[i]);
-    }
-    // Allow for border.
-    viewport[2] -=2;
-    viewport[3] -=2;
-
-    this.Viewport = viewport;
-    this.Camera.SetViewport(viewport);
-
-    // TODO: Get Rid of this.
-    //this.CanvasDiv
-    //    .addClass('view');
-    */
-}
-
-
-// Get the current scale factor between pixels and world units.
-// World unit is the highest resolution image pixel.
-// Returns the size of a world pixel in screen pixels.
-// factor: screen/world
-// The default world pixel = 0.25e-6 meters
-View.prototype.GetPixelsPerUnit = function() {
-    // Determine the scale difference between the two coordinate systems.
-    var m = this.Camera.Matrix;
-
-    // Convert from world coordinate to view (-1->1);
-    return 0.5*this.Viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
-}
-
-View.prototype.GetMetersPerUnit = function() {
-    var cache = this.GetCache();
-    var dist;
-    if ( ! cache) {
-        dist = {value : 250,
-                units : 'nm'};
-    } else {
-        dist = {value : cache.Image.spacing[0],
-                units : cache.Image.units};
-    }
-    SAM.ConvertToMeters(dist);
-    return dist.value;
-}
-
-// TODO: Get rid of these since the user can manipulate the parent / canvas
-// div which can be passed into the constructor.
-View.prototype.appendTo = function(j) {
-  return this.CanvasDiv.appendTo(j);
-}
-
-View.prototype.remove = function(j) {
-  return this.CanvasDiv.remove(j);
-}
-
-View.prototype.css = function(j) {
-  return this.CanvasDiv.css(j);
-}
-
-View.prototype.GetViewport = function() {
-  return this.Viewport;
-}
-
-View.prototype.GetWidth = function() {
-    return this.CanvasDiv.width();
-}
-
-View.prototype.GetHeight = function() {
-    return this.CanvasDiv.height();
-}
-
-// The canvasDiv changes size, the width and height of the canvas and
-// camera need to follow.  I am going to make this the resize callback.
-View.prototype.UpdateCanvasSize = function() {
-    if ( ! this.CanvasDiv.is(':visible') ) {
-        return;
-    }
-
-    var pos = this.CanvasDiv.position();
-    //var width = this.CanvasDiv.innerWidth();
-    //var height = this.CanvasDiv.innerHeight();
-    var width = this.CanvasDiv.width();
-    var height = this.CanvasDiv.height();
-    // resizable is making width 0 intermitently ????
-    if (width <= 0 || height <= 0) { return false; }
-
-    this.SetViewport([pos.left, pos.top, width, height]);
-
-    return true;
-}
-
-
-// This is meant to be called internally by UpdateCanvasSize.
-// However, if the parent(canvasDiv) is hidden, it might need to be
-// set explcitly.
-// TODO: Change this to simply width and height.
-View.prototype.SetViewport = function(viewport) {
-    var width = viewport[2];
-    var height = viewport[3];
-
-    this.Canvas.attr("width", width.toString());
-    this.Canvas.attr("height", height.toString());
-
-    // TODO: Get rid of this ivar
-    this.Viewport = viewport;
-
-    // TODO: Just set the width and height of the camera.
-    // There is no reason, the camera needs to know the
-    // the position of the cameraDiv.
-    this.Camera.SetViewport(viewport);
-}
-
-
-View.prototype.CaptureImage = function() {
-    var url = this.Canvas[0].toDataURL();
-    var newImg = document.createElement("img"); //create
-    newImg.src = url;
-    return newImg;
-}
-
-
-View.prototype.GetBounds = function() {
-    return this.Section.GetBounds();
-}
-View.prototype.GetLeafSpacing = function() {
-    return this.Section.GetLeafSpacing();
-}
-
-
-// connectome
-View.prototype.AddCache = function(cache) {
-  if ( ! cache) { return; }
-  this.Section.Caches.push(cache);
-}
-
-
-View.prototype.SetCache = function(cache) {
-  // connectome
-  if ( ! cache) {
-    this.Section.Caches = [];
-  } else {
-    this.Section.Caches = [cache];
-  }
-}
-
-View.prototype.GetCache = function() {
-  // connectome: This makes less sense with a section with many caches.
-  // TODO: try to get rid of this
-  return this.Section.Caches[0];
-}
-
-// A list of shapes to render in the view
-View.prototype.AddShape = function(shape) {
-  this.ShapeList.push(shape);
-}
-
-View.prototype.DrawShapes = function () {
-    if ( ! this.CanvasDiv.is(':visible') ) {
-        return;
-    }
-    for(var i=0; i<this.ShapeList.length; i++){
-        this.ShapeList[i].Draw(this);
-    }
-}
-
-View.prototype.Clear = function () {
-    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
-    // TODO: get width and height from the canvas.
-    this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
-}
-
-// I want only the annotation to create a mask image.
-var MASK_HACK = false;
-// Note: Tile in the list may not be loaded yet.
-// Returns true if all the tiles to render were available.
-// False implies that the user shoudl render again.
-View.prototype.DrawTiles = function () {
-    // Download view is not visible, but still needs to render tiles.
-    // This causes black/blank download images
-    //if ( ! this.CanvasDiv.is(':visible') ) {
-    //    return;
-    //}
-    //console.time("  ViewDraw");
-    if ( this.gl) {
-        if (MASK_HACK ) {
-            return;
+        if (useWebGL) {
+            this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
+            GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
+            // TODO: Fix this.
         }
-        return this.Section.Draw(this);
-    } else {
-        this.Clear();
-        // Clear the canvas to start drawing.
-        this.Context2d.fillStyle="#ffffff";
-        //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
-
-        // Start with a transform that flips the y axis.
-        // This is an issue later because the images will be upside down.
-        this.Context2d.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
-
-        // Map (-1->1, -1->1) to the viewport.
-        // Origin of the viewport does not matter because drawing is relative
-        // to this view's canvas.
-        this.Context2d.transform(0.5*this.Viewport[2], 0.0,
-                                 0.0, 0.5*this.Viewport[3],
-                                 0.5*this.Viewport[2],
-                                 0.5*this.Viewport[3]);
-
-        if (MASK_HACK ) {
-            return;
+        if (this.gl) {
+            initWebGL(this.gl);
+        } else {
+            this.Context2d = this.Canvas[0].getContext("2d");
         }
-        return this.Section.Draw(this);
     }
-}
+    TileView.prototype = new SAM.View;
 
-// Note: Tile in the list may not be loaded yet.
-View.prototype.DrawHistory = function (windowHeight) {
-    if ( this.gl) {
-        alert("Drawing history does not work with webGl yet.");
-    } else {
-        var ctx = this.Context2d;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        // Start with a transform that flips the y axis.
-        ctx.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
+    TileView.prototype.GetBounds = function() {
+        return this.Section.GetBounds();
+    }
+    TileView.prototype.GetLeafSpacing = function() {
+        return this.Section.GetLeafSpacing();
+    }
 
-        // Map (-1->1, -1->1) to the viewport.
-        // Origin of the viewport does not matter because drawing is relative
-        // to this view's canvas.
-        ctx.transform(0.5*this.Viewport[2], 0.0,
-                      0.0, 0.5*this.Viewport[3],
-                      0.5*this.Viewport[2],
-                      0.5*this.Viewport[3]);
 
-        //ctx.fillRect(0.0,0.1,0.5,0.5); // left, right, width, height
+    // connectome
+    TileView.prototype.AddCache = function(cache) {
+        if ( ! cache) { return; }
+        this.Section.Caches.push(cache);
+    }
 
-        // The camera maps the world coordinate system to (-1->1, -1->1).
-        var cam = this.Camera;
-        var aspectRatio = cam.ViewportWidth / cam.ViewportHeight;
 
-        var h = 1.0 / cam.Matrix[15];
-        ctx.transform(cam.Matrix[0]*h, cam.Matrix[1]*h,
-                      cam.Matrix[4]*h, cam.Matrix[5]*h,
-                      cam.Matrix[12]*h, cam.Matrix[13]*h);
-
-        for (var i = 0; i < TIME_LINE.length; ++i) {
-            var cam = TIME_LINE[i].ViewerRecords[0].Camera;
-            var height = cam.GetHeight();
-            var width = cam.GetWidth();
-            // camer roll is already in radians.
-            var c = Math.cos(cam.Roll);
-            var s = Math.sin(cam.Roll);
-            ctx.save();
-            // transform to put focal point at 0,0
-            ctx.transform(c, -s,
-                          s, c,
-                          cam.FocalPoint[0], cam.FocalPoint[1]);
-
-            // Compute the zoom factor for opacity.
-            var opacity = 2* windowHeight / height;
-            if (opacity > 1.0) { opacity = 1.0; }
-
-            ctx.fillStyle = "rgba(0,128,0," + opacity + ")";
-            ctx.fillRect(-width/2, -height/2, width, height); // left, right, width, height
-            ctx.stroke();
-            ctx.restore();
+    TileView.prototype.SetCache = function(cache) {
+        // connectome
+        if ( ! cache) {
+            this.Section.Caches = [];
+        } else {
+            this.Section.Caches = [cache];
         }
-        ctx.restore();
     }
-}
 
-// Draw a cross hair in the center of the view.
-View.prototype.DrawFocalPoint = function () {
-    if ( this.gl) {
-        alert("Drawing focal point does not work with webGl yet.");
-    } else {
-        var x = this.Viewport[2] * 0.5;
-        var y = this.Viewport[3] * 0.5;
-        var ctx = this.Context2d;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.strokeStyle = "rgba(255,255,200,100)"; 
-        ctx.fillStyle = "rgba(0,0,50,100)"; 
-
-        ctx.beginPath();
-        ctx.fillRect(x-30,y-1,60,3);
-        ctx.rect(x-30,y-1,60,3);
-        ctx.fillRect(x-1,y-30,3,60);
-        ctx.rect(x-1,y-30,3,60);
-
-        var r = y / 2;
-        ctx.beginPath();
-        ctx.moveTo(x-r,y-r+30);
-        ctx.lineTo(x-r,y-r);
-        ctx.lineTo(x-r+30,y-r);
-        ctx.moveTo(x+r,y-r+30);
-        ctx.lineTo(x+r,y-r);
-        ctx.lineTo(x+r-30,y-r);
-        ctx.moveTo(x+r,y+r-30);
-        ctx.lineTo(x+r,y+r);
-        ctx.lineTo(x+r-30,y+r);
-        ctx.moveTo(x-r,y+r-30);
-        ctx.lineTo(x-r,y+r);
-        ctx.lineTo(x-r+30,y+r);
-        ctx.stroke();
-
-        ++r;
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(0,0,50,100)"; 
-        ctx.moveTo(x-r,y-r+30);
-        ctx.lineTo(x-r,y-r);
-        ctx.lineTo(x-r+30,y-r);
-        ctx.moveTo(x+r,y-r+30);
-        ctx.lineTo(x+r,y-r);
-        ctx.lineTo(x+r-30,y-r);
-        ctx.moveTo(x+r,y+r-30);
-        ctx.lineTo(x+r,y+r);
-        ctx.lineTo(x+r-30,y+r);
-        ctx.moveTo(x-r,y+r-30);
-        ctx.lineTo(x-r,y+r);
-        ctx.lineTo(x-r+30,y+r);
-        ctx.stroke();
-        ctx.restore();
+    TileView.prototype.GetCache = function() {
+        // connectome: This makes less sense with a section with many caches.
+        // TODO: try to get rid of this
+        return this.Section.Caches[0];
     }
-}
 
-// Draw a cross hair at each correlation point.
-// pointIdx is 0 or 1.  It indicates which correlation point should be drawn.
-View.prototype.DrawCorrelations = function (correlations, pointIdx) {
-    if ( this.gl) {
-        alert("Drawing correlations does not work with webGl yet.");
-    } else {
-        var ctx = this.Context2d;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.strokeStyle = "rgba(200,255,255,100)";
-        ctx.fillStyle = "rgba(255,0,0,100)";
-        for (var i = 0; i < correlations.length; ++i) {
-            var wPt = correlations[i].GetPoint(pointIdx);
-            var m = this.Camera.Matrix;
-            // Change coordinate system from world to -1->1
-            var x = (wPt[0]*m[0] + wPt[1]*m[4]
-                     + m[12]) / m[15];
-            var y = (wPt[0]*m[1] + wPt[1]*m[5]
-                     + m[13]) / m[15];
-            // Transform coordinate system from -1->1 to canvas
-            x = (1.0 + x) * this.Viewport[2] * 0.5;
-            y = (1.0 - y) * this.Viewport[3] * 0.5;
+    // I want only the annotation to create a mask image.
+    var MASK_HACK = false;
+    // Note: Tile in the list may not be loaded yet.
+    // Returns true if all the tiles to render were available.
+    // False implies that the user shoudl render again.
+    TileView.prototype.DrawTiles = function () {
+        // Download view is not visible, but still needs to render tiles.
+        // This causes black/blank download images
+        //if ( ! this.CanvasDiv.is(':visible') ) {
+        //    return;
+        //}
+        //console.time("  ViewDraw");
+        if ( this.gl) {
+            if (MASK_HACK ) {
+                return;
+            }
+            return this.Section.Draw(this);
+        } else {
+            this.Clear();
+            // Clear the canvas to start drawing.
+            this.Context2d.fillStyle="#ffffff";
+            //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
 
-            ctx.beginPath();
-            ctx.fillRect(x-20,y-1,40,3);
-            ctx.rect(x-20,y-1,40,3);
-            ctx.fillRect(x-1,y-20,3,40);
-            ctx.rect(x-1,y-20,3,40);
-        
-            ctx.stroke();
+            // Start with a transform that flips the y axis.
+            // This is an issue later because the images will be upside down.
+            this.Context2d.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
+
+            // Map (-1->1, -1->1) to the viewport.
+            // Origin of the viewport does not matter because drawing is relative
+            // to this view's canvas.
+            this.Context2d.transform(0.5*this.Viewport[2], 0.0,
+                                     0.0, 0.5*this.Viewport[3],
+                                     0.5*this.Viewport[2],
+                                     0.5*this.Viewport[3]);
+
+            if (MASK_HACK ) {
+                return;
+            }
+            return this.Section.Draw(this);
         }
-        ctx.restore();
     }
-}
 
-View.prototype.DrawCopyright = function (copyright) {
-  if (copyright == undefined || MASK_HACK) {
-    return;
-  }
-  if ( this.gl) {
-    // not implemented yet.
-  } else {
-    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
-    this.Context2d.font = "18px Arial";
-    var x = this.Viewport[2]*0.5 - 50;
-    var y = this.Viewport[3]-10;
-    this.Context2d.fillStyle = "rgba(128,128,128,0.5)"; 
-    this.Context2d.fillText(copyright,x,y);
-    //this.Context2d.strokeStyle = "rgba(255,255,255,0.5)"; 
-    //this.Context2d.strokeText(copyright,x,y);
-  }
-}
-
-
-View.prototype.DrawOutline = function(backgroundFlag) {
-    if (this.gl) {
-        var program = polyProgram;
-        this.gl.useProgram(program);
-
-        this.gl.viewport(this.Viewport[0], 
-                    this.Viewport[3]-this.Viewport[1], 
-                    this.Viewport[2], 
-                    this.Viewport[3]);
-
-        // Draw a line around the viewport, so move (0,0),(1,1) to (-1,-1),(1,1)
-        mat4.identity(this.OutlineCamMatrix);
-        this.OutlineCamMatrix[0] = 2.0; // width x
-        this.OutlineCamMatrix[5] = 2.0; // width y
-        this.OutlineCamMatrix[10] = 0;
-        this.OutlineCamMatrix[12] = -1.0;
-        this.OutlineCamMatrix[13] = -1.0;
-        var viewFrontZ = this.Camera.ZRange[0]+0.001;
-        var viewBackZ = this.Camera.ZRange[1]-0.001;
-        this.OutlineCamMatrix[14] = viewFrontZ; // front plane
-
-        mat4.identity(this.OutlineMatrix);
-
-        this.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
-
-        if (backgroundFlag) {
-            // White background fill
-            this.OutlineCamMatrix[14] = viewBackZ; // back plane
-            this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-            this.gl.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squarePositionBuffer);
-            this.gl.vertexAttribPointer(program.vertexPositionAttribute,
-                                   squarePositionBuffer.itemSize,
-                                   this.gl.FLOAT, false, 0, 0);
-            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
-        }
-
-        // outline
-        this.OutlineCamMatrix[14] = viewFrontZ; // force in front
-        this.gl.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-        this.gl.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
-        this.gl.vertexAttribPointer(program.vertexPositionAttribute,
-                               squareOutlinePositionBuffer.itemSize,
-                               this.gl.FLOAT, false, 0, 0);
-        this.gl.drawArrays(this.gl.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
-    }
-}
-
-
-    SA.View = View;
+    SA.TileView = TileView;
 
 })();
+
+
+
+
 //==============================================================================
 
 // TODO: Fix
@@ -28650,18 +28209,6 @@ function Viewer (parent) {
             self.UpdateSize();
         });
 
-
-    this.LayerDiv = $('<div>')
-        .appendTo(this.Div)
-        .css({'position':'absolute',
-              'left':'0px',
-              'top':'0px',
-              'border-width':'0px',
-              'width':'100%',
-              'height':'100%',
-              'box-sizing':'border-box',
-              'z-index':'100'})
-        .addClass('sa-resize');
 
     // ==============================
     // Experiment wit combining tranparent webgl ontop of canvas.
@@ -28727,14 +28274,14 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new SA.View(this.Div);
+    this.MainView = new SA.TileView(this.Div, true);
     // webgl for main view.
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
-    this.AnnotationLayer = new SAM.AnnotationLayer(this.LayerDiv, 
-                                                   this.MainView.Camera);
+    this.AnnotationLayer = new SAM.AnnotationLayer(this.Div);
+
     // Hack so the scale widget can get the spacing.
     this.AnnotationLayer.ScaleWidget.View = this.MainView;
     // Hack only used for girder testing.
@@ -28747,7 +28294,7 @@ function Viewer (parent) {
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
-        this.OverView = new SA.View(this.OverViewDiv);
+        this.OverView = new SA.TileView(this.OverViewDiv);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -29298,6 +28845,8 @@ Viewer.prototype.CancelLargeImage = function() {
 }
 
 
+// NOTE: Consider option for annotation layer to share a canvas with the
+// tile view.
 // Create a virtual viewer to save a very large image.
 Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
                                            finishedCallback) {
@@ -29307,7 +28856,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new SA.View();
+    var view = new SA.TileView();
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -29743,8 +29292,8 @@ Viewer.prototype.Draw = function() {
 
     // Rendering text uses blending / transparency.
     if (GL) {
-        GL.disable(GL.BLEND);
-        GL.enable(GL.DEPTH_TEST);
+        GL.enable(GL.BLEND);
+        GL.disable(GL.DEPTH_TEST);
     }
 
     if ( this.AnnotationLayer) {
@@ -30749,7 +30298,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
         var clip = JSON.parse(localStorage.ClipBoard);
         var camera;
         if (clip.Camera) {
-            camera = new Camera();
+            camera = new SAM.Camera();
             camera.Load(clip.Camera);
         }
         if (clip.Type == "CircleWidget") {

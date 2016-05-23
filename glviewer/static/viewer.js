@@ -39,18 +39,6 @@ function Viewer (parent) {
         });
 
 
-    this.LayerDiv = $('<div>')
-        .appendTo(this.Div)
-        .css({'position':'absolute',
-              'left':'0px',
-              'top':'0px',
-              'border-width':'0px',
-              'width':'100%',
-              'height':'100%',
-              'box-sizing':'border-box',
-              'z-index':'100'})
-        .addClass('sa-resize');
-
     // ==============================
     // Experiment wit combining tranparent webgl ontop of canvas.
     this.HeatMap = new HeatMap(this.Div);
@@ -76,14 +64,14 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new SA.View(this.Div);
+    this.MainView = new SA.TileView(this.Div, true);
     // webgl for main view.
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
-    this.AnnotationLayer = new SAM.AnnotationLayer(this.LayerDiv, 
-                                                   this.MainView.Camera);
+    this.AnnotationLayer = new SAM.AnnotationLayer(this.Div);
+
     // Hack so the scale widget can get the spacing.
     this.AnnotationLayer.ScaleWidget.View = this.MainView;
     // Hack only used for girder testing.
@@ -96,7 +84,7 @@ function Viewer (parent) {
         this.OverViewDiv = $('<div>')
             .appendTo(this.Div);
 
-        this.OverView = new SA.View(this.OverViewDiv);
+        this.OverView = new SA.TileView(this.OverViewDiv);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -647,6 +635,8 @@ Viewer.prototype.CancelLargeImage = function() {
 }
 
 
+// NOTE: Consider option for annotation layer to share a canvas with the
+// tile view.
 // Create a virtual viewer to save a very large image.
 Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
                                            finishedCallback) {
@@ -656,7 +646,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new SA.View();
+    var view = new SA.TileView();
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
@@ -705,6 +695,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
         console.log("Sanity check failed. Not all tiles were available.");
     }
     this.MainView.DrawShapes();
+    // this will probbly not work
     this.AnnotationLayer.Draw(view);
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
@@ -1092,12 +1083,8 @@ Viewer.prototype.Draw = function() {
 
     // Rendering text uses blending / transparency.
     if (GL) {
-        GL.disable(GL.BLEND);
-        GL.enable(GL.DEPTH_TEST);
-    }
-
-    if ( this.AnnotationLayer) {
-        this.AnnotationLayer.Clear();
+        GL.enable(GL.BLEND);
+        GL.disable(GL.DEPTH_TEST);
     }
 
     // If we are still waiting for tiles to load, schedule another render.
@@ -1114,7 +1101,12 @@ Viewer.prototype.Draw = function() {
     // This is only necessary for webgl, Canvas2d just uses a border.
     //Even for weggl, the overview will be a canvas
     //this.MainView.DrawOutline(false);
-    this.AnnotationLayer.Draw();
+
+    cam = this.MainView.Camera;
+    if (this.AnnotationLayer) {
+        this.AnnotationLayer.UpdateCamera(cam.FocalPoint,cam.Height,cam.Roll);
+    }
+
     // This is not used anymore
     this.MainView.DrawShapes();
     if (this.OverView) {
@@ -2098,7 +2090,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
         var clip = JSON.parse(localStorage.ClipBoard);
         var camera;
         if (clip.Camera) {
-            camera = new Camera();
+            camera = new SAM.Camera();
             camera.Load(clip.Camera);
         }
         if (clip.Type == "CircleWidget") {

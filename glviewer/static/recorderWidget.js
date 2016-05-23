@@ -34,7 +34,7 @@ function ViewerRecord () {
 ViewerRecord.prototype.DeepCopy = function(source) {
     this.AnnotationVisibility = source.AnnotationVisibility;
     this.Annotations = JSON.parse(JSON.stringify(source.Annotations));
-    this.Camera = new Camera();
+    this.Camera = new SAM.Camera();
     this.Camera.DeepCopy(source.Camera);
     this.Image = source.Image;
     this.OverviewBounds = source.OverviewBounds.slice(0);
@@ -209,7 +209,7 @@ ViewerRecord.prototype.LoadTiles = function (viewport) {
     // TODO:  I do not like the fact that we are keeping a serialized
     // version of the camera in the record object.  It should be a real 
     // camera that is serialized when it is saved.
-    var cam = new Camera();
+    var cam = new SAM.Camera();
     cam.Load(this.Camera);
     cam.SetViewport(viewport);
     cam.ComputeMatrix();
