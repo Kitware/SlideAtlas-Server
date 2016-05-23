@@ -308,12 +308,24 @@
     
     // Pass in the viewer div.
     // TODO: Pass the camera into the draw method.  It is shared here.
-    function AnnotationLayer (viewerDiv, viewerCamera) {
+    function AnnotationLayer (parent) {
         var self = this;
+
+        this.LayerDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px',
+                  'border-width':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'box-sizing':'border-box',
+                  'z-index':'100'})
+            .addClass('sa-resize');
 
         // I do not like modifying the parent.
         var self = this;
-        viewerDiv.saOnResize(
+        this.LayerDiv.saOnResize(
             function() {
                 self.UpdateSize();
             });
@@ -322,7 +334,7 @@
         SAM.DebugLayer = this;
 
         // TODO: Abstract the view to a layer somehow.
-        this.AnnotationView = new SA.View(viewerDiv);
+        this.AnnotationView = new SAM.View(this.LayerDiv);
 
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
@@ -340,7 +352,7 @@
         this.ScaleWidget = new SAM.ScaleWidget(this);
 
         var self = this;
-        var can = this.AnnotationView.CanvasDiv;
+        var can = this.LayerDiv;
         can.on(
             "mousedown.viewer",
 			      function (event){
@@ -367,7 +379,7 @@
             function(event){
                 return self.HandleMouseWheel(event.originalEvent);
             });
-        
+
         // I am delaying getting event manager out of receiving touch events.
         // It has too many helper functions.
         can.on(
@@ -388,7 +400,7 @@
             });
 
         // necesary to respond to keyevents.
-        this.AnnotationView.CanvasDiv.attr("tabindex","1");
+        this.LayerDiv.attr("tabindex","1");
         can.on(
             "keydown.viewer",
 			      function (event){
@@ -410,7 +422,19 @@
         this.EventuallyDraw();
     }
 
-    // I might get rid of the view and make this a subclass.
+    // This is the general way for the master view to control this slave
+    // view.  The master receives events to  control the camera.  I might
+    // abstract the event processor to a separate "interactor" object.
+    // roll is in radians. (Clockwise or counter?)
+    AnnotationLayer.prototype.UpdateCamera = function (focalPoint, height, roll) {
+        this.AnnotationView.Camera.FocalPoint[0] = focalPoint[0];
+        this.AnnotationView.Camera.FocalPoint[1] = focalPoint[1];
+        this.AnnotationView.Camera.Height = height;
+        this.AnnotationView.Camera.Roll = roll;
+        this.AnnotationView.Camera.ComputeMatrix();
+        this.EventaullyDraw();
+    }
+
     AnnotationLayer.prototype.GetCamera = function () {
         return this.AnnotationView.GetCamera();
     }
@@ -423,7 +447,9 @@
     AnnotationLayer.prototype.Clear = function () {
         this.AnnotationView.Clear();
     }
-    // Is Div to ambiguous?
+    // This is the same as LayerDiv.
+    // Get the div of the layer (main div).
+    // It is used to append DOM GUI children.
     AnnotationLayer.prototype.GetCanvasDiv = function () {
         return this.AnnotationView.CanvasDiv;
     }
@@ -533,7 +559,7 @@
             return;
         }
         // Incase the widget changed the cursor.  Change it back.
-        this.GetCanvasDiv().css({'cursor':'default'});
+        this.LayerDiv.css({'cursor':'default'});
         // The cursor does not change immediatly.  Try to flush.
         this.EventuallyDraw();
         this.ActiveWidget = null;

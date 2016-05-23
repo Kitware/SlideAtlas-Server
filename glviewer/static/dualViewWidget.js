@@ -528,8 +528,8 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     // Hard coded for two viewers (recored 0 and 1 too).
     // First place all the cameras into an array for code simplicity.
     // Cameras used for preloading.
-    if (! note.PreCamera) { note.PreCamera = new Camera();}
-    if (! note.PostCamera) { note.PostCamera = new Camera();}
+    if (! note.PreCamera) { note.PreCamera = new SAM.Camera();}
+    if (! note.PostCamera) { note.PostCamera = new SAM.Camera();}
     var cameras = [note.PreCamera,
                    this.GetViewer(0).GetCamera(),
                    this.GetViewer(1).GetCamera(),

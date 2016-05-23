@@ -624,7 +624,8 @@ function getShader(gl, type, str) {
 
 function initShaderPrograms(gl) {
 
-    var fragmentShaderString = 
+    // An experiment to make rgb have an alpha channel
+    var heatMapFragmentShaderString = 
         "precision highp float;" +
         "uniform sampler2D uSampler;" +
         "varying vec2 vTextureCoord;" +
@@ -634,6 +635,14 @@ function initShaderPrograms(gl) {
         "   if (value < 0.3 || value > 2.5) {" +
         "     textureColor[3] = 0.0;" +
         "   }" +
+        "   gl_FragColor = textureColor;" +
+        " }";
+    var fragmentShaderString = 
+        "precision highp float;" +
+        "uniform sampler2D uSampler;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
         "   gl_FragColor = textureColor;" +
         " }";
     var vertexShaderString = 

@@ -4,6 +4,7 @@ rm sam.min.js
 
 echo "// auto generated: slide atlas" > css/sa.css
 
+~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sam.min.js
 ~/bin/uglifyjs -nc annotationLayer.js >> sam.min.js 
 ~/bin/uglifyjs -nc shape.js >> sam.min.js 
 ~/bin/uglifyjs -nc shapeGroup.js >> sam.min.js 
@@ -30,7 +31,7 @@ echo "// auto generated: slide atlas" > css/sa.css
 ~/bin/uglifyjs -nc imageAnnotation.js >> sam.min.js 
 ~/bin/uglifyjs -nc dialog.js >> sam.min.js 
 ~/bin/uglifyjs -nc girderWidget.js >> sam.min.js 
-~/bin/uglifyjs -nc view.js >> sa.min.js 
+~/bin/uglifyjs -nc view.js >> sam.min.js 
 
 
 
@@ -40,7 +41,6 @@ cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css >> css/sa.
 cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/spectrum/spectrum.js >> sa.min.js
-~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/webgl-utils/webgl-utils.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/blob/g7246d68/Blob.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js >> sa.min.js
@@ -72,6 +72,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc tile.js >> sa.min.js 
 ~/bin/uglifyjs -nc cache.js >> sa.min.js 
 ~/bin/uglifyjs -nc section.js >> sa.min.js 
+~/bin/uglifyjs -nc tileView.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewer.js >> sa.min.js 
 ~/bin/uglifyjs -nc pairTransformation.js >> sa.min.js 
 
