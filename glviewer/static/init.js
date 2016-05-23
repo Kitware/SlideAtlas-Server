@@ -527,7 +527,7 @@ function doesBrowserSupportWebGL(canvas) {
    return gl;
 }
 
-
+/*
 function initGL() {
 
     // Add a new canvas.
@@ -547,43 +547,23 @@ function initGL() {
 
     return gl;
 }
-
+*/
 
 function initWebGL(gl) {
-    if (polyProgram) { return; }
+    if (imageProgram) { return; }
     // Defined in HTML
     initShaderPrograms(gl);
     initOutlineBuffers(gl);
     initImageTileBuffers(gl);
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.enable(gl.DEPTH_TEST);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
 }
 
 
-function getShader(gl, id) {
-    var shaderScript = document.getElementById(id);
-    if (!shaderScript) {
-        return null;
-    }
-
-    var str = "";
-    var k = shaderScript.firstChild;
-    while (k) {
-        if (k.nodeType == 3) {
-            str += k.textContent;
-        }
-        k = k.nextSibling;
-    }
-
+function getShader(gl, type, str) {
     var shader;
-    if (shaderScript.type == "x-shader/x-fragment") {
-        shader = gl.createShader(gl.FRAGMENT_SHADER);
-    } else if (shaderScript.type == "x-shader/x-vertex") {
-        shader = gl.createShader(gl.VERTEX_SHADER);
-    } else {
-        return null;
-    }
-
+    shader = gl.createShader(type);
     gl.shaderSource(shader, str);
     gl.compileShader(shader);
 
@@ -595,12 +575,80 @@ function getShader(gl, id) {
     return shader;
 }
 
+// Not used because annotations are all canvas.
+// Might be useful in the future.
+/*
+<script id="shader-poly-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  uniform vec3 uColor;
+  void main(void) {
+   gl_FragColor = vec4(uColor, 1.0);
+   //gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
+  }
+</script>
+<script id="shader-poly-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+  }
+</script>
+<script id="shader-text-fs" type="x-shader/x-fragment">
+  precision mediump float;
+
+  varying vec2 vTextureCoord;
+  uniform sampler2D uSampler;
+  uniform vec3 uColor;
+
+  void main(void) {
+    vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    // Use the image pixel value as transparency.
+    gl_FragColor = vec4(uColor, textureColor.rgb[0]);
+  }
+</script>
+<script id="shader-text-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+
+  varying vec2 vTextureCoord;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    vTextureCoord = aTextureCoord;
+  }
+*/
+
 
 function initShaderPrograms(gl) {
-    polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
-    polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-    imageProgram = createProgram("shader-tile-fs", "shader-tile-vs", gl);
+    var fragmentShaderString = 
+        "precision highp float;" +
+        "uniform sampler2D uSampler;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+        "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
+        "   if (value < 0.3 || value > 2.5) {" +
+        "     textureColor[3] = 0.0;" +
+        "   }" +
+        "   gl_FragColor = textureColor;" +
+        " }";
+    var vertexShaderString = 
+        "attribute vec3 aVertexPosition;" +
+        "attribute vec2 aTextureCoord;" +
+        "uniform mat4 uMVMatrix;" +
+        "uniform mat4 uPMatrix;" +
+        "uniform mat3 uNMatrix;" +
+        "varying vec2 vTextureCoord;" +
+        "void main(void) {" +
+        "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+        "  vTextureCoord = aTextureCoord;" +
+        "}";
+
+    imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
     // Texture coordinate attribute and texture image uniform
     imageProgram.textureCoordAttribute
         = gl.getAttribLocation(imageProgram,"aTextureCoord");
@@ -608,20 +656,22 @@ function initShaderPrograms(gl) {
     imageProgram.samplerUniform = gl.getUniformLocation(imageProgram, "uSampler");
 
 
+    //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+    //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-    textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
-    textProgram.textureCoordAttribute
-        = gl.getAttribLocation(textProgram, "aTextureCoord");
-    gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
-    textProgram.samplerUniform
-        = gl.getUniformLocation(textProgram, "uSampler");
-    textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
+    //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+    //textProgram.textureCoordAttribute
+    //    = gl.getAttribLocation(textProgram, "aTextureCoord");
+    //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
+    //textProgram.samplerUniform
+    //    = gl.getUniformLocation(textProgram, "uSampler");
+    //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
 }
 
 
-function createProgram(fragmentShaderID, vertexShaderID, gl) {
-    var fragmentShader = getShader(gl, fragmentShaderID);
-    var vertexShader = getShader(gl, vertexShaderID);
+function createProgram(fragmentShaderString, vertexShaderString, gl) {
+    var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
+    var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
     var program = gl.createProgram();
     gl.attachShader(program, vertexShader);

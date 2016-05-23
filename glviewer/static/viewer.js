@@ -52,7 +52,9 @@ function Viewer (parent) {
         .addClass('sa-resize');
 
     // ==============================
-    // Seeing what this does to events.
+    // Experiment wit combining tranparent webgl ontop of canvas.
+    // did not work
+    /*
     this.HeatMapDiv = $('<div>')
         .appendTo(this.Div)
         .css({'position':'absolute',
@@ -90,7 +92,7 @@ function Viewer (parent) {
          Height: 419617});
     this.HeatMap.Camera.ComputeMatrix();
     this.HeatMap.UpdateCanvasSize();
-    //$(window).trigger('resize');
+    */
     // ==============================
 
     // I am moving the eventually render feature into viewers.
