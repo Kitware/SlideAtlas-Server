@@ -632,7 +632,7 @@ function initShaderPrograms(gl) {
         "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
         "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
         "   if (value < 0.3 || value > 2.5) {" +
-        "     textureColor[3] = 0.0;" +
+        "     textureColor[0] = textureColor[1] = textureColor[2] = textureColor[3] = 0.0;" +
         "   }" +
         "   gl_FragColor = textureColor;" +
         " }";
