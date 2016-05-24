@@ -260,7 +260,7 @@
             this.ComputeActiveCenter();
             this.Layer.EventuallyDraw();
 
-            RecordState();
+            SA.RecordState();
         }
         return false;
     }
@@ -411,7 +411,7 @@
         this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw();
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
@@ -577,7 +577,7 @@
                 this.Loop.Points = points1;
             }
 
-            RecordState();
+            SA.RecordState();
         }
 
         // Remove the extra point added at the begining of this method.

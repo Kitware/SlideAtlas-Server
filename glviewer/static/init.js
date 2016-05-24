@@ -1,58 +1,62 @@
-var SA = window.SA || {};
-var ROOT_DIV;
-var imageProgram;
-var textProgram;
-var polyProgram;
-var mvMatrix = mat4.create();
-var pMatrix = mat4.create();
-var squareOutlinePositionBuffer;
-var squarePositionBuffer;
-var tileVertexPositionBuffer;
-var tileVertexTextureCoordBuffer;
-var tileCellBuffer;
-
-var MOBILE_DEVICE = false;
-// Hack to get rid of white lines.
-var I_PAD_FLAG = false;
-
-
-window.requestAnimationFrame = 
-    window.requestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    window.webkitRequestAnimationFrame ||             
-    window.msRequestAnimationFrame;
-
-// Firefox does not set which for mouse move events.
-function saFirefoxWhich(event) {
-    event.which = event.buttons;
-    if (event.which == 2) {
-        event.which = 3;
-    } else if (event.which == 3) {
-        event.which = 2;
-    }
-}
-
-function saDebug(msg) {
-    console.log(msg);
-}
-
-// for debugging
-function MOVE_TO(x,y) {
-    SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-    SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
-    }
-}
-
-function ZERO_PAD(i, n) {
-    var s = "0000000000" + i.toFixed();
-    return s.slice(-n);
-}
+window.SA = window.SA || {};
 
 
 (function () {
     "use strict";
+
+
+    var ROOT_DIV;
+    SA.imageProgram;
+    var textProgram;
+    var polyProgram;
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+    var squareOutlinePositionBuffer;
+    var squarePositionBuffer;
+    SA.tileVertexPositionBuffer;
+    SA.tileVertexTextureCoordBuffer;
+    SA.tileCellBuffer;
+
+    SA.MOBILE_DEVICE = false;
+    // Hack to get rid of white lines.
+    var I_PAD_FLAG = false;
+
+
+    window.requestAnimationFrame =
+        window.requestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.msRequestAnimationFrame;
+
+    // Firefox does not set which for mouse move events.
+    SA.FirefoxWhich = function(event) {
+        event.which = event.buttons;
+        if (event.which == 2) {
+            event.which = 3;
+        } else if (event.which == 3) {
+            event.which = 2;
+        }
+    }
+
+    SA.Debug = function(msg) {
+        console.log(msg);
+    }
+
+    // for debugging
+    function MOVE_TO(x,y) {
+        SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+        SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+        if (SA.DualDisplay) {
+            SA.DualDisplay.Draw();
+        }
+    }
+
+    function ZERO_PAD(i, n) {
+        var s = "0000000000" + i.toFixed();
+        return s.slice(-n);
+    }
+
+
 
     // This file contains some global variables and misc procedures to
     // initials shaders and some buffers we need and to render.
@@ -62,31 +66,11 @@ function ZERO_PAD(i, n) {
     // For managing progress with multiple ajax calls.
     SA.ProgressCount = 0;
 
-    SA.TileLoader = "http";
     // How can we distribute the initialization of these?
     // TODO: Many of these are not used anymore. Clean them up.
-    SA.TimeStamp = 0;
-    SA.NumberOfTiles = 0;
-    SA.NumberOfTextures = 0;
-    SA.MaximumNumberOfTiles = 50000;
-    SA.MaximumNumberOfTextures = 5000;
-    SA.PruneTimeTiles = 0;
-    SA.PruneTimeTextures = 0;
-
-    // Keep a queue of tiles to load so we can sort them as
-    // new requests come in.
-    SA.LoadQueue = [];
-    SA.LoadingCount = 0;
-    SA.LoadingMaximum = 10;
-    SA.LoadTimeoutId = 0;
-
-    SA.LoadProgressMax = 0;
-    SA.ProgressBar = null;
-
-    // Only used for saving images right now.
-    SA.FinishedLoadingCallbacks = [];
 
     SA.Caches = [];
+
 
     SA.StartInteractionListeners = [];
 
@@ -106,6 +90,7 @@ function ZERO_PAD(i, n) {
     // Main function called by the default view.html template
     // SA global will be set to this object.
     SA.Run = function() {
+        SA.Running == true;
         self = SA;
         if (SA.SessionId) {
             $.ajax({
@@ -118,7 +103,7 @@ function ZERO_PAD(i, n) {
                     self.Run2();
                 },
                 error: function() {
-                    saDebug("AJAX - error() : session" );
+                    SA.Debug("AJAX - error() : session" );
                     self.Run2();
                 },
             });
@@ -158,7 +143,7 @@ function ZERO_PAD(i, n) {
             Main(rootNote);
         } else {
             if (SA.ViewId == "") {
-                saDebug("Missing view id");
+                SA.Debug("Missing view id");
                 return;
             }
             // Sort of a hack that we rely on main getting called after SA
@@ -448,132 +433,103 @@ function ZERO_PAD(i, n) {
     }
 
 
-})();
 
+    function detectMobile() {
+        SA.MOBILE_DEVICE = false;
 
+        if ( navigator.userAgent.match(/Android/i)) {
+            SA.MOBILE_DEVICE = "Andriod";
+        }
+        if ( navigator.userAgent.match(/webOS/i)) {
+            SA.MOBILE_DEVICE = "webOS";
+        }
+        if ( navigator.userAgent.match(/iPhone/i)) {
+            SA.MOBILE_DEVICE = "iPhone";
+        }
+        if ( navigator.userAgent.match(/iPad/i)) {
+            SA.MOBILE_DEVICE = "iPad";
+            I_PAD_FLAG = true;
+        }
+        if ( navigator.userAgent.match(/iPod/i)) {
+            SA.MOBILE_DEVICE = "iPod";
+        }
+        if ( navigator.userAgent.match(/BlackBerry/i)) {
+            SA.MOBILE_DEVICE = "BlackBerry";
+        }
+        if ( navigator.userAgent.match(/Windows Phone/i)) {
+            SA.MOBILE_DEVICE = "Windows Phone";
+        }
+        if (SA.MOBILE_DEVICE) {
+            SA.MaximumNumberOfTiles = 5000;
+        }
 
-function detectMobile() {
-    MOBILE_DEVICE = false;
-
-    if ( navigator.userAgent.match(/Android/i)) {
-        MOBILE_DEVICE = "Andriod";
+        return SA.MOBILE_DEVICE;
     }
-    if ( navigator.userAgent.match(/webOS/i)) {
-        MOBILE_DEVICE = "webOS";
-    }
-    if ( navigator.userAgent.match(/iPhone/i)) {
-        MOBILE_DEVICE = "iPhone";
-    }
-    if ( navigator.userAgent.match(/iPad/i)) {
-        MOBILE_DEVICE = "iPad";
-        I_PAD_FLAG = true;
-    }
-    if ( navigator.userAgent.match(/iPod/i)) {
-        MOBILE_DEVICE = "iPod";
-    }
-    if ( navigator.userAgent.match(/BlackBerry/i)) {
-        MOBILE_DEVICE = "BlackBerry";
-    }
-    if ( navigator.userAgent.match(/Windows Phone/i)) {
-        MOBILE_DEVICE = "Windows Phone";
-    }
-    if (MOBILE_DEVICE) {
-        SA.MaximumNumberOfTiles = 5000;
-    }
-
-    return MOBILE_DEVICE;
-}
 
 
-// This global is used in every class that renders something.
-// I can not test multiple canvases until I modularize the canvas
-// and get rid of these globals.
-// WebGL context
-var GL;
-
-function GetUser() {
-    if (typeof(SA.User) != "undefined") {
-        return SA.User;
+    SA.GetUser = function() {
+        if (typeof(SA.User) != "undefined") {
+            return SA.User;
+        }
+        SA.Debug("Could not find user");
+        return "";
     }
-    saDebug("Could not find user");
-    return "";
-}
 
 
-function GetViewId () {
-    if (typeof(SA.ViewId) != "undefined") {
-        return SA.ViewId;
+    //function GetViewId () {
+    //    if (typeof(SA.ViewId) != "undefined") {
+    //        return SA.ViewId;
+    //    }
+    //    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
+    //        return SA.NotesWidget.RootNote._id;
+    //    }
+    //    SA.Debug("Could not find view id");
+    //    return "";
+    //}
+
+    // WebGL Initialization
+
+    function doesBrowserSupportWebGL(canvas) {
+        var gl;
+        try {
+            //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            gl = canvas.getContext("webgl");
+        } catch (e) {
+        }
+        if (!gl) {
+            //SA.Debug("Could not initialise WebGL, sorry :-(");
+            return null;
+        }
+        return gl;
     }
-    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
-        return SA.NotesWidget.RootNote._id;
-    }
-    saDebug("Could not find view id");
-    return "";
-}
 
-// WebGL Initializationf
 
-function doesBrowserSupportWebGL(canvas) {
-    var gl;
-    try {
-        //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        gl = canvas.getContext("webgl");
-    } catch (e) {
-    }
-    if (!gl) {
-        //saDebug("Could not initialise WebGL, sorry :-(");
-        return null;
-    }
-   return gl;
-}
-
-/*
-function initGL() {
-
-    // Add a new canvas.
-    CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
-    //this.canvas.onselectstart = function() {return false;};
-    //this.canvas.onmousedown = function() {return false;};
-    var gl = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
-
-    if (gl) {
+    SA.initWebGL = function (gl) {
+        if (SA.imageProgram) { return; }
         // Defined in HTML
-        initShaderPrograms();
-        initOutlineBuffers();
-        initImageTileBuffers();
+        initShaderPrograms(gl);
+        initOutlineBuffers(gl);
+        initImageTileBuffers(gl);
+        // Not needed.  DOne before rendering.
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
-        gl.enable(GL.DEPTH_TEST);
+        gl.disable(gl.DEPTH_TEST);
+        gl.enable(gl.BLEND);
     }
 
-    return gl;
-}
-*/
 
-function initWebGL(gl) {
-    if (imageProgram) { return; }
-    // Defined in HTML
-    initShaderPrograms(gl);
-    initOutlineBuffers(gl);
-    initImageTileBuffers(gl);
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.disable(gl.DEPTH_TEST);
-    gl.enable(gl.BLEND);
-}
+    function getShader(gl, type, str) {
+        var shader;
+        shader = gl.createShader(type);
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
 
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            SA.Debug(gl.getShaderInfoLog(shader));
+            return null;
+        }
 
-function getShader(gl, type, str) {
-    var shader;
-    shader = gl.createShader(type);
-    gl.shaderSource(shader, str);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        saDebug(gl.getShaderInfoLog(shader));
-        return null;
+        return shader;
     }
-
-    return shader;
-}
 
 // Not used because annotations are all canvas.
 // Might be useful in the future.
@@ -622,518 +578,583 @@ function getShader(gl, type, str) {
 */
 
 
-function initShaderPrograms(gl) {
+    function initShaderPrograms(gl) {
 
-    // An experiment to make rgb have an alpha channel
-    var heatMapFragmentShaderString = 
-        "precision highp float;" +
-        "uniform sampler2D uSampler;" +
-        "varying vec2 vTextureCoord;" +
-        "void main(void) {" +
-        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
-        "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
-        "   if (value < 0.3 || value > 2.5) {" +
-        "     textureColor[0] = textureColor[1] = textureColor[2] = textureColor[3] = 0.0;" +
-        "   }" +
-        "   gl_FragColor = textureColor;" +
-        " }";
-    var fragmentShaderString = 
-        "precision highp float;" +
-        "uniform sampler2D uSampler;" +
-        "varying vec2 vTextureCoord;" +
-        "void main(void) {" +
-        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
-        "   gl_FragColor = textureColor;" +
-        " }";
-    var vertexShaderString = 
-        "attribute vec3 aVertexPosition;" +
-        "attribute vec2 aTextureCoord;" +
-        "uniform mat4 uMVMatrix;" +
-        "uniform mat4 uPMatrix;" +
-        "uniform mat3 uNMatrix;" +
-        "varying vec2 vTextureCoord;" +
-        "void main(void) {" +
-        "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
-        "  vTextureCoord = aTextureCoord;" +
-        "}";
+        // An experiment to make rgb have an alpha channel
+        var heatMapTestFragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+            "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
+            "   if (value < 0.3 || value > 2.5) {" +
+            "     textureColor[0] = textureColor[1] = textureColor[2] = textureColor[3] = 0.0;" +
+            "   }" +
+            "   gl_FragColor = textureColor;" +
+            " }";
+        var heatMapFragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+            "  textureColor[3] = textureColor[0];" +
+            "  highp float h = textureColor[1] * 6.0;" +
+            "  if (h < 1.0) {" +
+            "    textureColor[0] = 1.0;" +
+            "    textureColor[1] = h;" +
+            "    textureColor[3] = 0.0;" +
+            "  } else if (h < 2.0) {" +
+            "    textureColor[0] = 2.0-h;" +
+            "    textureColor[1] = 1.0;" +
+            "    textureColor[3] = 0.0;" +
+            "  } else if (h < 3.0) {" +
+            "    textureColor[0] = 0.0;" +
+            "    textureColor[1] = 1.0;" +
+            "    textureColor[3] = h-2.0;" +
+            "  } else if (h < 4.0) {" +
+            "    textureColor[0] = 0.0;" +
+            "    textureColor[1] = 4.0-h;" +
+            "    textureColor[3] = 1.0;" +
+            "  } else if (h < 5.0) {" +
+            "    textureColor[0] = h-4.0;" +
+            "    textureColor[1] = 0.0;" +
+            "    textureColor[3] = 1.0;" +
+            "  } else if (h < 6.0) {" +
+            "    textureColor[0] = 1.0;" +
+            "    textureColor[1] = 0.0;" +
+            "    textureColor[3] = 6.0-h;" +
+            "  }" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var fragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+            "   gl_FragColor = textureColor;" +
+            " }";
+        var vertexShaderString = 
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
 
-    imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
-    // Texture coordinate attribute and texture image uniform
-    imageProgram.textureCoordAttribute
-        = gl.getAttribLocation(imageProgram,"aTextureCoord");
-    gl.enableVertexAttribArray(imageProgram.textureCoordAttribute);
-    imageProgram.samplerUniform = gl.getUniformLocation(imageProgram, "uSampler");
+        //SA.imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
+        SA.imageProgram = createProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Texture coordinate attribute and texture image uniform
+        SA.imageProgram.textureCoordAttribute
+            = gl.getAttribLocation(SA.imageProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(SA.imageProgram.textureCoordAttribute);
+        SA.imageProgram.samplerUniform = gl.getUniformLocation(SA.imageProgram, "uSampler");
 
 
-    //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
-    //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
+        //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+        //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-    //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
-    //textProgram.textureCoordAttribute
-    //    = gl.getAttribLocation(textProgram, "aTextureCoord");
-    //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
-    //textProgram.samplerUniform
-    //    = gl.getUniformLocation(textProgram, "uSampler");
-    //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
-}
-
-
-function createProgram(fragmentShaderString, vertexShaderString, gl) {
-    var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
-    var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
-
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        saDebug("Could not initialise shaders");
+        //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+        //textProgram.textureCoordAttribute
+        //    = gl.getAttribLocation(textProgram, "aTextureCoord");
+        //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
+        //textProgram.samplerUniform
+        //    = gl.getUniformLocation(textProgram, "uSampler");
+        //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
     }
 
-    program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
-    gl.enableVertexAttribArray(program.vertexPositionAttribute);
+    
+    function createProgram(fragmentShaderString, vertexShaderString, gl) {
+        var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
+        var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
-    // Camera matrix
-    program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
-    // Model matrix
-    program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
 
-    return program;
-}
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            SA.Debug("Could not initialise shaders");
+        }
 
-function initOutlineBuffers(gl) {
-    // Outline Square
-    vertices = [
-        0.0,  0.0,  0.0,
-        0.0,  1.0,  0.0,
-        1.0, 1.0,  0.0,
-        1.0, 0.0,  0.0,
-        0.0, 0.0,  0.0];
-    squareOutlinePositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    squareOutlinePositionBuffer.itemSize = 3;
-    squareOutlinePositionBuffer.numItems = 5;
+        program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
+        gl.enableVertexAttribArray(program.vertexPositionAttribute);
 
-    // Filled square
-    squarePositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
-    vertices = [
-        1.0,  1.0,  0.0,
-        0.0,  1.0,  0.0,
-        1.0,  0.0,  0.0,
-        0.0,  0.0,  0.0
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    squarePositionBuffer.itemSize = 3;
-    squarePositionBuffer.numItems = 4;
-}
+        // Camera matrix
+        program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
+        // Model matrix
+        program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
 
-
-
-
-//==============================================================================
-
-
-
-function initImageTileBuffers(gl) {
-    var vertexPositionData = [];
-    var textureCoordData = [];
-
-    // Make 4 points
-    textureCoordData.push(0.0);
-    textureCoordData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(1.0);
-    textureCoordData.push(0.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(0.0);
-    textureCoordData.push(1.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(1.0);
-    textureCoordData.push(1.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-
-    // Now create the cell.
-    var cellData = [];
-    cellData.push(0);
-    cellData.push(1);
-    cellData.push(2);
-
-    cellData.push(2);
-    cellData.push(1);
-    cellData.push(3);
-
-    tileVertexTextureCoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
-    tileVertexTextureCoordBuffer.itemSize = 2;
-    tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
-
-    tileVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexPositionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-    tileVertexPositionBuffer.itemSize = 3;
-    tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
-
-    tileCellBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-    tileCellBuffer.itemSize = 1;
-    tileCellBuffer.numItems = cellData.length;
-}
-
-
-
-// TODO: Get rid of this as legacy.
-// I put an eveutallyRender method in the viewer, but have not completely
-// converted code yet.
-// Stuff for drawing
-//var RENDER_PENDING = false;
-//function eventuallyRender() {
-//    if (! RENDER_PENDING) {
-//      RENDER_PENDING = true;
-//      requestAnimFrame(tick);
-//    }
-//}
-
-//function tick() {
-//    //console.timeEnd("system");
-//    RENDER_PENDING = false;
-//    draw();
-//    //console.time("system");
-//}
-
-
-
-
-//==============================================================================
-// Alternative to webgl, HTML5 2d canvas
-
-
-function initGC() {
-
-    detectMobile();
-}
-
-
-var GC_STACK = [];
-var GCT = [1,0,0,1,0,0];
-function GC_save() {
-  var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
-  GC_STACK.push(tmp);
-}
-function GC_restore() {
-  var tmp = GC_STACK.pop();
-  GCT = tmp;
-  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
-}
-function GC_setTransform(m00,m10,m01,m11,m02,m12) {
-  GCT = [m00,m10,m01,m11,m02,m12];
-  GC.setTransform(m00,m10,m01,m11,m02,m12);
-}
-function GC_transform(m00,m10,m01,m11,m02,m12) {
-  var n00 = m00*GCT[0] + m10*GCT[2];
-  var n10 = m00*GCT[1] + m10*GCT[3];
-  var n01 = m01*GCT[0] + m11*GCT[2];
-  var n11 = m01*GCT[1] + m11*GCT[3];
-  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
-  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
-
-  GCT = [n00,n10,n01,n11,n02,n12];
-  GC.setTransform(n00,n10,n01,n11,n02,n12);
-}
-
-
-
-//----------------------------------------------------------
-// Log to trackdown iPad bug.  Console does not log until
-// debugger is running.  Bug does not occur when debugger
-// is running.
-
-LOGGING = false;
-DEBUG_LOG = [];
-
-function StartLogging (message) {
-  if (LOGGING) return;
-  LOGGING = true;
-  //alert("Error: Check log");
-}
-
-function LogMessage (message) {
-  if (LOGGING) {
-    DEBUG_LOG.push(message);
-  }
-}
-
-//----------------------------------------------------------
-// In an attempt to simplify the view.html template file, I am putting
-// as much of the javascript from that file into this file as I can.
-// As I abstract viewer features, these variables and functions
-// should migrate into objects and other files.
-
-var CANVAS;
-
-var CONFERENCE_WIDGET;
-var FAVORITES_WIDGET;
-var MOBILE_ANNOTATION_WIDGET;
-
-//==============================================================================
-
-
-// hack to avoid an undefined error (until we unify annotation stuff).
-function ShowAnnotationEditMenu(x, y) {
-}
-
-
-// TODO:  Get rid of this function.
-function handleResize() {
-    $('window').trigger('resize');
-}
-
-// The event manager detects single right click and double right click.
-// This gets galled on the single.
-function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
-// I am getting rid of the right click feature now.
-
-// TODO: Move these out of the global SLideAtlas object.
-function handleKeyDown(event) {
-    return SA.HandleKeyDownStack(event);
-}
-function handleKeyUp(event) {
-    return SA.HandleKeyUpStack(event);
-}
-
-function cancelContextMenu(e) {
-    //alert("Try to cancel context menu");
-    if (e && e.stopPropagation) {
-        e.stopPropagation();
-    }
-    return false;
-}
-
-
-
-// Call back from NotesWidget.
-function NotesModified() {
-    if (SA.Edit && SA.SaveButton) {
-        SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
-    }
-}
-
-function NotesNotModified() {
-    if (SA.Edit && SA.SaveButton) {
-        SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
-    }
-}
-
-// This function gets called when the save button is pressed.
-function SaveCallback() {
-    // TODO: This is no longer called by a button, so change its name.
-    SA.NotesWidget.SaveCallback(
-        function () {
-            // finished
-            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
-        });
-}
-
-
-// This serializes loading a bit, but we need to know what type the note is
-// so we can coustomize the webApp.  The server could pass the type to us.
-// It might speed up loading.
-// Note is the same as a view.
-function Main(rootNote) {
-    SA.RootNote = rootNote;
-
-    if (rootNote.Type == "Presentation" ||
-        rootNote.Type == "HTML") {
-        SA.Presentation = new Presentation(rootNote, SA.Edit);
-        return;
+        return program;
     }
 
-    detectMobile();
-    $(body).addClass("sa-view-body");
-    // Just to see if webgl is supported:
-    //var testCanvas = document.getElementById("gltest");
+    function initOutlineBuffers(gl) {
+        // Outline Square
+        var vertices = [
+            0.0,  0.0,  0.0,
+            0.0,  1.0,  0.0,
+            1.0, 1.0,  0.0,
+            1.0, 0.0,  0.0,
+            0.0, 0.0,  0.0];
+        var squareOutlinePositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        squareOutlinePositionBuffer.itemSize = 3;
+        squareOutlinePositionBuffer.numItems = 5;
 
-    // I think the webgl viewer crashes.
-    // Maybe it is the texture leak I have seen in connectome.
-    // Just use the canvas for now.
-    // I have been getting crashes I attribute to not freeing texture
-    // memory properly.
-    // NOTE: I am getting similar crashe with the canvas too.
-    // Stack is running out of some resource.
-    if ( ! MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
-        initGL(); // Sets CANVAS and GL global variables
-    } else {
-        initGC();
-    }
-
-    // TODO: Get rid of this global variable.
-    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
-        MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+        // Filled square
+        var squarePositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
+        vertices = [
+            1.0,  1.0,  0.0,
+            0.0,  1.0,  0.0,
+            1.0,  0.0,  0.0,
+            0.0,  0.0,  0.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        squarePositionBuffer.itemSize = 3;
+        squarePositionBuffer.numItems = 4;
     }
 
 
-    SA.MainDiv = $('<div>')
-        .appendTo('body')
-        .css({
-            'position':'fixed',
-            'left':'0px',
-            'width': '100%'})
-        .saFullHeight();
-        //.addClass("sa-view-canvas-panel")
 
-    // Left panel for notes.
-    SA.ResizePanel = new ResizePanel(SA.MainDiv);
-    SA.DualDisplay = new DualViewWidget(SA.ResizePanel.MainDiv);
-    SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
-                                     SA.DualDisplay);
 
-    if (rootNote.Type == "Stack") {
-        SA.DualDisplay.SetNumberOfViewers(2);
+    //==============================================================================
+
+
+
+    function initImageTileBuffers(gl) {
+        var vertexPositionData = [];
+        var textureCoordData = [];
+
+        // Make 4 points
+        textureCoordData.push(0.0);
+        textureCoordData.push(0.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(0.0);
+
+        textureCoordData.push(1.0);
+        textureCoordData.push(0.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(0.0);
+
+        textureCoordData.push(0.0);
+        textureCoordData.push(1.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(0.0);
+
+        textureCoordData.push(1.0);
+        textureCoordData.push(1.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(0.0);
+
+        // Now create the cell.
+        var cellData = [];
+        cellData.push(0);
+        cellData.push(1);
+        cellData.push(2);
+
+        cellData.push(2);
+        cellData.push(1);
+        cellData.push(3);
+
+        SA.tileVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexTextureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
+        SA.tileVertexTextureCoordBuffer.itemSize = 2;
+        SA.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+
+        SA.tileVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
+        SA.tileVertexPositionBuffer.itemSize = 3;
+        SA.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
+
+        SA.tileCellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, SA.tileCellBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
+        SA.tileCellBuffer.itemSize = 1;
+        SA.tileCellBuffer.numItems = cellData.length;
     }
 
-    SA.NotesWidget.SetModifiedCallback(NotesModified);
-    SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
-    // Navigation widget keeps track of which note is current.
-    // Notes widget needs to access and change this.
-    SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-    if (SA.DualDisplay.NavigationWidget) {
-      SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+
+
+    // TODO: Get rid of this as legacy.
+    // I put an eveutallyRender method in the viewer, but have not completely
+    // converted code yet.
+    // Stuff for drawing
+    //var RENDER_PENDING = false;
+    //function eventuallyRender() {
+    //    if (! RENDER_PENDING) {
+    //      RENDER_PENDING = true;
+    //      requestAnimFrame(tick);
+    //    }
+    //}
+
+    //function tick() {
+    //    //console.timeEnd("system");
+    //    RENDER_PENDING = false;
+    //    draw();
+    //    //console.time("system");
+    //}
+
+
+
+
+    //==============================================================================
+    // Alternative to webgl, HTML5 2d canvas
+
+
+    function initGC() {
+
+        detectMobile();
     }
 
-    new RecorderWidget(SA.DualDisplay);
 
-    SA.DualDisplay.SetNote(rootNote);
+    var GC_STACK = [];
+    var GCT = [1,0,0,1,0,0];
+    function GC_save() {
+        var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
+        GC_STACK.push(tmp);
+    }
+    function GC_restore() {
+        var tmp = GC_STACK.pop();
+        GCT = tmp;
+        GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
+    }
+    function GC_setTransform(m00,m10,m01,m11,m02,m12) {
+        GCT = [m00,m10,m01,m11,m02,m12];
+        GC.setTransform(m00,m10,m01,m11,m02,m12);
+    }
+    function GC_transform(m00,m10,m01,m11,m02,m12) {
+        var n00 = m00*GCT[0] + m10*GCT[2];
+        var n10 = m00*GCT[1] + m10*GCT[3];
+        var n01 = m01*GCT[0] + m11*GCT[2];
+        var n11 = m01*GCT[1] + m11*GCT[3];
+        var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
+        var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
 
-    // Do not let guests create favorites.
-    // TODO: Rework how favorites behave on mobile devices.
-    if (SA.User != "" && ! MOBILE_DEVICE) {
-        if ( SA.Edit) {
-            // Put a save button here when editing.
-            SA.SaveButton = $('<img>')
-                .appendTo(SA.ResizePanel.MainDiv)
-                .css({'position':'absolute',
-                      'bottom':'4px',
-                      'left':'10px',
-                      'height': '28px',
-                      'z-index': '5'})
-                .prop('title', "save to databse")
-                .addClass('editButton')
-                .attr('src',SA.ImagePathUrl+"save22.png")
-                .click(SaveCallback);
-            for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
-                SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.NotesWidget.RecordView();});
-            }
-        } else {
-            // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(SA.MainDiv, SA.DualDisplay);
-            //FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+        GCT = [n00,n10,n01,n11,n02,n12];
+        GC.setTransform(n00,n10,n01,n11,n02,n12);
+    }
+
+
+
+    //----------------------------------------------------------
+    // Log to trackdown iPad bug.  Console does not log until
+    // debugger is running.  Bug does not occur when debugger
+    // is running.
+
+    var LOGGING = false;
+    var DEBUG_LOG = [];
+
+    function StartLogging (message) {
+        if (LOGGING) return;
+        LOGGING = true;
+        //alert("Error: Check log");
+    }
+
+    function LogMessage (message) {
+        if (LOGGING) {
+            DEBUG_LOG.push(message);
         }
     }
 
-    if (MOBILE_DEVICE && SA.DualDisplay && 
-        SA.DualDisplay.NavigationWidget) {
-        SA.DualDisplay.NavigationWidget.SetVisibility(false);
-    }
-    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
-        MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
-    }
+    //----------------------------------------------------------
+    // In an attempt to simplify the view.html template file, I am putting
+    // as much of the javascript from that file into this file as I can.
+    // As I abstract viewer features, these variables and functions
+    // should migrate into objects and other files.
 
-    //CONFERENCE_WIDGET = new ConferenceWidget();
+    var CANVAS;
 
-    // The event manager still handles stack alignment.
-    // This should be moved to a stack helper class.
-    // Undo and redo too.
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
+    var CONFERENCE_WIDGET;
+    var FAVORITES_WIDGET;
+    var MOBILE_ANNOTATION_WIDGET;
 
-    // Keep the browser from showing the left click menu.
-    document.oncontextmenu = cancelContextMenu;
+    //==============================================================================
 
-    if ( ! MOBILE_DEVICE) {
-        // Hack for all viewer edit menus to share browser.
-        VIEW_BROWSER = new ViewBrowser($('body'));
 
-        // TODO: See if we can get rid of this, or combine it with
-        // the view browser.
-        InitSlideSelector(SA.MainDiv); // What is this?
-        var viewMenu1 = new ViewEditMenu(SA.DualDisplay.Viewers[0],
-                                         SA.DualDisplay.Viewers[1]);
-        var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
-                                         SA.DualDisplay.Viewers[0]);
-        var viewer = SA.DualDisplay.Viewers[0];
-        var annotationWidget1 =
-            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
-        annotationWidget1.SetVisibility(2);
-        var viewer = SA.DualDisplay.Viewers[1];
-        var annotationWidget2 =
-            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
-        annotationWidget2.SetVisibility(2);
-        SA.DualDisplay.UpdateGui();
+    // hack to avoid an undefined error (until we unify annotation stuff).
+    function ShowAnnotationEditMenu(x, y) {
     }
 
-    $(window).bind('orientationchange', function(event) {
-        handleResize();
-    });
 
-    $(window).resize(function() {
-        handleResize();
-    }).trigger('resize');
-
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
+    // TODO:  Get rid of this function.
+    function handleResize() {
+        $('window').trigger('resize');
     }
-}
 
+    // The event manager detects single right click and double right click.
+    // This gets galled on the single.
+    function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
+    // I am getting rid of the right click feature now.
 
-// I had to prune all the annotations (lassos) that were not visible.
-function keepVisible(){
-  var n = SA.DualDisplay.GetNote();
-  var r = n.ViewerRecords[n.StartIndex];
-  var w = VIEWER1.WidgetList;
-  var c = VIEWER1.GetCamera();
-  var b =c.GetBounds();
-  for(var i= 0; i<r.Annotations.length; ++i) {
-    if (r.Annotations[i].type != 'lasso') {
-      r.Annotations.splice(i,1);
-      --i;
-    } else {
-      var pt = r.Annotations[i].points[0];
-      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
-  b[3]) {
-        r.Annotations.splice(i,1);
-        --i;
-      }
+    // TODO: Move these out of the global SLideAtlas object.
+    function handleKeyDown(event) {
+        return SA.HandleKeyDownStack(event);
     }
-  }
-  for(var i= 0; i<w.length; ++i) {
-    if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
-      w.splice(i,1);
-      --i;
-    } else {
-      var pt = w[i].Loop.Points[0];
-      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
-  b[3]) {
-        w.splice(i,1);
-        --i;
-      }
+    function handleKeyUp(event) {
+        return SA.HandleKeyUpStack(event);
     }
-  }
-}
 
+    function cancelContextMenu(e) {
+        //alert("Try to cancel context menu");
+        if (e && e.stopPropagation) {
+            e.stopPropagation();
+        }
+        return false;
+    }
+
+
+
+    // Call back from NotesWidget.
+    function NotesModified() {
+        if (SA.Edit && SA.SaveButton) {
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
+        }
+    }
+
+    function NotesNotModified() {
+        if (SA.Edit && SA.SaveButton) {
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
+        }
+    }
+
+    // This function gets called when the save button is pressed.
+    function SaveCallback() {
+        // TODO: This is no longer called by a button, so change its name.
+        SA.NotesWidget.SaveCallback(
+            function () {
+                // finished
+                SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
+            });
+    }
+
+
+    // This serializes loading a bit, but we need to know what type the note is
+    // so we can coustomize the webApp.  The server could pass the type to us.
+    // It might speed up loading.
+    // Note is the same as a view.
+    function Main(rootNote) {
+        SA.RootNote = rootNote;
+
+        if (rootNote.Type == "Presentation" ||
+            rootNote.Type == "HTML") {
+            SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
+            return;
+        }
+
+        detectMobile();
+        $(body).addClass("sa-view-body");
+        // Just to see if webgl is supported:
+        //var testCanvas = document.getElementById("gltest");
+
+        // I think the webgl viewer crashes.
+        // Maybe it is the texture leak I have seen in connectome.
+        // Just use the canvas for now.
+        // I have been getting crashes I attribute to not freeing texture
+        // memory properly.
+        // NOTE: I am getting similar crashe with the canvas too.
+        // Stack is running out of some resource.
+        if ( ! SA.MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
+            initGL(); // Sets CANVAS and GL global variables
+        } else {
+            initGC();
+        }
+
+        // TODO: Get rid of this global variable.
+        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+            MOBILE_ANNOTATION_WIDGET = new SA.MobileAnnotationWidget();
+        }
+
+        SA.MainDiv = $('<div>')
+            .appendTo('body')
+            .css({
+                'position':'fixed',
+                'left':'0px',
+                'width': '100%'})
+            .saFullHeight();
+        //.addClass("sa-view-canvas-panel")
+
+        // Left panel for notes.
+        SA.ResizePanel = new SA.ResizePanel(SA.MainDiv);
+        SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
+        SA.NotesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
+                                            SA.DualDisplay);
+
+        if (rootNote.Type == "Stack") {
+            SA.DualDisplay.SetNumberOfViewers(2);
+        }
+
+        SA.NotesWidget.SetModifiedCallback(NotesModified);
+        SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+        // Navigation widget keeps track of which note is current.
+        // Notes widget needs to access and change this.
+        SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
+        if (SA.DualDisplay.NavigationWidget) {
+            SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        }
+
+        new SA.RecorderWidget(SA.DualDisplay);
+
+        SA.DualDisplay.SetNote(rootNote);
+
+        // Do not let guests create favorites.
+        // TODO: Rework how favorites behave on mobile devices.
+        if (SA.User != "" && ! SA.MOBILE_DEVICE) {
+            if ( SA.Edit) {
+                // Put a save button here when editing.
+                SA.SaveButton = $('<img>')
+                    .appendTo(SA.ResizePanel.MainDiv)
+                    .css({'position':'absolute',
+                          'bottom':'4px',
+                          'left':'10px',
+                          'height': '28px',
+                          'z-index': '5'})
+                    .prop('title', "save to databse")
+                    .addClass('editButton')
+                    .attr('src',SA.ImagePathUrl+"save22.png")
+                    .click(SaveCallback);
+                for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
+                SA.DualDisplay.Viewers[i].OnInteraction(
+                    function () {SA.NotesWidget.RecordView();});
+                }
+            } else {
+                // Favorites when not editing.
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+                //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+            }
+        }
+
+        if (SA.MOBILE_DEVICE && SA.DualDisplay && 
+            SA.DualDisplay.NavigationWidget) {
+            SA.DualDisplay.NavigationWidget.SetVisibility(false);
+        }
+        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+            MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
+        }
+
+        //CONFERENCE_WIDGET = new SA.ConferenceWidget();
+
+        // The event manager still handles stack alignment.
+        // This should be moved to a stack helper class.
+        // Undo and redo too.
+        document.onkeydown = handleKeyDown;
+        document.onkeyup = handleKeyUp;
+
+        // Keep the browser from showing the left click menu.
+        document.oncontextmenu = cancelContextMenu;
+
+        if ( ! SA.MOBILE_DEVICE) {
+            // Hack for all viewer edit menus to share browser.
+            SA.VIEW_BROWSER = new SA.ViewBrowser($('body'));
+
+            // TODO: See if we can get rid of this, or combine it with
+            // the view browser.
+            SA.InitSlideSelector(SA.MainDiv); // What is this?
+            var viewMenu1 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[0],
+                                                SA.DualDisplay.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[1],
+                                                SA.DualDisplay.Viewers[0]);
+            var viewer1 = SA.DualDisplay.Viewers[0];
+            var annotationLayer1 = new SAM.AnnotationLayer(viewer1.Div);
+            viewer1.AddLayer(annotationLayer1);
+            // TODO: Get rid of this.  master view is passed to draw.
+            //Hack so the scale widget can get the spacing.
+            annotationLayer1.ScaleWidget.View = viewer1.MainView;
+            // Hack only used for girder testing.
+            annotationLayer1.Viewer = viewer1;
+            var annotationWidget1 =
+                new SA.AnnotationWidget(annotationLayer1, viewer1);
+            annotationWidget1.SetVisibility(2);
+
+            
+            // ==============================
+            // Experiment wit combining tranparent webgl ontop of canvas.
+            var heatMap = new SA.HeatMap(viewer1.Div);
+            heatMap.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.2,0.2,1.0],
+                 origin : [100, 10000]});
+            viewer1.AddLayer(heatMap);
+
+            var viewer2 = SA.DualDisplay.Viewers[1];
+            var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
+            viewer2.AddLayer(annotationLayer2);
+            // TODO: Get rid of this.  master view is passed to draw.
+            //Hack so the scale widget can get the spacing.
+            annotationLayer2.ScaleWidget.View = viewer2.MainView;
+            // Hack only used for girder testing.
+            annotationLayer2.Viewer = viewer2;
+            var annotationWidget2 =
+                new SA.AnnotationWidget(annotationLayer2, viewer2);
+            annotationWidget2.SetVisibility(2);
+
+            SA.DualDisplay.UpdateGui();
+        }
+
+        $(window).bind('orientationchange', function(event) {
+            handleResize();
+        });
+
+        $(window).resize(function() {
+            handleResize();
+        }).trigger('resize');
+
+        if (SA.DualDisplay) {
+            SA.DualDisplay.Draw();
+        }
+    }
+
+
+    // I had to prune all the annotations (lassos) that were not visible.
+    function keepVisible(){
+        var n = SA.DualDisplay.GetNote();
+        var r = n.ViewerRecords[n.StartIndex];
+        var w = SA.VIEWER1.WidgetList;
+        var c = SA.VIEWER1.GetCamera();
+        var b =c.GetBounds();
+        for(var i= 0; i<r.Annotations.length; ++i) {
+            if (r.Annotations[i].type != 'lasso') {
+                r.Annotations.splice(i,1);
+                --i;
+            } else {
+                var pt = r.Annotations[i].points[0];
+                if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+                     b[3]) {
+                    r.Annotations.splice(i,1);
+                    --i;
+                }
+            }
+        }
+        for(var i= 0; i<w.length; ++i) {
+            if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
+                w.splice(i,1);
+                --i;
+            } else {
+                var pt = w[i].Loop.Points[0];
+                if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+                     b[3]) {
+                    w.splice(i,1);
+                    --i;
+                }
+            }
+        }
+    }
+
+})();
 

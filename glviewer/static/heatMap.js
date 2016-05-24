@@ -5,7 +5,7 @@
 
     function HeatMap(parent) {
         this.HeatMapDiv = $('<div>')
-            .appendTo(this.Div)
+            .appendTo(parent)
             .css({'position':'absolute',
                   'left':'0px',
                   'top':'0px',
@@ -16,6 +16,9 @@
                   'z-index':'150'})
             .addClass('sa-resize');
 
+        this.View = new SA.TileView(this.HeatMapDiv,true);
+
+        var self = this;
         this.HeatMapDiv.saOnResize(
             function() {
                 self.View.UpdateCanvasSize();
@@ -23,30 +26,54 @@
                 // view's camera anyway.
             });
 
-        this.View = new SA.View(this.HeatMapDiv,true);
+    }
 
-        var heatMapSource = new SlideAtlasSource();
-        heatMapSource.Prefix = "/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name="
-        var heatMapCache = new Cache();
+
+    HeatMap.prototype.SetImageData = function (imageObj) {
+        imageObj.spacing = imageObj.spacing || [1.0, 1.0, 1.0];
+        imageObj.origin  = imageObj.origin  || [0.0, 0.0, 0.0];
+
+        var heatMapSource = new SA.SlideAtlasSource();
+        heatMapSource.Prefix = imageObj.prefix;
+        var heatMapCache = new SA.Cache();
         heatMapCache.TileSource = heatMapSource;
-        heatMapCache.SetImageData(
-            {levels:     12,
-             dimensions: [419168, 290400, 1],
-             bounds: [0,419167, 0, 290399, 0,0]});
+        heatMapCache.SetImageData(imageObj);
         this.View.SetCache(heatMapCache);
 
+        var width = imageObj.dimensions[0] * imageObj.spacing[0];;
+        var height = imageObj.dimensions[1] * imageObj.spacing[1];;
         this.View.Camera.Load(
-            {FocalPoint: [209808, 145200],
-             Roll: 0,
-             Height: 419617});
+            {FocalPoint: [width/2, height/2],
+             Roll      : 0,
+             Height    : height});
         this.View.Camera.ComputeMatrix();
         this.View.UpdateCanvasSize();
     }
 
-    HeatMap.prototype.Draw = function (Camera* cam) {
+
+    HeatMap.prototype.Draw = function (masterView, inCam) {
+        var inCam = inCam || masterView.Camera;
+        var outCam = this.View.Camera;
+        var imageObj = this.View.GetCache().Image;
+
+        outCam.DeepCopy(inCam);
+        outCam.FocalPoint[0]
+            = (outCam.FocalPoint[0]-imageObj.origin[0])/imageObj.spacing[0];
+        outCam.FocalPoint[1]
+            = (outCam.FocalPoint[1]-imageObj.origin[1])/imageObj.spacing[1];
+
+        outCam.Width /= imageObj.spacing[0];
+        outCam.Height /= imageObj.spacing[1];
+
+
+        outCam.ComputeMatrix();
+
         this.View.DrawTiles();
     }
 
+    // Clear the canvas for another render.
+    HeatMap.prototype.Reset = function () {
+    }
 
 
     SA.HeatMap = HeatMap;

@@ -23,7 +23,12 @@
 // Records are now being used for notes.  Since page record may contain
 // information about current note, I am using ViewerRecord as a shared object.
 
-var RECORDER_WIDGET = null;
+
+(function () {
+    "use strict";
+
+
+    SA.RECORDER_WIDGET = null;
 
 function ViewerRecord () {
     this.AnnotationVisibility = 0;
@@ -59,7 +64,7 @@ ViewerRecord.prototype.Load = function(obj) {
         }
     }
 
-    for (ivar in obj) {
+    for (var ivar in obj) {
         this[ivar] = obj[ivar];
     }
 
@@ -82,7 +87,7 @@ ViewerRecord.prototype.Load = function(obj) {
     }
 
     if (this.Transform) {
-        var t = new PairTransformation;
+        var t = new SA.PairTransformation;
         t.Load(this.Transform);
         this.Transform = t;
     }
@@ -104,10 +109,14 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     this.Image = cache.Image;
     this.Camera = viewer.GetCamera().Serialize();
 
-    this.AnnotationVisibility = viewer.GetAnnotationLayer().GetVisibility();
+    // TODO: get rid of this hack somehow. Generalize layers?
+    var annotationLayer = viewer.Layers[0];
+    if ( ! annotationLayer) {return;}
+
+    this.AnnotationVisibility = annotationLayer.GetVisibility();
     this.Annotations = [];
 
-    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    var widgets = annotationLayer.GetWidgets();
     for (var i = 0; i < widgets.length; ++i) {
         this.Annotations.push(widgets[i].Serialize());
     }
@@ -116,7 +125,11 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
 // For stacks.  A reduced version of copy view. 
 ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     this.Annotations = [];
-    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    // TODO: get rid of this hack somehow. Generalize layers?
+    if (viewer.Layers.length == 0) { return;}
+    var annotationLayer = viewer.Layers[0];
+    if ( ! annotationLayer) { return;}
+    var widgets = viewer.Layers[0].GetWidgets();
     for (var i = 0; i < widgets.length; ++i) {
         var o = widgets[i].Serialize();
         if (o) {
@@ -129,7 +142,7 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.
 ViewerRecord.prototype.Serialize = function () {
-  rec = {};
+  var rec = {};
   rec.Image = this.Image._id;
   rec.Database = this.Image.database;
   rec.NumberOfLevels = this.Image.levels;
@@ -163,7 +176,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
     var cache = viewer.GetCache();
     if ( ! cache || this.Image._id != cache.Image._id) {
-        var newCache = FindCache(this.Image);
+        var newCache = SA.FindCache(this.Image);
         viewer.SetCache(newCache);
     }
 
@@ -205,7 +218,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 // This is a helper method to start preloading tiles for an up coming view.
 ViewerRecord.prototype.LoadTiles = function (viewport) {
-    var cache = FindCache(this.Image);
+    var cache = SA.FindCache(this.Image);
     // TODO:  I do not like the fact that we are keeping a serialized
     // version of the camera in the record object.  It should be a real 
     // camera that is serialized when it is saved.
@@ -229,9 +242,9 @@ function GetTrackingData(){
     success: function(data,status){
                if (status == "success") {
                  LoadTrackingCallback(data);
-               } else { saDebug("ajax failed - get tracking data"); }
+               } else { SA.Debug("ajax failed - get tracking data"); }
              },
-    error: function() { saDebug( "AJAX - error() : gettrackingdata" ); },
+    error: function() { SA.Debug( "AJAX - error() : gettrackingdata" ); },
     });
 }
 
@@ -240,16 +253,16 @@ function LoadTrackingCallback(data){
 }
 
 // legacy
-function RecordState() {
-    if (RECORDER_WIDGET) {
-        RECORDER_WIDGET.RecordState();
+SA.RecordState = function() {
+    if (SA.RECORDER_WIDGET) {
+        SA.RECORDER_WIDGET.RecordState();
     }
 }
 
 // display is a set of viewers (like DualViewWidet)
 var RecorderWidget = function(display) {
-    if ( ! RECORDER_WIDGET) {
-        RECORDER_WIDGET = this;
+    if ( ! SA.RECORDER_WIDGET) {
+        SA.RECORDER_WIDGET = this;
     }
     
     var self = this;
@@ -301,7 +314,7 @@ var RecorderWidget = function(display) {
         .hide()
         .click(function(){alert("REDO");});
 
-    this.RecordingName = getCookie("SlideAtlasRecording");
+    this.RecordingName = SA.getCookie("SlideAtlasRecording");
     if (this.RecordingName != undefined && this.RecordingName != "false") {
         this.Recording = true;
         this.UpdateGUI();
@@ -328,7 +341,7 @@ RecorderWidget.prototype.RecordingStart = function() {
     // User should be prompted for a name when recording stops.
     var d = new Date();
     this.RecordingName = "Bev" + d.getTime();
-    setCookie("SlideAtlasRecording",this.RecordingName,1);
+    SA.setCookie("SlideAtlasRecording",this.RecordingName,1);
     this.UpdateGUI();
     // Create a new recording object in the database.
     this.RecordState();
@@ -337,7 +350,7 @@ RecorderWidget.prototype.RecordingStart = function() {
 RecorderWidget.prototype.RecordingStop = function() {
     if ( ! this.Recording) { return; }
     this.Recording = false;
-    setCookie("SlideAtlasRecording","false",1);
+    SA.setCookie("SlideAtlasRecording","false",1);
     this.UpdateGUI();
     
     // Prompt for a name and if the user want to keep the recording.
@@ -359,7 +372,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
     if (SA.DualDisplay) {
-        parentNote = SA.DualDisplay.GetNote();
+        var parentNote = SA.DualDisplay.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -381,7 +394,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
             note.Id = data;
         },
         error: function() {
-            //saDebug( "AJAX - error() : saveusernote" );
+            //SA.Debug( "AJAX - error() : saveusernote" );
         },
     });
 
@@ -416,7 +429,7 @@ RecorderWidget.prototype.GetRecords = function() {
             self.Records = data.viewArray;
         },
         error: function() {
-            saDebug( "AJAX - error() : get records" );
+            SA.Debug( "AJAX - error() : get records" );
         },
     });
 }
@@ -463,3 +476,10 @@ RecorderWidget.prototype.RedoState = function() {
     // Now change the page to the state at the end of the timeline.
     recordNote.DisplayView();
 }
+
+
+    SA.ViewerRecord = ViewerRecord;
+    SA.RecorderWidget = RecorderWidget;
+
+})();
+

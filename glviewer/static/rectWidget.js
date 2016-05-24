@@ -128,7 +128,7 @@
       }
 
       this.Tolerance = 0.05;
-      if (MOBILE_DEVICE) {
+      if (SA.MOBILE_DEVICE) {
         this.Tolerance = 0.1;
       }
 
@@ -277,7 +277,7 @@
     RectWidget.prototype.HandleMouseUp = function(event) {
         if ( this.State == DRAG || this.State == DRAG_RADIUS) {
             this.SetActive(false);
-            RecordState();
+            SA.RecordState();
         }
     };
 
@@ -490,7 +490,7 @@
       this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
       this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       this.SetActive(false);
-      RecordState();
+      SA.RecordState();
       eventuallyRender();
 
       localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});

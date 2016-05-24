@@ -1,4 +1,7 @@
 
+(function () {
+    "use strict";
+
 
 
 
@@ -112,7 +115,7 @@ PairTransformation.prototype.Load = function(obj) {
 
 PairTransformation.prototype.AddCorrelation = function(pt0, pt1) {
     index = this.Correlations.length;
-    var corr = new PairCorrelation();
+    var corr = new SA.PairCorrelation();
     corr.SetPoint0(pt0);
     corr.SetPoint1(pt1);
     this.Correlations.push(corr);
@@ -129,7 +132,7 @@ PairTransformation.prototype.Load = function(obj) {
         this.View1 = obj.View1;
     }
     for (var i = 0; i < obj.Correlations.length; ++i) {
-        var correlation = new PairCorrelation();
+        var correlation = new SA.PairCorrelation();
         correlation.Load(obj.Correlations[i]);
         this.Correlations.push(correlation);
     }
@@ -307,3 +310,8 @@ PairTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
     //camOut.Width = camIn.Width;
     camOut.Width = camOut.Height * camOut.ViewportWidth / camOut.ViewportHeight;
 }
+
+
+    SA.PairTransformation = PairTransformation;
+
+})();

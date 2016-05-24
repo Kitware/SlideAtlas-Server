@@ -51,6 +51,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     window.SAM = window.SAM || {};
     window.SAM.ImagePathUrl = "/webgl-viewer/static/";
 
+
     // Not used at the moment.
     // Make sure the color is an array of values 0->1
     SAM.ConvertColor = function(color) {
@@ -371,10 +372,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.AnnotationView.Canvas
             .saOnResize(function() {self.UpdateCanvasSize();});
 
-        //this.AnnotationView.OutlineColor = [0,0,0];
-        // Uses the same camera.
-        this.AnnotationView.Camera = viewerCamera;
-
         this.WidgetList = [];
         this.ActiveWidget = null;
 
@@ -396,7 +393,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 // So key events go the the right viewer.
                 this.focus();
                 // Firefox does not set which for mouse move events.
-                saFirefoxWhich(event);
+                SA.FirefoxWhich(event);
                 return self.HandleMouseMove(event);
             });
         // We need to detect the mouse up even if it happens outside the canvas,
@@ -454,19 +451,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.EventuallyDraw();
     }
 
-    // This is the general way for the master view to control this slave
-    // view.  The master receives events to  control the camera.  I might
-    // abstract the event processor to a separate "interactor" object.
-    // roll is in radians. (Clockwise or counter?)
-    AnnotationLayer.prototype.UpdateCamera = function (focalPoint, height, roll) {
-        this.AnnotationView.Camera.FocalPoint[0] = focalPoint[0];
-        this.AnnotationView.Camera.FocalPoint[1] = focalPoint[1];
-        this.AnnotationView.Camera.Height = height;
-        this.AnnotationView.Camera.Roll = roll;
-        this.AnnotationView.Camera.ComputeMatrix();
-        this.EventaullyDraw();
-    }
-
     AnnotationLayer.prototype.GetCamera = function () {
         return this.AnnotationView.GetCamera();
     }
@@ -496,16 +480,21 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // the view arg is necessary for rendering into a separate canvas for
     // saving large images.
-    AnnotationLayer.prototype.Draw = function (view) {
-        view = view || this.AnnotationView;
-        view.Clear();
+    AnnotationLayer.prototype.Draw = function (masterView) {
+        masterView = masterView || this.AnnotationView;
+        this.AnnotationView.Clear();
         if ( ! this.Visibility) { return;}
+
+        var cam = masterView.Camera;
+        this.AnnotationView.Camera.DeepCopy(cam);
+
+
         for(var i = 0; i < this.WidgetList.length; ++i) {
             // The last parameter is obsolete (visiblity mode)
-            this.WidgetList[i].Draw(view, 2);
+            this.WidgetList[i].Draw(this.AnnotationView, 2);
         }
         if (this.ScaleWidget) {
-            this.ScaleWidget.Draw(view);
+            this.ScaleWidget.Draw(this.AnnotationView);
         }
     }
 
@@ -1768,7 +1757,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         spacing = Math.sqrt((bds2[1]-bds2[0])*(bds2[3]-bds2[2])/160000);
         // Note. gradient decent messes up with spacing too small.
 
-        var distMap = new DistanceMap(bds2, spacing);
+        var distMap = new SA.DistanceMap(bds2, spacing);
         for (var i = 0; i < section.Shapes.length; ++i) {
             // ignore origin.
             distMap.AddPolyline(section.Shapes[i]);
@@ -2191,7 +2180,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (this.IsEmpty()) {
             this.RemoveFromViewer();
             this.Layer.EventuallyDraw();
-            RecordState();
+            SA.RecordState();
         }
     }
 
@@ -2531,7 +2520,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 // Look for contours crossing the xMax and yMax edges.
                 var xContour = SeedIsoContour(data, x,y, x-1,y, threshold);
                 if (xContour) {
-                    var c = new Contour();
+                    var c = new SA.Contour();
                     c.Camera = data.Camera;
                     c.Threshold = threshold;
                     c.SetPoints(xContour);
@@ -2542,7 +2531,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
                 var yContour = SeedIsoContour(data, x,y, x,y-1, threshold);
                 if (yContour) {
-                    c = new Contour();
+                    c = new SA.Contour();
                     c.Camera = data.Camera;
                     c.Threshold = threshold;
                     c.SetPoints(yContour);
@@ -2694,7 +2683,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         var cam = view.Camera;
         var viewport = view.Viewport;
 
-        if (GL) {
+        if (view.gl) {
             alert("webGL cutout not supported");
         } else {
             // The 2d canvas was left in world coordinates.
@@ -3833,10 +3822,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (event.which == 1) {
             if (this.State == DRAG) {
                 this.State = ACTIVE;
-                RecordState();
+                SA.RecordState();
             } else if (this.State == DRAG_TEXT) {
                 this.State = ACTIVE_TEXT;
-                RecordState();
+                SA.RecordState();
             }
             return false;
         }
@@ -4079,7 +4068,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
              VisibilityMode: this.VisibilityMode,
              BackgroundFlag: backgroundFlag});
 
-        RecordState();
+        SA.RecordState();
 
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
@@ -4879,7 +4868,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Deactivate.
             this.Layer.DeactivateWidget(this);
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
-            RecordState();
+            SA.RecordState();
             return false;
         }
 
@@ -4963,7 +4952,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Polyline.MergePoints(this.Circle.Radius);
             // TODO: Manage modidfied more consistently.
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
-            RecordState();
+            SA.RecordState();
             return false;
         }
 
@@ -4992,7 +4981,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 this.Polyline.Points.pop();
                 this.Polyline.Closed = true;
                 this.Layer.DeactivateWidget(this);
-                RecordState();
+                SA.RecordState();
                 return false;
             }
             // Insert another point to drag around.
@@ -5358,7 +5347,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw(false);
 
         localStorage.PolylineWidgetDefaults = JSON.stringify(
@@ -5829,7 +5818,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // NOTE: This assume that the shapes are polylines.
             //this.Decimate(this.Shapes.GetShape(last), spacing);
             this.Shapes.GetShape(last).Decimate(spacing);
-            RecordState();
+            SA.RecordState();
         }
         return false;
     }
@@ -5970,7 +5959,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shapes.SetLineWidth(parseFloat(this.Dialog.LineWidthInput.val()));
         this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw();
 
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
@@ -6343,7 +6332,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Shapes[i].UpdateBuffers(this.Viewer.AnnotationView);
         }
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         eventuallyRender();
     }
 
@@ -6615,7 +6604,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.ComputeActiveCenter();
             this.Layer.EventuallyDraw();
 
-            RecordState();
+            SA.RecordState();
         }
         return false;
     }
@@ -6766,7 +6755,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw();
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
@@ -6932,7 +6921,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 this.Loop.Points = points1;
             }
 
-            RecordState();
+            SA.RecordState();
         }
 
         // Remove the extra point added at the begining of this method.
@@ -7087,7 +7076,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Widget.Layer.EventuallyDraw();
         this.Widget.Layer.RemoveWidget(this.Widget);
 
-        RecordState();
+        SA.RecordState();
     }
 
     WidgetPopup.prototype.PropertiesCallback = function() {
@@ -7118,7 +7107,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if ( ! this.HideTimerId) {
             var self = this;
 
-            if(MOBILE_DEVICE) {
+            if(SA.MOBILE_DEVICE) {
                 this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
             } else {
                 this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);
@@ -7938,7 +7927,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
 
         this.Tolerance = 0.05;
-        if (MOBILE_DEVICE) {
+        if (SA.MOBILE_DEVICE) {
             this.Tolerance = 0.1;
         }
 
@@ -8088,7 +8077,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if ( this.State == CIRCLE_WIDGET_DRAG ||
              this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
             this.SetActive(false);
-            RecordState();
+            SA.RecordState();
         }
         return false;
     }
@@ -8292,7 +8281,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
 
         // TODO: See if anything has changed.
         this.Layer.EventuallyDraw();
@@ -8435,7 +8424,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
       }
 
       this.Tolerance = 0.05;
-      if (MOBILE_DEVICE) {
+      if (SA.MOBILE_DEVICE) {
         this.Tolerance = 0.1;
       }
 
@@ -8584,7 +8573,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     RectWidget.prototype.HandleMouseUp = function(event) {
         if ( this.State == DRAG || this.State == DRAG_RADIUS) {
             this.SetActive(false);
-            RecordState();
+            SA.RecordState();
         }
     };
 
@@ -8797,7 +8786,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
       this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
       this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       this.SetActive(false);
-      RecordState();
+      SA.RecordState();
       eventuallyRender();
 
       localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
@@ -9000,7 +8989,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             .keypress(function(event) { return event.keyCode != 13; });
 
         this.Tolerance = 0.05;
-        if (MOBILE_DEVICE) {
+        if (SA.MOBILE_DEVICE) {
             this.Tolerance = 0.1;
         }
 
@@ -9236,7 +9225,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // returns false when it is finished doing its work.
     GridWidget.prototype.HandleMouseUp = function(event) {
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
 
         return true;
     };
@@ -9523,7 +9512,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw();
 
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
@@ -9741,7 +9730,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     ScaleWidget.prototype.HandleMouseUp = function(event) {
         /*
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         */
         return true;
     };
@@ -10088,7 +10077,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         var cam = view.Camera;
         var viewport = view.Viewport;
 
-        if (GL) {
+        if (view.gl) {
             alert("webGL cutout not supported");
         } else {
             // The 2d canvas was left in world coordinates.

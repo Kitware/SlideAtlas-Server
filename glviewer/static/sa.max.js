@@ -7838,10 +7838,17 @@ if(typeof module != 'undefined' && module.exports ){
 if(typeof window != 'undefined' && typeof require == 'undefined'){
   window.require = bson.require;
 }
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
+
 // Utilities to manage cookies
 
+(function () {
+    "use strict";
 
-function setCookie(c_name,value,exdays)
+
+
+SA.setCookie = function(c_name,value,exdays)
 {
     var exdate=new Date();
     exdate.setDate(exdate.getDate() + exdays);
@@ -7849,7 +7856,7 @@ function setCookie(c_name,value,exdays)
     document.cookie=c_name + "=" + c_value;
 }
 
-function getCookie(c_name)
+SA.getCookie = function(c_name)
 {
     var i,x,y,ARRcookies=document.cookie.split(";");
     for (i=0;i<ARRcookies.length;i++)
@@ -7864,185 +7871,203 @@ function getCookie(c_name)
       }
 }
 
+
+})();
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
+
 //var objectId = new ObjectId(0, 0, 0, 0x00ffffff);
 //      var objectIdString = objectId.toString();
 
+(function () {
+    "use strict";
 
-/*
-*
-* Copyright (c) 2011-2014- Justin Dearing (zippy1981@gmail.com)
-* Dual licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
-* and GPL (http://www.opensource.org/licenses/gpl-license.php) version 2 licenses.
-* This software is not distributed under version 3 or later of the GPL.
-*
-* Version 1.0.2
-*
-*/
 
-if (!document) var document = { cookie: '' }; // fix crashes on node
+    /*
+     *
+     * Copyright (c) 2011-2014- Justin Dearing (zippy1981@gmail.com)
+     * Dual licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
+     * and GPL (http://www.opensource.org/licenses/gpl-license.php) version 2 licenses.
+     * This software is not distributed under version 3 or later of the GPL.
+     *
+     * Version 1.0.2
+     *
+     */
 
-/**
- * Javascript class that mimics how WCF serializes a object of type MongoDB.Bson.ObjectId
- * and converts between that format and the standard 24 character representation.
-*/
-var ObjectId = (function () {
-    var increment = Math.floor(Math.random() * (16777216));
-    var pid = Math.floor(Math.random() * (65536));
-    var machine = Math.floor(Math.random() * (16777216));
+    if (!document) var document = { cookie: '' }; // fix crashes on node
 
-    var setMachineCookie = function() {
-        var cookieList = document.cookie.split('; ');
-        for (var i in cookieList) {
-            var cookie = cookieList[i].split('=');
-            var cookieMachineId = parseInt(cookie[1], 10);
-            if (cookie[0] == 'mongoMachineId' && cookieMachineId && cookieMachineId >= 0 && cookieMachineId <= 16777215) {
-                machine = cookieMachineId;
-                break;
+    /**
+     * Javascript class that mimics how WCF serializes a object of type MongoDB.Bson.ObjectId
+     * and converts between that format and the standard 24 character representation.
+     */
+    var ObjectId = (function () {
+        var increment = Math.floor(Math.random() * (16777216));
+        var pid = Math.floor(Math.random() * (65536));
+        var machine = Math.floor(Math.random() * (16777216));
+
+        var setMachineCookie = function() {
+            var cookieList = document.cookie.split('; ');
+            for (var i in cookieList) {
+                var cookie = cookieList[i].split('=');
+                var cookieMachineId = parseInt(cookie[1], 10);
+                if (cookie[0] == 'mongoMachineId' && cookieMachineId && cookieMachineId >= 0 && cookieMachineId <= 16777215) {
+                    machine = cookieMachineId;
+                    break;
+                }
             }
-        }
-        document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT;path=/';
-    };
-    if (typeof (localStorage) != 'undefined') {
-        try {
-            var mongoMachineId = parseInt(localStorage['mongoMachineId']);
-            if (mongoMachineId >= 0 && mongoMachineId <= 16777215) {
-                machine = Math.floor(localStorage['mongoMachineId']);
+            document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT;path=/';
+        };
+        if (typeof (localStorage) != 'undefined') {
+            try {
+                var mongoMachineId = parseInt(localStorage['mongoMachineId']);
+                if (mongoMachineId >= 0 && mongoMachineId <= 16777215) {
+                    machine = Math.floor(localStorage['mongoMachineId']);
+                }
+                // Just always stick the value in.
+                localStorage['mongoMachineId'] = machine;
+            } catch (e) {
+                setMachineCookie();
             }
-            // Just always stick the value in.
-            localStorage['mongoMachineId'] = machine;
-        } catch (e) {
-            setMachineCookie();
-        }
-    }
-    else {
-        setMachineCookie();
-    }
-
-    function ObjId() {
-        if (!(this instanceof ObjectId)) {
-            return new ObjectId(arguments[0], arguments[1], arguments[2], arguments[3]).toString();
-        }
-
-        if (typeof (arguments[0]) == 'object') {
-            this.timestamp = arguments[0].timestamp;
-            this.machine = arguments[0].machine;
-            this.pid = arguments[0].pid;
-            this.increment = arguments[0].increment;
-        }
-        else if (typeof (arguments[0]) == 'string' && arguments[0].length == 24) {
-            this.timestamp = Number('0x' + arguments[0].substr(0, 8)),
-            this.machine = Number('0x' + arguments[0].substr(8, 6)),
-            this.pid = Number('0x' + arguments[0].substr(14, 4)),
-            this.increment = Number('0x' + arguments[0].substr(18, 6))
-        }
-        else if (arguments.length == 4 && arguments[0] != null) {
-            this.timestamp = arguments[0];
-            this.machine = arguments[1];
-            this.pid = arguments[2];
-            this.increment = arguments[3];
         }
         else {
-            this.timestamp = Math.floor(new Date().valueOf() / 1000);
-            this.machine = machine;
-            this.pid = pid;
-            this.increment = increment++;
-            if (increment > 0xffffff) {
-                increment = 0;
-            }
+            setMachineCookie();
         }
+
+        function ObjId() {
+            if (!(this instanceof ObjectId)) {
+                return new ObjectId(arguments[0], arguments[1], arguments[2], arguments[3]).toString();
+            }
+            
+            if (typeof (arguments[0]) == 'object') {
+                this.timestamp = arguments[0].timestamp;
+                this.machine = arguments[0].machine;
+                this.pid = arguments[0].pid;
+                this.increment = arguments[0].increment;
+            }
+            else if (typeof (arguments[0]) == 'string' && arguments[0].length == 24) {
+                this.timestamp = Number('0x' + arguments[0].substr(0, 8)),
+                this.machine = Number('0x' + arguments[0].substr(8, 6)),
+                this.pid = Number('0x' + arguments[0].substr(14, 4)),
+                this.increment = Number('0x' + arguments[0].substr(18, 6))
+            }
+            else if (arguments.length == 4 && arguments[0] != null) {
+                this.timestamp = arguments[0];
+                this.machine = arguments[1];
+                this.pid = arguments[2];
+                this.increment = arguments[3];
+            }
+            else {
+                this.timestamp = Math.floor(new Date().valueOf() / 1000);
+                this.machine = machine;
+                this.pid = pid;
+                this.increment = increment++;
+                if (increment > 0xffffff) {
+                    increment = 0;
+                }
+            }
+        };
+        return ObjId;
+    })();
+
+    ObjectId.prototype.getDate = function () {
+        return new Date(this.timestamp * 1000);
     };
-    return ObjId;
+
+    ObjectId.prototype.toArray = function () {
+        var strOid = this.toString();
+        var array = [];
+        var i;
+        for(i = 0; i < 12; i++) {
+            array[i] = parseInt(strOid.slice(i*2, i*2+2), 16);
+        }
+        return array;
+    };
+
+    /**
+     * Turns a WCF representation of a BSON ObjectId into a 24 character string representation.
+     */
+    ObjectId.prototype.toString = function () {
+        if (this.timestamp === undefined
+            || this.machine === undefined
+            || this.pid === undefined
+            || this.increment === undefined) {
+            return 'Invalid ObjectId';
+        }
+
+        var timestamp = this.timestamp.toString(16);
+        var machine = this.machine.toString(16);
+        var pid = this.pid.toString(16);
+        var increment = this.increment.toString(16);
+        return '00000000'.substr(0, 8 - timestamp.length) + timestamp +
+            '000000'.substr(0, 6 - machine.length) + machine +
+            '0000'.substr(0, 4 - pid.length) + pid +
+            '000000'.substr(0, 6 - increment.length) + increment;
+    };
+
+
+
+    SA.ObjectId = ObjectId;
 })();
 
-ObjectId.prototype.getDate = function () {
-    return new Date(this.timestamp * 1000);
-};
-
-ObjectId.prototype.toArray = function () {
-    var strOid = this.toString();
-    var array = [];
-    var i;
-    for(i = 0; i < 12; i++) {
-        array[i] = parseInt(strOid.slice(i*2, i*2+2), 16);
-    }
-    return array;
-};
-
-/**
-* Turns a WCF representation of a BSON ObjectId into a 24 character string representation.
-*/
-ObjectId.prototype.toString = function () {
-    if (this.timestamp === undefined
-        || this.machine === undefined
-        || this.pid === undefined
-        || this.increment === undefined) {
-        return 'Invalid ObjectId';
-    }
-
-    var timestamp = this.timestamp.toString(16);
-    var machine = this.machine.toString(16);
-    var pid = this.pid.toString(16);
-    var increment = this.increment.toString(16);
-    return '00000000'.substr(0, 8 - timestamp.length) + timestamp +
-           '000000'.substr(0, 6 - machine.length) + machine +
-           '0000'.substr(0, 4 - pid.length) + pid +
-           '000000'.substr(0, 6 - increment.length) + increment;
-};
-var SA = window.SA || {};
-var ROOT_DIV;
-var imageProgram;
-var textProgram;
-var polyProgram;
-var mvMatrix = mat4.create();
-var pMatrix = mat4.create();
-var squareOutlinePositionBuffer;
-var squarePositionBuffer;
-var tileVertexPositionBuffer;
-var tileVertexTextureCoordBuffer;
-var tileCellBuffer;
-
-var MOBILE_DEVICE = false;
-// Hack to get rid of white lines.
-var I_PAD_FLAG = false;
-
-
-window.requestAnimationFrame = 
-    window.requestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    window.webkitRequestAnimationFrame ||             
-    window.msRequestAnimationFrame;
-
-// Firefox does not set which for mouse move events.
-function saFirefoxWhich(event) {
-    event.which = event.buttons;
-    if (event.which == 2) {
-        event.which = 3;
-    } else if (event.which == 3) {
-        event.which = 2;
-    }
-}
-
-function saDebug(msg) {
-    console.log(msg);
-}
-
-// for debugging
-function MOVE_TO(x,y) {
-    SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-    SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
-    }
-}
-
-function ZERO_PAD(i, n) {
-    var s = "0000000000" + i.toFixed();
-    return s.slice(-n);
-}
+window.SA = window.SA || {};
 
 
 (function () {
     "use strict";
+
+
+    var ROOT_DIV;
+    SA.imageProgram;
+    var textProgram;
+    var polyProgram;
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+    var squareOutlinePositionBuffer;
+    var squarePositionBuffer;
+    SA.tileVertexPositionBuffer;
+    SA.tileVertexTextureCoordBuffer;
+    SA.tileCellBuffer;
+
+    SA.MOBILE_DEVICE = false;
+    // Hack to get rid of white lines.
+    var I_PAD_FLAG = false;
+
+
+    window.requestAnimationFrame =
+        window.requestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.msRequestAnimationFrame;
+
+    // Firefox does not set which for mouse move events.
+    SA.FirefoxWhich = function(event) {
+        event.which = event.buttons;
+        if (event.which == 2) {
+            event.which = 3;
+        } else if (event.which == 3) {
+            event.which = 2;
+        }
+    }
+
+    SA.Debug = function(msg) {
+        console.log(msg);
+    }
+
+    // for debugging
+    function MOVE_TO(x,y) {
+        SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+        SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+        if (SA.DualDisplay) {
+            SA.DualDisplay.Draw();
+        }
+    }
+
+    function ZERO_PAD(i, n) {
+        var s = "0000000000" + i.toFixed();
+        return s.slice(-n);
+    }
+
+
 
     // This file contains some global variables and misc procedures to
     // initials shaders and some buffers we need and to render.
@@ -8052,31 +8077,11 @@ function ZERO_PAD(i, n) {
     // For managing progress with multiple ajax calls.
     SA.ProgressCount = 0;
 
-    SA.TileLoader = "http";
     // How can we distribute the initialization of these?
     // TODO: Many of these are not used anymore. Clean them up.
-    SA.TimeStamp = 0;
-    SA.NumberOfTiles = 0;
-    SA.NumberOfTextures = 0;
-    SA.MaximumNumberOfTiles = 50000;
-    SA.MaximumNumberOfTextures = 5000;
-    SA.PruneTimeTiles = 0;
-    SA.PruneTimeTextures = 0;
-
-    // Keep a queue of tiles to load so we can sort them as
-    // new requests come in.
-    SA.LoadQueue = [];
-    SA.LoadingCount = 0;
-    SA.LoadingMaximum = 10;
-    SA.LoadTimeoutId = 0;
-
-    SA.LoadProgressMax = 0;
-    SA.ProgressBar = null;
-
-    // Only used for saving images right now.
-    SA.FinishedLoadingCallbacks = [];
 
     SA.Caches = [];
+
 
     SA.StartInteractionListeners = [];
 
@@ -8096,6 +8101,7 @@ function ZERO_PAD(i, n) {
     // Main function called by the default view.html template
     // SA global will be set to this object.
     SA.Run = function() {
+        SA.Running == true;
         self = SA;
         if (SA.SessionId) {
             $.ajax({
@@ -8108,7 +8114,7 @@ function ZERO_PAD(i, n) {
                     self.Run2();
                 },
                 error: function() {
-                    saDebug("AJAX - error() : session" );
+                    SA.Debug("AJAX - error() : session" );
                     self.Run2();
                 },
             });
@@ -8148,7 +8154,7 @@ function ZERO_PAD(i, n) {
             Main(rootNote);
         } else {
             if (SA.ViewId == "") {
-                saDebug("Missing view id");
+                SA.Debug("Missing view id");
                 return;
             }
             // Sort of a hack that we rely on main getting called after SA
@@ -8438,132 +8444,103 @@ function ZERO_PAD(i, n) {
     }
 
 
-})();
 
+    function detectMobile() {
+        SA.MOBILE_DEVICE = false;
 
+        if ( navigator.userAgent.match(/Android/i)) {
+            SA.MOBILE_DEVICE = "Andriod";
+        }
+        if ( navigator.userAgent.match(/webOS/i)) {
+            SA.MOBILE_DEVICE = "webOS";
+        }
+        if ( navigator.userAgent.match(/iPhone/i)) {
+            SA.MOBILE_DEVICE = "iPhone";
+        }
+        if ( navigator.userAgent.match(/iPad/i)) {
+            SA.MOBILE_DEVICE = "iPad";
+            I_PAD_FLAG = true;
+        }
+        if ( navigator.userAgent.match(/iPod/i)) {
+            SA.MOBILE_DEVICE = "iPod";
+        }
+        if ( navigator.userAgent.match(/BlackBerry/i)) {
+            SA.MOBILE_DEVICE = "BlackBerry";
+        }
+        if ( navigator.userAgent.match(/Windows Phone/i)) {
+            SA.MOBILE_DEVICE = "Windows Phone";
+        }
+        if (SA.MOBILE_DEVICE) {
+            SA.MaximumNumberOfTiles = 5000;
+        }
 
-function detectMobile() {
-    MOBILE_DEVICE = false;
-
-    if ( navigator.userAgent.match(/Android/i)) {
-        MOBILE_DEVICE = "Andriod";
+        return SA.MOBILE_DEVICE;
     }
-    if ( navigator.userAgent.match(/webOS/i)) {
-        MOBILE_DEVICE = "webOS";
-    }
-    if ( navigator.userAgent.match(/iPhone/i)) {
-        MOBILE_DEVICE = "iPhone";
-    }
-    if ( navigator.userAgent.match(/iPad/i)) {
-        MOBILE_DEVICE = "iPad";
-        I_PAD_FLAG = true;
-    }
-    if ( navigator.userAgent.match(/iPod/i)) {
-        MOBILE_DEVICE = "iPod";
-    }
-    if ( navigator.userAgent.match(/BlackBerry/i)) {
-        MOBILE_DEVICE = "BlackBerry";
-    }
-    if ( navigator.userAgent.match(/Windows Phone/i)) {
-        MOBILE_DEVICE = "Windows Phone";
-    }
-    if (MOBILE_DEVICE) {
-        SA.MaximumNumberOfTiles = 5000;
-    }
-
-    return MOBILE_DEVICE;
-}
 
 
-// This global is used in every class that renders something.
-// I can not test multiple canvases until I modularize the canvas
-// and get rid of these globals.
-// WebGL context
-var GL;
-
-function GetUser() {
-    if (typeof(SA.User) != "undefined") {
-        return SA.User;
+    SA.GetUser = function() {
+        if (typeof(SA.User) != "undefined") {
+            return SA.User;
+        }
+        SA.Debug("Could not find user");
+        return "";
     }
-    saDebug("Could not find user");
-    return "";
-}
 
 
-function GetViewId () {
-    if (typeof(SA.ViewId) != "undefined") {
-        return SA.ViewId;
+    //function GetViewId () {
+    //    if (typeof(SA.ViewId) != "undefined") {
+    //        return SA.ViewId;
+    //    }
+    //    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
+    //        return SA.NotesWidget.RootNote._id;
+    //    }
+    //    SA.Debug("Could not find view id");
+    //    return "";
+    //}
+
+    // WebGL Initialization
+
+    function doesBrowserSupportWebGL(canvas) {
+        var gl;
+        try {
+            //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            gl = canvas.getContext("webgl");
+        } catch (e) {
+        }
+        if (!gl) {
+            //SA.Debug("Could not initialise WebGL, sorry :-(");
+            return null;
+        }
+        return gl;
     }
-    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
-        return SA.NotesWidget.RootNote._id;
-    }
-    saDebug("Could not find view id");
-    return "";
-}
 
-// WebGL Initializationf
 
-function doesBrowserSupportWebGL(canvas) {
-    var gl;
-    try {
-        //gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        gl = canvas.getContext("webgl");
-    } catch (e) {
-    }
-    if (!gl) {
-        //saDebug("Could not initialise WebGL, sorry :-(");
-        return null;
-    }
-   return gl;
-}
-
-/*
-function initGL() {
-
-    // Add a new canvas.
-    CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
-    //this.canvas.onselectstart = function() {return false;};
-    //this.canvas.onmousedown = function() {return false;};
-    var gl = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
-
-    if (gl) {
+    SA.initWebGL = function (gl) {
+        if (SA.imageProgram) { return; }
         // Defined in HTML
-        initShaderPrograms();
-        initOutlineBuffers();
-        initImageTileBuffers();
+        initShaderPrograms(gl);
+        initOutlineBuffers(gl);
+        initImageTileBuffers(gl);
+        // Not needed.  DOne before rendering.
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
-        gl.enable(GL.DEPTH_TEST);
+        gl.disable(gl.DEPTH_TEST);
+        gl.enable(gl.BLEND);
     }
 
-    return gl;
-}
-*/
 
-function initWebGL(gl) {
-    if (imageProgram) { return; }
-    // Defined in HTML
-    initShaderPrograms(gl);
-    initOutlineBuffers(gl);
-    initImageTileBuffers(gl);
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.disable(gl.DEPTH_TEST);
-    gl.enable(gl.BLEND);
-}
+    function getShader(gl, type, str) {
+        var shader;
+        shader = gl.createShader(type);
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
 
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            SA.Debug(gl.getShaderInfoLog(shader));
+            return null;
+        }
 
-function getShader(gl, type, str) {
-    var shader;
-    shader = gl.createShader(type);
-    gl.shaderSource(shader, str);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        saDebug(gl.getShaderInfoLog(shader));
-        return null;
+        return shader;
     }
-
-    return shader;
-}
 
 // Not used because annotations are all canvas.
 // Might be useful in the future.
@@ -8612,520 +8589,589 @@ function getShader(gl, type, str) {
 */
 
 
-function initShaderPrograms(gl) {
+    function initShaderPrograms(gl) {
 
-    // An experiment to make rgb have an alpha channel
-    var heatMapFragmentShaderString = 
-        "precision highp float;" +
-        "uniform sampler2D uSampler;" +
-        "varying vec2 vTextureCoord;" +
-        "void main(void) {" +
-        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
-        "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
-        "   if (value < 0.3 || value > 2.5) {" +
-        "     textureColor[3] = 0.0;" +
-        "   }" +
-        "   gl_FragColor = textureColor;" +
-        " }";
-    var fragmentShaderString = 
-        "precision highp float;" +
-        "uniform sampler2D uSampler;" +
-        "varying vec2 vTextureCoord;" +
-        "void main(void) {" +
-        "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
-        "   gl_FragColor = textureColor;" +
-        " }";
-    var vertexShaderString = 
-        "attribute vec3 aVertexPosition;" +
-        "attribute vec2 aTextureCoord;" +
-        "uniform mat4 uMVMatrix;" +
-        "uniform mat4 uPMatrix;" +
-        "uniform mat3 uNMatrix;" +
-        "varying vec2 vTextureCoord;" +
-        "void main(void) {" +
-        "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
-        "  vTextureCoord = aTextureCoord;" +
-        "}";
+        // An experiment to make rgb have an alpha channel
+        var heatMapTestFragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+            "   highp float value = textureColor.rgb[1] + textureColor.rgb[1] +textureColor.rgb[2];" +
+            "   if (value < 0.3 || value > 2.5) {" +
+            "     textureColor[0] = textureColor[1] = textureColor[2] = textureColor[3] = 0.0;" +
+            "   }" +
+            "   gl_FragColor = textureColor;" +
+            " }";
+        var heatMapFragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+            "  textureColor[3] = textureColor[0];" +
+            "  highp float h = textureColor[1] * 6.0;" +
+            "  if (h < 1.0) {" +
+            "    textureColor[0] = 1.0;" +
+            "    textureColor[1] = h;" +
+            "    textureColor[3] = 0.0;" +
+            "  } else if (h < 2.0) {" +
+            "    textureColor[0] = 2.0-h;" +
+            "    textureColor[1] = 1.0;" +
+            "    textureColor[3] = 0.0;" +
+            "  } else if (h < 3.0) {" +
+            "    textureColor[0] = 0.0;" +
+            "    textureColor[1] = 1.0;" +
+            "    textureColor[3] = h-2.0;" +
+            "  } else if (h < 4.0) {" +
+            "    textureColor[0] = 0.0;" +
+            "    textureColor[1] = 4.0-h;" +
+            "    textureColor[3] = 1.0;" +
+            "  } else if (h < 5.0) {" +
+            "    textureColor[0] = h-4.0;" +
+            "    textureColor[1] = 0.0;" +
+            "    textureColor[3] = 1.0;" +
+            "  } else if (h < 6.0) {" +
+            "    textureColor[0] = 1.0;" +
+            "    textureColor[1] = 0.0;" +
+            "    textureColor[3] = 6.0-h;" +
+            "  }" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var fragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
+            "   gl_FragColor = textureColor;" +
+            " }";
+        var vertexShaderString = 
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
 
-    imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
-    // Texture coordinate attribute and texture image uniform
-    imageProgram.textureCoordAttribute
-        = gl.getAttribLocation(imageProgram,"aTextureCoord");
-    gl.enableVertexAttribArray(imageProgram.textureCoordAttribute);
-    imageProgram.samplerUniform = gl.getUniformLocation(imageProgram, "uSampler");
+        //SA.imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
+        SA.imageProgram = createProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Texture coordinate attribute and texture image uniform
+        SA.imageProgram.textureCoordAttribute
+            = gl.getAttribLocation(SA.imageProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(SA.imageProgram.textureCoordAttribute);
+        SA.imageProgram.samplerUniform = gl.getUniformLocation(SA.imageProgram, "uSampler");
 
 
-    //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
-    //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
+        //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+        //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-    //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
-    //textProgram.textureCoordAttribute
-    //    = gl.getAttribLocation(textProgram, "aTextureCoord");
-    //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
-    //textProgram.samplerUniform
-    //    = gl.getUniformLocation(textProgram, "uSampler");
-    //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
-}
-
-
-function createProgram(fragmentShaderString, vertexShaderString, gl) {
-    var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
-    var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
-
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        saDebug("Could not initialise shaders");
+        //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+        //textProgram.textureCoordAttribute
+        //    = gl.getAttribLocation(textProgram, "aTextureCoord");
+        //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
+        //textProgram.samplerUniform
+        //    = gl.getUniformLocation(textProgram, "uSampler");
+        //textProgram.colorUniform = gl.getUniformLocation(textProgram, "uColor");
     }
 
-    program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
-    gl.enableVertexAttribArray(program.vertexPositionAttribute);
+    
+    function createProgram(fragmentShaderString, vertexShaderString, gl) {
+        var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
+        var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
-    // Camera matrix
-    program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
-    // Model matrix
-    program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
 
-    return program;
-}
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            SA.Debug("Could not initialise shaders");
+        }
 
-function initOutlineBuffers(gl) {
-    // Outline Square
-    vertices = [
-        0.0,  0.0,  0.0,
-        0.0,  1.0,  0.0,
-        1.0, 1.0,  0.0,
-        1.0, 0.0,  0.0,
-        0.0, 0.0,  0.0];
-    squareOutlinePositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    squareOutlinePositionBuffer.itemSize = 3;
-    squareOutlinePositionBuffer.numItems = 5;
+        program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
+        gl.enableVertexAttribArray(program.vertexPositionAttribute);
 
-    // Filled square
-    squarePositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
-    vertices = [
-        1.0,  1.0,  0.0,
-        0.0,  1.0,  0.0,
-        1.0,  0.0,  0.0,
-        0.0,  0.0,  0.0
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    squarePositionBuffer.itemSize = 3;
-    squarePositionBuffer.numItems = 4;
-}
+        // Camera matrix
+        program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
+        // Model matrix
+        program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
 
-
-
-
-//==============================================================================
-
-
-
-function initImageTileBuffers(gl) {
-    var vertexPositionData = [];
-    var textureCoordData = [];
-
-    // Make 4 points
-    textureCoordData.push(0.0);
-    textureCoordData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(1.0);
-    textureCoordData.push(0.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(0.0);
-    textureCoordData.push(1.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-
-    textureCoordData.push(1.0);
-    textureCoordData.push(1.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(1.0);
-    vertexPositionData.push(0.0);
-
-    // Now create the cell.
-    var cellData = [];
-    cellData.push(0);
-    cellData.push(1);
-    cellData.push(2);
-
-    cellData.push(2);
-    cellData.push(1);
-    cellData.push(3);
-
-    tileVertexTextureCoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
-    tileVertexTextureCoordBuffer.itemSize = 2;
-    tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
-
-    tileVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, tileVertexPositionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-    tileVertexPositionBuffer.itemSize = 3;
-    tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
-
-    tileCellBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-    tileCellBuffer.itemSize = 1;
-    tileCellBuffer.numItems = cellData.length;
-}
-
-
-
-// TODO: Get rid of this as legacy.
-// I put an eveutallyRender method in the viewer, but have not completely
-// converted code yet.
-// Stuff for drawing
-//var RENDER_PENDING = false;
-//function eventuallyRender() {
-//    if (! RENDER_PENDING) {
-//      RENDER_PENDING = true;
-//      requestAnimFrame(tick);
-//    }
-//}
-
-//function tick() {
-//    //console.timeEnd("system");
-//    RENDER_PENDING = false;
-//    draw();
-//    //console.time("system");
-//}
-
-
-
-
-//==============================================================================
-// Alternative to webgl, HTML5 2d canvas
-
-
-function initGC() {
-
-    detectMobile();
-}
-
-
-var GC_STACK = [];
-var GCT = [1,0,0,1,0,0];
-function GC_save() {
-  var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
-  GC_STACK.push(tmp);
-}
-function GC_restore() {
-  var tmp = GC_STACK.pop();
-  GCT = tmp;
-  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
-}
-function GC_setTransform(m00,m10,m01,m11,m02,m12) {
-  GCT = [m00,m10,m01,m11,m02,m12];
-  GC.setTransform(m00,m10,m01,m11,m02,m12);
-}
-function GC_transform(m00,m10,m01,m11,m02,m12) {
-  var n00 = m00*GCT[0] + m10*GCT[2];
-  var n10 = m00*GCT[1] + m10*GCT[3];
-  var n01 = m01*GCT[0] + m11*GCT[2];
-  var n11 = m01*GCT[1] + m11*GCT[3];
-  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
-  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
-
-  GCT = [n00,n10,n01,n11,n02,n12];
-  GC.setTransform(n00,n10,n01,n11,n02,n12);
-}
-
-
-
-//----------------------------------------------------------
-// Log to trackdown iPad bug.  Console does not log until
-// debugger is running.  Bug does not occur when debugger
-// is running.
-
-LOGGING = false;
-DEBUG_LOG = [];
-
-function StartLogging (message) {
-  if (LOGGING) return;
-  LOGGING = true;
-  //alert("Error: Check log");
-}
-
-function LogMessage (message) {
-  if (LOGGING) {
-    DEBUG_LOG.push(message);
-  }
-}
-
-//----------------------------------------------------------
-// In an attempt to simplify the view.html template file, I am putting
-// as much of the javascript from that file into this file as I can.
-// As I abstract viewer features, these variables and functions
-// should migrate into objects and other files.
-
-var CANVAS;
-
-var CONFERENCE_WIDGET;
-var FAVORITES_WIDGET;
-var MOBILE_ANNOTATION_WIDGET;
-
-//==============================================================================
-
-
-// hack to avoid an undefined error (until we unify annotation stuff).
-function ShowAnnotationEditMenu(x, y) {
-}
-
-
-// TODO:  Get rid of this function.
-function handleResize() {
-    $('window').trigger('resize');
-}
-
-// The event manager detects single right click and double right click.
-// This gets galled on the single.
-function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
-// I am getting rid of the right click feature now.
-
-// TODO: Move these out of the global SLideAtlas object.
-function handleKeyDown(event) {
-    return SA.HandleKeyDownStack(event);
-}
-function handleKeyUp(event) {
-    return SA.HandleKeyUpStack(event);
-}
-
-function cancelContextMenu(e) {
-    //alert("Try to cancel context menu");
-    if (e && e.stopPropagation) {
-        e.stopPropagation();
-    }
-    return false;
-}
-
-
-
-// Call back from NotesWidget.
-function NotesModified() {
-    if (SA.Edit && SA.SaveButton) {
-        SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
-    }
-}
-
-function NotesNotModified() {
-    if (SA.Edit && SA.SaveButton) {
-        SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
-    }
-}
-
-// This function gets called when the save button is pressed.
-function SaveCallback() {
-    // TODO: This is no longer called by a button, so change its name.
-    SA.NotesWidget.SaveCallback(
-        function () {
-            // finished
-            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
-        });
-}
-
-
-// This serializes loading a bit, but we need to know what type the note is
-// so we can coustomize the webApp.  The server could pass the type to us.
-// It might speed up loading.
-// Note is the same as a view.
-function Main(rootNote) {
-    SA.RootNote = rootNote;
-
-    if (rootNote.Type == "Presentation" ||
-        rootNote.Type == "HTML") {
-        SA.Presentation = new Presentation(rootNote, SA.Edit);
-        return;
+        return program;
     }
 
-    detectMobile();
-    $(body).addClass("sa-view-body");
-    // Just to see if webgl is supported:
-    //var testCanvas = document.getElementById("gltest");
+    function initOutlineBuffers(gl) {
+        // Outline Square
+        var vertices = [
+            0.0,  0.0,  0.0,
+            0.0,  1.0,  0.0,
+            1.0, 1.0,  0.0,
+            1.0, 0.0,  0.0,
+            0.0, 0.0,  0.0];
+        var squareOutlinePositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        squareOutlinePositionBuffer.itemSize = 3;
+        squareOutlinePositionBuffer.numItems = 5;
 
-    // I think the webgl viewer crashes.
-    // Maybe it is the texture leak I have seen in connectome.
-    // Just use the canvas for now.
-    // I have been getting crashes I attribute to not freeing texture
-    // memory properly.
-    // NOTE: I am getting similar crashe with the canvas too.
-    // Stack is running out of some resource.
-    if ( ! MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
-        initGL(); // Sets CANVAS and GL global variables
-    } else {
-        initGC();
-    }
-
-    // TODO: Get rid of this global variable.
-    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
-        MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+        // Filled square
+        var squarePositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squarePositionBuffer);
+        vertices = [
+            1.0,  1.0,  0.0,
+            0.0,  1.0,  0.0,
+            1.0,  0.0,  0.0,
+            0.0,  0.0,  0.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        squarePositionBuffer.itemSize = 3;
+        squarePositionBuffer.numItems = 4;
     }
 
 
-    SA.MainDiv = $('<div>')
-        .appendTo('body')
-        .css({
-            'position':'fixed',
-            'left':'0px',
-            'width': '100%'})
-        .saFullHeight();
-        //.addClass("sa-view-canvas-panel")
 
-    // Left panel for notes.
-    SA.ResizePanel = new ResizePanel(SA.MainDiv);
-    SA.DualDisplay = new DualViewWidget(SA.ResizePanel.MainDiv);
-    SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
-                                     SA.DualDisplay);
 
-    if (rootNote.Type == "Stack") {
-        SA.DualDisplay.SetNumberOfViewers(2);
+    //==============================================================================
+
+
+
+    function initImageTileBuffers(gl) {
+        var vertexPositionData = [];
+        var textureCoordData = [];
+
+        // Make 4 points
+        textureCoordData.push(0.0);
+        textureCoordData.push(0.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(0.0);
+
+        textureCoordData.push(1.0);
+        textureCoordData.push(0.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(0.0);
+
+        textureCoordData.push(0.0);
+        textureCoordData.push(1.0);
+        vertexPositionData.push(0.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(0.0);
+
+        textureCoordData.push(1.0);
+        textureCoordData.push(1.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(1.0);
+        vertexPositionData.push(0.0);
+
+        // Now create the cell.
+        var cellData = [];
+        cellData.push(0);
+        cellData.push(1);
+        cellData.push(2);
+
+        cellData.push(2);
+        cellData.push(1);
+        cellData.push(3);
+
+        SA.tileVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexTextureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
+        SA.tileVertexTextureCoordBuffer.itemSize = 2;
+        SA.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+
+        SA.tileVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
+        SA.tileVertexPositionBuffer.itemSize = 3;
+        SA.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
+
+        SA.tileCellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, SA.tileCellBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
+        SA.tileCellBuffer.itemSize = 1;
+        SA.tileCellBuffer.numItems = cellData.length;
     }
 
-    SA.NotesWidget.SetModifiedCallback(NotesModified);
-    SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
-    // Navigation widget keeps track of which note is current.
-    // Notes widget needs to access and change this.
-    SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-    if (SA.DualDisplay.NavigationWidget) {
-      SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+
+
+    // TODO: Get rid of this as legacy.
+    // I put an eveutallyRender method in the viewer, but have not completely
+    // converted code yet.
+    // Stuff for drawing
+    //var RENDER_PENDING = false;
+    //function eventuallyRender() {
+    //    if (! RENDER_PENDING) {
+    //      RENDER_PENDING = true;
+    //      requestAnimFrame(tick);
+    //    }
+    //}
+
+    //function tick() {
+    //    //console.timeEnd("system");
+    //    RENDER_PENDING = false;
+    //    draw();
+    //    //console.time("system");
+    //}
+
+
+
+
+    //==============================================================================
+    // Alternative to webgl, HTML5 2d canvas
+
+
+    function initGC() {
+
+        detectMobile();
     }
 
-    new RecorderWidget(SA.DualDisplay);
 
-    SA.DualDisplay.SetNote(rootNote);
+    var GC_STACK = [];
+    var GCT = [1,0,0,1,0,0];
+    function GC_save() {
+        var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
+        GC_STACK.push(tmp);
+    }
+    function GC_restore() {
+        var tmp = GC_STACK.pop();
+        GCT = tmp;
+        GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
+    }
+    function GC_setTransform(m00,m10,m01,m11,m02,m12) {
+        GCT = [m00,m10,m01,m11,m02,m12];
+        GC.setTransform(m00,m10,m01,m11,m02,m12);
+    }
+    function GC_transform(m00,m10,m01,m11,m02,m12) {
+        var n00 = m00*GCT[0] + m10*GCT[2];
+        var n10 = m00*GCT[1] + m10*GCT[3];
+        var n01 = m01*GCT[0] + m11*GCT[2];
+        var n11 = m01*GCT[1] + m11*GCT[3];
+        var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
+        var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
 
-    // Do not let guests create favorites.
-    // TODO: Rework how favorites behave on mobile devices.
-    if (SA.User != "" && ! MOBILE_DEVICE) {
-        if ( SA.Edit) {
-            // Put a save button here when editing.
-            SA.SaveButton = $('<img>')
-                .appendTo(SA.ResizePanel.MainDiv)
-                .css({'position':'absolute',
-                      'bottom':'4px',
-                      'left':'10px',
-                      'height': '28px',
-                      'z-index': '5'})
-                .prop('title', "save to databse")
-                .addClass('editButton')
-                .attr('src',SA.ImagePathUrl+"save22.png")
-                .click(SaveCallback);
-            for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
-                SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.NotesWidget.RecordView();});
-            }
-        } else {
-            // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(SA.MainDiv, SA.DualDisplay);
-            //FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+        GCT = [n00,n10,n01,n11,n02,n12];
+        GC.setTransform(n00,n10,n01,n11,n02,n12);
+    }
+
+
+
+    //----------------------------------------------------------
+    // Log to trackdown iPad bug.  Console does not log until
+    // debugger is running.  Bug does not occur when debugger
+    // is running.
+
+    var LOGGING = false;
+    var DEBUG_LOG = [];
+
+    function StartLogging (message) {
+        if (LOGGING) return;
+        LOGGING = true;
+        //alert("Error: Check log");
+    }
+
+    function LogMessage (message) {
+        if (LOGGING) {
+            DEBUG_LOG.push(message);
         }
     }
 
-    if (MOBILE_DEVICE && SA.DualDisplay && 
-        SA.DualDisplay.NavigationWidget) {
-        SA.DualDisplay.NavigationWidget.SetVisibility(false);
-    }
-    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
-        MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
-    }
+    //----------------------------------------------------------
+    // In an attempt to simplify the view.html template file, I am putting
+    // as much of the javascript from that file into this file as I can.
+    // As I abstract viewer features, these variables and functions
+    // should migrate into objects and other files.
 
-    //CONFERENCE_WIDGET = new ConferenceWidget();
+    var CANVAS;
 
-    // The event manager still handles stack alignment.
-    // This should be moved to a stack helper class.
-    // Undo and redo too.
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
+    var CONFERENCE_WIDGET;
+    var FAVORITES_WIDGET;
+    var MOBILE_ANNOTATION_WIDGET;
 
-    // Keep the browser from showing the left click menu.
-    document.oncontextmenu = cancelContextMenu;
+    //==============================================================================
 
-    if ( ! MOBILE_DEVICE) {
-        // Hack for all viewer edit menus to share browser.
-        VIEW_BROWSER = new ViewBrowser($('body'));
 
-        // TODO: See if we can get rid of this, or combine it with
-        // the view browser.
-        InitSlideSelector(SA.MainDiv); // What is this?
-        var viewMenu1 = new ViewEditMenu(SA.DualDisplay.Viewers[0],
-                                         SA.DualDisplay.Viewers[1]);
-        var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
-                                         SA.DualDisplay.Viewers[0]);
-        var viewer = SA.DualDisplay.Viewers[0];
-        var annotationWidget1 =
-            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
-        annotationWidget1.SetVisibility(2);
-        var viewer = SA.DualDisplay.Viewers[1];
-        var annotationWidget2 =
-            new AnnotationWidget(viewer.GetAnnotationLayer(), viewer);
-        annotationWidget2.SetVisibility(2);
-        SA.DualDisplay.UpdateGui();
+    // hack to avoid an undefined error (until we unify annotation stuff).
+    function ShowAnnotationEditMenu(x, y) {
     }
 
-    $(window).bind('orientationchange', function(event) {
-        handleResize();
-    });
 
-    $(window).resize(function() {
-        handleResize();
-    }).trigger('resize');
-
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
+    // TODO:  Get rid of this function.
+    function handleResize() {
+        $('window').trigger('resize');
     }
-}
 
+    // The event manager detects single right click and double right click.
+    // This gets galled on the single.
+    function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
+    // I am getting rid of the right click feature now.
 
-// I had to prune all the annotations (lassos) that were not visible.
-function keepVisible(){
-  var n = SA.DualDisplay.GetNote();
-  var r = n.ViewerRecords[n.StartIndex];
-  var w = VIEWER1.WidgetList;
-  var c = VIEWER1.GetCamera();
-  var b =c.GetBounds();
-  for(var i= 0; i<r.Annotations.length; ++i) {
-    if (r.Annotations[i].type != 'lasso') {
-      r.Annotations.splice(i,1);
-      --i;
-    } else {
-      var pt = r.Annotations[i].points[0];
-      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
-  b[3]) {
-        r.Annotations.splice(i,1);
-        --i;
-      }
+    // TODO: Move these out of the global SLideAtlas object.
+    function handleKeyDown(event) {
+        return SA.HandleKeyDownStack(event);
     }
-  }
-  for(var i= 0; i<w.length; ++i) {
-    if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
-      w.splice(i,1);
-      --i;
-    } else {
-      var pt = w[i].Loop.Points[0];
-      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
-  b[3]) {
-        w.splice(i,1);
-        --i;
-      }
+    function handleKeyUp(event) {
+        return SA.HandleKeyUpStack(event);
     }
-  }
-}
 
+    function cancelContextMenu(e) {
+        //alert("Try to cancel context menu");
+        if (e && e.stopPropagation) {
+            e.stopPropagation();
+        }
+        return false;
+    }
+
+
+
+    // Call back from NotesWidget.
+    function NotesModified() {
+        if (SA.Edit && SA.SaveButton) {
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
+        }
+    }
+
+    function NotesNotModified() {
+        if (SA.Edit && SA.SaveButton) {
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
+        }
+    }
+
+    // This function gets called when the save button is pressed.
+    function SaveCallback() {
+        // TODO: This is no longer called by a button, so change its name.
+        SA.NotesWidget.SaveCallback(
+            function () {
+                // finished
+                SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
+            });
+    }
+
+
+    // This serializes loading a bit, but we need to know what type the note is
+    // so we can coustomize the webApp.  The server could pass the type to us.
+    // It might speed up loading.
+    // Note is the same as a view.
+    function Main(rootNote) {
+        SA.RootNote = rootNote;
+
+        if (rootNote.Type == "Presentation" ||
+            rootNote.Type == "HTML") {
+            SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
+            return;
+        }
+
+        detectMobile();
+        $(body).addClass("sa-view-body");
+        // Just to see if webgl is supported:
+        //var testCanvas = document.getElementById("gltest");
+
+        // I think the webgl viewer crashes.
+        // Maybe it is the texture leak I have seen in connectome.
+        // Just use the canvas for now.
+        // I have been getting crashes I attribute to not freeing texture
+        // memory properly.
+        // NOTE: I am getting similar crashe with the canvas too.
+        // Stack is running out of some resource.
+        if ( ! SA.MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
+            initGL(); // Sets CANVAS and GL global variables
+        } else {
+            initGC();
+        }
+
+        // TODO: Get rid of this global variable.
+        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+            MOBILE_ANNOTATION_WIDGET = new SA.MobileAnnotationWidget();
+        }
+
+        SA.MainDiv = $('<div>')
+            .appendTo('body')
+            .css({
+                'position':'fixed',
+                'left':'0px',
+                'width': '100%'})
+            .saFullHeight();
+        //.addClass("sa-view-canvas-panel")
+
+        // Left panel for notes.
+        SA.ResizePanel = new SA.ResizePanel(SA.MainDiv);
+        SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
+        SA.NotesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
+                                            SA.DualDisplay);
+
+        if (rootNote.Type == "Stack") {
+            SA.DualDisplay.SetNumberOfViewers(2);
+        }
+
+        SA.NotesWidget.SetModifiedCallback(NotesModified);
+        SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+        // Navigation widget keeps track of which note is current.
+        // Notes widget needs to access and change this.
+        SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
+        if (SA.DualDisplay.NavigationWidget) {
+            SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        }
+
+        new SA.RecorderWidget(SA.DualDisplay);
+
+        SA.DualDisplay.SetNote(rootNote);
+
+        // Do not let guests create favorites.
+        // TODO: Rework how favorites behave on mobile devices.
+        if (SA.User != "" && ! SA.MOBILE_DEVICE) {
+            if ( SA.Edit) {
+                // Put a save button here when editing.
+                SA.SaveButton = $('<img>')
+                    .appendTo(SA.ResizePanel.MainDiv)
+                    .css({'position':'absolute',
+                          'bottom':'4px',
+                          'left':'10px',
+                          'height': '28px',
+                          'z-index': '5'})
+                    .prop('title', "save to databse")
+                    .addClass('editButton')
+                    .attr('src',SA.ImagePathUrl+"save22.png")
+                    .click(SaveCallback);
+                for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
+                SA.DualDisplay.Viewers[i].OnInteraction(
+                    function () {SA.NotesWidget.RecordView();});
+                }
+            } else {
+                // Favorites when not editing.
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+                //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+            }
+        }
+
+        if (SA.MOBILE_DEVICE && SA.DualDisplay && 
+            SA.DualDisplay.NavigationWidget) {
+            SA.DualDisplay.NavigationWidget.SetVisibility(false);
+        }
+        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+            MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
+        }
+
+        //CONFERENCE_WIDGET = new SA.ConferenceWidget();
+
+        // The event manager still handles stack alignment.
+        // This should be moved to a stack helper class.
+        // Undo and redo too.
+        document.onkeydown = handleKeyDown;
+        document.onkeyup = handleKeyUp;
+
+        // Keep the browser from showing the left click menu.
+        document.oncontextmenu = cancelContextMenu;
+
+        if ( ! SA.MOBILE_DEVICE) {
+            // Hack for all viewer edit menus to share browser.
+            SA.VIEW_BROWSER = new SA.ViewBrowser($('body'));
+
+            // TODO: See if we can get rid of this, or combine it with
+            // the view browser.
+            SA.InitSlideSelector(SA.MainDiv); // What is this?
+            var viewMenu1 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[0],
+                                                SA.DualDisplay.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[1],
+                                                SA.DualDisplay.Viewers[0]);
+            var viewer1 = SA.DualDisplay.Viewers[0];
+            var annotationLayer1 = new SAM.AnnotationLayer(viewer1.Div);
+            viewer1.AddLayer(annotationLayer1);
+            // TODO: Get rid of this.  master view is passed to draw.
+            //Hack so the scale widget can get the spacing.
+            annotationLayer1.ScaleWidget.View = viewer1.MainView;
+            // Hack only used for girder testing.
+            annotationLayer1.Viewer = viewer1;
+            var annotationWidget1 =
+                new SA.AnnotationWidget(annotationLayer1, viewer1);
+            annotationWidget1.SetVisibility(2);
+
+            /*
+            // ==============================
+            // Experiment wit combining tranparent webgl ontop of canvas.
+            var heatMap = new SA.HeatMap(viewer1.Div);
+            heatMap.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.2,0.2,1.0],
+                 origin : [100, 10000]});
+            viewer1.AddLayer(heatMap);
+            */
+
+            var viewer2 = SA.DualDisplay.Viewers[1];
+            var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
+            viewer2.AddLayer(annotationLayer2);
+            // TODO: Get rid of this.  master view is passed to draw.
+            //Hack so the scale widget can get the spacing.
+            annotationLayer2.ScaleWidget.View = viewer2.MainView;
+            // Hack only used for girder testing.
+            annotationLayer2.Viewer = viewer2;
+            var annotationWidget2 =
+                new SA.AnnotationWidget(annotationLayer2, viewer2);
+            annotationWidget2.SetVisibility(2);
+
+            SA.DualDisplay.UpdateGui();
+        }
+
+        $(window).bind('orientationchange', function(event) {
+            handleResize();
+        });
+
+        $(window).resize(function() {
+            handleResize();
+        }).trigger('resize');
+
+        if (SA.DualDisplay) {
+            SA.DualDisplay.Draw();
+        }
+    }
+
+
+    // I had to prune all the annotations (lassos) that were not visible.
+    function keepVisible(){
+        var n = SA.DualDisplay.GetNote();
+        var r = n.ViewerRecords[n.StartIndex];
+        var w = SA.VIEWER1.WidgetList;
+        var c = SA.VIEWER1.GetCamera();
+        var b =c.GetBounds();
+        for(var i= 0; i<r.Annotations.length; ++i) {
+            if (r.Annotations[i].type != 'lasso') {
+                r.Annotations.splice(i,1);
+                --i;
+            } else {
+                var pt = r.Annotations[i].points[0];
+                if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+                     b[3]) {
+                    r.Annotations.splice(i,1);
+                    --i;
+                }
+            }
+        }
+        for(var i= 0; i<w.length; ++i) {
+            if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
+                w.splice(i,1);
+                --i;
+            } else {
+                var pt = w[i].Loop.Points[0];
+                if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+                     b[3]) {
+                    w.splice(i,1);
+                    --i;
+                }
+            }
+        }
+    }
+
+})();
+
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
 
 // TODO: 
 //  ShowViewBrowser();});
@@ -9138,9 +9184,14 @@ function keepVisible(){
 //ViewEditMenu.prototype.SessionAdvanceAjax = function() {
 
 
+(function () {
+    "use strict";
+
+
+
 // All edit menus share a ViewBrowser.  Next to consider.  Share the
 // presentation browser panel.
-var VIEW_BROWSER;
+SA.VIEW_BROWSER;
 
 
 // Other viewer is a hack for copy camera.
@@ -9150,7 +9201,7 @@ function ViewEditMenu (viewer, otherViewer) {
     this.Viewer = viewer;
     // Other viewer is a hack for copy camera.
     this.OtherViewer = otherViewer;
-    this.Tab = new Tab(viewer.GetDiv(),SA.ImagePathUrl+"Menu.jpg", "editTab");
+    this.Tab = new SA.Tab(viewer.GetDiv(),SA.ImagePathUrl+"Menu.jpg", "editTab");
     this.Tab.Div
         .css({'position':'absolute',
               'right':'47px',
@@ -9160,7 +9211,7 @@ function ViewEditMenu (viewer, otherViewer) {
 
     this.Tab.Panel.addClass("sa-view-edit-panel");
 
-    if (VIEW_BROWSER) {
+    if (SA.VIEW_BROWSER) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Load Slide")
@@ -9168,7 +9219,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .click(
                 function(){
                     self.Tab.PanelOff();
-                    VIEW_BROWSER.Open(self.Viewer);
+                    SA.VIEW_BROWSER.Open(self.Viewer);
                 });
     }
     if (SA.Edit) {
@@ -9222,7 +9273,7 @@ function ViewEditMenu (viewer, otherViewer) {
                 self.Tab.PanelOff();
                 // When the circle button is pressed, create the widget.
                 if ( ! self.Viewer) { return; }
-                new CutoutWidget(parent, self.Viewer);
+                new SA.CutoutWidget(parent, self.Viewer);
             });
         // color threshold is also broken
         for(var plugin in window.PLUGINS) {
@@ -9331,7 +9382,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
             success: function(data,status) {
                 self.Viewer.EventuallyRender();
             },
-            error: function() { saDebug( "AJAX - error() : saveviewnotes (bounds)" ); },
+            error: function() { SA.Debug( "AJAX - error() : saveviewnotes (bounds)" ); },
         });
     }
 }
@@ -9362,7 +9413,7 @@ ViewEditMenu.prototype.SetImageBounds = function() {
                "bds" : JSON.stringify(bounds)},
         success: function(data,status) {},
         error: function() {
-            saDebug( "AJAX - error() : saveusernote 1" );
+            SA.Debug( "AJAX - error() : saveusernote 1" );
         },
     });
 }
@@ -9400,7 +9451,7 @@ ViewEditMenu.prototype.FlipHorizontal = function() {
     var cam = this.Viewer.GetCamera();
     this.Viewer.ToggleMirror();
     this.Viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
-    RecordState();
+    SA.RecordState();
 }
 
 
@@ -9411,11 +9462,10 @@ var DownloadImage = (function () {
 
     // Dialogs require an object when accept is pressed.
     var DOWNLOAD_WIDGET = undefined;
-    var VIEWER;
 
     function DownloadImage(viewer) {
         // Use a global so apply callback can get the viewer.
-        VIEWER = viewer;
+        SA.VIEWER = viewer;
 
         if ( ! DOWNLOAD_WIDGET) {
             InitializeDialogs();
@@ -9459,7 +9509,7 @@ var DownloadImage = (function () {
         }
         var StartDownloadCallback = function () {
             // Trigger the process to start rendering the image.
-            DOWNLOAD_WIDGET.Viewer = VIEWER;
+            DOWNLOAD_WIDGET.Viewer = SA.VIEWER;
             var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
             var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
             var stack = DOWNLOAD_WIDGET.DimensionDialog.StackCheckbox.prop('checked');
@@ -9472,7 +9522,7 @@ var DownloadImage = (function () {
             } else {
                 DOWNLOAD_WIDGET.CancelDialog.StackMessage.hide();
             }
-            VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
+            SA.VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
                                   function () {
                                       // Rendering has finished.
                                       // The user can no longer cancel.
@@ -9792,7 +9842,7 @@ var DownloadImage = (function () {
 
 // Create a selection list of sessions.
 // This does not belong here.
-function InitSlideSelector(parent) {
+SA.InitSlideSelector = function(parent) {
     $('<div>')
         .appendTo(parent)
         .css({
@@ -10015,10 +10065,16 @@ ImageInformationDialog.prototype.Close = function()
         success: function(data,status) {
             if (self.Viewer) {self.Viewer.EventuallyRender();}
         },
-        error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
+        error: function() { SA.Debug( "AJAX - error() : saveimagedata" ); },
     });
 
 }
+
+    SA.ViewEditMenu = ViewEditMenu;
+
+})();
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
 
 //==============================================================================
 // Create and manage the menu to browse and select views.
@@ -10026,6 +10082,10 @@ ImageInformationDialog.prototype.Close = function()
 // I am also making this into a dialog object. (not based on the dialog class).
 
 // It may be better to undock and redock
+
+
+(function () {
+    "use strict";
 
 
 function ViewBrowser(parent) {
@@ -10045,7 +10105,7 @@ function ViewBrowser(parent) {
             'color'     : '#303030'})
         .mouseleave(function () {self.Div.fadeOut();});
 
-    this.TabbedDiv = new TabbedDiv(this.Div);
+    this.TabbedDiv = new SA.TabbedDiv(this.Div);
     this.BrowserDiv = this.TabbedDiv.NewTabDiv("Browser");
     this.BrowserDiv.css({'overflow-y':'auto'});
     this.SearchDiv = this.TabbedDiv.NewTabDiv("Search");
@@ -10057,13 +10117,13 @@ function ViewBrowser(parent) {
             self.SelectView(viewObj);
         });
 
-    this.SearchPanel = new SearchPanel(
+    this.SearchPanel = new SA.SearchPanel(
         this.SearchDiv,
         function (imageObj) {
             self.SelectImage(imageObj);
         });
 
-    this.ClipboardPanel = new ClipboardPanel(
+    this.ClipboardPanel = new SA.ClipboardPanel(
         this.ClipboardDiv,
         function (viewObj) {
             self.SelectView(viewObj);
@@ -10079,22 +10139,21 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
     }
 
     // This will get the camera and the annotations too.
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     record.Apply(this.Viewer);
-    delete record;
     //this.SelectImage(viewObj.ViewerRecords[0].Image);
 }
 
 ViewBrowser.prototype.SelectImage = function(imgobj) {
     this.Div.fadeOut();
-    var source = FindCache(imgobj);
+    var source = SA.FindCache(imgobj);
 
     // We have to get rid of annotation which does not apply to the new image.
     this.Viewer.Reset();
     this.Viewer.SetCache(source);
 
-    RecordState();
+    SA.RecordState();
 
     eventuallyRender();
 }
@@ -10212,21 +10271,21 @@ BrowserPanel.prototype.LoadGUI = function() {
     var self = this;
     var data = this.BrowserInfo;
     this.BrowserDiv.empty();
-    groupList = $('<ul>')
+    var groupList = $('<ul>')
         .addClass('sa-ul')
         .appendTo(this.BrowserDiv);
 
-    for (i=0; i < data.sessions.length; ++i) {
-        groupItem = $('<li>')
+    for (var i=0; i < data.sessions.length; ++i) {
+        var groupItem = $('<li>')
             .appendTo(groupList);
         var group = data.sessions[i];
         var groupFolder = new BrowserFolder(groupItem, group.rule);
         // Initialize immediately.
         var sessionList = groupFolder.List;
-        for (j=0; j < group.sessions.length; ++j) {
+        for (var j=0; j < group.sessions.length; ++j) {
             var session = group.sessions[j];
             var sessionData = {'db': session.sessdb, 'sessid': session.sessid};
-            sessionItem = $('<li>')
+            var sessionItem = $('<li>')
                 .appendTo(sessionList);
             new BrowserFolder(
                 sessionItem, session.label, sessionData,
@@ -10251,7 +10310,7 @@ BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
                   // I might want to sort the sessions to put the recent at the top.
                   self.LoadGUI(data);
               } else {
-                  saDebug("ajax failed.");
+                  SA.Debug("ajax failed.");
               }
           });
 }
@@ -10265,7 +10324,7 @@ BrowserPanel.prototype.RequestSessionViews = function(sessionFolder) {
               self.PopProgress();
               if (status == "success") {
                   self.AddSessionViews(sessionFolder, data);
-              } else { saDebug("ajax failed."); }
+              } else { SA.Debug("ajax failed."); }
           });
 }
 
@@ -10312,7 +10371,7 @@ BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
             self.LoadViewChildren(viewFolder, data);
         },
         error: function() { 
-            saDebug( "AJAX - error() : getview" ); 
+            SA.Debug( "AJAX - error() : getview" ); 
             self.PopProgress();
         },
     });
@@ -10393,15 +10452,19 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
         },
         error: function() {
             self.PopProgress();
-            saDebug( "AJAX - error() : getview (browser)" );
+            SA.Debug( "AJAX - error() : getview (browser)" );
         },
     });
 }
 
 
+    SA.ViewBrowser = ViewBrowser;
+
+})();
 
 
-
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
 
 // Interface for ViewerSet
 // GetNumberOfViewers();
@@ -10419,597 +10482,609 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
 // Default: viewer1 uses all available space.
 
 
-// TODO: Get rid of these gloabal variable.
-var VIEWERS = [];
-var VIEWER1;
-var VIEWER2;
+(function () {
+    "use strict";
 
 
-function DualViewWidget(parent) {
-    var self = this;
-    this.Viewers = []; // It would be nice to get rid of this.
-    this.ViewerDivs = [];
 
-    // Rather than getting the current note from the NotesWidget, keep a
-    // reference here.  SlideShow can have multiple "displays".
-    // We might consider keep a reference in the dua
-    this.saNote = null;
-
-    this.Parent = parent;
-    parent.addClass('sa-dual-viewer');
-
-    // This parent used to be CANVAS.
-    var width = parent.innerWidth();
-    var height = parent.innerHeight();
-    var halfWidth = width/2;
-
-    for (var i = 0; i < 2; ++i) {
-        var viewerDiv = $('<div>')
-            .appendTo(parent)
-            .saViewer({overview:true, zoomWidget:true})
-            .addClass("sa-view-canvas-div");
-
-        this.ViewerDivs[i] = viewerDiv;
-        this.Viewers[i] = viewerDiv[0].saViewer;
-        // TODO: Get rid of this.
-        // I beleive the note should sets this, and we do not need to do it
-        // here..
-        this.Viewers[i].RecordIndex = i;
-    }
-
-    // TODO: Get rid of these.
-    VIEWERS = this.Viewers;
-    VIEWER1 = this.Viewers[0];
-    VIEWER2 = this.Viewers[1];
-
-    this.DualView = false;
-    this.Viewer1Fraction = 1.0;
-    // It would be nice to integrate all animation in a flexible utility.
-    this.AnimationLastTime = 0;
-    this.AnimationDuration = 0;
-    this.AnimationTarget = 0;
-
-    if ( ! MOBILE_DEVICE || MOBILE_DEVICE == 'iPad') {
-        // Todo: Make the button become more opaque when pressed.
-        $('<img>')
-            .appendTo(this.ViewerDivs[0])
-            .css({'position':'absolute',
-                  'right':'0px',
-                  'top':'0px'})
-            .addClass("sa-view-dualview-div")
-            .attr('id', 'dualWidgetLeft')
-            .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
-            .click(function(){self.ToggleDualView();})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;});
-
-        $('<img>').appendTo(parent)
-            .appendTo(this.ViewerDivs[1])
-            .css({'position':'absolute',
-                  'left':'0px',
-                  'top':'0px'})
-            .hide()
-            .addClass("sa-view-dualview-img")
-            .attr('id', 'dualWidgetRight')
-            .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
-            .click(function(){self.ToggleDualView();})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;});
+    // TODO: Get rid of these gloabal variable.
+    SA.VIEWERS = [];
+    SA.VIEWER1;
+    SA.VIEWER2;
 
 
-        // DualViewer is the navigation widgets temporary home.
-        // SlideShow can have multiple nagivation widgets so it is no
-        // longer a singlton.
-        // This is for moving through notes, session views and stacks.
-        // It is not exactly related to dual viewer. It is sort of a child
-        // of the dual viewer.
-        this.NavigationWidget = new NavigationWidget(parent,this);
-    }
-}
-
-// Abstracting saViewer  for viewer and dualViewWidget.
-// Save viewer state in a note.
-DualViewWidget.prototype.Record = function (note, startViewIdx) {
-    if (startViewIdx) {
-        note.StartIndex = startViewIdx;
-    }
-    startViewIdx = startViewIdx || 0;
-    // TODO: Deal with multiple  windows consistently.
-    // Now num viewRecords indicates the number of views in the display,
-    // but not for stacks.  We have this start index which implies stack behavior.
-    if ( note.Type != "Stack") {
-        if (! this.DualView && note.ViewerRecords.length > 1) {
-            note.ViewerRecords = [note.ViewerRecords[0]];
-        }
-        if (this.DualView && note.ViewerRecords.length < 2) {
-            while ( note.ViewerRecords.length < 2) {
-                note.ViewerRecords.push(new ViewerRecord());
-            }
-        }
-    }
-
-    for (var i = 0; i  < this.GetNumberOfViewers(); ++i) {
-        if (i + startViewIdx < note.ViewerRecords.length) {
-            this.GetViewer(i).Record(note, i+startViewIdx);
-        }
-    }
-}
-
-
-// Abstracting the saViewer class to support dual viewers and stacks.
-DualViewWidget.prototype.ProcessArguments = function (args) {
-    if (args.note) {
-        // TODO: DO we need both?
-        this.saNote = args.note;
-        //args.note.DisplayView(this);
-        this.SetNote(args.note,args.viewIndex);
-        // NOTE: TempId is legacy
-        this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
-    }
-
-    if (args.tileSource) {
-        var w = args.tileSource.width;
-        var h = args.tileSource.height;
-        var cache = new Cache();
-        cache.TileSource = args.tileSource;
-        // Use the note tmp id as an image id so the viewer can index the
-        // cache.
-        var note = new SA.Note();
-        var image = {levels:     args.maxLevel + 1,
-                     dimensions: [w,h],
-                     bounds: [0,w-1, 0,h-1],
-                     _id: note.TempId};
-        var record = new ViewerRecord();
-        record.Image = image;
-        record.OverviewBounds = [0,w-1,0,h-1];
-        record.Camera = {FocalPoint: [w/2, h/2],
-                         Roll: 0,
-                         Height: h};
-        note.ViewerRecords.push(record);
-        cache.SetImageData(image);
-        this.SetNote(args.note,args.viewIndex);
-    }
-
-    for (var i = 0; i < this.Viewers.length; ++i) {
-        var viewer = this.Viewers[i];
-
-        if (args.hideCopyright != undefined) {
-            viewer.SetCopyrightVisibility( ! args.hideCopyright);
-        }
-        if (args.overview !== undefined) {
-            viewer.SetOverViewVisibility(args.overview);
-        }
-        if (args.navigation !== undefined) {
-            this.NavigationWidget.SetVisibility(args.navigation);
-        }
-        if (args.dualWidget !== undefined) {
-            this.HideHandles = ! args.dualWidget;
-            this.UpdateGui();
-        }
-        if (args.zoomWidget !== undefined) {
-            viewer.SetZoomWidgetVisibility(args.zoomWidget);
-        }
-        if (args.drawWidget !== undefined) {
-            viewer.SetAnnotationWidgetVisibility(args.drawWidget);
-        }
-        // The way I handle the viewer edit menu is messy.
-        // TODO: Find a more elegant way to add tabs.
-        // Maybe the way we handle the anntation tab shouodl be our pattern.
-        if (args.menu !== undefined) {
-            if ( ! viewer.Menu) {
-                viewer.Menu = new ViewEditMenu(viewer, null);
-            }
-            viewer.Menu.SetVisibility(args.menu);
-        }
-
-        if (args.interaction !== undefined) {
-            viewer.SetInteractionEnabled(args.interaction);
-            if (this.NavigationWidget) {
-                this.NavigationWidget.SetInteractionEnabled(args.interaction);
-            }
-        }
-    }
-}
-
-// Which is better calling Note.Apply, or viewer.SetNote?  I think this
-// will  win.
-DualViewWidget.prototype.SetNote = function(note, viewIdx) {
-    var self = this;
-    // If the note is not loaded, request the note, and call this method
-    // when the note is finally loaded.
-    if (note && note.LoadState == 0) {
-        note.LoadViewId(
-            note.Id,
-            function () {
-                self.SetNote(note, viewIdx);
-            });
-    }
-
-    if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
-        console.log("Cannot set viewer record of note");
-        return;
-    }
-    if (viewIdx !== undefined) {
-        note.StartIndex = viewIdx;
-    }
-    this.saNote = note;
-    this.saViewerIndex = viewIdx;
-    if (this.NavigationWidget) {
-        this.NavigationWidget.SetNote(note);
-        //this.NavigationWidget.Update(); // not sure if this is necessary
-    }
-    if (note.Type == "Stack") {
-        // TODO: Can I move this logic into the display? SetNote maybe?
-        // Possibly nagivationWidget (we need to know which viewer is referecne.
-        // Select only gets called when the stack is first loaded.
+    function DualViewWidget(parent) {
         var self = this;
-        this.GetViewer(0).OnInteraction(function () {
-            self.SynchronizeViews(0, note);});
-        this.GetViewer(1).OnInteraction(function () {
-            self.SynchronizeViews(1, note);});
-        note.DisplayStack(this);
-        // First view is set by viewer record camera.
-        // Second is set relative to the first.
-        this.SynchronizeViews(0, note);
-    } else {
-        note.DisplayView(this);
-    }
+        this.Viewers = []; // It would be nice to get rid of this.
+        this.ViewerDivs = [];
 
-    if (SA.NotesWidget) { 
-        SA.NotesWidget.SelectNote(note);
-    }
-}
-DualViewWidget.prototype.GetNote = function () {
-    return this.saNote;
-}
-DualViewWidget.prototype.GetRootNote = function () {
-    var note = this.saNote;
-    while (note.Parent) {
-        note = note.Parent;
-    }
-    return note;
-}
-DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
-    var note = SA.GetNoteFromId(noteId);
-    if ( ! note) {
-        note = new SA.Note();
-        var self = this;
-        note.LoadViewId(
-            noteId,
-            function () {
-                self.SetNote(note, viewIdx);
-            });
-        return note;
-    }
-    this.SetNote(note,viewIdx);
-    return note;
-}
+        // Rather than getting the current note from the NotesWidget, keep a
+        // reference here.  SlideShow can have multiple "displays".
+        // We might consider keep a reference in the dua
+        this.saNote = null;
 
+        this.Parent = parent;
+        parent.addClass('sa-dual-viewer');
 
+        // This parent used to be CANVAS.
+        var width = parent.innerWidth();
+        var height = parent.innerHeight();
+        var halfWidth = width/2;
 
-// API for ViewerSet
-DualViewWidget.prototype.GetNumberOfViewers = function() {
-    if (this.DualView) {
-        return 2;
-    }
+        for (var i = 0; i < 2; ++i) {
+            var viewerDiv = $('<div>')
+                .appendTo(parent)
+                .saViewer({overview:true, zoomWidget:true})
+                .addClass("sa-view-canvas-div");
 
-    return 1;
-}
+            this.ViewerDivs[i] = viewerDiv;
+            this.Viewers[i] = viewerDiv[0].saViewer;
+            // TODO: Get rid of this.
+            // I beleive the note should sets this, and we do not need to do it
+            // here..
+            this.Viewers[i].RecordIndex = i;
+        }
 
-// API for ViewerSet
-DualViewWidget.prototype.GetViewer = function(idx) {
-    return this.Viewers[idx];
-}
+        // TODO: Get rid of these.
+        SA.VIEWERS = this.Viewers;
+        SA.VIEWER1 = this.Viewers[0];
+        SA.VIEWER2 = this.Viewers[1];
 
-// Called programmatically. No animation.
-DualViewWidget.prototype.SetNumberOfViewers = function(numViews) {
-    this.DualView = (numViews > 1);
-
-    if (this.DualView) {
-        this.Viewer1Fraction = 0.5;
-    } else {
+        this.DualView = false;
         this.Viewer1Fraction = 1.0;
-    }
+        // It would be nice to integrate all animation in a flexible utility.
+        this.AnimationLastTime = 0;
+        this.AnimationDuration = 0;
+        this.AnimationTarget = 0;
 
-    this.UpdateSize();
-    this.UpdateGui();
-}
+        if ( ! SA.MOBILE_DEVICE || SA.MOBILE_DEVICE == 'iPad') {
+            // Todo: Make the button become more opaque when pressed.
+            $('<img>')
+                .appendTo(this.ViewerDivs[0])
+                .css({'position':'absolute',
+                      'right':'0px',
+                      'top':'0px'})
+                .addClass("sa-view-dualview-div")
+                .attr('id', 'dualWidgetLeft')
+                .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
+                .click(function(){self.ToggleDualView();})
+                .attr('draggable','false')
+                .on("dragstart", function() {
+                    return false;});
 
+            $('<img>').appendTo(parent)
+                .appendTo(this.ViewerDivs[1])
+                .css({'position':'absolute',
+                      'left':'0px',
+                      'top':'0px'})
+                .hide()
+                .addClass("sa-view-dualview-img")
+                .attr('id', 'dualWidgetRight')
+                .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
+                .click(function(){self.ToggleDualView();})
+                .attr('draggable','false')
+                .on("dragstart", function() {
+                    return false;});
 
-DualViewWidget.prototype.ToggleDualView = function () {
-    this.DualView = ! this.DualView;
-
-    if (this.DualView) {
-        // If there is no image in the second viewer, copy it from the first.
-        if ( ! this.Viewers[1].GetCache()) {
-            this.Viewers[1].SetCache(this.Viewers[0].GetCache());
-            this.Viewers[1].GetCamera().DeepCopy(this.Viewers[0].GetCamera());
+            // DualViewer is the navigation widgets temporary home.
+            // SlideShow can have multiple nagivation widgets so it is no
+            // longer a singlton.
+            // This is for moving through notes, session views and stacks.
+            // It is not exactly related to dual viewer. It is sort of a child
+            // of the dual viewer.
+            this.NavigationWidget = new SA.NavigationWidget(parent,this);
         }
-        this.AnimationCurrent = 1.0;
-        this.AnimationTarget = 0.5;
-        // Edit menu option to copy camera zoom between views.
-        // I do not call update gui here because I want
-        // the buttons to appear at the end of the animation.
-        $('#dualViewCopyZoom').show();
-        // Animation takes care of switching the buttons
-    } else {
-        this.AnimationCurrent = 0.5;
-        this.AnimationTarget = 1.0;
-        this.UpdateGui();
     }
 
-    RecordState();
-
-    this.AnimationLastTime = new Date().getTime();
-    this.AnimationDuration = 1000.0;
-    this.AnimateViewToggle();
-}
-
-DualViewWidget.prototype.UpdateGui = function () {
-    if ( this.HideHandles) {
-        $('#dualWidgetLeft').hide();
-        $('#dualWidgetRight').hide();
-        return;
-    }
-    // Now swap the buttons.
-    if (this.DualView) {
-        $('#dualWidgetLeft').hide();
-        $('#dualWidgetRight').show();
-        // Edit menu option to copy camera zoom between views.
-        $('#dualViewCopyZoom').show();
-    } else {
-        $('#dualWidgetRight').hide();
-        $('#dualViewCopyZoom').hide();
-        $('#dualWidgetLeft').show();
-        // Edit menu option to copy camera zoom between views.
-    }
-}
-
-DualViewWidget.prototype.AnimateViewToggle = function () {
-    var timeStep = new Date().getTime() - this.AnimationLastTime;
-    if (timeStep > this.AnimationDuration) {
-        // end the animation.
-        this.Viewer1Fraction = this.AnimationTarget;
-        this.UpdateSize();
-        this.UpdateGui();
-        this.Draw();
-        return;
-    }
-
-    var k = timeStep / this.AnimationDuration;
-
-    // update
-    this.AnimationDuration *= (1.0-k);
-    this.Viewer1Fraction += (this.AnimationTarget - this.Viewer1Fraction) * k;
-
-    this.UpdateSize();
-    // 2d canvas does not draw without this.
-    this.Draw();
-    var self = this;
-    requestAnimFrame(function () { self.AnimateViewToggle()});
-}
-
-
-DualViewWidget.prototype.CreateThumbnailImage = function(height) {
-    var canvas = document.createElement("canvas"); //create
-    var ctx = canvas.getContext("2d");
-    var img1 = this.Viewers[0].MainView.CaptureImage();
-    var scale = height / img1.height;
-    var width1 = Math.round(img1.width * scale);
-    var height1 = Math.round(img1.height * scale);
-    if (this.DualView) {
-        var img2 = this.Viewers[2].MainView.CaptureImage();
-        var width2 = Math.round(img2.width * scale);
-        var height2 = Math.round(img2.height * scale);
-        canvas.width = width1 + width2;
-        canvas.height = Math.max(height1, height2);
-        ctx.drawImage(img2, 0, 0, img2.width, img2.height,
-                      width1, 0, width2, height2);
-    } else {
-        canvas.width = width1;
-        canvas.height = height1;
-    }
-    ctx.drawImage(img1, 0, 0, img1.width, img1.height,
-                  0, 0, width1, height1);
-
-    var url = canvas.toDataURL('image/jpeg', 0.8);
-    var thumb = document.createElement("img"); //create
-    thumb.src = url;
-
-    return thumb;
-}
-
-
-DualViewWidget.prototype.Draw = function (gl) {
-    if (gl) {
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    }
-
-    // This just changes the camera based on the current time.
-    if (this.Viewers[0]) {
-        this.Viewers[0].Animate();
-        if (this.DualView) { this.Viewers[1].Animate(); }
-        this.Viewers[0].Draw();
-    }
-    if (this.Viewers[1] && this.DualView) { this.Viewers[1].Draw(); }
-}
-
-
-DualViewWidget.prototype.UpdateSize = function () {
-    var percent = this.Viewer1Fraction*100;
-    if (this.ViewerDivs[0]) {
-        this.ViewerDivs[0].css({'left':'0%',
-                                'width':percent+'%',
-                                'height':'100%'});
-        this.Viewers[0].UpdateSize();
-    }
-    if (this.ViewerDivs[1]) {
-        this.ViewerDivs[1].css({'left':percent+'%',
-                                'width':(100-percent)+'%',
-                               'height':'100%'});
-        this.Viewers[1].UpdateSize();
-    }
-
-    if (percent >= 90) {
-        this.Viewers[1].Hide();
-    } else {
-        this.Viewers[1].Show();
-    }
-}
-
-
-DualViewWidget.prototype.AnnotationWidgetOn = function() {
-    for (var i = 0; i < this.Viewers.length; ++i) {
-        this.Viewers.AnnotationWidgetOn();
-    }
-}
-
-DualViewWidget.prototype.AnnotationWidgetOff = function() {
-    for (var i = 0; i < this.Viewers.length; ++i) {
-        this.Viewers.AnnotationWidgetOff();
-    }
-}
-
-// refViewerIdx is the viewer that changed and other viewers need 
-// to be updated to match that reference viewer.
-DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
-    // We allow the viewer to go one past the end.
-    if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
-        return;
-    }
-
-    // Special case for when the shift key is pressed.
-    // Translate only one camera and modify the tranform to match.
-    if (SA.Edit && SA.StackCursorFlag) {
-        var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-        if ( ! note.ActiveCorrelation) {
-            if ( ! trans) {
-                alert("Missing transform");
-                return;
+    // Abstracting saViewer  for viewer and dualViewWidget.
+    // Save viewer state in a note.
+    DualViewWidget.prototype.Record = function (note, startViewIdx) {
+        if (startViewIdx) {
+            note.StartIndex = startViewIdx;
+        }
+        startViewIdx = startViewIdx || 0;
+        // TODO: Deal with multiple  windows consistently.
+        // Now num viewRecords indicates the number of views in the display,
+        // but not for stacks.  We have this start index which implies stack behavior.
+        if ( note.Type != "Stack") {
+            if (! this.DualView && note.ViewerRecords.length > 1) {
+                note.ViewerRecords = [note.ViewerRecords[0]];
             }
-            // Remove all correlations visible in the window.
-            var cam = this.GetViewer(0).GetCamera();
-            var bds = cam.GetBounds();
-            var idx = 0;
-            while (idx < trans.Correlations.length) {
-                var cor = trans.Correlations[idx];
-                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
-                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
-                    trans.Correlations.splice(idx,1);
-                } else {
-                    ++idx;
+            if (this.DualView && note.ViewerRecords.length < 2) {
+                while ( note.ViewerRecords.length < 2) {
+                    note.ViewerRecords.push(new SA.ViewerRecord());
                 }
             }
-
-            // Now make a new replacement correlation.
-            note.ActiveCorrelation = new PairCorrelation();
-            trans.Correlations.push(note.ActiveCorrelation);
         }
-        var cam0 = this.GetViewer(0).GetCamera();
-        var cam1 = this.GetViewer(1).GetCamera();
-        note.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
-        note.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
-        // I really do not want to set the roll unless the user specifically changed it.
-        // It would be hard to correct if the wrong value got set early in the aligment.
-        var deltaRoll = cam1.Roll - cam0.Roll;
-        if (trans.Correlations.length > 1) {
-            deltaRoll = 0;
-            // Let roll be set by multiple correlation points.
-        }
-        note.ActiveCorrelation.SetRoll(deltaRoll);
-        note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
-        return; 
-    } else {
-        // A round about way to set and unset the active correlation.
-        // Note is OK, because if there is no interaction without the shift key
-        // the active correlation will not change anyway.
-        note.ActiveCorrelation = undefined;
-    }
 
-    // No shift modifier:
-    // Synchronize all the cameras.
-    // Hard coded for two viewers (recored 0 and 1 too).
-    // First place all the cameras into an array for code simplicity.
-    // Cameras used for preloading.
-    if (! note.PreCamera) { note.PreCamera = new SAM.Camera();}
-    if (! note.PostCamera) { note.PostCamera = new SAM.Camera();}
-    var cameras = [note.PreCamera,
-                   this.GetViewer(0).GetCamera(),
-                   this.GetViewer(1).GetCamera(),
-                   note.PostCamera];
-    var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
-    // Start with the reference section and move forward.
-    // With two sections, the second has the transform.
-
-    for (var i = refCamIdx+1; i < cameras.length; ++i) {
-        var transIdx = i - 1 + note.StartIndex;
-        if (transIdx < note.ViewerRecords.length) {
-            note.ViewerRecords[transIdx].Transform
-                .ForwardTransformCamera(cameras[i-1],cameras[i]);
-        } else {
-            cameras[i] = undefined;
-        }
-    }
-
-    // Start with the reference section and move backward.
-    // With two sections, the second has the transform.
-    for (var i = refCamIdx; i > 0; --i) {
-        var transIdx = i + note.StartIndex-1;
-        if (transIdx > 0) { // First section does not have a transform
-            note.ViewerRecords[transIdx].Transform
-                .ReverseTransformCamera(cameras[i],cameras[i-1]);
-        } else {
-            cameras[i-1] = undefined;
-        }
-    }
-
-    // Preload the adjacent sections.
-    if (cameras[0]) {
-        var cache = FindCache(note.ViewerRecords[note.StartIndex-1].Image);
-        cameras[0].SetViewport(this.GetViewer(0).GetViewport());
-        var tiles = cache.ChooseTiles(cameras[0], 0, []);
-        for (var i = 0; i < tiles.length; ++i) {
-            tiles[i].LoadQueueAdd();
-        }
-        LoadQueueUpdate();
-    }
-    if (cameras[3]) {
-        var cache = FindCache(note.ViewerRecords[note.StartIndex+2].Image);
-        cameras[3].SetViewport(this.GetViewer(0).GetViewport());
-        var tiles = cache.ChooseTiles(cameras[3], 0, []);
-        for (var i = 0; i < tiles.length; ++i) {
-            tiles[i].LoadQueueAdd();
-        }
-        LoadQueueUpdate();
-    }
-
-    // OverView cameras need to be updated.
-    if (refViewerIdx == 0) {
-        this.GetViewer(1).UpdateCamera();
-        this.GetViewer(1).EventuallyRender(false);
-    } else {
-        this.GetViewer(0).UpdateCamera();
-        this.GetViewer(0).EventuallyRender(false);
-    }
-
-    // Synchronize annitation visibility.
-    var refViewer = this.GetViewer(refViewerIdx);
-    for (var i = 0; i < 2; ++i) {
-        if (i != refViewerIdx) {
-            var viewer = this.GetViewer(i);
-            if (viewer.AnnotationWidget && refViewer.AnnotationWidget) {
-                viewer.AnnotationWidget.SetVisibility(
-                    refViewer.AnnotationWidget.GetVisibility());
+        for (var i = 0; i  < this.GetNumberOfViewers(); ++i) {
+            if (i + startViewIdx < note.ViewerRecords.length) {
+                this.GetViewer(i).Record(note, i+startViewIdx);
             }
         }
     }
-}
+
+
+    // Abstracting the saViewer class to support dual viewers and stacks.
+    DualViewWidget.prototype.ProcessArguments = function (args) {
+        if (args.note) {
+            // TODO: DO we need both?
+            this.saNote = args.note;
+            //args.note.DisplayView(this);
+            this.SetNote(args.note,args.viewIndex);
+            // NOTE: TempId is legacy
+            this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
+        }
+
+        if (args.tileSource) {
+            var w = args.tileSource.width;
+            var h = args.tileSource.height;
+            var cache = new SA.Cache();
+            cache.TileSource = args.tileSource;
+            // Use the note tmp id as an image id so the viewer can index the
+            // cache.
+            var note = new SA.Note();
+            var image = {levels:     args.maxLevel + 1,
+                         dimensions: [w,h],
+                         bounds: [0,w-1, 0,h-1],
+                         _id: note.TempId};
+            var record = new SA.ViewerRecord();
+            record.Image = image;
+            record.OverviewBounds = [0,w-1,0,h-1];
+            record.Camera = {FocalPoint: [w/2, h/2],
+                             Roll: 0,
+                             Height: h};
+        note.ViewerRecords.push(record);
+            cache.SetImageData(image);
+            this.SetNote(args.note,args.viewIndex);
+        }
+
+        for (var i = 0; i < this.Viewers.length; ++i) {
+            var viewer = this.Viewers[i];
+
+            if (args.hideCopyright != undefined) {
+                viewer.SetCopyrightVisibility( ! args.hideCopyright);
+            }
+            if (args.overview !== undefined) {
+                viewer.SetOverViewVisibility(args.overview);
+            }
+            if (args.navigation !== undefined) {
+                this.NavigationWidget.SetVisibility(args.navigation);
+            }
+            if (args.dualWidget !== undefined) {
+                this.HideHandles = ! args.dualWidget;
+                this.UpdateGui();
+            }
+            if (args.zoomWidget !== undefined) {
+                viewer.SetZoomWidgetVisibility(args.zoomWidget);
+            }
+            if (args.drawWidget !== undefined) {
+                viewer.SetAnnotationWidgetVisibility(args.drawWidget);
+            }
+            // The way I handle the viewer edit menu is messy.
+            // TODO: Find a more elegant way to add tabs.
+            // Maybe the way we handle the anntation tab shouodl be our pattern.
+            if (args.menu !== undefined) {
+                if ( ! viewer.Menu) {
+                    viewer.Menu = new SA.ViewEditMenu(viewer, null);
+                }
+                viewer.Menu.SetVisibility(args.menu);
+            }
+
+            if (args.interaction !== undefined) {
+                viewer.SetInteractionEnabled(args.interaction);
+                if (this.NavigationWidget) {
+                    this.NavigationWidget.SetInteractionEnabled(args.interaction);
+                }
+            }
+        }
+    }
+
+    // Which is better calling Note.Apply, or viewer.SetNote?  I think this
+    // will  win.
+    DualViewWidget.prototype.SetNote = function(note, viewIdx) {
+        var self = this;
+        // If the note is not loaded, request the note, and call this method
+        // when the note is finally loaded.
+        if (note && note.LoadState == 0) {
+            note.LoadViewId(
+                note.Id,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+        }
+
+        if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
+            console.log("Cannot set viewer record of note");
+            return;
+        }
+        if (viewIdx !== undefined) {
+            note.StartIndex = viewIdx;
+        }
+        this.saNote = note;
+        this.saViewerIndex = viewIdx;
+        if (this.NavigationWidget) {
+            this.NavigationWidget.SetNote(note);
+            //this.NavigationWidget.Update(); // not sure if this is necessary
+        }
+        if (note.Type == "Stack") {
+            // TODO: Can I move this logic into the display? SetNote maybe?
+            // Possibly nagivationWidget (we need to know which viewer is referecne.
+            // Select only gets called when the stack is first loaded.
+            var self = this;
+            this.GetViewer(0).OnInteraction(function () {
+                self.SynchronizeViews(0, note);});
+            this.GetViewer(1).OnInteraction(function () {
+                self.SynchronizeViews(1, note);});
+            note.DisplayStack(this);
+            // First view is set by viewer record camera.
+            // Second is set relative to the first.
+            this.SynchronizeViews(0, note);
+        } else {
+            note.DisplayView(this);
+        }
+
+        if (SA.NotesWidget) {
+            SA.NotesWidget.SelectNote(note);
+        }
+    }
+    DualViewWidget.prototype.GetNote = function () {
+        return this.saNote;
+    }
+    DualViewWidget.prototype.GetRootNote = function () {
+        var note = this.saNote;
+        while (note.Parent) {
+            note = note.Parent;
+        }
+        return note;
+    }
+    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new SA.Note();
+            var self = this;
+            note.LoadViewId(
+                noteId,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+            return note;
+        }
+        this.SetNote(note,viewIdx);
+        return note;
+    }
+
+    
+    // API for ViewerSet
+    DualViewWidget.prototype.GetNumberOfViewers = function() {
+        if (this.DualView) {
+            return 2;
+        }
+
+        return 1;
+    }
+
+    // API for ViewerSet
+    DualViewWidget.prototype.GetViewer = function(idx) {
+        return this.Viewers[idx];
+    }
+
+    // Called programmatically. No animation.
+    DualViewWidget.prototype.SetNumberOfViewers = function(numViews) {
+        this.DualView = (numViews > 1);
+
+        if (this.DualView) {
+            this.Viewer1Fraction = 0.5;
+        } else {
+            this.Viewer1Fraction = 1.0;
+        }
+
+        this.UpdateSize();
+        this.UpdateGui();
+    }
+
+
+    DualViewWidget.prototype.ToggleDualView = function () {
+        this.DualView = ! this.DualView;
+
+        if (this.DualView) {
+            // If there is no image in the second viewer, copy it from the first.
+            if ( ! this.Viewers[1].GetCache()) {
+                this.Viewers[1].SetCache(this.Viewers[0].GetCache());
+                this.Viewers[1].GetCamera().DeepCopy(this.Viewers[0].GetCamera());
+            }
+            this.AnimationCurrent = 1.0;
+            this.AnimationTarget = 0.5;
+            // Edit menu option to copy camera zoom between views.
+            // I do not call update gui here because I want
+            // the buttons to appear at the end of the animation.
+            $('#dualViewCopyZoom').show();
+            // Animation takes care of switching the buttons
+        } else {
+            this.AnimationCurrent = 0.5;
+            this.AnimationTarget = 1.0;
+            this.UpdateGui();
+        }
+
+        SA.RecordState();
+
+        this.AnimationLastTime = new Date().getTime();
+        this.AnimationDuration = 1000.0;
+        this.AnimateViewToggle();
+    }
+
+    DualViewWidget.prototype.UpdateGui = function () {
+        if ( this.HideHandles) {
+            $('#dualWidgetLeft').hide();
+            $('#dualWidgetRight').hide();
+            return;
+        }
+        // Now swap the buttons.
+        if (this.DualView) {
+            $('#dualWidgetLeft').hide();
+            $('#dualWidgetRight').show();
+            // Edit menu option to copy camera zoom between views.
+            $('#dualViewCopyZoom').show();
+        } else {
+            $('#dualWidgetRight').hide();
+            $('#dualViewCopyZoom').hide();
+            $('#dualWidgetLeft').show();
+            // Edit menu option to copy camera zoom between views.
+        }
+    }
+
+    DualViewWidget.prototype.AnimateViewToggle = function () {
+        var timeStep = new Date().getTime() - this.AnimationLastTime;
+        if (timeStep > this.AnimationDuration) {
+            // end the animation.
+            this.Viewer1Fraction = this.AnimationTarget;
+            this.UpdateSize();
+            this.UpdateGui();
+            this.Draw();
+            return;
+        }
+
+        var k = timeStep / this.AnimationDuration;
+
+        // update
+        this.AnimationDuration *= (1.0-k);
+        this.Viewer1Fraction += (this.AnimationTarget - this.Viewer1Fraction) * k;
+
+        this.UpdateSize();
+        // 2d canvas does not draw without this.
+        this.Draw();
+        var self = this;
+        requestAnimFrame(function () { self.AnimateViewToggle()});
+    }
+
+
+    DualViewWidget.prototype.CreateThumbnailImage = function(height) {
+        var canvas = document.createElement("canvas"); //create
+        var ctx = canvas.getContext("2d");
+        var img1 = this.Viewers[0].MainView.CaptureImage();
+        var scale = height / img1.height;
+        var width1 = Math.round(img1.width * scale);
+        var height1 = Math.round(img1.height * scale);
+        if (this.DualView) {
+            var img2 = this.Viewers[2].MainView.CaptureImage();
+            var width2 = Math.round(img2.width * scale);
+            var height2 = Math.round(img2.height * scale);
+            canvas.width = width1 + width2;
+            canvas.height = Math.max(height1, height2);
+            ctx.drawImage(img2, 0, 0, img2.width, img2.height,
+                          width1, 0, width2, height2);
+        } else {
+            canvas.width = width1;
+            canvas.height = height1;
+        }
+        ctx.drawImage(img1, 0, 0, img1.width, img1.height,
+                      0, 0, width1, height1);
+
+        var url = canvas.toDataURL('image/jpeg', 0.8);
+        var thumb = document.createElement("img"); //create
+        thumb.src = url;
+
+        return thumb;
+    }
+
+
+    DualViewWidget.prototype.Draw = function (gl) {
+        if (gl) {
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        }
+
+        // This just changes the camera based on the current time.
+        if (this.Viewers[0]) {
+            this.Viewers[0].Animate();
+            if (this.DualView) { this.Viewers[1].Animate(); }
+            this.Viewers[0].Draw();
+        }
+        if (this.Viewers[1] && this.DualView) { this.Viewers[1].Draw(); }
+    }
+
+
+    DualViewWidget.prototype.UpdateSize = function () {
+        var percent = this.Viewer1Fraction*100;
+        if (this.ViewerDivs[0]) {
+            this.ViewerDivs[0].css({'left':'0%',
+                                    'width':percent+'%',
+                                    'height':'100%'});
+            this.Viewers[0].UpdateSize();
+        }
+        if (this.ViewerDivs[1]) {
+            this.ViewerDivs[1].css({'left':percent+'%',
+                                    'width':(100-percent)+'%',
+                                    'height':'100%'});
+            this.Viewers[1].UpdateSize();
+        }
+
+        if (percent >= 90) {
+            this.Viewers[1].Hide();
+        } else {
+            this.Viewers[1].Show();
+        }
+    }
+
+
+    DualViewWidget.prototype.AnnotationWidgetOn = function() {
+        for (var i = 0; i < this.Viewers.length; ++i) {
+            this.Viewers.AnnotationWidgetOn();
+        }
+    }
+
+    DualViewWidget.prototype.AnnotationWidgetOff = function() {
+        for (var i = 0; i < this.Viewers.length; ++i) {
+            this.Viewers.AnnotationWidgetOff();
+        }
+    }
+
+    // refViewerIdx is the viewer that changed and other viewers need 
+    // to be updated to match that reference viewer.
+    DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
+        // We allow the viewer to go one past the end.
+        if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
+            return;
+        }
+
+        // Special case for when the shift key is pressed.
+        // Translate only one camera and modify the tranform to match.
+        if (SA.Edit && SA.StackCursorFlag) {
+            var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+            if ( ! note.ActiveCorrelation) {
+                if ( ! trans) {
+                    alert("Missing transform");
+                    return;
+                }
+                // Remove all correlations visible in the window.
+                var cam = this.GetViewer(0).GetCamera();
+                var bds = cam.GetBounds();
+                var idx = 0;
+                while (idx < trans.Correlations.length) {
+                    var cor = trans.Correlations[idx];
+                    if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
+                        cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                        trans.Correlations.splice(idx,1);
+                    } else {
+                        ++idx;
+                    }
+                }
+
+                // Now make a new replacement correlation.
+                note.ActiveCorrelation = new SA.PairCorrelation();
+                trans.Correlations.push(note.ActiveCorrelation);
+            }
+            var cam0 = this.GetViewer(0).GetCamera();
+            var cam1 = this.GetViewer(1).GetCamera();
+            note.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
+            note.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
+            // I really do not want to set the roll unless the user specifically changed it.
+            // It would be hard to correct if the wrong value got set early in the aligment.
+            var deltaRoll = cam1.Roll - cam0.Roll;
+            if (trans.Correlations.length > 1) {
+                deltaRoll = 0;
+                // Let roll be set by multiple correlation points.
+            }
+            note.ActiveCorrelation.SetRoll(deltaRoll);
+            note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
+            return; 
+        } else {
+            // A round about way to set and unset the active correlation.
+            // Note is OK, because if there is no interaction without the shift key
+            // the active correlation will not change anyway.
+            note.ActiveCorrelation = undefined;
+        }
+
+        // No shift modifier:
+        // Synchronize all the cameras.
+        // Hard coded for two viewers (recored 0 and 1 too).
+        // First place all the cameras into an array for code simplicity.
+        // Cameras used for preloading.
+        if (! note.PreCamera) { note.PreCamera = new SAM.Camera();}
+        if (! note.PostCamera) { note.PostCamera = new SAM.Camera();}
+        var cameras = [note.PreCamera,
+                       this.GetViewer(0).GetCamera(),
+                       this.GetViewer(1).GetCamera(),
+                       note.PostCamera];
+        var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
+        // Start with the reference section and move forward.
+        // With two sections, the second has the transform.
+
+        for (var i = refCamIdx+1; i < cameras.length; ++i) {
+            var transIdx = i - 1 + note.StartIndex;
+            if (transIdx < note.ViewerRecords.length) {
+                note.ViewerRecords[transIdx].Transform
+                    .ForwardTransformCamera(cameras[i-1],cameras[i]);
+            } else {
+                cameras[i] = undefined;
+            }
+        }
+
+        // Start with the reference section and move backward.
+        // With two sections, the second has the transform.
+        for (var i = refCamIdx; i > 0; --i) {
+            var transIdx = i + note.StartIndex-1;
+            if (transIdx > 0) { // First section does not have a transform
+                note.ViewerRecords[transIdx].Transform
+                    .ReverseTransformCamera(cameras[i],cameras[i-1]);
+            } else {
+                cameras[i-1] = undefined;
+            }
+        }
+
+        // Preload the adjacent sections.
+        if (cameras[0]) {
+            var cache = SA.FindCache(note.ViewerRecords[note.StartIndex-1].Image);
+            cameras[0].SetViewport(this.GetViewer(0).GetViewport());
+            var tiles = cache.ChooseTiles(cameras[0], 0, []);
+            for (var i = 0; i < tiles.length; ++i) {
+                tiles[i].LoadQueueAdd();
+            }
+            LoadQueueUpdate();
+        }
+        if (cameras[3]) {
+            var cache = SA.FindCache(note.ViewerRecords[note.StartIndex+2].Image);
+            cameras[3].SetViewport(this.GetViewer(0).GetViewport());
+            var tiles = cache.ChooseTiles(cameras[3], 0, []);
+            for (var i = 0; i < tiles.length; ++i) {
+                tiles[i].LoadQueueAdd();
+            }
+            LoadQueueUpdate();
+        }
+
+        // OverView cameras need to be updated.
+        if (refViewerIdx == 0) {
+            this.GetViewer(1).UpdateCamera();
+            this.GetViewer(1).EventuallyRender(false);
+        } else {
+            this.GetViewer(0).UpdateCamera();
+            this.GetViewer(0).EventuallyRender(false);
+        }
+
+        // Synchronize annitation visibility.
+        var refViewer = this.GetViewer(refViewerIdx);
+        for (var i = 0; i < 2; ++i) {
+            if (i != refViewerIdx) {
+                var viewer = this.GetViewer(i);
+                if (viewer.AnnotationWidget && refViewer.AnnotationWidget) {
+                    viewer.AnnotationWidget.SetVisibility(
+                        refViewer.AnnotationWidget.GetVisibility());
+                }
+            }
+        }
+    }
+
+
+    SA.DualViewWidget = DualViewWidget;
+
+})();
+
 
 //==============================================================================
 // Is it time to switch to lowercase?  No.  I still like lower case for
 // local variables. Upper case for instance variables 
+
+(function () {
+    "use strict";
 
 
 function TabbedDiv(parent) {
@@ -11176,6 +11251,9 @@ function TabPanel(tabbedDiv, title) {
 
 //==============================================================================
 
+    SA.TabbedDiv = TabbedDiv;
+    SA.TabPanel = TabPanel;
+})();
 //------------------------------------------------------------------------------
 // Note object (maybe will be used for views and sessions too).
 
@@ -11210,7 +11288,7 @@ function TabPanel(tabbedDiv, title) {
 
         // A global list of notes so we can find a note by its id.
         // TODO: Legacy.  Get rid of TempId.
-        this.Id = this.TempId = new ObjectId().toString();
+        this.Id = this.TempId = new SA.ObjectId().toString();
         SA.Notes.push(this);
 
         var self = this;
@@ -11219,7 +11297,7 @@ function TabPanel(tabbedDiv, title) {
         // 2: received
         this.LoadState = 0;
 
-        this.User = GetUser(); // Reset by flask.
+        this.User = SA.GetUser(); // Reset by flask.
         var d = new Date();
         this.Date = d.getTime(); // Also reset later.
         this.Type = "Note";
@@ -11338,7 +11416,7 @@ function TabPanel(tabbedDiv, title) {
         this.Image = Note.Image; // not really deep.
         this.Children = [];
         for (var i = 0; i < note.Children.length; ++i) {
-            var child = new Note();
+            var child = new SA.Note();
             child.DeepCopy(note.Children[i]);
             this.Children.push(child);
         }
@@ -11354,7 +11432,7 @@ function TabPanel(tabbedDiv, title) {
         //this.UserText = note.UserText;
         this.ViewerRecords = [];
         for (var i = 0; i < note.ViewerRecords.length; ++i) {
-            var record = new ViewerRecord();
+            var record = new SA.ViewerRecord();
             record.DeepCopy(note.ViewerRecords[i]);
             this.ViewerRecords.push(record);
         }
@@ -11538,7 +11616,7 @@ function TabPanel(tabbedDiv, title) {
         }
         this.ViewerRecords = [];
         for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
-            var viewerRecord = new ViewerRecord();
+            var viewerRecord = new SA.ViewerRecord();
             viewerRecord.CopyViewer(display.GetViewer(i));
             this.ViewerRecords.push(viewerRecord);
         }
@@ -11621,7 +11699,7 @@ function TabPanel(tabbedDiv, title) {
     }
 
     Note.prototype.NewIterator = function() {
-        return new NoteIterator(this);
+        return new SA.NoteIterator(this);
     }
 
     Note.prototype.Contains = function(decendent) {
@@ -11641,7 +11719,7 @@ function TabPanel(tabbedDiv, title) {
     // The new note is not automatically selected.
     Note.prototype.NewChild = function(childIdx, title) {
         // Create a new note.
-        var childNote = new Note();
+        var childNote = new SA.Note();
         childNote.Title = title;
         var d = new Date();
         childNote.Date = d.getTime(); // Temporary. Set for real by server.
@@ -11676,7 +11754,7 @@ function TabPanel(tabbedDiv, title) {
             },
             error: function() {
                 SA.PopProgress();
-                saDebug("AJAX - error() : saveviewnotes" );
+                SA.Debug("AJAX - error() : saveviewnotes" );
             },
         });
     }
@@ -11886,7 +11964,7 @@ function TabPanel(tabbedDiv, title) {
             if (this.ViewerRecords[i]) {
                 obj = this.ViewerRecords[i];
                 // It would be nice to have a constructor that took an object.
-                this.ViewerRecords[i] = new ViewerRecord();
+                this.ViewerRecords[i] = new SA.ViewerRecord();
                 this.ViewerRecords[i].Load(obj);
             }
         }
@@ -11912,7 +11990,7 @@ function TabPanel(tabbedDiv, title) {
             },
             error: function() {
                 SA.PopProgress();
-                saDebug( "AJAX - error() : getview" )
+                SA.Debug( "AJAX - error() : getview" )
             },
         });
     }
@@ -12007,7 +12085,7 @@ function TabPanel(tabbedDiv, title) {
                 var cam1 = this.ViewerRecords[i].Camera;
                 var dRoll = cam1.Roll - cam0.Roll;
                 if (dRoll < 0.0) { dRoll += 2*Math.PI; }
-                var trans = new PairTransformation();
+                var trans = new SA.PairTransformation();
                 trans.AddCorrelation(cam0.FocalPoint, cam1.FocalPoint, dRoll,
                                      0.5*(cam0.Height+cam1.Height));
                 this.ViewerRecords[i].Transform = trans;
@@ -12493,7 +12571,7 @@ function TabPanel(tabbedDiv, title) {
 
         if ( ! this.UrlDialog) {
             var self = this;
-            var dialog = new Dialog(function() {
+            var dialog = new SAM.Dialog(function() {
                 self.InsertUrlLinkAccept();
             });
             dialog.Body.css({'margin':'1em 2em'});
@@ -12752,6 +12830,13 @@ function TabPanel(tabbedDiv, title) {
     //==============================================================================
 
 
+
+
+
+(function () {
+    "use strict";
+
+
 function NotesWidget(parent, display) {
     this.ModifiedCallback = null;
     this.LinkDiv;
@@ -12813,7 +12898,7 @@ function NotesWidget(parent, display) {
     this.SelectedNote;
 
     // GUI elements
-    this.TabbedWindow = new TabbedDiv(this.Window);
+    this.TabbedWindow = new SA.TabbedDiv(this.Window);
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
     this.LinksRoot = $('<ul>')
         .addClass('sa-ul')
@@ -13200,7 +13285,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     // Bug: canvas.getDataUrl() not supported in Safari on iPad.
     // Fix: If on mobile, use the thumbnail for the entire slide.
     var src;
-    if(MOBILE_DEVICE){
+    if(SA.MOBILE_DEVICE){
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
@@ -13220,7 +13305,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
             FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
         },
         error: function() {
-            saDebug( "AJAX - error() : saveusernote 2" );
+            SA.Debug( "AJAX - error() : saveusernote 2" );
         },
     });
 }
@@ -13303,7 +13388,7 @@ NotesWidget.prototype.RequestUserNote = function(imageId) {
         url: "/webgl-viewer/getusernotes",
         data: {"imageid": imageId},
         success: function(data,status) { self.LoadUserNote(data, imageId);},
-        error: function() { saDebug( "AJAX - error() : getusernotes" ); },
+        error: function() { SA.Debug( "AJAX - error() : getusernotes" ); },
     });
 }
 
@@ -13321,7 +13406,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {
-            saDebug("Warning: Only showing the first user note.");
+            SA.Debug("Warning: Only showing the first user note.");
         }
         var noteData = data.Notes[0];
         this.UserNote.Load(noteData);
@@ -13331,7 +13416,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         // Only copoy the first viewer records.  More could be problematic.
         var note = this.GetCurrentNote();
         if (note && note.ViewerRecords.length > 0) {
-            var record = new ViewerRecord();
+            var record = new SA.ViewerRecord();
             record.DeepCopy(note.ViewerRecords[0]);
             this.UserNote.ViewerRecords.push(record);
         }
@@ -13355,10 +13440,13 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
 
 
 
+    SA.NotesWidget = NotesWidget;
+
+})();
 // Tabbed gui.
 
 // Closure namespace
-Tab = (function () {
+(function () {
 
     var Tabs = [];
 
@@ -13452,7 +13540,8 @@ Tab = (function () {
 
 
     // Export the tab object.
-    return Tab;
+    SA.Tab = Tab;
+
 })();
     
     
@@ -13470,13 +13559,23 @@ Tab = (function () {
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
 // or maybe the delete key.
 
+
+
+(function () {
+    "use strict";
+
+    var ANNOTATION_OFF = 0;
+    var ANNOTATION_NO_TEXT = 1;
+    var ANNOTATION_ON = 2;
+
+
 function AnnotationWidget (layer, viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
     this.Layer = layer;
     layer.AnnotationWidget = this;
 
-    this.Tab = new Tab(layer.GetCanvasDiv(),
+    this.Tab = new SA.Tab(layer.GetCanvasDiv(),
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
     this.Tab.Div
@@ -13631,7 +13730,7 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
         vis = ANNOTATION_OFF;
     }
     this.SetVisibility( vis );
-    RecordState();
+    SA.RecordState();
 }
 
 
@@ -13787,13 +13886,19 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
 
     widget.SetActive(true);
-    widget.DeactivateCallback = 
+    widget.DeactivateCallback =
         function () {
             button.removeClass('sa-active');
             widget.DeactivateCallback = undefined;
             button.Pressed = false;
         }
 }
+
+
+    SA.AnnotationWidget = AnnotationWidget;
+
+})();
+
 // This "widget" implements undo and redo as well as saving states in the database for a recording of a session.
 // I save the recording state as a cookie so that the user can change slides or even sessions.
 // I am going to have a separate recording collection.
@@ -13819,7 +13924,12 @@ AnnotationWidget.prototype.DetectSections = function() {
 // Records are now being used for notes.  Since page record may contain
 // information about current note, I am using ViewerRecord as a shared object.
 
-var RECORDER_WIDGET = null;
+
+(function () {
+    "use strict";
+
+
+    SA.RECORDER_WIDGET = null;
 
 function ViewerRecord () {
     this.AnnotationVisibility = 0;
@@ -13855,7 +13965,7 @@ ViewerRecord.prototype.Load = function(obj) {
         }
     }
 
-    for (ivar in obj) {
+    for (var ivar in obj) {
         this[ivar] = obj[ivar];
     }
 
@@ -13878,7 +13988,7 @@ ViewerRecord.prototype.Load = function(obj) {
     }
 
     if (this.Transform) {
-        var t = new PairTransformation;
+        var t = new SA.PairTransformation;
         t.Load(this.Transform);
         this.Transform = t;
     }
@@ -13900,10 +14010,14 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     this.Image = cache.Image;
     this.Camera = viewer.GetCamera().Serialize();
 
-    this.AnnotationVisibility = viewer.GetAnnotationLayer().GetVisibility();
+    // TODO: get rid of this hack somehow. Generalize layers?
+    var annotationLayer = viewer.Layers[0];
+    if ( ! annotationLayer) {return;}
+
+    this.AnnotationVisibility = annotationLayer.GetVisibility();
     this.Annotations = [];
 
-    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    var widgets = annotationLayer.GetWidgets();
     for (var i = 0; i < widgets.length; ++i) {
         this.Annotations.push(widgets[i].Serialize());
     }
@@ -13912,7 +14026,11 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
 // For stacks.  A reduced version of copy view. 
 ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     this.Annotations = [];
-    var widgets = viewer.GetAnnotationLayer().GetWidgets();
+    // TODO: get rid of this hack somehow. Generalize layers?
+    if (viewer.Layers.length == 0) { return;}
+    var annotationLayer = viewer.Layers[0];
+    if ( ! annotationLayer) { return;}
+    var widgets = viewer.Layers[0].GetWidgets();
     for (var i = 0; i < widgets.length; ++i) {
         var o = widgets[i].Serialize();
         if (o) {
@@ -13925,7 +14043,7 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.
 ViewerRecord.prototype.Serialize = function () {
-  rec = {};
+  var rec = {};
   rec.Image = this.Image._id;
   rec.Database = this.Image.database;
   rec.NumberOfLevels = this.Image.levels;
@@ -13959,7 +14077,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
     var cache = viewer.GetCache();
     if ( ! cache || this.Image._id != cache.Image._id) {
-        var newCache = FindCache(this.Image);
+        var newCache = SA.FindCache(this.Image);
         viewer.SetCache(newCache);
     }
 
@@ -14001,7 +14119,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 // This is a helper method to start preloading tiles for an up coming view.
 ViewerRecord.prototype.LoadTiles = function (viewport) {
-    var cache = FindCache(this.Image);
+    var cache = SA.FindCache(this.Image);
     // TODO:  I do not like the fact that we are keeping a serialized
     // version of the camera in the record object.  It should be a real 
     // camera that is serialized when it is saved.
@@ -14025,9 +14143,9 @@ function GetTrackingData(){
     success: function(data,status){
                if (status == "success") {
                  LoadTrackingCallback(data);
-               } else { saDebug("ajax failed - get tracking data"); }
+               } else { SA.Debug("ajax failed - get tracking data"); }
              },
-    error: function() { saDebug( "AJAX - error() : gettrackingdata" ); },
+    error: function() { SA.Debug( "AJAX - error() : gettrackingdata" ); },
     });
 }
 
@@ -14036,16 +14154,16 @@ function LoadTrackingCallback(data){
 }
 
 // legacy
-function RecordState() {
-    if (RECORDER_WIDGET) {
-        RECORDER_WIDGET.RecordState();
+SA.RecordState = function() {
+    if (SA.RECORDER_WIDGET) {
+        SA.RECORDER_WIDGET.RecordState();
     }
 }
 
 // display is a set of viewers (like DualViewWidet)
 var RecorderWidget = function(display) {
-    if ( ! RECORDER_WIDGET) {
-        RECORDER_WIDGET = this;
+    if ( ! SA.RECORDER_WIDGET) {
+        SA.RECORDER_WIDGET = this;
     }
     
     var self = this;
@@ -14097,7 +14215,7 @@ var RecorderWidget = function(display) {
         .hide()
         .click(function(){alert("REDO");});
 
-    this.RecordingName = getCookie("SlideAtlasRecording");
+    this.RecordingName = SA.getCookie("SlideAtlasRecording");
     if (this.RecordingName != undefined && this.RecordingName != "false") {
         this.Recording = true;
         this.UpdateGUI();
@@ -14124,7 +14242,7 @@ RecorderWidget.prototype.RecordingStart = function() {
     // User should be prompted for a name when recording stops.
     var d = new Date();
     this.RecordingName = "Bev" + d.getTime();
-    setCookie("SlideAtlasRecording",this.RecordingName,1);
+    SA.setCookie("SlideAtlasRecording",this.RecordingName,1);
     this.UpdateGUI();
     // Create a new recording object in the database.
     this.RecordState();
@@ -14133,7 +14251,7 @@ RecorderWidget.prototype.RecordingStart = function() {
 RecorderWidget.prototype.RecordingStop = function() {
     if ( ! this.Recording) { return; }
     this.Recording = false;
-    setCookie("SlideAtlasRecording","false",1);
+    SA.setCookie("SlideAtlasRecording","false",1);
     this.UpdateGUI();
     
     // Prompt for a name and if the user want to keep the recording.
@@ -14155,7 +14273,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
     if (SA.DualDisplay) {
-        parentNote = SA.DualDisplay.GetNote();
+        var parentNote = SA.DualDisplay.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -14177,7 +14295,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
             note.Id = data;
         },
         error: function() {
-            //saDebug( "AJAX - error() : saveusernote" );
+            //SA.Debug( "AJAX - error() : saveusernote" );
         },
     });
 
@@ -14212,7 +14330,7 @@ RecorderWidget.prototype.GetRecords = function() {
             self.Records = data.viewArray;
         },
         error: function() {
-            saDebug( "AJAX - error() : get records" );
+            SA.Debug( "AJAX - error() : get records" );
         },
     });
 }
@@ -14259,8 +14377,22 @@ RecorderWidget.prototype.RedoState = function() {
     // Now change the page to the state at the end of the timeline.
     recordNote.DisplayView();
 }
+
+
+    SA.ViewerRecord = ViewerRecord;
+    SA.RecorderWidget = RecorderWidget;
+
+})();
+
 // VCR like buttons to get to next/previous note/slide.
 // entwined with the notes widget at the moment.
+
+
+
+
+(function () {
+    "use strict";
+
 
 
 //------------------------------------------------------------------------------
@@ -14271,13 +14403,13 @@ function NavigationWidget(parent,display) {
    // Load the session slides from the localStorage
     this.SlideIndex = 0;
     this.Session = [];
-    this.NoteIterator = new NoteIterator();
+    this.NoteIterator = new SA.NoteIterator();
 
     var self = this;
     var size = '40px';
     var left = '170px';
     var bottom = '10px';
-    if (MOBILE_DEVICE) {
+    if (SA.MOBILE_DEVICE) {
         // fake a tab
         this.Tab = {};
         this.Tab.Panel = $('<div>')
@@ -14296,7 +14428,7 @@ function NavigationWidget(parent,display) {
         }
         //SA.OnStartInteraction( function () { panel.hide();} );
     } else {
-        this.Tab = new Tab(parent,SA.ImagePathUrl+"nav.png", "navigationTab");
+        this.Tab = new SA.Tab(parent,SA.ImagePathUrl+"nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");
         this.Tab.Div.addClass("sa-view-navigation-div");
         this.Tab.Panel.addClass("sa-view-navigation-panel");
@@ -14337,9 +14469,9 @@ function NavigationWidget(parent,display) {
         .click(function(){self.NextSlide();});
 
     // TODO: Fix the main css file for mobile.  Hack this until fixed.
-    if (MOBILE_DEVICE) {
+    if (SA.MOBILE_DEVICE) {
         size = '80px';
-        if (MOBILE_DEVICE == "iPhone") {
+        if (SA.MOBILE_DEVICE == "iPhone") {
             size = '100px';
         }
         this.PreviousSlideButton
@@ -14386,7 +14518,7 @@ NavigationWidget.prototype.SetInteractionEnabled = function(flag) {
 }
 
 NavigationWidget.prototype.HandleKeyDown = function(event) {
-    keyCode = event.keyCode;
+    var keyCode = event.keyCode;
     // 34=page down, 78=n, 32=space
     if (keyCode == 34) {
         this.NextSlide();
@@ -14431,7 +14563,7 @@ NavigationWidget.prototype.SetNote = function(note) {
                     self.Update();
                 },
                 error: function() {
-                    saDebug("AJAX - error() : session" );
+                    SA.Debug("AJAX - error() : session" );
                 },
             });
         }
@@ -14854,189 +14986,211 @@ NoteIterator.prototype.GetNote = function() {
     return this.Note;
 }
 
+
+
+    SA.NoteIterator = NoteIterator;
+    SA.NavigationWidget = NavigationWidget;
+
+})();
 // VCR like buttons to get to next/previous note/slide.
 // entwined with the notes widget at the moment.
 
 
-//------------------------------------------------------------------------------
-// I intend to have only one object
-// display is an array of viewers (dualViewWidget now).
-function FavoritesWidget(parent, display) {
+(function () {
+    "use strict";
 
-    this.Tab = new Tab(parent,
-                       SA.ImagePathUrl+"star.png",
-                       "favorites");
-    this.Tab.Div
-        .css({'position':'absolute',
-              'bottom':'0px',
-              'left':'10px'})
-        .prop('title', "Annotation");
 
-    this.Tab.Panel
-        .css({'position':'absolute',
-              'right': '-400px',
-              'left' : '-5px',
-              'height':'160px'});
+    //------------------------------------------------------------------------------
+    // I intend to have only one object
+    // display is an array of viewers (dualViewWidget now).
+    function FavoritesWidget(parent, display) {
+
+        this.Tab = new SA.Tab(parent,
+                              SA.ImagePathUrl+"star.png",
+                              "favorites");
+        this.Tab.Div
+            .css({'position':'absolute',
+                  'bottom':'0px',
+                  'left':'10px'})
+            .prop('title', "Annotation");
+
+        this.Tab.Panel
+            .css({'position':'absolute',
+                  'right': '-400px',
+                  'left' : '-5px',
+                  'height':'160px'});
         //.addClass("sa-view-favorites-div");
 
-    this.FavoritesBar = new FavoritesBar(this.Tab.Panel, display);
+        this.FavoritesBar = new SA.FavoritesBar(this.Tab.Panel, display);
 
-    this.FavoritesBar.LoadFavorites();
-}
-
-// Hack: Tabs panels are children of the tab div.
-// If I make the tab div width 100%, The other tabs do not receive events.
-// The hack solution is to keep the resize.
-FavoritesWidget.prototype.HandleResize = function(width){
-    this.Tab.Panel
-        .css({'left':'-5px',
-              'width': (width-20)+'px'});
-}
-
-
-
-
-
-
-
-
-
-
-
-function FavoritesBar(parent, display){
-    var self = this;
-    this.FavoritesGUI = this;
-    this.Display = display;
-
-    this.FavoritesList = parent;
-
-    this.SaveFavoriteButton =
-        $('<img>')
-        .appendTo(this.FavoritesList)
-        .addClass("sa-view-favorites-icon")
-        .attr('src',SA.ImagePathUrl+"saveNew.png")
-        .click(function(){self.SaveFavorite();});
-    this.SaveFavoriteButton.prop('title', "Save Favorite");
-
-    if(MOBILE_DEVICE){
-        this.SaveFavoriteButton
-            .addClass("sa-view-favorites-button");
+        this.FavoritesBar.LoadFavorites();
     }
 
-    this.ImageList =
-        $('<div>')
-        .appendTo(this.FavoritesList)
-        .addClass("sa-view-favorites-img-list");
-
-    this.LoadFavorites();
-}
-
-
-FavoritesBar.prototype.Hide = function(){
-    if( ! this.hidden){
-        this.FavoritesList.fadeOut();
-        this.hidden = true;
+    // Hack: Tabs panels are children of the tab div.
+    // If I make the tab div width 100%, The other tabs do not receive events.
+    // The hack solution is to keep the resize.
+    FavoritesWidget.prototype.HandleResize = function(width){
+        this.Tab.Panel
+            .css({'left':'-5px',
+                  'width': (width-20)+'px'});
     }
-}
 
 
-FavoritesBar.prototype.ShowHideFavorites = function(){
-    if(this.hidden){
-        this.FavoritesList.show();
-        this.hidden = false;
+    SA.FavoritesWidget = FavoritesWidget;
+
+})();
+
+
+(function () {
+    "use strict";
+
+
+    function FavoritesBar(parent, display){
         var self = this;
-        for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-            this.Display.GetViewer(i).OnInteraction( function () { self.Hide();} );
+        this.FavoritesGUI = this;
+        this.Display = display;
+
+        this.FavoritesList = parent;
+
+        this.SaveFavoriteButton =
+            $('<img>')
+            .appendTo(this.FavoritesList)
+            .addClass("sa-view-favorites-icon")
+            .attr('src',SA.ImagePathUrl+"saveNew.png")
+            .click(function(){self.SaveFavorite();});
+        this.SaveFavoriteButton.prop('title', "Save Favorite");
+
+        if(SA.MOBILE_DEVICE){
+            this.SaveFavoriteButton
+                .addClass("sa-view-favorites-button");
         }
-    } else {
-        this.FavoritesList.fadeOut();
-        this.hidden = true;
+
+        this.ImageList =
+            $('<div>')
+            .appendTo(this.FavoritesList)
+            .addClass("sa-view-favorites-img-list");
+
+        this.LoadFavorites();
     }
-}
 
 
-FavoritesBar.prototype.SaveFavorite = function() {
-    SA.NotesWidget.SaveBrownNote();
-    // Hide shifts the other buttons to the left to fill the gap.
-    var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
-    button.addClass("sa-inactive");
-    setTimeout(function(){ button.removeClass("sa-inactive");},
-               500); // one half second
-}
-
-FavoritesBar.prototype.LoadFavorites = function () {
-    var self = this;
-    $.ajax({
-        type: "get",
-        url: "/webgl-viewer/getfavoriteviews",
-        success: function(data,status){
-            if (status == "success") {
-                self.LoadFavoritesCallback(data);
-            } else { saDebug("ajax failed - get favorite views"); }
-        },
-        error: function() { saDebug( "AJAX - error() : getfavoriteviews" ); },
-    });
-}
-
-FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
-    //var sessionItem = $("[sessid="+sessionData.sessid+"]");
-    //var viewList = $('<ul>').appendTo(sessionItem)
-    var self = this;
-
-    this.Favorites = sessionData.viewArray;
-
-    this.FavoritesGUI.ImageList.html("");
-
-    //for (var i = 0; i < sessionData.viewArray.length; ++i) {
-    for (var i = sessionData.viewArray.length-1; i >= 0; --i) {
-        var favorite = $('<div>').appendTo(this.FavoritesGUI.ImageList)
-            .addClass("sa-view-favorites-callback-div");
-
-        var thumb = sessionData.viewArray[i].Thumb;
-
-        var view = $('<img>').appendTo(favorite)
-            .attr('src', thumb)
-            .attr('height', '110px')
-            .addClass("sa-view-favorites-callback-img")
-            .attr('index', i)
-            .click(function(){ self.LoadFavorite(this); });
-
-        var del = $('<div>').appendTo(favorite)
-            .html("X")
-            .addClass("sa-view-favorites-callback-del")
-            .attr('index', i)
-            .click(function(){ self.DeleteFavorite(this); });
+    FavoritesBar.prototype.Hide = function(){
+        if( ! this.hidden){
+            this.FavoritesList.fadeOut();
+            this.hidden = true;
+        }
     }
-}
 
-FavoritesBar.prototype.LoadFavorite = function(img){
-    var note = new SA.Note();
-    var index = $(img).attr('index');
-    note.Load(this.Favorites[index]);
 
-    note.DisplayView(SA.DualDisplay);
-}
+    FavoritesBar.prototype.ShowHideFavorites = function(){
+        if(this.hidden){
+            this.FavoritesList.show();
+            this.hidden = false;
+            var self = this;
+            for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+                this.Display.GetViewer(i).OnInteraction( function () { self.Hide();} );
+            }
+        } else {
+            this.FavoritesList.fadeOut();
+            this.hidden = true;
+        }
+    }
 
-FavoritesBar.prototype.DeleteFavorite = function(img){
-    var index = $(img).attr('index');
 
-    $.ajax({
-        type: "post",
-        url: "/webgl-viewer/deleteusernote",
-        data: {"noteId": this.Favorites[index]._id,
-               "col" : "views"},//"favorites"
-        success: function(data,status) {
-        },
-        error: function() {
-            saDebug( "AJAX - error() : deleteusernote" );
-        },
-    });
-    this.FavoritesGUI.ImageList.html("");
+    FavoritesBar.prototype.SaveFavorite = function() {
+        SA.NotesWidget.SaveBrownNote();
+        // Hide shifts the other buttons to the left to fill the gap.
+        var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
+        button.addClass("sa-inactive");
+        setTimeout(function(){ button.removeClass("sa-inactive");},
+                   500); // one half second
+    }
 
-    this.LoadFavorites();
-}
+    FavoritesBar.prototype.LoadFavorites = function () {
+        var self = this;
+        $.ajax({
+            type: "get",
+            url: "/webgl-viewer/getfavoriteviews",
+            success: function(data,status){
+                if (status == "success") {
+                    self.LoadFavoritesCallback(data);
+                } else { SA.Debug("ajax failed - get favorite views"); }
+            },
+            error: function() { SA.Debug( "AJAX - error() : getfavoriteviews" ); },
+        });
+    }
+
+    FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
+        //var sessionItem = $("[sessid="+sessionData.sessid+"]");
+        //var viewList = $('<ul>').appendTo(sessionItem)
+        var self = this;
+
+        this.Favorites = sessionData.viewArray;
+
+        this.FavoritesGUI.ImageList.html("");
+
+        //for (var i = 0; i < sessionData.viewArray.length; ++i) {
+        for (var i = sessionData.viewArray.length-1; i >= 0; --i) {
+            var favorite = $('<div>').appendTo(this.FavoritesGUI.ImageList)
+                .addClass("sa-view-favorites-callback-div");
+
+            var thumb = sessionData.viewArray[i].Thumb;
+
+            var view = $('<img>').appendTo(favorite)
+                .attr('src', thumb)
+                .attr('height', '110px')
+                .addClass("sa-view-favorites-callback-img")
+                .attr('index', i)
+                .click(function(){ self.LoadFavorite(this); });
+
+            var del = $('<div>').appendTo(favorite)
+                .html("X")
+                .addClass("sa-view-favorites-callback-del")
+                .attr('index', i)
+                .click(function(){ self.DeleteFavorite(this); });
+        }
+    }
+
+    FavoritesBar.prototype.LoadFavorite = function(img){
+        var note = new SA.Note();
+        var index = $(img).attr('index');
+        note.Load(this.Favorites[index]);
+
+        note.DisplayView(SA.DualDisplay);
+    }
+
+    FavoritesBar.prototype.DeleteFavorite = function(img){
+        var index = $(img).attr('index');
+
+        $.ajax({
+            type: "post",
+            url: "/webgl-viewer/deleteusernote",
+            data: {"noteId": this.Favorites[index]._id,
+                   "col" : "views"},//"favorites"
+            success: function(data,status) {
+            },
+            error: function() {
+                SA.Debug( "AJAX - error() : deleteusernote" );
+            },
+        });
+        this.FavoritesGUI.ImageList.html("");
+
+        this.LoadFavorites();
+    }
+
+
+    SA.FavoritesBar = FavoritesBar;
+
+})();
+
 
 // Testing annotation widget with touch events.
+
+
+
+
+(function () {
+    "use strict";
 
 
 //------------------------------------------------------------------------------
@@ -15046,7 +15200,7 @@ function MobileAnnotationWidget() {
     //var left = '620px';
     var right = '0px';
     var bottom = '170px';
-    if (MOBILE_DEVICE == "iPhone") {
+    if (SA.MOBILE_DEVICE == "iPhone") {
         size = '100px';
         bottom = '80px';
         left = '80px';
@@ -15057,7 +15211,7 @@ function MobileAnnotationWidget() {
 
     var self = this;
     this.Div =
-        $('<div>').appendTo(VIEWERS[0].GetDiv())
+        $('<div>').appendTo(SA.VIEWERS[0].GetDiv())
         .css({'position':'absolute',
               'right':'0px',
               'bottom':'0px',
@@ -15102,12 +15256,12 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
     console.log("New circle");
 
     // Hard code only a single view for now.
-    this.Layer = VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].AnnotationLayer;
 
     if ( this.Layer.ActiveWidget != undefined && widget ) {
         this.Layer.ActiveWidget.Deactivate();
     }
-    var widget = new CircleWidget(this.Layer, false);
+    var widget = new SAM.CircleWidget(this.Layer, false);
     var cam = this.Layer.GetCamera();
     var x = cam.FocalPoint[0];
     var y = cam.FocalPoint[1];
@@ -15121,14 +15275,14 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-    this.Layer = VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].AnnotationLayer;
     var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         widget.Deactivate();
     }
 
     this.Layer.SetVisibility(true);
-    var widget = new TextWidget(this.Layer, "");
+    var widget = new SAM.TextWidget(this.Layer, "");
     var cam = this.Layer.GetCamera();
     var x = cam.FocalPoint[0];
     var y = cam.FocalPoint[1];
@@ -15160,6 +15314,10 @@ MobileAnnotationWidget.prototype.ToggleVisibility = function() {
     }
 }
 
+
+    SA.MobileAnnotationWidget = MobileAnnotationWidget;
+
+})();
 
 
 
@@ -15242,6 +15400,13 @@ MobileAnnotationWidget.prototype.ToggleVisibility = function() {
 //         interactive: true,
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
+
+
+
+
+(function () {
+    "use strict";
+
  
 jQuery.prototype.saElement = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
@@ -15866,7 +16031,7 @@ saElement.prototype.RaiseToTop = function() {
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
     if (! this.Interactive) { return true;}
-    saFirefoxWhich(event);
+    SA.FirefoxWhich(event);
     if (event.which == 0) {
         // Is it dangerous to modify the event object?
         while (event.srcElement && event.srcElement != this.Div[0]) {
@@ -15918,7 +16083,7 @@ saElement.prototype.HandleMouseMoveCursor = function(event) {
 
 
 saElement.prototype.HandleMouseMove = function(event) {
-    saFirefoxWhich(event);
+    SA.FirefoxWhich(event);
     if (event.which == 1) {
         // Wait for the click duration to start dragging.
         if (Date.now() - this.ClickStart < 200) {
@@ -16335,7 +16500,7 @@ saRectangle.prototype.DialogInitialize = function () {
         this.GradientColor.spectrum('set',color.substring(idx0,idx1));
         return;
     }
-    saDebug("parse error: " + color);
+    SA.Debug("parse error: " + color);
 }
 
 saRectangle.prototype.DialogApply = function () {
@@ -18019,9 +18184,9 @@ function saViewerSetup(self, args) {
                 // TODO: dual has to be set on the first call.  Make this
                 // order independant. Also get rid of args here. We should
                 // use process arguments to setup options.
-                self[i].saViewer = new DualViewWidget($(self[i]));
+                self[i].saViewer = new SA.DualViewWidget($(self[i]));
             } else {
-                self[i].saViewer = new Viewer($(self[i]));
+                self[i].saViewer = new SA.Viewer($(self[i]));
             }
 
             // When the div resizes, we need to synch the camera and
@@ -18085,9 +18250,9 @@ function saResizeCallback() {
     var width = window.innerWidth;
     var top = 0;
     var left = 0;
-    items = $('.sa-full-height');
+    var items = $('.sa-full-height');
     for (var i = 0; i < items.length; ++i) {
-        item = items[i];
+        var item = items[i];
         $(item).css({'top': '0px',
                      'height': height+'px'});
     }
@@ -19045,7 +19210,7 @@ jQuery.prototype.saAnnotationWidget = function(args) {
             return this;
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")
-            item.saAnnotationWidget = new AnnotationWidget(item.saViewer);
+            item.saAnnotationWidget = new SA.AnnotationWidget(item.saViewer);
             item.saAnnotationWidget.SetVisibility(2);
         }
         // This hides and shows the button/tools but does not change the
@@ -19138,22 +19303,10 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 
+    SA.ResizePanel = ResizePanel;
 
 
-
-
-//==============================================================================
-
-
-
-
-//==============================================================================
-
-
-
-
-
-
+})();
 // CME
 // TODO:
 
@@ -19204,6 +19357,8 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 // Embed option of viewer.
 
 
+(function () {
+    "use strict";
 
 
 // TODO:
@@ -19238,7 +19393,7 @@ function Presentation(rootNote, edit) {
     }
 
     // Eliminate the GUI in the viewers.
-    //MOBILE_DEVICE = "Simple";
+    //SA.MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
     // Hack.  It is only used for events.
@@ -19264,9 +19419,9 @@ function Presentation(rootNote, edit) {
 
     // Hack so all viewers will shar the same browser.
     // We should really use the brower tab in the left panel.
-    VIEW_BROWSER = new ViewBrowser(this.WindowDiv);
+    SA.VIEW_BROWSER = new SA.ViewBrowser(this.WindowDiv);
 
-    this.ResizePanel = new ResizePanel(this.WindowDiv);
+    this.ResizePanel = new SA.ResizePanel(this.WindowDiv);
 
     //this.PresentationDiv = $('<div>')
     //    .appendTo(this.WindowDiv)
@@ -19504,7 +19659,7 @@ Presentation.prototype.EditOn = function () {
 
 
 Presentation.prototype.InitializeLeftPanel = function (parent) {
-    this.EditTabs = new TabbedDiv(parent);
+    this.EditTabs = new SA.TabbedDiv(parent);
     this.EditTabs.Div.css({'width':'100%',
                           'height':'100%'})
 
@@ -19600,19 +19755,19 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
         }
 
 
-        this.BrowserPanel = new BrowserPanel(
+        this.BrowserPanel = new SA.BrowserPanel(
             this.BrowserDiv,
             function (viewObj) {
                 self.AddViewCallback(viewObj);
             });
         this.BrowserDiv.css({'overflow-y':'auto'});
 
-        this.SearchPanel = new SearchPanel(
+        this.SearchPanel = new SA.SearchPanel(
             this.SearchDiv,
             function (imageObj) {
                 self.AddImageCallback(imageObj);
             });
-        this.ClipboardPanel = new ClipboardPanel(
+        this.ClipboardPanel = new SA.ClipboardPanel(
             this.ClipboardDiv,
             function (viewObj) {
                 self.AddViewCallback(viewObj);
@@ -19622,7 +19777,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 
     this.UserTextDiv = this.EditTabs.NewTabDiv("Notes", "private notes");
     // Private notes.
-    this.UserNoteEditor = new UserNoteEditor(this.UserTextDiv);
+    this.UserNoteEditor = new SA.UserNoteEditor(this.UserTextDiv);
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
@@ -19750,7 +19905,7 @@ UserNoteEditor.prototype.SetNote = function (parentNote) {
         url: "/webgl-viewer/getusernotes",
         data: {"parentid": parentNote.Id},
         success: function(data,status) { self.LoadUserNote(data, parentNote.Id);},
-        error: function() { saDebug( "AJAX - error() : getusernotes" ); },
+        error: function() { SA.Debug( "AJAX - error() : getusernotes" ); },
     });
 }
 
@@ -19765,7 +19920,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 
     if (data.Notes && data.Notes.length > 0) {
         if (data.Notes.length > 1) {
-            saDebug("Warning: Only showing the first user note.");
+            SA.Debug("Warning: Only showing the first user note.");
         }
         var noteData = data.Notes[0];
         parentNote.UserNote.Load(noteData);
@@ -19872,7 +20027,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
         return;
     }
 
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
@@ -19881,7 +20036,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.OverviewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
@@ -19981,11 +20136,11 @@ Presentation.prototype.Save = function () {
                         url: "webgl-viewer/session-add-view",
                         success: function(data,status){
                             if (status != "success") {
-                                saDebug("ajax failed - session-add-view");
+                                SA.Debug("ajax failed - session-add-view");
                             }
                         },
                         error: function() {
-                            saDebug( "AJAX - error() : session-add-view" );
+                            SA.Debug( "AJAX - error() : session-add-view" );
                         },
                     });
                 }
@@ -20009,7 +20164,7 @@ Presentation.prototype.Save = function () {
     // The root needs a record to show up in the session.
     var rootNote = this.RootNote;
     if (rootNote.ViewerRecords.length < 1) {
-        var record = new ViewerRecord();
+        var record = new SA.ViewerRecord();
         record.Load(
             {AnnotationVisibility: 2,
              Annotations: [],
@@ -20368,7 +20523,7 @@ function SlidePage(parent, edit) {
               'bottom': '5px',
               'width': '100%'});
     // List of question answers.
-    this.List = new TextEditor(this.TextDiv, VIEWERS);
+    this.List = new SA.TextEditor(this.TextDiv, SA.VIEWERS);
     if ( ! edit) {
         this.List.EditOff();
     }
@@ -20392,11 +20547,11 @@ function SlidePage(parent, edit) {
     if (this.Edit) {
         // TODO: Better API (jquery) for adding widgets.
         // TODO: Better placement control for the widget.
-        this.AnnotationWidget1 = new AnnotationWidget(
+        this.AnnotationWidget1 = new SA.AnnotationWidget(
             this.ViewerDiv1[0].saViewer.AnnotationLayer);
         this.AnnotationWidget1.SetVisibility(2);
 
-        this.AnnotationWidget2 = new AnnotationWidget(
+        this.AnnotationWidget2 = new SA.AnnotationWidget(
             this.ViewerDiv2[0].saViewer.AnnotationLayer);
         this.AnnotationWidget2.SetVisibility(2);
 
@@ -20588,7 +20743,7 @@ SlidePage.prototype.EditOff = function () {
         this.RemoveView2Button.hide();
         this.List.EditOff();
         // This causes the viewers to look transparent.
-        //VIEWER.MainView.CanvasDiv.resizable('disable');
+        //SA.VIEWER.MainView.CanvasDiv.resizable('disable');
     }
 }
 
@@ -21387,7 +21542,7 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     delete newNote.Id;
     newNote.Id = tmpId;
     if (newNote.ViewerRecords.length == 0) {
-        saDebug("Insert failed: Note has no viewer records.");
+        SA.Debug("Insert failed: Note has no viewer records.");
     } else if (this.Note.Parent) {
         this.Note.Children.push(newNote);
         newNote.Parent = this.Note;
@@ -21572,7 +21727,7 @@ HtmlPage.prototype.UpdateEdits = function () {
         // prune deleted records.
         // I should really do this when a view is deleted, but there are
         // deleted records in the database.
-        // NOTE: THIS ASSUME THAT ALL THE VIEWERS USE THIS NOTE!!!
+        // NOTE: THIS ASSUME THAT ALL THE SA.VIEWERS USE THIS NOTE!!!
         var newRecords = [];
         for (var i = 0; i < this.Note.ViewerRecords.length; ++i) {
             var record = this.Note.ViewerRecords[i];
@@ -21650,7 +21805,7 @@ SearchPanel.prototype.SearchCallback = function() {
             self.Parent.css({'cursor':'default'});
         },
         error: function() {
-            saDebug( "AJAX - error() : query" );
+            SA.Debug( "AJAX - error() : query" );
             self.Parent.css({'cursor':'default'});
         },
     });
@@ -21689,7 +21844,7 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
             image.bounds = [0, imgObj.dimensions[0], 0,
                       imgObj.dimensions[1]];
         }
-        var thumb = new CutoutThumb(image, 100);
+        var thumb = new SA.CutoutThumb(image, 100);
         thumb.Div.appendTo(imageDiv)
         var labelDiv = $('<div>')
             .css({'font-size':'50%'})
@@ -21730,9 +21885,9 @@ function ClipboardPanel(parent, callback) {
         success: function(data,status){
             if (status == "success") {
                 self.LoadClipboardCallback(data);
-            } else { saDebug("ajax failed - get favorite views 2"); }
+            } else { SA.Debug("ajax failed - get favorite views 2"); }
         },
-        error: function() { saDebug( "AJAX - error() : getfavoriteviews 2" );
+        error: function() { SA.Debug( "AJAX - error() : getfavoriteviews 2" );
         },
     });
 }
@@ -21785,7 +21940,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
             success: function(data,status) {
             },
             error: function() {
-                saDebug( "AJAX - error() : deleteusernote" );
+                SA.Debug( "AJAX - error() : deleteusernote" );
             },
         });
     }
@@ -21793,6 +21948,11 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
 
 
 
+    SA.SearchPanel = SearchPanel;
+    SA.ClipboardPanel = ClipboardPanel;
+    SA.Presentation = Presentation;
+
+})();
 
 
 
@@ -21802,211 +21962,236 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
 // Texture maps (scarcer resource).
 
 
+(function () {
+    "use strict";
 
 
-function InitProgressBar () {
-  if (SA.ProgressBar) { return;}
-  SA.ProgressBar = $("<div>")
-   .appendTo('body')
-   .addClass("sa-view-progress-bar");
-}
+    // TODO: Mny of these can remain private.
+    SA.TileLoader = "http";
 
-
-
-function AdvanceTimeStamp() {
-  ++SA.TimeStamp;
-}
-
-function GetCurrentTime() {
-  return SA.TimeStamp;
-}
-
-// Prunning could be rethought to avoid so much depdency on the cache.
-function Prune() {
-  var prune = false;
-  if (SA.NumberOfTiles >= SA.MaximumNumberOfTiles) {
-    // Overflow may be possible after running for a while.
-    if (SA.PruneTimeTiles > SA.TimeStamp) {
-      SA.PruneTimeTiles = 0;
-    }
-    // Advance the prune threshold.
-    SA.PruneTimeTiles += 0.05 * (SA.TimeStamp - SA.PruneTimeTiles);
-    prune = true;
-  }
-
-  if (SA.NumberOfTextures >= SA.MaximumNumberOfTextures) {
-    // Overflow may be possible after running for a while.
-    if (SA.PruneTimeTextures > SA.TimeStamp) {
-      SA.PruneTimeTextures = 0;
-    }
-    // Advance the prune threshold.
-    SA.PruneTimeTextures += 0.05 * (SA.TimeStamp - SA.PruneTimeTextures);
-    prune = true;
-  }
-
-  if (prune) {
-    for (i in SA.Caches) {
-      cache = SA.Caches[i];
-      cache.PruneTiles();
-    }
-  }
-}
-
-function ClearQueue() {
-    for (var i = 0; i < SA.LoadQueue.length; ++i) {
-        var tile = SA.LoadQueue[i];
-        if (tile) {
-            tile.LoadState = 0;
-        }
-    }
+    // Keep a queue of tiles to load so we can sort them as
+    // new requests come in.
     SA.LoadQueue = [];
-    LoadQueueUpdate();
-}
+    SA.LoadingCount = 0;
+    SA.LoadingMaximum = 10;
+    SA.LoadTimeoutId = 0;
 
-// You have to call LoadQueueUpdate after adding tiles.
-// We could chop off the lowest priority tiles if the queue gets too long.
-// Simply add the tile to the queue.
-function LoadQueueAddTile(tile) {
-    if (tile.LoadState == 0 || tile.LoadState == 4) {
-        // New tile or error
-        tile.LoadState = 1;
-        // Add the tile at the front of the queue.
-        SA.LoadQueue.push(tile);
-    }
-}
+    SA.TimeStamp = 0;
+    SA.NumberOfTiles = 0;
+    SA.NumberOfTextures = 0;
+    SA.MaximumNumberOfTiles = 50000;
+    SA.MaximumNumberOfTextures = 5000;
+    SA.PruneTimeTiles = 0;
+    SA.PruneTimeTextures = 0;
 
-// Push the best tile to the end of the queue.
-function PushBestToLast() {
-  // Do a sort pass (pushing high priority items to the end.
-  var t0 = SA.LoadQueue[0];
-  for (var i = 1; i < SA.LoadQueue.length; ++i) {
-    var t1 = SA.LoadQueue[i];
-    var swap = false;
-    if (t1 != null) {
-      if (t0 == null) {
-        swap = true;
-      } else if (t0.TimeStamp > t1.TimeStamp) {
-        swap = true;
-      } else if (t0.TimeStamp == t1.TimeStamp && t0.Level < t1.Level) {
-        swap = true;
-      }
-    }
-    if (swap) {
-      // Swap the pair.
-      SA.LoadQueue[i] = t0;
-      SA.LoadQueue[i-1] = t1;
-    } else {
-      t0 = t1;
-    }
-  }
-}
+    SA.LoadProgressMax = 0;
+    SA.ProgressBar = null;
 
-
-
-// I need a way to remove tiles from the queue when they are deleted.
-// I know this is inefficient.
-function LoadQueueRemove(tile) {
-  var length = SA.LoadQueue.length;
-  for (var i = 0; i < length; ++i) {
-    if (SA.LoadQueue[i] == tile) {
-      tile.LoadState = 0;
-      SA.LoadQueue[i] = null;
-      return;
-    }
-  }
-}
-
-
-function LoadTimeout() {
-  // 4 images requests are too slow.  Reset
-  // I do not know which requests failed so I cannot mak another request.
-  // TODO: Remember loading tiles (even if only for debugging).
-  SA.LoadingCount = 0;
-  LoadQueueUpdate();
-}
-
-// We will have some number of tiles loading at one time.
-// Take the first N tiles from the queue and start loading them.
-// Too many and we cannot abort loading.
-// Too few and we will serialize loading.
-function LoadQueueUpdate() {
-    if (SA.LoadingCount < 0) {
-        // Tiles must have arrived after timeout.
-        SA.LoadingCount = 0;
-    }
-    while (SA.LoadingCount < SA.LoadingMaximum &&
-           SA.LoadQueue.length > 0) {
-        PushBestToLast();
-        var tile = SA.LoadQueue.pop();
-        // For debugging
-        //this.PendingTiles.push(tile);
-        if (tile != null && tile.LoadState == 1) {
-            tile.StartLoad(tile.Cache);
-            tile.LoadState = 2; // Loading.
-            ++SA.LoadingCount;
-        }
-    }
-
-    // Observed bug: If 4 tile requests never return, loading stops.
-    // Do a time out to clear this hang.
-    if (SA.LoadTimeoutId) {
-        clearTimeout(SA.LoadTimeoutId);
-        SA.LoadTimeoutId = 0;
-    }
-    if (SA.LoadingCount) {
-        SA.LoadTimeoutId = setTimeout(function(){LoadTimeout();}, 1000);
-    }
-
-    if (SA.ProgressBar) {
-        if (SA.LoadProgressMax < SA.LoadQueue.length) {
-            SA.LoadProgressMax = SA.LoadQueue.length;
-        }
-        var width = (100 * SA.LoadQueue.length / SA.LoadProgressMax).toFixed();
-        width = width + "%";
-        SA.ProgressBar.css({"width" : width});
-        // Reset maximum
-        if (SA.LoadQueue.length == 0) {
-            SA.LoadProgressMax = 0;
-        }
-    }
-
-    if (SA.FinishedLoadingCallbacks.length > 0 &&
-        SA.LoadQueue.length == 0 && SA.LoadingCount == 0) {
-        var tmp = SA.FinishedLoadingCallbacks.slice(0); // copy
-        SA.FinishedLoadingCallbacks = [];
-        for (var i = 0; i < tmp.length; ++i) {
-            (tmp[i])();
-        }
-    }
-}
-
-function AddFinishedLoadingCallback(callback) {
-    SA.FinishedLoadingCallbacks.push(callback);
-    LoadQueueUpdate();
-}
-
-function ClearFinishedLoadingCallbacks() {
+    // Only used for saving images right now.
     SA.FinishedLoadingCallbacks = [];
-}
+
+    SA.InitProgressBar = function () {
+        if (SA.ProgressBar) { return;}
+        SA.ProgressBar = $("<div>")
+            .appendTo('body')
+            .addClass("sa-view-progress-bar");
+    }
 
 
 
-// Issue: Tiles call this method when their image gets loaded.
-// How does the tile know which cache it belongs too.
-// Marks a tile as loaded so another can start.
-function LoadQueueLoaded(tile) {
-    --SA.LoadingCount;
-    tile.LoadState = 3; // Loaded
-    LoadQueueUpdate();
-}
+    SA.AdvanceTimeStamp = function() {
+        ++SA.TimeStamp;
+    }
 
-// This is called if their was a 404 image not found error.
-function LoadQueueError(tile) {
-  tile.LoadState = 4; // Error Loading
-  --SA.LoadingCount;
-  LoadQueueUpdate();
-}
+    SA.GetCurrentTime = function() {
+        return SA.TimeStamp;
+    }
 
+    // Prunning could be rethought to avoid so much depdency on the cache.
+    SA.Prune = function () {
+        var prune = false;
+        if (SA.NumberOfTiles >= SA.MaximumNumberOfTiles) {
+            // Overflow may be possible after running for a while.
+            if (SA.PruneTimeTiles > SA.TimeStamp) {
+                SA.PruneTimeTiles = 0;
+            }
+            // Advance the prune threshold.
+            SA.PruneTimeTiles += 0.05 * (SA.TimeStamp - SA.PruneTimeTiles);
+            prune = true;
+        }
+
+        if (SA.NumberOfTextures >= SA.MaximumNumberOfTextures) {
+            // Overflow may be possible after running for a while.
+            if (SA.PruneTimeTextures > SA.TimeStamp) {
+                SA.PruneTimeTextures = 0;
+            }
+            // Advance the prune threshold.
+            SA.PruneTimeTextures += 0.05 * (SA.TimeStamp - SA.PruneTimeTextures);
+            prune = true;
+        }
+
+        if (prune) {
+            for (i in SA.Caches) {
+                cache = SA.Caches[i];
+                cache.PruneTiles();
+            }
+        }
+    }
+
+    SA.ClearQueue = function () {
+        for (var i = 0; i < SA.LoadQueue.length; ++i) {
+            var tile = SA.LoadQueue[i];
+            if (tile) {
+                tile.LoadState = 0;
+            }
+        }
+        SA.LoadQueue = [];
+        SA.LoadQueueUpdate();
+    }
+
+    // You have to call LoadQueueUpdate after adding tiles.
+    // We could chop off the lowest priority tiles if the queue gets too long.
+    // Simply add the tile to the queue.
+    SA.LoadQueueAddTile= function(tile) {
+        if (tile.LoadState == 0 || tile.LoadState == 4) {
+            // New tile or error
+            tile.LoadState = 1;
+            // Add the tile at the front of the queue.
+            SA.LoadQueue.push(tile);
+        }
+    }
+
+    // Push the best tile to the end of the queue.
+    var PushBestToLast = function() {
+        // Do a sort pass (pushing high priority items to the end.
+        var t0 = SA.LoadQueue[0];
+        for (var i = 1; i < SA.LoadQueue.length; ++i) {
+            var t1 = SA.LoadQueue[i];
+            var swap = false;
+            if (t1 != null) {
+                if (t0 == null) {
+                    swap = true;
+                } else if (t0.TimeStamp > t1.TimeStamp) {
+                    swap = true;
+                } else if (t0.TimeStamp == t1.TimeStamp && t0.Level < t1.Level) {
+                    swap = true;
+                }
+            }
+            if (swap) {
+                // Swap the pair.
+                SA.LoadQueue[i] = t0;
+                SA.LoadQueue[i-1] = t1;
+            } else {
+                t0 = t1;
+            }
+        }
+    }
+
+
+
+    // I need a way to remove tiles from the queue when they are deleted.
+    // I know this is inefficient.
+    SA.LoadQueueRemove = function(tile) {
+        var length = SA.LoadQueue.length;
+        for (var i = 0; i < length; ++i) {
+            if (SA.LoadQueue[i] == tile) {
+                tile.LoadState = 0;
+                SA.LoadQueue[i] = null;
+                return;
+            }
+        }
+    }
+
+
+    var LoadTimeout = function() {
+        // 4 images requests are too slow.  Reset
+        // I do not know which requests failed so I cannot mak another request.
+        // TODO: Remember loading tiles (even if only for debugging).
+        SA.LoadingCount = 0;
+        SA.LoadQueueUpdate();
+    }
+
+    // We will have some number of tiles loading at one time.
+    // Take the first N tiles from the queue and start loading them.
+    // Too many and we cannot abort loading.
+    // Too few and we will serialize loading.
+    SA.LoadQueueUpdate = function() {
+        if (SA.LoadingCount < 0) {
+            // Tiles must have arrived after timeout.
+            SA.LoadingCount = 0;
+        }
+        while (SA.LoadingCount < SA.LoadingMaximum &&
+               SA.LoadQueue.length > 0) {
+            PushBestToLast();
+            var tile = SA.LoadQueue.pop();
+            // For debugging
+            //this.PendingTiles.push(tile);
+            if (tile != null && tile.LoadState == 1) {
+                tile.StartLoad(tile.Cache);
+                tile.LoadState = 2; // Loading.
+                ++SA.LoadingCount;
+            }
+        }
+
+        // Observed bug: If 4 tile requests never return, loading stops.
+        // Do a time out to clear this hang.
+        if (SA.LoadTimeoutId) {
+            clearTimeout(SA.LoadTimeoutId);
+            SA.LoadTimeoutId = 0;
+        }
+        if (SA.LoadingCount) {
+            SA.LoadTimeoutId = setTimeout(function(){LoadTimeout();}, 1000);
+        }
+
+        if (SA.ProgressBar) {
+            if (SA.LoadProgressMax < SA.LoadQueue.length) {
+                SA.LoadProgressMax = SA.LoadQueue.length;
+            }
+            var width = (100 * SA.LoadQueue.length / SA.LoadProgressMax).toFixed();
+            width = width + "%";
+            SA.ProgressBar.css({"width" : width});
+            // Reset maximum
+            if (SA.LoadQueue.length == 0) {
+                SA.LoadProgressMax = 0;
+            }
+        }
+
+        if (SA.FinishedLoadingCallbacks.length > 0 &&
+            SA.LoadQueue.length == 0 && SA.LoadingCount == 0) {
+            var tmp = SA.FinishedLoadingCallbacks.slice(0); // copy
+            SA.FinishedLoadingCallbacks = [];
+            for (var i = 0; i < tmp.length; ++i) {
+                (tmp[i])();
+            }
+        }
+    }
+
+    SA.AddFinishedLoadingCallback = function(callback) {
+        SA.FinishedLoadingCallbacks.push(callback);
+        SA.LoadQueueUpdate();
+    }
+
+    SA.ClearFinishedLoadingCallbacks = function() {
+        SA.FinishedLoadingCallbacks = [];
+    }
+
+    // Issue: Tiles call this method when their image gets loaded.
+    // How does the tile know which cache it belongs too.
+    // Marks a tile as loaded so another can start.
+    SA.LoadQueueLoaded = function(tile) {
+        --SA.LoadingCount;
+        tile.LoadState = 3; // Loaded
+        SA.LoadQueueUpdate();
+    }
+
+    // This is called if their was a 404 image not found error.
+    SA.LoadQueueError = function(tile) {
+        tile.LoadState = 4; // Error Loading
+        --SA.LoadingCount;
+        SA.LoadQueueUpdate();
+    }
+
+})();
 //==============================================================================
 // Camera Object
 // Set the viewport separately
@@ -22465,246 +22650,254 @@ function LoadQueueError(tile) {
 //     function. The data returned is same as "ctx.getImageData(0,0,w,h);",
 //     but we add data.Camera for conversion to the slide coordinate system.
 
-// for debugging
-var CUTOUT_VIEW;
+
+(function () {
+    "use strict";
 
 
-function DownloadImageData(data, filename) {
-    // The only way I know if is to put in into a canvas.
+    // for debugging
+    var CUTOUT_VIEW;
 
-    // Construct a view to render the image on the client.
-    var width =  data.width;
-    var height =  data.height;
-    var viewport = [0,0, width, height];
 
-    var view = new SA.View();
-    view.InitializeViewport(viewport, 1, true);
-    view.Canvas.attr("width", width);
-    view.Canvas.attr("height", height);
-    view.Context2d.putImageData(data, 0, 0);
+    SA.DownloadImageData = function (data, filename) {
+        // The only way I know if is to put in into a canvas.
 
-    view.Canvas[0].toBlob(function(blob) {saveAs(blob, filename);}, "image/png");
-}
+        // Construct a view to render the image on the client.
+        var width =  data.width;
+        var height =  data.height;
+        var viewport = [0,0, width, height];
 
-// If file name is not null or "", this image is save to the client.
-// cache: The image/tile source.
-// dimensions: size of the image in pixels [xDim,yDim]
-// focalPoint: Center of the image in world / slide coordinates.
-// scale:  Size of a pixel in world coordinates.
-// roll: in radians?
-// fileName: name of file to download. (null, or "" means do not download).
-// returnCallback:  function to call (with data as argument) when done.
-function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
-                        returnCallback) {
-    // Construct a view to render the image on the client.
-    var width =  dimensions[0];
-    var height =  dimensions[1];
-    var viewport = [0,0, width, height];
+        var view = new SA.View();
+        view.InitializeViewport(viewport, 1, true);
+        view.Canvas.attr("width", width);
+        view.Canvas.attr("height", height);
+        view.Context2d.putImageData(data, 0, 0);
 
-    var view = new SA.View();
-    CUTOUT_VIEW = view;
-    view.SetCache(cache);
-    view.SetViewport(viewport);
-    var newCam = view.Camera;
-    newCam.SetFocalPoint( focalPoint);
-    newCam.SetRoll(roll);
-    newCam.SetHeight(height*scale);
-    // TODO:  Hide matrix computation.  Make it automatic.
-    newCam.ComputeMatrix();
-
-    // Load only the tiles we need.
-    var tiles = cache.ChooseTiles(newCam, 0, []);
-    for (var i = 0; i < tiles.length; ++i) {
-        LoadQueueAddTile(tiles[i]);
+        view.Canvas[0].toBlob(function(blob) {saveAs(blob, filename);}, "image/png");
     }
 
-    AddFinishedLoadingCallback(
-        function () {GetCutoutImage2(view, fileName, returnCallback);}
-    );
+    // If file name is not null or "", this image is save to the client.
+    // cache: The image/tile source.
+    // dimensions: size of the image in pixels [xDim,yDim]
+    // focalPoint: Center of the image in world / slide coordinates.
+    // scale:  Size of a pixel in world coordinates.
+    // roll: in radians?
+    // fileName: name of file to download. (null, or "" means do not download).
+    // returnCallback:  function to call (with data as argument) when done.
+    SA.GetCutoutImage = function (cache, dimensions, focalPoint, scale, roll, fileName,
+                                  returnCallback) {
+        // Construct a view to render the image on the client.
+        var width =  dimensions[0];
+        var height =  dimensions[1];
+        var viewport = [0,0, width, height];
 
-    LoadQueueUpdate();
+        var view = new SA.View();
+        CUTOUT_VIEW = view;
+        view.SetCache(cache);
+        view.SetViewport(viewport);
+        var newCam = view.Camera;
+        newCam.SetFocalPoint( focalPoint);
+        newCam.SetRoll(roll);
+        newCam.SetHeight(height*scale);
+        // TODO:  Hide matrix computation.  Make it automatic.
+        newCam.ComputeMatrix();
 
-    console.log("trigger " + SA.LoadQueue.length + " " + SA.LoadingCount);
-}
+        // Load only the tiles we need.
+        var tiles = cache.ChooseTiles(newCam, 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            LoadQueueAddTile(tiles[i]);
+        }
 
-GetCutoutImage2 = function(view, fileName, returnCallback) {
-    // All the tiles are loaded and waiting in the cache.
-    view.DrawTiles();
-    var viewport = view.GetViewport();
+        SA.AddFinishedLoadingCallback(
+            function () {GetCutoutImage2(view, fileName, returnCallback);}
+        );
 
-    if (fileName && fileName != "") {
-        view.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+        LoadQueueUpdate();
+
+        console.log("trigger " + SA.LoadQueue.length + " " + SA.LoadingCount);
     }
 
-    if (returnCallback) {
-        var ctx  = view.Context2d;
-        var data = GetImageData(view);
-        returnCallback(data);
-    }
-}
+    SA.GetCutoutImage2 = function(view, fileName, returnCallback) {
+        // All the tiles are loaded and waiting in the cache.
+        view.DrawTiles();
+        var viewport = view.GetViewport();
 
+        if (fileName && fileName != "") {
+            view.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+        }
 
-
-// This works great!
-// Light weight viewer.
-// Attempt to make a div with multiple images.
-// image = database image object.
-// height = height in screen pixels of the returned div image.
-// request = (optional) bounds of cropped image in slide pixel units.
-//           if request is not defined, it defaults to the whole image bounds.
-// Events are funny,  The mouse position is realtive to
-// the tiles.  click and bounds are callback functions to make
-// interaction simpler.
-function  CutoutThumb(image, height, request) {
-    if ( ! request) {
-        request = image.bounds;
-    }
-
-    this.ImageData = image;
-    this.Height = height;
-    this.Width = Math.ceil(height * (request[1]-request[0]) / (request[3]-request[2]));
-    this.Div = $('<div>')
-        .css({'width' : this.Width + 'px',
-              'height': this.Height + 'px'  })
-        .addClass("sa-view-cutout-thumb-div");
-    // Crop the request so we do not ask for tiles that do not exist.
-    var levelReq;
-    if (image.bounds) {
-      var levelReq = [Math.max(request[0],image.bounds[0]),
-                    Math.min(request[1],image.bounds[1]),
-                    Math.max(request[2],image.bounds[2]),
-                    Math.min(request[3],image.bounds[3])];
-    } else {
-        levelReq = [Math.max(request[0],0), request[1],
-                    Math.max(request[2],0), request[3]];
-    }
-
-    
-    // Size of each tile.
-    var tileDim = 256;
-    if (image.tile_size) {
-        tileDim = image.tile_size;
-    }
-
-    // Pick the level to use.
-    this.Level = 0; // 0 = leaves
-    while ((levelReq[3]-levelReq[2]) > this.Height && 
-           this.Level < image.levels-1) {
-        this.Level += 1;
-        levelReq[0] *= 0.5;
-        levelReq[1] *= 0.5;
-        levelReq[2] *= 0.5;
-        levelReq[3] *= 0.5;
-    }
-
-    // Size of each tile.
-    var tileDim = 256;
-    if (image.tile_size) {
-        tileDim = image.tile_size;
-    }
-
-    this.ScreenPixelSpacing = (request[3]-request[2]) / this.Height;
-    var imgSize = (tileDim<<this.Level) / this.ScreenPixelSpacing;
-
-
-    // grid of tiles to render.
-    this.GridReq = [Math.floor(levelReq[0]/tileDim),
-                    Math.floor(levelReq[1]/tileDim),
-                    Math.floor(levelReq[2]/tileDim),
-                    Math.floor(levelReq[3]/tileDim)];
-
-    // Compute the origin: the upper left corner of the upper left image.
-    this.ScreenPixelOrigin = [this.GridReq[0]*(tileDim<<this.Level),
-                              this.GridReq[2]*(tileDim<<this.Level)];
-
-    // loop over the tiles.
-    for (var y = this.GridReq[2]; y <= this.GridReq[3]; ++y) {
-        for (var x = this.GridReq[0]; x <= this.GridReq[1]; ++x) {
-            // Compute the tile name.
-            var tx = x, ty = y, tl = this.Level;
-            var tileName = "";
-            while (tl < image.levels-1) {
-                if ((tx&1) == 0 && (ty&1) == 0) {tileName = "q" + tileName;}
-                if ((tx&1) == 1 && (ty&1) == 0) {tileName = "r" + tileName;}
-                if ((tx&1) == 0 && (ty&1) == 1) {tileName = "t" + tileName;}
-                if ((tx&1) == 1 && (ty&1) == 1) {tileName = "s" + tileName;}
-                tx = (tx>>1);
-                ty = (ty>>1);
-                ++tl;
-            }
-            var left = (((x<<this.Level)*tileDim)-request[0])/this.ScreenPixelSpacing;
-            var top  = (((y<<this.Level)*tileDim)-request[2])/this.ScreenPixelSpacing;
-            var img  = $('<img>')
-                .appendTo(this.Div)
-                .attr("width", imgSize)
-                .attr("height", imgSize)
-                .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name=t"+tileName+".jpg")
-                .attr("alt", image.label)
-                .css({"left": left.toString()+"px",
-                      "top":  top.toString()+"px"})
-                .addClass("sa-view-cutout-thumb-tile");
+        if (returnCallback) {
+            var ctx  = view.Context2d;
+            var data = GetImageData(view);
+            returnCallback(data);
         }
     }
-}
-
-CutoutThumb.prototype.AppendTo = function(parent) {
-    this.Div.appendTo(parent);
-    return this;
-}
-
-// Call back argument is this thumb object.
-// slideX, and slideY are set to mouse in slide coordinates.
-CutoutThumb.prototype.Click = function(callback) {
-    var self = this;
-    this.ClickCallback = callback;
-    this.Div.click(function (e) {
-        // It is a real pain to get the mouse position rlative to the div.
-        var x = e.pageX;
-        var y = e.pageY;
-        // Now get the location of this thumb on the screen.
-        var offset = self.Div.offset();
-        x -= offset.left;
-        y -= offset.top;
-        console.log("click: " + x + ", " + y);
-
-        self.SlideX = (x * self.ScreenPixelSpacing) 
-            + self.ScreenPixelOrigin[0];
-        self.SlideY = (y * self.ScreenPixelSpacing) 
-            + self.ScreenPixelOrigin[1];
-        (self.ClickCallback)(self);
-    });
-
-    return this;
-}
 
 
 
+    // This works great!
+    // Light weight viewer.
+    // Attempt to make a div with multiple images.
+    // image = database image object.
+    // height = height in screen pixels of the returned div image.
+    // request = (optional) bounds of cropped image in slide pixel units.
+    //           if request is not defined, it defaults to the whole image bounds.
+    // Events are funny,  The mouse position is realtive to
+    // the tiles.  click and bounds are callback functions to make
+    // interaction simpler.
+    var CutoutThumb = function(image, height, request) {
+        if ( ! request) {
+            request = image.bounds;
+        }
+
+        this.ImageData = image;
+        this.Height = height;
+        this.Width = Math.ceil(height * (request[1]-request[0]) / (request[3]-request[2]));
+        this.Div = $('<div>')
+            .css({'width' : this.Width + 'px',
+                  'height': this.Height + 'px'  })
+            .addClass("sa-view-cutout-thumb-div");
+        // Crop the request so we do not ask for tiles that do not exist.
+        var levelReq;
+        if (image.bounds) {
+            var levelReq = [Math.max(request[0],image.bounds[0]),
+                            Math.min(request[1],image.bounds[1]),
+                            Math.max(request[2],image.bounds[2]),
+                            Math.min(request[3],image.bounds[3])];
+        } else {
+            levelReq = [Math.max(request[0],0), request[1],
+                        Math.max(request[2],0), request[3]];
+        }
+
+        // Size of each tile.
+        var tileDim = 256;
+        if (image.tile_size) {
+            tileDim = image.tile_size;
+        }
+
+        // Pick the level to use.
+        this.Level = 0; // 0 = leaves
+        while ((levelReq[3]-levelReq[2]) > this.Height &&
+               this.Level < image.levels-1) {
+            this.Level += 1;
+            levelReq[0] *= 0.5;
+            levelReq[1] *= 0.5;
+            levelReq[2] *= 0.5;
+            levelReq[3] *= 0.5;
+        }
+
+        // Size of each tile.
+        var tileDim = 256;
+        if (image.tile_size) {
+            tileDim = image.tile_size;
+        }
+
+        this.ScreenPixelSpacing = (request[3]-request[2]) / this.Height;
+        var imgSize = (tileDim<<this.Level) / this.ScreenPixelSpacing;
+
+        // grid of tiles to render.
+        this.GridReq = [Math.floor(levelReq[0]/tileDim),
+                        Math.floor(levelReq[1]/tileDim),
+                        Math.floor(levelReq[2]/tileDim),
+                        Math.floor(levelReq[3]/tileDim)];
+
+        // Compute the origin: the upper left corner of the upper left image.
+        this.ScreenPixelOrigin = [this.GridReq[0]*(tileDim<<this.Level),
+                                  this.GridReq[2]*(tileDim<<this.Level)];
+
+        // loop over the tiles.
+        for (var y = this.GridReq[2]; y <= this.GridReq[3]; ++y) {
+            for (var x = this.GridReq[0]; x <= this.GridReq[1]; ++x) {
+                // Compute the tile name.
+                var tx = x, ty = y, tl = this.Level;
+                var tileName = "";
+                while (tl < image.levels-1) {
+                    if ((tx&1) == 0 && (ty&1) == 0) {tileName = "q" + tileName;}
+                    if ((tx&1) == 1 && (ty&1) == 0) {tileName = "r" + tileName;}
+                    if ((tx&1) == 0 && (ty&1) == 1) {tileName = "t" + tileName;}
+                    if ((tx&1) == 1 && (ty&1) == 1) {tileName = "s" + tileName;}
+                    tx = (tx>>1);
+                    ty = (ty>>1);
+                    ++tl;
+                }
+                var left = (((x<<this.Level)*tileDim)-request[0])/this.ScreenPixelSpacing;
+                var top  = (((y<<this.Level)*tileDim)-request[2])/this.ScreenPixelSpacing;
+                var img  = $('<img>')
+                    .appendTo(this.Div)
+                    .attr("width", imgSize)
+                    .attr("height", imgSize)
+                    .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name=t"+tileName+".jpg")
+                    .attr("alt", image.label)
+                    .css({"left": left.toString()+"px",
+                          "top":  top.toString()+"px"})
+                    .addClass("sa-view-cutout-thumb-tile");
+            }
+        }
+    }
+
+    CutoutThumb.prototype.AppendTo = function(parent) {
+        this.Div.appendTo(parent);
+        return this;
+    }
+
+    // Call back argument is this thumb object.
+    // slideX, and slideY are set to mouse in slide coordinates.
+    CutoutThumb.prototype.Click = function(callback) {
+        var self = this;
+        this.ClickCallback = callback;
+        this.Div.click(function (e) {
+            // It is a real pain to get the mouse position rlative to the div.
+            var x = e.pageX;
+            var y = e.pageY;
+            // Now get the location of this thumb on the screen.
+            var offset = self.Div.offset();
+            x -= offset.left;
+            y -= offset.top;
+            console.log("click: " + x + ", " + y);
+
+            self.SlideX = (x * self.ScreenPixelSpacing)
+                + self.ScreenPixelOrigin[0];
+            self.SlideY = (y * self.ScreenPixelSpacing)
+                + self.ScreenPixelOrigin[1];
+            (self.ClickCallback)(self);
+        });
+
+        return this;
+    }
+
+    // todo:
+    // - Bind delete key to stack creator.
+    // - debug why some slides are not working.
+    // - Get the average color of sections and get rid of outliers.
+    //     (Maybe after delete)?
+    // - First pass rigid aligment in stack creator.
+    // - save the contour with the stack sections.
+    // - move the transformations to load with the sections.
+    // - Toggle slide / section view in stack viewer.
+    // - Implement a way to reorder the sections.
+    // - Implement a way to add a section in the slide stack viewer.
+    // - Implement multiple pieces in a single section.
+    // - Improve the gradient descent to be less sensitive to outliers
+    //     (mismatched contours.)
 
 
+    SA.CutoutThumb = CutoutThumb;
 
+})();
 
-
-
-// todo: 
-// - Bind delete key to stack creator.
-// - debug why some slides are not working.
-// - Get the average color of sections and get rid of outliers. 
-//     (Maybe after delete)?
-// - First pass rigid aligment in stack creator.
-// - save the contour with the stack sections.
-// - move the transformations to load with the sections.
-// - Toggle slide / section view in stack viewer.
-// - Implement a way to reorder the sections.
-// - Implement a way to add a section in the slide stack viewer.
-// - Implement multiple pieces in a single section.
-// - Improve the gradient descent to be less sensitive to outliers
-//     (mismatched contours.)
 // For automatic segmentation.  I need the tissue volume for crystal percentage.
 // It is too dificult to segment manually.
 // This class will grab data from the canvas and perform seeded marching sqaures.
 // My plan: Start from a seed point. Move right until I find the contour (cross the threshold).
 //    Start propagating marching squares until the loop closes.
 
+
+
+// Not used.  Nothing public. All hidden.
+
+
+(function () {
+    "use strict";
 
 
 
@@ -22891,7 +23084,7 @@ function GenerateContourFromViewer(viewer, threshold) {
     }
 
     // Create a polylineWidget from the loop.
-    var plWidget = new PolylineWidget(viewer,false);
+    var plWidget = new SAM.PolylineWidget(viewer,false);
     plWidget.Shape.Points = slideLoop;
     plWidget.Shape.Closed = true;
     plWidget.LineWidth = 0;
@@ -22901,17 +23094,17 @@ function GenerateContourFromViewer(viewer, threshold) {
 
 
 
-
-
-
-
-
-    
+})();
     
 // Histogram section alignment. 
 
 //=================================================
 // contour collection stuff.
+
+
+(function () {
+    "use strict";
+
 
 function PermuteBounds(bds, axis, direction) {
     if (direction < 0) {
@@ -23461,7 +23654,6 @@ function Segmentation (viewer) {
     }
     console.log("center surround range " + min + ", " + max);
     // Now the alpha channel should contain center surround values
-    delete tmp;
 
     // I am using a hidden canvas to convert imageData to an image.
     // there must be a better way of doing this.
@@ -23647,9 +23839,9 @@ function HandleMouseUp(event) {
 
 function testSegment() {
     if (SEGMENT === undefined) {
-        SEGMENT = new Segmentation(VIEWERS[0]);
+        SEGMENT = new Segmentation(SA.VIEWERS[0]);
     }
-    VIEWERS[0].MainView.Canvas.mouseup(function () {HandleMouseUp(event);});
+    SA.VIEWERS[0].MainView.Canvas.mouseup(function () {HandleMouseUp(event);});
 }
 
 
@@ -23891,7 +24083,7 @@ TriangleMesh.prototype.OtherTriangleEdges = function (tri, edge) {
       } else if (tri.edge2 === edge) {
             return [tri.edge0, tri.edge1];
       }
-      saDebug("Triangle does not contain the edge");
+      SA.Debug("Triangle does not contain the edge");
 }
 
 
@@ -23902,7 +24094,7 @@ TriangleMesh.prototype.PointIdSharedByEdges = function (edge0, edge1) {
     if (edge0.vert0 == edge1.vert1) { return edge0.vert0; }
     if (edge0.vert1 == edge1.vert0) { return edge0.vert1; }
     if (edge0.vert1 == edge1.vert1) { return edge0.vert1; }
-    saDebug("Edges do not share a point");
+    SA.Debug("Edges do not share a point");
 }
 
 
@@ -24285,7 +24477,7 @@ function DistanceMap(bounds, spacing) {
                        Math.ceil((bounds[3]-bounds[2])/spacing)];
     var size = this.Dimensions[0]*this.Dimensions[1];
     if (size > 1000000) {
-        saDebug("Warning: Distance map memory requirement is large.");
+        SA.Debug("Warning: Distance map memory requirement is large.");
     }
     this.Map = new Array(size);
     for (var i = 0; i < size; ++i) {
@@ -24941,7 +25133,6 @@ function SmoothDataAlphaRGB(inData, radius) {
             inData.data[iOut++]   = suma;
         }
     }
-    delete tmpData;
 }
 
 function ComputePrincipleCompnent(data) {
@@ -25146,8 +25337,8 @@ function ComputeContourShiftCurvatureHistagram(contour1, contour2) {
         YPLOT.SetSize(20, bds1[2], 100, bds1[3]-bds1[2]);
     }
 
-    MakeContourPolyline(contour1, VIEWERS[0]);
-    MakeContourPolyline(contour2, VIEWERS[1]);
+    MakeContourPolyline(contour1, SA.VIEWERS[0]);
+    MakeContourPolyline(contour2, SA.VIEWERS[1]);
 
     var hist1 = ComputeContourSpatialCurvatureHistogram(contour1, bds1[0], bds1[1], 0);
     var hist2 = ComputeContourSpatialCurvatureHistogram(contour2, bds1[0], bds1[1], 0);
@@ -25401,15 +25592,15 @@ var DEBUG_MESH1;
 var DEBUG_MESH2;
 var DEBUG_TRANS;
 function testDebug() {
-    //MakeContourPolyline(DEBUG_CONTOUR1, VIEWERS[0]);
-    //MakeContourPolyline(DEBUG_CONTOUR2a, VIEWERS[1]);
-    //MakeContourPolyline(DEBUG_CONTOUR2b, VIEWERS[0]);
+    //MakeContourPolyline(DEBUG_CONTOUR1, SA.VIEWERS[0]);
+    //MakeContourPolyline(DEBUG_CONTOUR2a, SA.VIEWERS[1]);
+    //MakeContourPolyline(DEBUG_CONTOUR2b, SA.VIEWERS[0]);
 
-    DEBUG_MESH1.ConvertPointsToWorld(VIEWERS[0]);
-    VIEWERS[0].AddShape(DEBUG_MESH1);
+    DEBUG_MESH1.ConvertPointsToWorld(SA.VIEWERS[0]);
+    SA.VIEWERS[0].AddShape(DEBUG_MESH1);
 
-    DEBUG_MESH2.ConvertPointsToWorld(VIEWERS[1]);
-    VIEWERS[1].AddShape(DEBUG_MESH2);
+    DEBUG_MESH2.ConvertPointsToWorld(SA.VIEWERS[1]);
+    SA.VIEWERS[1].AddShape(DEBUG_MESH2);
 }
 
 
@@ -25422,7 +25613,7 @@ function DeformableAlignViewers() {
         return;
     }
 
-    var viewport = VIEWERS[1].GetViewport();
+    var viewport = SA.VIEWERS[1].GetViewport();
     var left = viewport[0] + (viewport[2]/2) - 40;
     var top = viewport[1] + (viewport[3]/2) - 40;
     if (WAITING === undefined) {
@@ -25445,14 +25636,14 @@ function DeformableAlignViewers() {
             // Resample contour for a smaller mesh.
             var spacing = 3;
 
-            var viewer = VIEWERS[0];
+            var viewer = SA.VIEWERS[0];
             var data1 = GetImageData(viewer.MainView);
             SmoothDataAlphaRGB(data1, 2);
             var histogram1 = ComputeIntensityHistogram(data1, true);
             var threshold1 = PickThreshold(histogram1);
             var contour1 = LongestContour(data1, threshold1);
 
-            viewer = VIEWERS[1];
+            viewer = SA.VIEWERS[1];
             var data2 = GetImageData(viewer.MainView);
             SmoothDataAlphaRGB(data2, 2);
             var histogram2 = ComputeIntensityHistogram(data2, true);
@@ -25475,7 +25666,7 @@ function DeformableAlignViewers() {
             // Remove all correlations.
             //trans.Correlations = [];
             // Remove all correlations visible in the window.
-            var cam = VIEWERS[0].GetCamera();
+            var cam = SA.VIEWERS[0].GetCamera();
             var bds = cam.GetBounds();
             var idx = 0;
             while (idx < trans.Correlations.length) {
@@ -25493,11 +25684,11 @@ function DeformableAlignViewers() {
             var targetNumCorrelations = 40;
             var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
             for (var i = 2; i < originalContour2.Length(); i += skip) {
-                var viewport = VIEWERS[0].GetViewport();
-                var pt1 = VIEWERS[0].ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
+                var viewport = SA.VIEWERS[0].GetViewport();
+                var pt1 = SA.VIEWERS[0].ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
                                                             contour2.GetPoint(i)[1]);
-                var viewport = VIEWERS[1].GetViewport();
-                var pt2 = VIEWERS[1].ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
+                var viewport = SA.VIEWERS[1].GetViewport();
+                var pt2 = SA.VIEWERS[1].ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
                                                             originalContour2.GetPoint(i)[1]);
                 var cor = new PairCorrelation();
                 cor.SetPoint0(pt1);
@@ -25523,9 +25714,9 @@ function DeformableAlignViewers() {
 
 function AlignPolylines(replace) {
 
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var camBds1 = viewer1.GetCamera().GetBounds();
-    var viewer2 = VIEWERS[1];
+    var viewer2 = SA.VIEWERS[1];
     var camBds2 = viewer2.GetCamera().GetBounds();
     for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
         var pLine1 = viewer1.WidgetList[i1];
@@ -25581,7 +25772,7 @@ function MaskPolylinesByColor(rgb) {
     rgb[2] = rgb[2] / 255;
     // Remove the polylines from viewers
     for (var i = 0; i < 2; ++i) {
-        var viewer1 = VIEWERS[i];
+        var viewer1 = SA.VIEWERS[i];
         var newList = [];
         for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
             var w1 = viewer1.WidgetList[i1];
@@ -25625,7 +25816,7 @@ function AlignPolylinesByColor(rgb, replace) {
     rgb[1] = rgb[1] / 255;
     rgb[2] = rgb[2] / 255;
     // Get the polyline from viewer1
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var camBds1 = viewer1.GetCamera().GetBounds();
     var pLine1 = null;
     var count1 = 0;
@@ -25652,7 +25843,7 @@ function AlignPolylinesByColor(rgb, replace) {
     if (count1 != 1) {return;}
 
     // Get the polyline from viewer2
-    var viewer2 = VIEWERS[1];
+    var viewer2 = SA.VIEWERS[1];
     var camBds2 = viewer2.GetCamera().GetBounds();
     var pLine2 = null;
     var count2 = 0;
@@ -25689,7 +25880,7 @@ function IntegratePolylinesByColor(rgb) {
     rgb[2] = rgb[2] / 255;
 
     // Get the polyline from viewer1
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var camBds1 = viewer1.GetCamera().GetBounds();
 
     for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
@@ -25725,7 +25916,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
     var contour1 = new Contour();
     contour1.World = true;
     contour1.SetPoints(pLine1.Shape.Points);
-    contour1.Camera = VIEWER1.GetCamera();
+    contour1.Camera = SA.VIEWER1.GetCamera();
     contour1.WorldToViewer();
     contour1.Resample(1);
     //contour1.Resample(5);
@@ -25733,7 +25924,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
     var contour2 = new Contour();
     contour2.World = true;
     contour2.SetPoints(pLine2.Shape.Points);
-    contour2.Camera = VIEWER2.GetCamera();
+    contour2.Camera = SA.VIEWER2.GetCamera();
     contour2.WorldToViewer();
     contour2.Resample(1);
     //contour2.Resample(5);
@@ -25759,7 +25950,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
         // Remove all correlations.
         //trans.Correlations = [];
         // Remove all correlations visible in the window.
-        var cam = VIEWERS[0].GetCamera();
+        var cam = SA.VIEWERS[0].GetCamera();
         var bds = cam.GetBounds();
         var idx = 0;
         while (idx < trans.Correlations.length) {
@@ -25977,10 +26168,9 @@ function intensityHistogram(viewer, color, min, max) {
 
 // Takes around a second for r = 3;
 function testSmooth(radius) {
-    var data1 = GetImageData(VIEWERS[0].MainView);
+    var data1 = GetImageData(SA.VIEWERS[0].MainView);
     SmoothDataAlphaRGB(data1,radius);
-    DrawImageData(VIEWERS[0], data1);
-    delete data1;
+    DrawImageData(SA.VIEWERS[0], data1);
 }
 
 
@@ -25990,7 +26180,7 @@ function testSmooth(radius) {
 // Some tissue has the same value as background. I would need a fill to segment background better.
 // Deep red tissue keeps blue red component from dominating.
 function testPrincipleComponentEncoding() {
-    var data1 = GetImageData(VIEWERS[0].MainView);
+    var data1 = GetImageData(SA.VIEWERS[0].MainView);
     SmoothDataAlphaRGB(data1,2);
     //EncodePrincipleComponent(data1);
     var histogram1 = ComputeIntensityHistogram(data1);
@@ -26000,37 +26190,35 @@ function testPrincipleComponentEncoding() {
     // This ignores transparent pixels.
     EncodePrincipleComponent(data1);
 
-
-    DrawImageData(VIEWERS[1], data1);
-    delete data1;
+    DrawImageData(SA.VIEWERS[1], data1);
 }
 
 
 // Worked sometimes, but not always.
 function testAlignTranslationPixelMean() {
-    var data1 = GetImageData(VIEWERS[0].MainView);
+    var data1 = GetImageData(SA.VIEWERS[0].MainView);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     ThresholdData(data1, threshold1);
-    //DrawImageData(VIEWERS[0], data1);
+    //DrawImageData(SA.VIEWERS[0], data1);
 
-    var data2 = GetImageData(VIEWERS[1].MainView);
+    var data2 = GetImageData(SA.VIEWERS[1].MainView);
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     ThresholdData(data2, threshold2);
-    //DrawImageData(VIEWERS[1], data2);
+    //DrawImageData(SA.VIEWERS[1], data2);
 
     var dx = data2.mid_x - data1.mid_x;
     var dy = data2.mid_y - data1.mid_y;
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWERS[0].GetCamera();
-    var viewport = VIEWERS[0].GetViewport();
+    var cam = SA.VIEWERS[0].GetCamera();
+    var viewport = SA.VIEWERS[0].GetViewport();
     dx = dx * cam.Height / viewport[3];
     dy = dy * cam.Height / viewport[3];
 
-    VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
-    VIEWERS[1].AnimateTranslate(dx/2, dy/2);
+    SA.VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
+    SA.VIEWERS[1].AnimateTranslate(dx/2, dy/2);
 
     console.log("Translate = (" + dx + ", " + dy + ")" );
 }
@@ -26044,14 +26232,14 @@ function testAlignTranslationPixelMean() {
 // Histogram of contour curvature did not work.
 // Minimize distance between two contours. (Distance map to keep distance computation fast).
 function testAlignTranslation(debug) {
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
-    var viewer2 = VIEWERS[1];
+    var viewer2 = SA.VIEWERS[1];
     var viewport2 = viewer2.GetViewport();
     var data2 = GetImageData(viewer2.MainView);
     SmoothDataAlphaRGB(data2, 2);
@@ -26065,19 +26253,19 @@ function testAlignTranslation(debug) {
         contour1 = DecimateContour(contour1,1);
         TranslateContour(contour2,[-trans.delta[0],-trans.delta[1]]);
         contour2 = DecimateContour(contour2,1);
-        MakeContourPolyline(contour1, VIEWERS[0]);
-        MakeContourPolyline(contour2, VIEWERS[0]);
+        MakeContourPolyline(contour1, SA.VIEWERS[0]);
+        MakeContourPolyline(contour2, SA.VIEWERS[0]);
     }
 
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWERS[0].GetCamera();
-    var viewport = VIEWERS[0].GetViewport();
+    var cam = SA.VIEWERS[0].GetCamera();
+    var viewport = SA.VIEWERS[0].GetViewport();
     var dx = trans.delta[0] * cam.Height / viewport[3];
     var dy = trans.delta[1] * cam.Height / viewport[3];
 
-    VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
-    VIEWERS[1].AnimateTranslate(dx/2, dy/2);
+    SA.VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
+    SA.VIEWERS[1].AnimateTranslate(dx/2, dy/2);
 
 
     // Ignore rotation for now.
@@ -26086,14 +26274,14 @@ function testAlignTranslation(debug) {
 }
 
 function testAlignTranslation2(debug) {
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
-    var viewer2 = VIEWERS[1];
+    var viewer2 = SA.VIEWERS[1];
     var data2 = GetImageData(viewer2.MainView);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
@@ -26106,19 +26294,19 @@ function testAlignTranslation2(debug) {
         contour1 = DecimateContour(contour1,1);
         TranslateContour(contour2,[-trans.delta[0],-trans.delta[1]]);
         contour2 = DecimateContour(contour2,1);
-        MakeContourPolyline(contour1, VIEWERS[0]);
-        MakeContourPolyline(contour2, VIEWERS[0]);
+        MakeContourPolyline(contour1, SA.VIEWERS[0]);
+        MakeContourPolyline(contour2, SA.VIEWERS[0]);
     }
 
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWERS[0].GetCamera();
-    var viewport = VIEWERS[0].GetViewport();
+    var cam = SA.VIEWERS[0].GetCamera();
+    var viewport = SA.VIEWERS[0].GetViewport();
     var dx = trans.delta[0] * cam.Height / viewport[3];
     var dy = trans.delta[1] * cam.Height / viewport[3];
 
-    VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
-    VIEWERS[1].AnimateTranslate(dx/2, dy/2);
+    SA.VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
+    SA.VIEWERS[1].AnimateTranslate(dx/2, dy/2);
 
 
     // Ignore rotation for now.
@@ -26130,23 +26318,23 @@ function testAlignTranslation2(debug) {
 
 // Moving toward deformation of contour
 function testAlignTranslation() {
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
-    //MakeContourPolyline(contour1, VIEWERS[0]);
+    //MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
-    var viewer2 = VIEWERS[1];
+    var viewer2 = SA.VIEWERS[1];
     var data2 = GetImageData(viewer2.MainView);
     SmoothDataAlphaRGB(data2, 5);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
 
-    //MakeContourPolyline(contour2, VIEWERS[1]);
+    //MakeContourPolyline(contour2, SA.VIEWERS[1]);
 
     // Make a copy of contour2.
     //var contour2copy = new Array(contour2.length);
@@ -26174,33 +26362,33 @@ function testAlignTranslation() {
     ty = ty - (viewport2[3]*0.5);
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWERS[0].GetCamera();
+    var cam = SA.VIEWERS[0].GetCamera();
     var tx = tx * cam.Height / viewport2[3];
     var ty = ty * cam.Height / viewport2[3];
 
-    VIEWERS[1].AnimateTransform(-tx, -ty, -trans.roll);
+    SA.VIEWERS[1].AnimateTransform(-tx, -ty, -trans.roll);
 }
 
 
 
 function testDistanceMapContour() {
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    MakeContourPolyline(contour1, VIEWERS[0]);
+    MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
     var bds1 = ComputeContourBounds(contour1);
     var distMap = new DistanceMap(bds1, 1);
     distMap.AddContour(contour1);
     distMap.Update();
-    distMap.Draw(VIEWERS[1]);
+    distMap.Draw(SA.VIEWERS[1]);
 }
 
 function testDistanceMapThreshold() {
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var ctx1 = viewer1.MainView.Context2d;
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 2);
@@ -26213,7 +26401,7 @@ function testDistanceMapThreshold() {
     var distMap = new DistanceMap(bds1, 1);
     distMap.AddImageData(data1);
     distMap.Update();
-    distMap.Draw(VIEWERS[1]);
+    distMap.Draw(SA.VIEWERS[1]);
 }
 
 // Lets try the contour trick.
@@ -26221,13 +26409,13 @@ function testDistanceMapThreshold() {
 // I could perform connectivity before or after contouring.
 // lets do it after.  Scan for edge. Trace the edge. Mark pixels that have already been contoured.
 function testContour(threshold) {
-    var viewer = VIEWERS[0];
+    var viewer = SA.VIEWERS[0];
     var data1 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var points = LongestContour(data1, threshold);
     ContourRemoveDuplicatePoints(points, 1);
     if (points.length > 1) {
-        var plWidget = MakeContourPolyline(points, VIEWERS[0]);
+        var plWidget = MakeContourPolyline(points, SA.VIEWERS[0]);
     }
 }
 
@@ -26240,7 +26428,7 @@ function testContourMesh(deci) {
     if (deci == undefined) {
         deci = 3;
     }
-    var viewer = VIEWERS[1];
+    var viewer = SA.VIEWERS[1];
     var data1 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
@@ -26276,15 +26464,15 @@ function testDeformableAlign(spacing) {
     if (spacing == undefined) {
         spacing = 3;
     }
-    var viewer = VIEWERS[0];
+    var viewer = SA.VIEWERS[0];
     var data1 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    MakeContourPolyline(contour1, VIEWERS[0]);
+    MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
-    viewer = VIEWERS[1];
+    viewer = SA.VIEWERS[1];
     var data2 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
@@ -26293,7 +26481,7 @@ function testDeformableAlign(spacing) {
     ContourRemoveDuplicatePoints(contour2, spacing);
 
     DeformableAlignContours(contour1, contour2);
-    MakeContourPolyline(contour2, VIEWERS[0]);
+    MakeContourPolyline(contour2, SA.VIEWERS[0]);
     eventuallyRender();
 }
 
@@ -26404,7 +26592,7 @@ function initHagfish() {
     HAGFISH_STACK.ViewerRecords = [];
 
     LAST_HAGFISH_CONTOUR = undefined;
-    VIEWERS[0].WidgetList = [];
+    SA.VIEWERS[0].WidgetList = [];
     eventuallyRender();
 }
 
@@ -26414,7 +26602,7 @@ function acceptHagfishContours() {
     VERIFIED_HAGFISH_CONTOURS = HAGFISH_CONTOURS;
     HAGFISH_CONTOURS = [];
 
-    VIEWERS[0].WidgetList = [];
+    SA.VIEWERS[0].WidgetList = [];
     eventuallyRender();
     addVerifiedHagFishContours();
     console.log("Finished: adding contours.");
@@ -26424,12 +26612,12 @@ function acceptHagfishContours() {
 // We might constrain sequential contours to be similar areas.
 // This could eliminate the need for manual verification.
 function findHagFishSections(smooth, min, max) {
-    VIEWERS[0].WidgetList = [];
+    SA.VIEWERS[0].WidgetList = [];
     eventuallyRender();
 
     VERIFIED_HAGFISH_CONTOURS = [];
 
-    var viewer1 = VIEWERS[0];
+    var viewer1 = SA.VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, smooth);
     var histogram1 = ComputeIntensityHistogram(data1, true);
@@ -26454,7 +26642,7 @@ function findHagFishSections(smooth, min, max) {
     // render the first contour red
     for (var i = 0; i < HAGFISH_CONTOURS.length; ++i) {
         var red = i / HAGFISH_CONTOURS.length;
-        HAGFISH_CONTOURS[i].MakePolyline([red,0,1.0-red], VIEWERS[0].MainView);
+        HAGFISH_CONTOURS[i].MakePolyline([red,0,1.0-red], SA.VIEWERS[0].MainView);
     }
     eventuallyRender();
 }
@@ -26477,7 +26665,7 @@ function alignHagFishSections(record, contour1, contour2) {
     console.log("shift: "+(ac2[0]-c1[0])+", "+(ac2[1]-c1[1]));
 
     // I want to see the alignment for debugging.
-    alignedContour2.MakePolyline([1,0,1], VIEWERS[0].MainView);
+    alignedContour2.MakePolyline([1,0,1], SA.VIEWERS[0].MainView);
 
     // Now make new correlations from the transformed contour.
     var targetNumCorrelations = 40;
@@ -26503,7 +26691,7 @@ function alignHagFishSections(record, contour1, contour2) {
 
 function addVerifiedHagFishContours() {
     for (var i = 0; i < VERIFIED_HAGFISH_CONTOURS.length; ++i) {
-        var imgData = VIEWERS[0].GetCache().Image;
+        var imgData = SA.VIEWERS[0].GetCache().Image;
         var contour = VERIFIED_HAGFISH_CONTOURS[i];
         var bds = contour.GetBounds();
         var record = new ViewerRecord();
@@ -26551,9 +26739,9 @@ function saveHagFishStack() {
             HAGFISH_DATA = data;
             HAGFISH_DATA_STACK = new SA.Note();
             HAGFISH_DATA_STACK.Load(data);
-            saDebug("Auto Stack Saved");
+            SA.Debug("Auto Stack Saved");
         },
-        error: function() { saDebug( "AJAX - error() : saveviewnotes" ); },
+        error: function() { SA.Debug( "AJAX - error() : saveviewnotes" ); },
     });
 }
 
@@ -26572,8 +26760,8 @@ function getHighResHagFishContours() {
     }
     var bds = HAGFISH_CONTOURS[0].GetBounds();
     var scale = (bds[1]-bds[0])/500;
-    var roll = VIEWERS[0].GetCamera().Roll;
-    VIEWERS[0].GetImage(bds, roll, scale, getHighResHagFishContours2);
+    var roll = SA.VIEWERS[0].GetCamera().Roll;
+    SA.VIEWERS[0].GetImage(bds, roll, scale, getHighResHagFishContours2);
 }
 
 // We need two methods because we have to wait for tiles to stop loading.
@@ -26634,15 +26822,17 @@ function getHighResHagFishContours2(data) {
 // - Delete a contour.
 
 
-
-
-
-
-
+    SA.Contour = Contour;
+    SA.Segmentation = Segmentation;
+})();
 // I want to avoid adding a Cache instance variable.
 // I need to create the temporary object to hold pointers
 // to both the cache and the tile which we are waiting for
 // the image to load.  The callback only gives a single reference.
+
+
+(function () {
+    "use strict";
 
 
 
@@ -26682,7 +26872,7 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
 
     var curtime = new Date().getTime();
     TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
-    LoadQueueLoaded(this.Tile);
+    SA.LoadQueueLoaded(this.Tile);
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
@@ -26690,7 +26880,7 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
 LoadTileCallback.prototype.HandleErrorImage = function () {
     console.log("LoadTile error " + this.Tile.Name);
 
-    LoadQueueError(this.Tile);
+    SA.LoadQueueError(this.Tile);
 }
 
 function TileStats() {
@@ -26722,7 +26912,7 @@ function GetErrorImageFunction (callback) {
     return function () {callback.HandleErrorImage();}
 }
 
-TILESTATS = new TileStats();
+var TILESTATS = new TileStats();
 
 
 // Three stages to loading a tile: (texture map is created when the tile is rendered.
@@ -26770,9 +26960,9 @@ function Tile(x, y, z, level, name, cache) {
 
         //if (GL) {
             // These tiles share the same buffers.  Do not crop when there is no warp.
-            this.VertexPositionBuffer = window.tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = window.tileVertexTextureCoordBuffer;
-            this.CellBuffer = window.tileCellBuffer;
+            this.VertexPositionBuffer = SA.tileVertexPositionBuffer;
+            this.VertexTextureCoordBuffer = SA.tileVertexTextureCoordBuffer;
+            this.CellBuffer = SA.tileCellBuffer;
         //}
     } else {
         // Warp model.
@@ -26832,7 +27022,7 @@ Tile.prototype.LoadQueueAdd = function() {
   }
 
   // The tile's parent is loaded.  Add the tile to the load queue.
-  LoadQueueAddTile(this);
+  SA.LoadQueueAddTile(this);
 }
 
 
@@ -26956,72 +27146,71 @@ Tile.prototype.LoadWebSocket = function (cache) {
     ws.FetchTile(name, image, cache, this.Image);
 }
 
-// TODO: Put program as iVar of view.
-Tile.prototype.Draw = function (program, view) {
-  // Load state 0 is: Not loaded and not scheduled to be loaded yet.
-  // Load state 1 is: not loaded but in the load queue.
-  if ( this.LoadState != 3) {
-    // This should never happen.
-    return;
-  }
+    // TODO: Put program as iVar of view.
+    Tile.prototype.Draw = function (program, view) {
+        // Load state 0 is: Not loaded and not scheduled to be loaded yet.
+        // Load state 1 is: not loaded but in the load queue.
+        if ( this.LoadState != 3) {
+            // This should never happen.
+            return;
+        }
 
-  if (view.gl) {
-    if (this.Texture == null) {
-      this.CreateTexture(view.gl);
+        if (view.gl) {
+            if (this.Texture == null) {
+                this.CreateTexture(view.gl);
+            }
+            // These are the same for every tile.
+            // Vertex points (shifted by tiles matrix)
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            // Needed for outline ??? For some reason, DrawOutline did not work
+            // without this call first.
+            view.gl.vertexAttribPointer(SA.imageProgram.vertexPositionAttribute,
+                                        this.VertexPositionBuffer.itemSize,
+                                        view.gl.FLOAT, false, 0, 0);     // Texture coordinates
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+            view.gl.vertexAttribPointer(SA.imageProgram.textureCoordAttribute,
+                                        this.VertexTextureCoordBuffer.itemSize,
+                                        view.gl.FLOAT, false, 0, 0);
+            // Cell Connectivity
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+            // Texture
+            view.gl.activeTexture(view.gl.TEXTURE0);
+            view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
+
+            view.gl.uniform1i(program.samplerUniform, 0);
+            // Matrix that tranforms the vertex p
+            view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+            view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
+        } else {
+            // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
+            // WebGL handles this by flipping the texture coordinates.  Here we have to
+            // translate the tiles to the correct location.
+            view.Context2d.save(); // Save the state of the transform so we can restore for the next tile.
+
+            // Map tile to world.
+            // Matrix is world to 0-1.
+            view.Context2d.transform(this.Matrix[0], this.Matrix[1],
+                                     this.Matrix[4], this.Matrix[5],
+                                     this.Matrix[12], this.Matrix[13]);
+
+            // Flip the tile upside down, but leave it in the same place
+            view.Context2d.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
+
+            // map pixels to Tile
+            var tileSize = this.Cache.Image.TileSize;
+            // This should not be necessary, quick hack around a bug in __init__.py
+            if ( tileSize == undefined) {
+                tileSize = 256;
+            }
+            view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
+            view.Context2d.drawImage(this.Image,0,0);
+
+            //  Transform to map (0->1, 0->1)
+            view.Context2d.restore();
+        }
     }
-    // These are the same for every tile.
-    // Vertex points (shifted by tiles matrix)
-    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
-    // Needed for outline ??? For some reason, DrawOutline did not work
-    // without this call first.
-    view.gl.vertexAttribPointer(imageProgram.vertexPositionAttribute,
-                          this.VertexPositionBuffer.itemSize,
-                          view.gl.FLOAT, false, 0, 0);     // Texture coordinates
-    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    view.gl.vertexAttribPointer(imageProgram.textureCoordAttribute,
-                          this.VertexTextureCoordBuffer.itemSize,
-                          view.gl.FLOAT, false, 0, 0);
-    // Cell Connectivity
-    view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-
-      // Texture
-    view.gl.activeTexture(view.gl.TEXTURE0);
-    view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
-
-    view.gl.uniform1i(program.samplerUniform, 0);
-    // Matrix that tranforms the vertex p
-    view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
-
-    view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
-  } else {
-    // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
-    // WebGL handles this by flipping the texture coordinates.  Here we have to
-    // translate the tiles to the correct location.
-    view.Context2d.save(); // Save the state of the transform so we can restore for the next tile.
-
-    // Map tile to world.
-    // Matrix is world to 0-1.
-    view.Context2d.transform(this.Matrix[0], this.Matrix[1],
-                      this.Matrix[4], this.Matrix[5],
-                      this.Matrix[12], this.Matrix[13]);
-
-
-    // Flip the tile upside down, but leave it in the same place
-    view.Context2d.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
-
-    // map pixels to Tile
-    var tileSize = this.Cache.Image.TileSize;
-    // This should not be necessary, quick hack around a bug in __init__.py
-    if ( tileSize == undefined) {
-      tileSize = 256;
-    }
-    view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-    view.Context2d.drawImage(this.Image,0,0);
-
-    //  Transform to map (0->1, 0->1)
-    view.Context2d.restore();
-  }
-}
 
 Tile.prototype.CreateTexture = function (gl) {
     if (! gl) { 
@@ -27055,101 +27244,109 @@ Tile.prototype.DeleteTexture = function (gl) {
         this.Texture = null;
     }
 }
-// I am adding a levels with grids to index tiles in addition
-// to the tree.  Eventually I want to get rid fo the tree.
-// I am trying to get rid of the roots now.
 
-// A stripped down source object.
-// A source object must have a getTileUrl method.
-// It can have any instance variables it needs to
-// compute the URL.
-function SlideAtlasSource () {
-    this.Prefix = undefined;
+    SA.Tile = Tile;
 
-    // Higher levels are higher resolution.
-    // x, y, slide are integer indexes of tiles in the grid.
-    this.getTileUrl = function(level, x, y, z) {
-        var name = this.Prefix + "t";
-        while (level  > 0) {
-            --level;
-            var cx = (x>>level)&1;
-            var cy = (y>>level)&1;
-            var childIdx = cx+(2*cy);
-            if (childIdx == 0) {name += "q";}
-            if (childIdx == 1) {name += "r";}
-            if (childIdx == 2) {name += "t";}
-            if (childIdx == 3) {name += "s";}
-        }
-        name = name + ".jpg"
-        return name;
-    }
-}
+})();
+(function () {
+    "use strict";
 
-function GigamacroSource () {
-    this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
-    this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
 
-    this.setDimensions = function(xDim,yDim) {
-        this.Dimensions = [xDim, yDim];
-        this.GridSize = [];
-        this.Levels = 0;
-        while (true) {
-            var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
-            this.GridSize.splice(0,0,gridLevelDim);
-            this.Levels += 1;
-            if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
-            xDim = xDim / 2;
-            yDim = yDim / 2;
+    // I am adding a levels with grids to index tiles in addition
+    // to the tree.  Eventually I want to get rid fo the tree.
+    // I am trying to get rid of the roots now.
+
+    // A stripped down source object.
+    // A source object must have a getTileUrl method.
+    // It can have any instance variables it needs to
+    // compute the URL.
+    SA.SlideAtlasSource = function () {
+        this.Prefix = undefined;
+
+        // Higher levels are higher resolution.
+        // x, y, slide are integer indexes of tiles in the grid.
+        this.getTileUrl = function(level, x, y, z) {
+            var name = this.Prefix + "t";
+            while (level  > 0) {
+                --level;
+                var cx = (x>>level)&1;
+                var cy = (y>>level)&1;
+                var childIdx = cx+(2*cy);
+                if (childIdx == 0) {name += "q";}
+                if (childIdx == 1) {name += "r";}
+                if (childIdx == 2) {name += "t";}
+                if (childIdx == 3) {name += "s";}
+            }
+            name = name + ".jpg"
+            return name;
         }
     }
 
-    // Higher levels are higher resolution.
-    // x, y, slide are integer indexes of tiles in the grid.
-    this.getTileUrl = function(level, x, y, z) {
-        var g = this.GridSize[level];
-        if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) {
-            return "";
+    SA.GigamacroSource = function () {
+        this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+        this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
+
+        this.setDimensions = function(xDim,yDim) {
+            this.Dimensions = [xDim, yDim];
+            this.GridSize = [];
+            this.Levels = 0;
+            while (true) {
+                var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+                this.GridSize.splice(0,0,gridLevelDim);
+                this.Levels += 1;
+                if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+                xDim = xDim / 2;
+                yDim = yDim / 2;
+            }
         }
-        var num = y*g[0] + x;
-        for (var i = 0; i < level; ++i) {
-            g = this.GridSize[i];
-            num += g[0]*g[1];
-        }
-        var tileGroup = Math.floor(num / 256);
-        var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
-        return name;
-    }
-}
 
-function GirderSource () {
-    this.height = 18432;
-    this.width = 18432;
-    this.tileSize = 256;
-    this.minLevel = 0;
-    this.maxLevel = 7;
-    this.getTileUrl = function (level,x,y) {
-        return 'http://lemon:8081/api/v1/item/564e42fe3f24e538e9a20eb9/tiles/zxy/'
-            + level + '/' + x + '/' + y;
-    }
-}
-
-// Our subdivision of leaves is arbitrary.
-function IIIFSource () {
-    this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
-    this.TileSize = 256;
-
-    this.setDimensions = function(xDim,yDim) {
-        this.Dimensions = [xDim, yDim];
-        this.GridSize = [];
-        this.Levels = 0;
-        while (true) {
-            var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
-            this.Levels += 1;
-            if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
-            xDim = xDim / 2;
-            yDim = yDim / 2;
+        // Higher levels are higher resolution.
+        // x, y, slide are integer indexes of tiles in the grid.
+        this.getTileUrl = function(level, x, y, z) {
+            var g = this.GridSize[level];
+            if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) {
+                return "";
+            }
+            var num = y*g[0] + x;
+            for (var i = 0; i < level; ++i) {
+                g = this.GridSize[i];
+                num += g[0]*g[1];
+            }
+            var tileGroup = Math.floor(num / 256);
+            var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
+            return name;
         }
     }
+
+    SA.GirderSource = function () {
+        this.height = 18432;
+        this.width = 18432;
+        this.tileSize = 256;
+        this.minLevel = 0;
+        this.maxLevel = 7;
+        this.getTileUrl = function (level,x,y) {
+            return 'http://lemon:8081/api/v1/item/564e42fe3f24e538e9a20eb9/tiles/zxy/'
+                + level + '/' + x + '/' + y;
+        }
+    }
+
+    // Our subdivision of leaves is arbitrary.
+    SA.IIIFSource = function () {
+        this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
+        this.TileSize = 256;
+
+        this.setDimensions = function(xDim,yDim) {
+            this.Dimensions = [xDim, yDim];
+            this.GridSize = [];
+            this.Levels = 0;
+            while (true) {
+                var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+                this.Levels += 1;
+                if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+                xDim = xDim / 2;
+                yDim = yDim / 2;
+            }
+        }
 
     // Higher levels are higher resolution. (0 is the root).
     // x, y, slide are integer indexes of tiles in the grid.
@@ -27176,7 +27373,7 @@ function IIIFSource () {
 }
 
 
-function DanielSource () {
+SA.DanielSource = function () {
     this.Prefix = "http://dragon.krash.net:2009/data/1"
     this.MinLevel = 0;
     this.MaxLevel = 7;
@@ -27192,7 +27389,7 @@ function DanielSource () {
 }
 
 
-function IIPSource () {
+SA.IIPSource = function () {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
@@ -27214,20 +27411,20 @@ function IIPSource () {
 
 //==============================================================================
 
-function FindCache(image) {
+SA.FindCache = function(image) {
     // Look through existing caches and reuse one if possible
     for (var i = 0; i < SA.Caches.length; ++i) {
         if (SA.Caches[i].Image._id == image._id) {
             return SA.Caches[i];
         }
     }
-    var cache = new Cache();
+    var cache = new SA.Cache();
 
     // Special case to link to IIIF? Harvard art..
     //http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap&s=1&r=0&x=0&y=0&w=600&h=600
 
     if (image._id == "556e0ad63ed65909dbc2e383") {
-        var tileSource = new IIIFSource ();
+        var tileSource = new SA.IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=47174896";
         // "width":2087,"height":2550,"scale_factors":[1,2,4,8,16,32],
         tileSource.setDimensions(2087,2550);
@@ -27240,7 +27437,7 @@ function FindCache(image) {
     }
 
     if (image._id == "556c89a83ed65909dbc2e317") {
-        var tileSource = new IIIFSource ();
+        var tileSource = new SA.IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
         tileSource.setDimensions(3890,5787);
         image.levels = tileSource.Levels;
@@ -27253,7 +27450,7 @@ function FindCache(image) {
 
     // Special case to link to gigamacro.
     if (image._id == "555a1af93ed65909dbc2e19a") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
         tileSource.setDimensions(14316,8459);
         image.levels = tileSource.Levels;
@@ -27264,7 +27461,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555a5e163ed65909dbc2e19d") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_bottom/zoomify/"
         tileSource.setDimensions(64893, 40749);
         image.levels = tileSource.Levels;
@@ -27275,7 +27472,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555b66483ed65909dbc2e1a0") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_top/zoomify/"
         tileSource.setDimensions(64893,40749);
         image.levels = tileSource.Levels;
@@ -27286,7 +27483,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555b664d3ed65909dbc2e1a3") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/drawer_unit_box_test_05-01-2015_08-52-29_0000/zoomify/"
         tileSource.setDimensions(11893,7322);
         image.levels = tileSource.Levels;
@@ -27297,7 +27494,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555b66523ed65909dbc2e1a6") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/full_drawer_test_05-01-2015_09-04-17_0000/zoomify/"
         tileSource.setDimensions(44245,34013);
         image.levels = tileSource.Levels;
@@ -27308,7 +27505,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555c93973ed65909dbc2e1b5") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/impasto_polarized/zoomify/";
         tileSource.setDimensions(76551, 57364);
         image.levels = tileSource.Levels;
@@ -27319,7 +27516,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555c93913ed65909dbc2e1b2") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/restoration_polaraized/zoomify/";
         tileSource.setDimensions(55884, 55750);
         image.levels = tileSource.Levels;
@@ -27331,7 +27528,7 @@ function FindCache(image) {
     }
 
     if (image._id == "555f46503ed65909dbc2e1b8") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/eucalyptus_10-31-2010/zoomify/";
         tileSource.setDimensions(38392, 45242);
         image.levels = tileSource.Levels;
@@ -27342,7 +27539,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555f46553ed65909dbc2e1bb") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/Bunton/leaf_fossil_04-30-2015/zoomify/";
         tileSource.setDimensions(22590, 10793);
         image.levels = tileSource.Levels;
@@ -27353,7 +27550,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555f465a3ed65909dbc2e1be") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/formsandsurfaces/maiden_hair_fern_v1_7-6-2012/zoomify/";
         tileSource.setDimensions(22092, 22025);
         image.levels = tileSource.Levels;
@@ -27364,7 +27561,7 @@ function FindCache(image) {
         return cache;
     }
     if (image._id == "555f46623ed65909dbc2e1c1") {
-        var tileSource = new GigamacroSource ();
+        var tileSource = new SA.GigamacroSource ();
         tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/nancy_plants_7-28-2014/zoomify/";
         tileSource.setDimensions(40687, 69306);
         image.levels = tileSource.Levels;
@@ -27384,7 +27581,7 @@ function FindCache(image) {
 
 
 //==============================================================================
-function CacheLevel(xGridDim, yGridDim) {
+var CacheLevel = function(xGridDim, yGridDim) {
     this.Tiles = new Array(xGridDim*yGridDim);
     this.GridDims = [xGridDim, yGridDim];
 }
@@ -27432,7 +27629,7 @@ Cache.prototype.SetImageData = function(image) {
         // TODO:  This should not be here.
         // Source should be initialized someplace else.
         // Other sources have to overwrite this default.
-        this.TileSource = new SlideAtlasSource();
+        this.TileSource = new SA.SlideAtlasSource();
         this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
     }
     this.Warp = null;
@@ -27446,7 +27643,7 @@ Cache.prototype.SetImageData = function(image) {
             qTile = this.GetTile(slice, 0, 0);
             qTile.LoadQueueAdd();
         }
-        LoadQueueUpdate();
+        SA.LoadQueueUpdate();
     } else {
         this.TileDimensions = [image.TileSize, image.TileSize];
         this.NumberOfSections = 1;
@@ -27515,7 +27712,7 @@ Cache.prototype.LoadRoots = function () {
         qTile = this.GetTile(slice, 0, 0);
         qTile.LoadQueueAdd();
     }
-    LoadQueueUpdate();
+    SA.LoadQueueUpdate();
     return;
 }
 
@@ -27529,11 +27726,11 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
     // I am prioritizing tiles in the queue by time stamp.
     // Loader sets the the tiles time stamp.
     // Time stamp only progresses after a whole render.
-    AdvanceTimeStamp();
+    SA.AdvanceTimeStamp();
 
     // I am putting this here to avoid deleting tiles
     // in the rendering list.
-    Prune();
+    SA.Prune();
 
 
     // Pick a level to display.
@@ -27651,7 +27848,7 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
         }
     }
 
-    LoadQueueUpdate();
+    SA.LoadQueueUpdate();
 
     return tiles;
 }
@@ -27795,7 +27992,7 @@ Cache.prototype.RecursiveGetTile = function(level, x, y, z) {
     if (tile) {
         return tile;
     }
-    var tile = new Tile(x, y, z, level,
+    var tile = new SA.Tile(x, y, z, level,
                         this.TileSource.getTileUrl(level, x, y, z),
                         this);
     this.Levels[level].SetTile(tile);
@@ -27807,7 +28004,7 @@ Cache.prototype.RecursiveGetTile = function(level, x, y, z) {
         // long branch is added, node never gets updated.
         if (parent.Children[0] == null && parent.Children[1] == null &&
             parent.Children[2] == null && parent.Children[3] == null) {
-            parent.BranchTimeStamp = GetCurrentTime();
+            parent.BranchTimeStamp = SA.GetCurrentTime();
         }
         var cx = x&1;
         var cy = y&1;
@@ -27854,7 +28051,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
     }
     if (node.BranchTimeStamp < SA.PruneTimeTiles) {
       if ( node.LoadState == 1) {
-        LoadQueueRemove(node);
+        SA.LoadQueueRemove(node);
       }
       var parent = node.Parent;
       // nodes will always have parents because we do not steal roots.
@@ -27870,17 +28067,25 @@ Cache.prototype.RecursivePruneTiles = function(node)
       node.Parent = null;
       this.UpdateBranchTimeStamp(parent)
       node.destructor();
-      delete node;
     }
   }
 }
 
 
 
+    SA.Cache = Cache;
+
+})();
 
 //==============================================================================
 // Section Object
 // Leftover from Connectome.
+
+
+(function () {
+    "use strict";
+
+
 var SLICE = 0;
 
 
@@ -27968,7 +28173,7 @@ Section.prototype.FindImage = function (imageCollectionName) {
 Section.prototype.Draw = function (view) {
     var finishedRendering = true;
     if (view.gl) {
-        var program = imageProgram;
+        var program = SA.imageProgram;
         view.gl.useProgram(program);
         // Draw tiles.
         view.gl.viewport(view.Viewport[0], view.Viewport[1],
@@ -28057,6 +28262,9 @@ Section.prototype.LoadTilesInView = function (view) {
 }
 
 
+    SA.Section = Section;
+
+})();
 
 
 
@@ -28072,17 +28280,19 @@ Section.prototype.LoadTilesInView = function (view) {
         SAM.View.call(this, parent, useWebGL);
 
         // connectome : default section so we cen set cache
-        this.Section = new Section;
+        this.Section = new SA.Section;
 
         this.Tiles = []; // Not really used
 
         if (useWebGL) {
             this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
-            GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
+            SA.GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
             // TODO: Fix this.
         }
         if (this.gl) {
-            initWebGL(this.gl);
+            // Probably need a canvas object that keep track of
+            // initialization (shared between layers).
+            SA.initWebGL(this.gl);
         } else {
             this.Context2d = this.Canvas[0].getContext("2d");
         }
@@ -28171,2492 +28381,2367 @@ Section.prototype.LoadTilesInView = function (view) {
 
 //==============================================================================
 
-// TODO: Fix
-// Add stack option to Save large image GUI.
-// SaveStackImages.
 
-// I think this can go away now that we have hover mode in text.
-var ANNOTATION_OFF = 0;
-var ANNOTATION_NO_TEXT = 1;
-var ANNOTATION_ON = 2;
-
-var INTERACTION_NONE = 0;
-var INTERACTION_DRAG = 1;
-var INTERACTION_ROTATE = 2;
-var INTERACTION_ZOOM = 3;
-var INTERACTION_OVERVIEW = 4;
-var INTERACTION_OVERVIEW_DRAG = 5;
-var INTERACTION_ICON_ROTATE = 6;
-
-// TODO: Can we get rid of args parameter now that we have ProcessArguments method?
-// See the top of the file for description of args.
-function Viewer (parent) {
-    var self = this;
-
-    this.Parent = parent;
-    parent.addClass('sa-viewer');
-
-    this.Div = $('<div>')
-        .appendTo(this.Parent)
-        .css({'position':'relative',
-              'border-width':'0px',
-              'width':'100%',
-              'height':'100%',
-              'box-sizing':'border-box'})
-        .addClass('sa-resize');
-    this.Div.saOnResize(
-        function() {
-            self.UpdateSize();
-        });
+(function () {
+    "use strict";
 
 
-    // ==============================
-    // Experiment wit combining tranparent webgl ontop of canvas.
-    // did not work
-    /*
-    this.HeatMapDiv = $('<div>')
-        .appendTo(this.Div)
-        .css({'position':'absolute',
-              'left':'0px',
-              'top':'0px',
-              'border-width':'0px',
-              'width':'100%',
-              'height':'100%',
-              'box-sizing':'border-box',
-              'z-index':'150'})
-        .addClass('sa-resize');
+    // TODO: Fix
+    // Add stack option to Save large image GUI.
+    // SaveStackImages.
 
-    this.HeatMapDiv.saOnResize(
-        function() {
-            self.HeatMap.UpdateCanvasSize();
-            // Rendering will be a slave to the view because it needs the
-            // view's camera anyway.
-        });
+    // I think this can go away now that we have hover mode in text.
 
-    this.HeatMap = new SA.View(this.HeatMapDiv,true);
+    var INTERACTION_NONE = 0;
+    var INTERACTION_DRAG = 1;
+    var INTERACTION_ROTATE = 2;
+    var INTERACTION_ZOOM = 3;
+    var INTERACTION_OVERVIEW = 4;
+    var INTERACTION_OVERVIEW_DRAG = 5;
+    var INTERACTION_ICON_ROTATE = 6;
 
-    var heatMapSource = new SlideAtlasSource();
-    heatMapSource.Prefix = "/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name="
-    var heatMapCache = new Cache();
-    heatMapCache.TileSource = heatMapSource;
-    heatMapCache.SetImageData(
-        {levels:     12,
-         dimensions: [419168, 290400, 1],
-         bounds: [0,419167, 0, 290399, 0,0]});
-    this.HeatMap.SetCache(heatMapCache);
+    // TODO: Can we get rid of args parameter now that we have ProcessArguments method?
+    // See the top of the file for description of args.
+    function Viewer (parent) {
+        var self = this;
 
-    this.HeatMap.Camera.Load(
-        {FocalPoint: [209808, 145200],
-         Roll: 0,
-         Height: 419617});
-    this.HeatMap.Camera.ComputeMatrix();
-    this.HeatMap.UpdateCanvasSize();
-    */
-    // ==============================
+        this.Parent = parent;
+        parent.addClass('sa-viewer');
 
-    // I am moving the eventually render feature into viewers.
-    this.Drawing = false;
-    this.RenderPending = false;
-
-    this.HistoryFlag = false;
-
-    // Interaction state:
-    // What to do for mouse move or mouse up.
-    this.InteractionState = INTERACTION_NONE;
-    // External callbacks
-    this.InteractionListeners = [];
-    // TODO: Get rid of this.  Remove bindings instead.
-    // This is a hack to turn off interaction.
-    // Sometime I need to clean up the events for viewers.
-    this.InteractionEnabled = true;
-
-    this.AnimateLast;
-    this.AnimateDuration = 0.0;
-    this.TranslateTarget = [0.0,0.0];
-
-    this.MainView = new SA.TileView(this.Div, true);
-    // webgl for main view.
-    this.MainView.OutlineColor = [0,0,0];
-    this.MainView.Camera.ZRange = [0,1];
-    this.MainView.Camera.ComputeMatrix();
-
-    this.AnnotationLayer = new SAM.AnnotationLayer(this.Div);
-
-    // Hack so the scale widget can get the spacing.
-    this.AnnotationLayer.ScaleWidget.View = this.MainView;
-    // Hack only used for girder testing.
-    this.AnnotationLayer.Viewer = this;
-
-    if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
-        this.OverViewVisibility = true;
-        this.OverViewScale = 0.02; // Experimenting with scroll
-	      this.OverViewport = [80, 20, 180, 180];
-        this.OverViewDiv = $('<div>')
-            .appendTo(this.Div);
-
-        this.OverView = new SA.TileView(this.OverViewDiv);
-	      this.OverView.Camera.ZRange = [-1,0];
-	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
-	      this.OverView.Camera.SetHeight(22000.0);
-	      this.OverView.Camera.ComputeMatrix();
-
-        // One must be true for the icon to be active (opaque).
-        this.RotateIconHover = false;
-        // I am not making this part of the InteractionState because
-        // I want to make the overview its own widget.
-        this.RotateIconDrag = false;
-
-        this.RotateIcon =
-            $('<img>')
-            .appendTo(this.OverView.CanvasDiv)
-            .attr("src", SA.ImagePathUrl+"rotate.png")
-            .addClass("sa-view-rotate")
-            .mouseenter(function (e) {return self.RollEnter(e);})
-            .mouseleave(function (e) {return self.RollLeave(e);})
-            .mousedown( function (e) {return self.RollDown(e);})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;
+        this.Div = $('<div>')
+            .appendTo(this.Parent)
+            .css({'position':'relative',
+                  'border-width':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'box-sizing':'border-box'})
+            .addClass('sa-resize');
+        this.Div.saOnResize(
+            function() {
+                self.UpdateSize();
             });
-        // Try to make the overview be on top of the rotate icon
-        // It should receive events before the rotate icon.
-        this.OverViewDiv.css({'z-index':'200'});
-    }
-    this.ZoomTarget = this.MainView.Camera.GetHeight();
-    this.RollTarget = this.MainView.Camera.Roll;
+
+
+        // I am moving the eventually render feature into viewers.
+        this.Drawing = false;
+        this.RenderPending = false;
+
+        this.HistoryFlag = false;
+
+        // Interaction state:
+        // What to do for mouse move or mouse up.
+        this.InteractionState = INTERACTION_NONE;
+        // External callbacks
+        this.InteractionListeners = [];
+        // TODO: Get rid of this.  Remove bindings instead.
+        // This is a hack to turn off interaction.
+        // Sometime I need to clean up the events for viewers.
+        this.InteractionEnabled = true;
+
+        this.AnimateLast;
+        this.AnimateDuration = 0.0;
+        this.TranslateTarget = [0.0,0.0];
+
+        this.MainView = new SA.TileView(this.Div, false);
+        // webgl for main view.
+        this.MainView.OutlineColor = [0,0,0];
+        this.MainView.Camera.ZRange = [0,1];
+        this.MainView.Camera.ComputeMatrix();
+
+        this.Layers = [];
+
+        if (! SA.MOBILE_DEVICE || SA.MOBILE_DEVICE == "iPad") {
+            this.OverViewVisibility = true;
+            this.OverViewScale = 0.02; // Experimenting with scroll
+	          this.OverViewport = [80, 20, 180, 180];
+            this.OverViewDiv = $('<div>')
+                .appendTo(this.Div);
+
+            this.OverView = new SA.TileView(this.OverViewDiv);
+	          this.OverView.Camera.ZRange = [-1,0];
+	          this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
+	          this.OverView.Camera.SetHeight(22000.0);
+	          this.OverView.Camera.ComputeMatrix();
+
+            // One must be true for the icon to be active (opaque).
+            this.RotateIconHover = false;
+            // I am not making this part of the InteractionState because
+            // I want to make the overview its own widget.
+            this.RotateIconDrag = false;
+
+            this.RotateIcon =
+                $('<img>')
+                .appendTo(this.OverView.CanvasDiv)
+                .attr("src", SA.ImagePathUrl+"rotate.png")
+                .addClass("sa-view-rotate")
+                .mouseenter(function (e) {return self.RollEnter(e);})
+                .mouseleave(function (e) {return self.RollLeave(e);})
+                .mousedown( function (e) {return self.RollDown(e);})
+                .attr('draggable','false')
+                .on("dragstart", function() {
+                    return false;
+                });
+            // Try to make the overview be on top of the rotate icon
+            // It should receive events before the rotate icon.
+            this.OverViewDiv.css({'z-index':'200'});
+        }
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.RollTarget = this.MainView.Camera.Roll;
     
-    this.DoubleClickX = 0;
-    this.DoubleClickY = 0;
+        this.DoubleClickX = 0;
+        this.DoubleClickY = 0;
     
+        // For stack correlations.
+        this.StackCorrelations = undefined;
+        // This is only for drawing correlations.
+        this.RecordIndex = 0; // Only used for drawing correlations.
 
-    // For stack correlations.
-    this.StackCorrelations = undefined;
-    // This is only for drawing correlations.
-    this.RecordIndex = 0; // Only used for drawing correlations.
-
-    var self = this;
-    var can = this.MainView.CanvasDiv;
-    can.on(
-        "mousedown.viewer",
-			  function (event){
-            return self.HandleMouseDown(event);
-        });
-    can.on(
-        "mousemove.viewer",
-			  function (event){
-            // So key events go the the right viewer.
-            this.focus();
-            // Firefox does not set which for mouse move events.
-            saFirefoxWhich(event);
-            return self.HandleMouseMove(event);
-        });
-    // We need to detect the mouse up even if it happens outside the canvas,
-    $(document.body).on(
-        "mouseup.viewer",
-			  function (event){
-            self.HandleMouseUp(event);
-            return true;
-        });
-    can.on(
-        "wheel.viewer",
-        function(event){
-            return self.HandleMouseWheel(event.originalEvent);
-        });
-
-    // I am delaying getting event manager out of receiving touch events.
-    // It has too many helper functions.
-    can.on(
-        "touchstart.viewer",
-        function(event){
-            return self.HandleTouchStart(event.originalEvent);
-        });
-    can.on(
-        "touchmove.viewer",
-        function(event){
-            return self.HandleTouchMove(event.originalEvent);
-        });
-    can.on(
-        "touchend.viewer",
-        function(event){
-            self.HandleTouchEnd(event.originalEvent);
-            return true;
-        });
-
-    // necesary to respond to keyevents.
-    this.MainView.CanvasDiv.attr("tabindex","1");
-    can.on(
-        "keydown.viewer",
-			  function (event){
-            //alert("keydown");
-            return self.HandleKeyDown(event);
-        });
-
-    // This did not work for double left click
-    // Go back to my original way of handling this.
-    //can.addEventListener("dblclick",
-		//	                   function (event){self.HandleDoubleClick(event);},
-		//	                   false);
-
-    if (this.OverView) {
-        var can = this.OverView.CanvasDiv;
+        var self = this;
+        var can = this.MainView.CanvasDiv;
         can.on(
             "mousedown.viewer",
-            function (e) {
-                return self.HandleOverViewMouseDown(e);
-            });
-
-        can.on(
-            "mouseup.viewer",
-			      function (e){
-                return self.HandleOverViewMouseUp(e);
+			      function (event){
+                return self.HandleMouseDown(event);
             });
         can.on(
             "mousemove.viewer",
-			      function (e){
-                return self.HandleOverViewMouseMove(e);
+			      function (event){
+                // So key events go the the right viewer.
+                this.focus();
+                // Firefox does not set which for mouse move events.
+                SA.FirefoxWhich(event);
+                return self.HandleMouseMove(event);
             });
-        // I cannot get this to capture events.  The feature of resizing
-        //    the overview with the mouse wheel is not important anyway.
-        //can[0].addEventListener(
-        //    function (e){return self.HandleOverViewMouseWheel(e);},
-        //    "wheel",
-			  //    false);
-    }
+        // We need to detect the mouse up even if it happens outside the canvas,
+        $(document.body).on(
+            "mouseup.viewer",
+			      function (event){
+                self.HandleMouseUp(event);
+                return true;
+            });
+        can.on(
+            "wheel.viewer",
+            function(event){
+                return self.HandleMouseWheel(event.originalEvent);
+            });
 
-    this.CopyrightWrapper = $('<div>')
-        .appendTo(this.MainView.CanvasDiv)
-        .addClass("sa-view-copyright");
-    if (SA.Session.sessid == "560b5127a7a1412195d13685") {
-        this.Icon = $('<img>')
+        // I am delaying getting event manager out of receiving touch events.
+        // It has too many helper functions.
+        can.on(
+            "touchstart.viewer",
+            function(event){
+                return self.HandleTouchStart(event.originalEvent);
+            });
+        can.on(
+            "touchmove.viewer",
+            function(event){
+                return self.HandleTouchMove(event.originalEvent);
+            });
+        can.on(
+            "touchend.viewer",
+            function(event){
+                self.HandleTouchEnd(event.originalEvent);
+                return true;
+            });
+
+        // necesary to respond to keyevents.
+        this.MainView.CanvasDiv.attr("tabindex","1");
+        can.on(
+            "keydown.viewer",
+			      function (event){
+                //alert("keydown");
+                return self.HandleKeyDown(event);
+            });
+
+        // This did not work for double left click
+        // Go back to my original way of handling this.
+        //can.addEventListener("dblclick",
+		    //	                   function (event){self.HandleDoubleClick(event);},
+		    //	                   false);
+
+        if (this.OverView) {
+            var can = this.OverView.CanvasDiv;
+            can.on(
+                "mousedown.viewer",
+                function (e) {
+                    return self.HandleOverViewMouseDown(e);
+                });
+
+            can.on(
+                "mouseup.viewer",
+			          function (e){
+                    return self.HandleOverViewMouseUp(e);
+                });
+            can.on(
+                "mousemove.viewer",
+			          function (e){
+                    return self.HandleOverViewMouseMove(e);
+                });
+            // I cannot get this to capture events.  The feature of resizing
+            //    the overview with the mouse wheel is not important anyway.
+            //can[0].addEventListener(
+            //    function (e){return self.HandleOverViewMouseWheel(e);},
+            //    "wheel",
+			      //    false);
+        }
+
+        this.CopyrightWrapper = $('<div>')
             .appendTo(this.MainView.CanvasDiv)
-            .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
-            .prop('title', "UC Davis")
-            .css({'position': 'absolute',
-                  'bottom'  : '80px',
-                  'left'    : '7px',
-                  'width'   : '128px',
-                  'z-index' : '4'});
-    }
-
-
-}
-
-// Try to remove all global references to this viewer.
-Viewer.prototype.Delete = function () {
-    this.Div.remove();
-    // Remove circular references too?
-    // This will probably affect all viewers.
-    $(document.body).off('mouseup.viewer');
-    this.MainView.Delete();
-    if (this.OverView) {
-        this.OverView.Delete();
-        delete this.OverView;
-    }
-    delete this.MainView;
-    delete this.Parent;
-    delete this.Div;
-    delete this.InteractionListeners;
-    delete this.RotateIcon;
-    delete this.StackCorrelations;
-    delete this.CopyrightWrapper;
-}
-
-Viewer.prototype.GetAnnotationLayer = function () {
-    return this.AnnotationLayer;
-}
-
-// Abstracting saViewer  for viewer and dualViewWidget.
-// Save viewer state in a note.
-Viewer.prototype.Record = function (note, viewIdx) {
-    viewIdx = viewIdx || 0;
-    note.ViewerRecords[viewIdx].CopyViewer(this);
-}
-
-// TODO: MAke the annotation layer optional.
-// I am moving some of the saViewer code into this viewer object because
-// I am trying to abstract the single viewer used for the HTML presentation
-// note and the full dual view / stack note.
-// TODO: Make an alternative path that does not require a note.
-Viewer.prototype.ProcessArguments = function (args) {
-    if (args.overview !== undefined) {
-        this.SetOverViewVisibility(args.overview);
-    }
-    if (args.zoomWidget !== undefined) {
-        this.SetZoomWidgetVisibility(args.zoomWidget);
-    }
-    if (args.drawWidget !== undefined) {
-        this.SetAnnotationWidgetVisibility(args.drawWidget);
-    }
-    // The way I handle the viewer edit menu is messy.
-    // TODO: Find a more elegant way to add tabs.
-    // Maybe the way we handle the anntation tab shouodl be our pattern.
-    if (args.menu !== undefined) {
-        if ( ! this.Menu) {
-            this.Menu = new ViewEditMenu(this, null);
-        }
-        this.Menu.SetVisibility(args.menu);
-    }
-
-    if (args.tileSource) {
-        var w = args.tileSource.width;
-        var h = args.tileSource.height;
-        var cache = new Cache();
-        cache.TileSource = args.tileSource;
-        // Use the note tmp id as an image id so the viewer can index the
-        // cache.
-        var note = new SA.Note();
-        var image = {levels:     args.tileSource.maxLevel + 1,
-                     dimensions: [w,h],
-                     bounds: [0,w-1, 0,h-1],
-                     _id: note.TempId};
-        var record = new ViewerRecord();
-        record.Image = image;
-        record.OverviewBounds = [0,w-1,0,h-1];
-        record.Camera = {FocalPoint: [w/2, h/2],
-                         Roll: 0,
-                         Height: h};
-        note.ViewerRecords.push(record);
-        cache.SetImageData(image);
-        args.note = note;
-    }
-
-    if (args.note) {
-        this.saNote = args.note;
-        var index = this.saViewerIndex = args.viewerIndex || 0;
-        args.note.ViewerRecords[index].Apply(this);
-        this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
-        this.Parent.attr('sa-viewer-index', this.saViewerIndex);
-    }
-    if (args.hideCopyright != undefined) {
-        this.SetCopyrightVisibility( ! args.hideCopyright);
-    }
-    if (args.interaction !== undefined) {
-        this.SetInteractionEnabled(args.interaction);
-    }
-}
-
-// Which is better calling Note.Apply, or viewer.SetNote?  I think this
-// will  win.
-Viewer.prototype.SetViewerRecord = function(viewerRecord) {
-    viewerRecord.Apply(this);
-}
-Viewer.prototype.SetNote = function(note, viewIdx) {
-    if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
-        console.log("Cannot set viewer record of note");
-        return;
-    }
-    this.SetViewerRecord(note.ViewerRecords[viewIdx]);
-    this.saNote = note;
-    this.saViewerIndex = viewIdx;
-}
-Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
-    var self = this;
-    var note = SA.GetNoteFromId(noteId);
-    if ( ! note) {
-        note = new SA.Note();
-        var self = this;
-        note.LoadViewId(
-            noteId,
-            function () {
-                self.SetNote(note, viewIdx);
-            });
-        return note;
-    }
-    this.SetNote(note,viewIdx);
-    return note;
-}
-
-
-Viewer.prototype.SetOverViewVisibility = function(visible) {
-    this.OverViewVisibility = visible;
-    if ( ! this.OverViewDiv) { return;}
-    if (visible) {
-        this.OverViewDiv.show();
-    } else {
-        this.OverViewDiv.hide();
-    }
-}
-
-Viewer.prototype.GetOverViewVisibility = function() {
-    return this.OverViewVisibility;
-}
-
-Viewer.prototype.Hide = function() {
-    this.MainView.CanvasDiv.hide();
-    if (this.OverView) {
-        this.OverView.CanvasDiv.hide();
-    }
-}
-
-Viewer.prototype.Show = function() {
-    this.MainView.CanvasDiv.show();
-    if (this.OverView && this.OverViewVisibility) {
-        this.OverView.CanvasDiv.show();
-    }
-}
-
-// The interaction boolean argument will supress interaction events if false.
-Viewer.prototype.EventuallyRender = function(interaction) {
-    if (! this.RenderPending) {
-        this.RenderPending = true;
-        var self = this;
-        requestAnimFrame(
-            function() {
-                self.RenderPending = false;
-                self.Draw();
-                if (interaction) {
-                    // Easiest place to make sure interaction events are triggered.
-                    self.TriggerInteraction();
-                }
-            });
-    }
-}
-
-// These should be in an overview widget class.
-Viewer.prototype.RollEnter = function (e) {
-    this.RotateIconHover = true;
-    this.RotateIcon.addClass("sa-active");
-}
-Viewer.prototype.RollLeave = function (e) {
-    this.RotateIconHover = false;
-    if ( ! this.RotateIconDrag) {
-        this.RotateIcon.removeClass("sa-active");
-    }
-}
-Viewer.prototype.RollDown = function (e) {
-    if ( ! this.OverView) { return; }
-    this.RotateIconDrag = true;
-    // Find the center of the overview window.
-    var w = this.OverView.CanvasDiv;
-    var o = w.offset();
-    var cx = o.left + (w.width()/2);
-    var cy = o.top + (w.height()/2);
-    this.RotateIconX = e.clientX - cx;
-    this.RotateIconY = e.clientY - cy;
-
-    return false;
-}
-Viewer.prototype.RollMove = function (e) {
-    if ( ! this.OverView) { return; }
-    if ( ! this.RotateIconDrag) { return; }
-    if ( e.which != 1) {
-        // We must have missed the mouse up event.
-        this.RotateIconDrag = false;
-        return;
-    }
-    // Find the center of the overview window.
-    var origin = this.MainView.CanvasDiv.offset();
-    // center of rotation
-    var cx = this.OverViewport[0] + (this.OverViewport[2] / 2);
-    var cy = this.OverViewport[1] + (this.OverViewport[3] / 2);
-
-    var x = (e.clientX-origin.left) - cx;
-    var y = (e.clientY-origin.top) - cy;
-    var c = x*this.RotateIconY - y*this.RotateIconX;
-    var r = c / (x*x + y*y);
-
-    this.MainView.Camera.Roll -= r;
-    this.UpdateCamera();
-    this.EventuallyRender(true);
-
-    this.RotateIconX = x;
-    this.RotateIconY = y;
-
-    return false;
-}
-
-// onresize callback.  Canvas width and height and the camera need
-// to be synchronized with the canvas div.
-Viewer.prototype.UpdateSize = function () {
-    if ( ! this.MainView) {
-        return;
-    }
-
-    if (this.MainView.UpdateCanvasSize() ) {
-        this.EventuallyRender();
-    }
-
-    // I do not know the way the viewport is used to place
-    // this overview.  It should be like other widgets
-    // and be placed relative to the parent.
-    if (this.OverView) {
-        var width = this.MainView.GetWidth();
-        var height = this.MainView.GetHeight();
-        var area = width*height;
-        var bounds = this.GetOverViewBounds();
-        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
-        // size of overview
-        var h = Math.sqrt(area*this.OverViewScale/aspect);
-        var w = h*aspect;
-        // Limit size
-        if (h > height/2) {
-            h = height/2;
-            var w = h*aspect;
-            this.OverViewScale = w*h/area;
-        }
-        // center of overview
-        var radius = Math.sqrt(h*h+w*w)/2;
-        // Construct the viewport.  Hack: got rid of viewport[0]
-        // TODO: I really need to get rid of the viewport stuff
-        this.OverViewport = [width-radius-w/2,
-                             radius-h/2,
-                             w, h];
-        this.OverViewDiv.css({
-            'left'  : this.OverViewport[0]+"px",
-            'width' : this.OverViewport[2]+"px",
-            'top'   : this.OverViewport[1]+"px",
-            'height': this.OverViewport[3]+"px"
-        });
-        this.OverView.UpdateCanvasSize();
-    }
-}
-
-
-// TODO: Events are a pain because most are handled by parent.
-// Time to make the overview a real widget?
-Viewer.prototype.RollUp = function (e) {
-    this.RotateIconDrag = false;
-    if ( ! this.RotateIconHover) {
-        this.RotateIcon.addClass("sa-active");
-    }
-
-    return false;
-}
-
-
-Viewer.prototype.GetMainCanvas = function() {
-    return this.MainView.Canvas;
-}
-
-// A way to have a method called every time the camera changes.
-// Will be used for synchronizing viewers for stacks.
-Viewer.prototype.OnInteraction = function(callback) {
-    // How should we remove listners?
-    // Global clear for now.
-    if ( ! callback) {
-        this.InteractionListeners = [];
-    } else {
-        this.InteractionListeners.push(callback);
-    }
-}
-
-
-Viewer.prototype.TriggerInteraction = function() {
-    for (var i = 0; i < this.InteractionListeners.length; ++i) {
-        callback = this.InteractionListeners[i];
-        callback();
-    }
-}
-
-Viewer.prototype.GetDiv = function() {
-    return this.MainView.CanvasDiv;
-}
-
-Viewer.prototype.InitializeZoomGui = function() {
-    // Put the zoom bottons in a tab.
-    this.ZoomTab = new Tab(this.GetDiv(),
-                           SA.ImagePathUrl+"mag.png",
-                           "zoomTab");
-    this.ZoomTab.Div
-        .css({'box-sizing': 'border-box',
-              'position':'absolute',
-              'bottom':'0px',
-              'right':'7px',
-              'z-index':'200'})
-        .prop('title', "Zoom scroll");
-    this.ZoomTab.Panel
-        .addClass("sa-view-zoom-panel");
-
-    // Put the magnification factor inside the magnify glass icon.
-    this.ZoomDisplay = $('<div>')
-        .appendTo(this.ZoomTab.Div)
-        .addClass("sa-view-zoom-text")
-        .html("");
-
-    // Place the zoom in / out buttons.
-    // Todo: Make the button become more opaque when pressed.
-    // Associate with viewer (How???).
-    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-    var self = this;
-
-    this.ZoomDiv = $('<div>')
-        .appendTo(this.ZoomTab.Panel)
-        .addClass("sa-view-zoom-panel-div");
-    this.ZoomInButton = $('<img>')
-        .appendTo(this.ZoomDiv)
-        .addClass("sa-view-zoom-button sa-zoom-in")
-        .attr('type','image')
-        .attr('src',SA.ImagePathUrl+"zoomin2.png")
-        .click(function(){ self.AnimateZoom(0.5);})
-        .attr('draggable','false')
-        .on("dragstart", function() {
-            return false;});
-
-    this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
-        .addClass("sa-view-zoom-button sa-zoom-out")
-        .attr('type','image')
-        .attr('src',SA.ImagePathUrl+"zoomout2.png")
-        .click(function(){self.AnimateZoom(2.0);})
-        .attr('draggable','false')
-        .on("dragstart", function() {
-            return false;});
-
-    this.ZoomInButton.addClass('sa-active');
-    this.ZoomOutButton.addClass('sa-active');
-
-}
-
-Viewer.prototype.UpdateZoomGui = function() {
-    if ( ! this.ZoomDisplay) { return; }
-    var camHeight = this.GetCamera().GetHeight();
-    var windowHeight = this.GetViewport()[3];
-    // Assume image scanned at 40x
-    var zoomValue = 40.0 * windowHeight / camHeight;
-    // 2.5 and 1.25 are standard in the geometric series.
-    if ( zoomValue < 2) {
-        zoomValue = zoomValue.toFixed(2);
-    } else if (zoomValue < 4) {
-        zoomValue = zoomValue.toFixed(1);
-    } else {
-        zoomValue = Math.round(zoomValue);
-    }
-    this.ZoomDisplay.html( 'x' + zoomValue);
-
-    // I am looking for the best place to update this value.
-    // Trying to fix a bug: Large scroll when wheel event occurs
-    // first.
-    this.ZoomTarget = camHeight;
-}
-
-
-Viewer.prototype.SaveImage = function(fileName) {
-    this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
-}
-
-
-// Cancel the large image request before it finishes.
-Viewer.prototype.CancelLargeImage = function() {
-    // This will abort the save blob that occurs after rendering.
-    ClearFinishedLoadingCallbacks();
-    // We also need to stop the request for pending tiles.
-    ClearQueue();
-     // Incase some of the queued tiles were for normal rendering.
-    this.EventuallyRender(false);
-}
-
-
-// NOTE: Consider option for annotation layer to share a canvas with the
-// tile view.
-// Create a virtual viewer to save a very large image.
-Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
-                                           finishedCallback) {
-    var self = this;
-    var cache = this.GetCache();
-    var viewport = [0,0, width, height];
-    var cam = this.GetCamera();
-
-    // Clone the main view.
-    var view = new SA.TileView();
-    view.SetCache(cache);
-    view.Canvas.attr("width", width);
-    view.Canvas.attr("height", height);
-    var newCam = view.Camera;
-
-    newCam.SetFocalPoint( cam.FocalPoint );
-    newCam.Roll = cam.Roll;
-    newCam.Height = cam.GetHeight();
-    newCam.Width = cam.GetWidth();
-    newCam.ComputeMatrix();
-
-    // Load only the tiles we need.
-    var tiles = cache.ChooseTiles(newCam, 0, []);
-    for (var i = 0; i < tiles.length; ++i) {
-        LoadQueueAddTile(tiles[i]);
-    }
-    LoadQueueUpdate();
-
-    //this.CancelLargeImage = false;
-    AddFinishedLoadingCallback(
-        function () {self.SaveLargeImage2(view, fileName,
-                                          width, height, stack,
-                                          finishedCallback);}
-    );
-}
-
-
-Viewer.prototype.SaveLargeImage2 = function(view, fileName,
-                                            width, height, stack,
-                                            finishedCallback) {
-    var sectionFileName = fileName;
-    if (stack) {
-        var note = SA.DualDisplay.GetNote();
-        var idx = fileName.indexOf('.');
-        if (idx < 0) {
-            sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
-        } else {
-            sectionFileName = fileName.substring(0, idx) +
-                ZERO_PAD(note.StartIndex, 4) +
-                fileName.substring(idx, fileName.length);
+            .addClass("sa-view-copyright");
+        if (SA.Session.sessid == "560b5127a7a1412195d13685") {
+            this.Icon = $('<img>')
+                .appendTo(this.MainView.CanvasDiv)
+                .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
+                .prop('title', "UC Davis")
+                .css({'position': 'absolute',
+                      'bottom'  : '80px',
+                      'left'    : '7px',
+                      'width'   : '128px',
+                      'z-index' : '4'});
         }
     }
-    console.log(sectionFileName + " " + SA.LoadQueue.length + " " + SA.LoadingCount);
 
-    if ( ! view.DrawTiles() ) {
-        console.log("Sanity check failed. Not all tiles were available.");
+    // Try to remove all global references to this viewer.
+    Viewer.prototype.Delete = function () {
+        this.Div.remove();
+        // Remove circular references too?
+        // This will probably affect all viewers.
+        $(document.body).off('mouseup.viewer');
+        this.MainView.Delete();
+        if (this.OverView) {
+            this.OverView.Delete();
+            delete this.OverView;
+        }
+        delete this.MainView;
+        delete this.Parent;
+        delete this.Div;
+        delete this.InteractionListeners;
+        delete this.RotateIcon;
+        delete this.StackCorrelations;
+        delete this.CopyrightWrapper;
     }
-    this.MainView.DrawShapes();
-    this.AnnotationLayer.Draw(view);
 
-    view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
-    if (stack) {
-        var note = SA.DualDisplay.GetNote();
-        if (note.StartIndex < note.ViewerRecords.length-1) {
-            SA.DualDisplay.NavigationWidget.NextNote();
-            var self = this;
-            setTimeout(function () {
-                self.SaveLargeImage(fileName, width, height, stack,
-                                    finishedCallback);}, 1000);
+    // Layers have a Draw(masterView) method.
+    Viewer.prototype.AddLayer = function (layer) {
+        this.Layers.push(layer);
+    }
+
+    // Abstracting saViewer  for viewer and dualViewWidget.
+    // Save viewer state in a note.
+    Viewer.prototype.Record = function (note, viewIdx) {
+        viewIdx = viewIdx || 0;
+        note.ViewerRecords[viewIdx].CopyViewer(this);
+    }
+
+    // TODO: MAke the annotation layer optional.
+    // I am moving some of the saViewer code into this viewer object because
+    // I am trying to abstract the single viewer used for the HTML presentation
+    // note and the full dual view / stack note.
+    // TODO: Make an alternative path that does not require a note.
+    Viewer.prototype.ProcessArguments = function (args) {
+        if (args.overview !== undefined) {
+            this.SetOverViewVisibility(args.overview);
+        }
+        if (args.zoomWidget !== undefined) {
+            this.SetZoomWidgetVisibility(args.zoomWidget);
+        }
+        if (args.drawWidget !== undefined) {
+            this.SetAnnotationWidgetVisibility(args.drawWidget);
+        }
+        // The way I handle the viewer edit menu is messy.
+        // TODO: Find a more elegant way to add tabs.
+        // Maybe the way we handle the anntation tab shouodl be our pattern.
+        if (args.menu !== undefined) {
+            if ( ! this.Menu) {
+                this.Menu = new SA.ViewEditMenu(this, null);
+            }
+            this.Menu.SetVisibility(args.menu);
+        }
+
+        if (args.tileSource) {
+            var w = args.tileSource.width;
+            var h = args.tileSource.height;
+            var cache = new SA.Cache();
+            cache.TileSource = args.tileSource;
+            // Use the note tmp id as an image id so the viewer can index the
+            // cache.
+            var note = new SA.Note();
+            var image = {levels:     args.tileSource.maxLevel + 1,
+                         dimensions: [w,h],
+                         bounds: [0,w-1, 0,h-1],
+                         _id: note.TempId};
+            var record = new SA.ViewerRecord();
+            record.Image = image;
+            record.OverviewBounds = [0,w-1,0,h-1];
+            record.Camera = {FocalPoint: [w/2, h/2],
+                             Roll: 0,
+                             Height: h};
+            note.ViewerRecords.push(record);
+            cache.SetImageData(image);
+            args.note = note;
+        }
+
+        if (args.note) {
+            this.saNote = args.note;
+            var index = this.saViewerIndex = args.viewerIndex || 0;
+            args.note.ViewerRecords[index].Apply(this);
+            this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
+            this.Parent.attr('sa-viewer-index', this.saViewerIndex);
+        }
+        if (args.hideCopyright != undefined) {
+            this.SetCopyrightVisibility( ! args.hideCopyright);
+        }
+        if (args.interaction !== undefined) {
+            this.SetInteractionEnabled(args.interaction);
+        }
+    }
+
+    // Which is better calling Note.Apply, or viewer.SetNote?  I think this
+    // will  win.
+    Viewer.prototype.SetViewerRecord = function(viewerRecord) {
+        viewerRecord.Apply(this);
+    }
+    Viewer.prototype.SetNote = function(note, viewIdx) {
+        if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
+            console.log("Cannot set viewer record of note");
             return;
         }
+        this.SetViewerRecord(note.ViewerRecords[viewIdx]);
+        this.saNote = note;
+        this.saViewerIndex = viewIdx;
+    }
+    Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
+        var self = this;
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new SA.Note();
+            var self = this;
+            note.LoadViewId(
+                noteId,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+            return note;
+        }
+        this.SetNote(note,viewIdx);
+        return note;
     }
 
-    finishedCallback();
-}
 
-// This method waits until all tiles are loaded before saving.
-var SAVE_FINISH_CALLBACK;
-Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
-    var self = this;
-    AddFinishedLoadingCallback(
-        function () {
-            self.SaveImage(fileName);
-            if (finishedCallback) {
-                finishedCallback();
+    Viewer.prototype.SetOverViewVisibility = function(visible) {
+        this.OverViewVisibility = visible;
+        if ( ! this.OverViewDiv) { return;}
+        if (visible) {
+            this.OverViewDiv.show();
+        } else {
+            this.OverViewDiv.hide();
+        }
+    }
+
+    Viewer.prototype.GetOverViewVisibility = function() {
+        return this.OverViewVisibility;
+    }
+
+    Viewer.prototype.Hide = function() {
+        this.MainView.CanvasDiv.hide();
+        if (this.OverView) {
+            this.OverView.CanvasDiv.hide();
+        }
+    }
+
+    Viewer.prototype.Show = function() {
+        this.MainView.CanvasDiv.show();
+        if (this.OverView && this.OverViewVisibility) {
+            this.OverView.CanvasDiv.show();
+        }
+    }
+
+    // The interaction boolean argument will supress interaction events if false.
+    Viewer.prototype.EventuallyRender = function(interaction) {
+        if (! this.RenderPending) {
+            this.RenderPending = true;
+            var self = this;
+            requestAnimFrame(
+                function() {
+                    self.RenderPending = false;
+                    self.Draw();
+                    if (interaction) {
+                        // Easiest place to make sure interaction events are triggered.
+                        self.TriggerInteraction();
+                    }
+                });
+        }
+    }
+
+    // These should be in an overview widget class.
+    Viewer.prototype.RollEnter = function (e) {
+        this.RotateIconHover = true;
+        this.RotateIcon.addClass("sa-active");
+    }
+    Viewer.prototype.RollLeave = function (e) {
+        this.RotateIconHover = false;
+        if ( ! this.RotateIconDrag) {
+            this.RotateIcon.removeClass("sa-active");
+        }
+    }
+    Viewer.prototype.RollDown = function (e) {
+        if ( ! this.OverView) { return; }
+        this.RotateIconDrag = true;
+        // Find the center of the overview window.
+        var w = this.OverView.CanvasDiv;
+        var o = w.offset();
+        var cx = o.left + (w.width()/2);
+        var cy = o.top + (w.height()/2);
+        this.RotateIconX = e.clientX - cx;
+        this.RotateIconY = e.clientY - cy;
+
+        return false;
+    }
+    Viewer.prototype.RollMove = function (e) {
+        if ( ! this.OverView) { return; }
+        if ( ! this.RotateIconDrag) { return; }
+        if ( e.which != 1) {
+            // We must have missed the mouse up event.
+            this.RotateIconDrag = false;
+            return;
+        }
+        // Find the center of the overview window.
+        var origin = this.MainView.CanvasDiv.offset();
+        // center of rotation
+        var cx = this.OverViewport[0] + (this.OverViewport[2] / 2);
+        var cy = this.OverViewport[1] + (this.OverViewport[3] / 2);
+
+        var x = (e.clientX-origin.left) - cx;
+        var y = (e.clientY-origin.top) - cy;
+        var c = x*this.RotateIconY - y*this.RotateIconX;
+        var r = c / (x*x + y*y);
+
+        this.MainView.Camera.Roll -= r;
+        this.UpdateCamera();
+        this.EventuallyRender(true);
+
+        this.RotateIconX = x;
+        this.RotateIconY = y;
+
+        return false;
+    }
+
+    // onresize callback.  Canvas width and height and the camera need
+    // to be synchronized with the canvas div.
+    Viewer.prototype.UpdateSize = function () {
+        if ( ! this.MainView) {
+            return;
+        }
+
+        if (this.MainView.UpdateCanvasSize() ) {
+            this.EventuallyRender();
+        }
+
+        // I do not know the way the viewport is used to place
+        // this overview.  It should be like other widgets
+        // and be placed relative to the parent.
+        if (this.OverView) {
+            var width = this.MainView.GetWidth();
+            var height = this.MainView.GetHeight();
+            var area = width*height;
+            var bounds = this.GetOverViewBounds();
+            var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
+            // size of overview
+            var h = Math.sqrt(area*this.OverViewScale/aspect);
+            var w = h*aspect;
+            // Limit size
+            if (h > height/2) {
+                h = height/2;
+                var w = h*aspect;
+                this.OverViewScale = w*h/area;
+            }
+            // center of overview
+            var radius = Math.sqrt(h*h+w*w)/2;
+            // Construct the viewport.  Hack: got rid of viewport[0]
+            // TODO: I really need to get rid of the viewport stuff
+            this.OverViewport = [width-radius-w/2,
+                                 radius-h/2,
+                                 w, h];
+            this.OverViewDiv.css({
+                'left'  : this.OverViewport[0]+"px",
+                'width' : this.OverViewport[2]+"px",
+                'top'   : this.OverViewport[1]+"px",
+                'height': this.OverViewport[3]+"px"
+            });
+            this.OverView.UpdateCanvasSize();
+        }
+    }
+
+
+    // TODO: Events are a pain because most are handled by parent.
+    // Time to make the overview a real widget?
+    Viewer.prototype.RollUp = function (e) {
+        this.RotateIconDrag = false;
+        if ( ! this.RotateIconHover) {
+            this.RotateIcon.addClass("sa-active");
+        }
+
+        return false;
+    }
+
+
+    Viewer.prototype.GetMainCanvas = function() {
+        return this.MainView.Canvas;
+    }
+
+    // A way to have a method called every time the camera changes.
+    // Will be used for synchronizing viewers for stacks.
+    Viewer.prototype.OnInteraction = function(callback) {
+        // How should we remove listners?
+        // Global clear for now.
+        if ( ! callback) {
+            this.InteractionListeners = [];
+        } else {
+            this.InteractionListeners.push(callback);
+        }
+    }
+
+
+    Viewer.prototype.TriggerInteraction = function() {
+        for (var i = 0; i < this.InteractionListeners.length; ++i) {
+            var callback = this.InteractionListeners[i];
+            callback();
+        }
+    }
+
+    Viewer.prototype.GetDiv = function() {
+        return this.MainView.CanvasDiv;
+    }
+
+    Viewer.prototype.InitializeZoomGui = function() {
+        // Put the zoom bottons in a tab.
+        this.ZoomTab = new SA.Tab(this.GetDiv(),
+                               SA.ImagePathUrl+"mag.png",
+                               "zoomTab");
+        this.ZoomTab.Div
+            .css({'box-sizing': 'border-box',
+                  'position':'absolute',
+                  'bottom':'0px',
+                  'right':'7px',
+                  'z-index':'200'})
+            .prop('title', "Zoom scroll");
+        this.ZoomTab.Panel
+            .addClass("sa-view-zoom-panel");
+
+        // Put the magnification factor inside the magnify glass icon.
+        this.ZoomDisplay = $('<div>')
+            .appendTo(this.ZoomTab.Div)
+            .addClass("sa-view-zoom-text")
+            .html("");
+
+        // Place the zoom in / out buttons.
+        // Todo: Make the button become more opaque when pressed.
+        // Associate with viewer (How???).
+        // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+        var self = this;
+
+        this.ZoomDiv = $('<div>')
+            .appendTo(this.ZoomTab.Panel)
+            .addClass("sa-view-zoom-panel-div");
+        this.ZoomInButton = $('<img>')
+            .appendTo(this.ZoomDiv)
+            .addClass("sa-view-zoom-button sa-zoom-in")
+            .attr('type','image')
+            .attr('src',SA.ImagePathUrl+"zoomin2.png")
+            .click(function(){ self.AnimateZoom(0.5);})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
+
+        this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
+            .addClass("sa-view-zoom-button sa-zoom-out")
+            .attr('type','image')
+            .attr('src',SA.ImagePathUrl+"zoomout2.png")
+            .click(function(){self.AnimateZoom(2.0);})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
+
+        this.ZoomInButton.addClass('sa-active');
+        this.ZoomOutButton.addClass('sa-active');
+    }
+
+    Viewer.prototype.UpdateZoomGui = function() {
+        if ( ! this.ZoomDisplay) { return; }
+        var camHeight = this.GetCamera().GetHeight();
+        var windowHeight = this.GetViewport()[3];
+        // Assume image scanned at 40x
+        var zoomValue = 40.0 * windowHeight / camHeight;
+        // 2.5 and 1.25 are standard in the geometric series.
+        if ( zoomValue < 2) {
+            zoomValue = zoomValue.toFixed(2);
+        } else if (zoomValue < 4) {
+            zoomValue = zoomValue.toFixed(1);
+        } else {
+            zoomValue = Math.round(zoomValue);
+        }
+        this.ZoomDisplay.html( 'x' + zoomValue);
+
+        // I am looking for the best place to update this value.
+        // Trying to fix a bug: Large scroll when wheel event occurs
+        // first.
+        this.ZoomTarget = camHeight;
+    }
+
+
+    Viewer.prototype.SaveImage = function(fileName) {
+        this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+    }
+
+
+    // Cancel the large image request before it finishes.
+    Viewer.prototype.CancelLargeImage = function() {
+        // This will abort the save blob that occurs after rendering.
+        ClearFinishedLoadingCallbacks();
+        // We also need to stop the request for pending tiles.
+        ClearQueue();
+        // Incase some of the queued tiles were for normal rendering.
+        this.EventuallyRender(false);
+    }
+
+
+    // NOTE: Consider option for annotation layer to share a canvas with the
+    // tile view.
+    // Create a virtual viewer to save a very large image.
+    Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
+                                               finishedCallback) {
+        var self = this;
+        var cache = this.GetCache();
+        var viewport = [0,0, width, height];
+        var cam = this.GetCamera();
+
+        // Clone the main view.
+        var view = new SA.TileView();
+        view.SetCache(cache);
+        view.Canvas.attr("width", width);
+        view.Canvas.attr("height", height);
+        var newCam = view.Camera;
+
+        newCam.SetFocalPoint( cam.FocalPoint );
+        newCam.Roll = cam.Roll;
+        newCam.Height = cam.GetHeight();
+        newCam.Width = cam.GetWidth();
+        newCam.ComputeMatrix();
+
+        // Load only the tiles we need.
+        var tiles = cache.ChooseTiles(newCam, 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            SA.LoadQueueAddTile(tiles[i]);
+        }
+        SA.LoadQueueUpdate();
+
+        //this.CancelLargeImage = false;
+        SA.AddFinishedLoadingCallback(
+            function () {self.SaveLargeImage2(view, fileName,
+                                              width, height, stack,
+                                              finishedCallback);}
+        );
+    }
+
+
+    Viewer.prototype.SaveLargeImage2 = function(view, fileName,
+                                                width, height, stack,
+                                                finishedCallback) {
+        var sectionFileName = fileName;
+        if (stack) {
+            var note = SA.DualDisplay.GetNote();
+            var idx = fileName.indexOf('.');
+            if (idx < 0) {
+                sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
+            } else {
+                sectionFileName = fileName.substring(0, idx) +
+                    ZERO_PAD(note.StartIndex, 4) +
+                    fileName.substring(idx, fileName.length);
             }
         }
-    );
-    this.EventuallyRender(false);
-}
+        console.log(sectionFileName + " " + SA.LoadQueue.length + " " + SA.LoadingCount);
 
-
-// Not used anymore.  Incorpoarated in SaveLargeImage
-// delete these.
-// Save a bunch of stack images ----
-Viewer.prototype.SaveStackImages = function(fileNameRoot) {
-    var self = this;
-    AddFinishedLoadingCallback(
-        function () {
-            self.SaveStackImage(fileNameRoot);
+        if ( ! view.DrawTiles() ) {
+            console.log("Sanity check failed. Not all tiles were available.");
         }
-    );
-    this.EventuallyRender(false);
-}
+        this.MainView.DrawShapes();
 
-Viewer.prototype.SaveStackImage = function(fileNameRoot) {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.Layers[i].Draw(view);
+        }
+
+        view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
+        if (stack) {
+            var note = SA.DualDisplay.GetNote();
+            if (note.StartIndex < note.ViewerRecords.length-1) {
+                SA.DualDisplay.NavigationWidget.NextNote();
+                var self = this;
+                setTimeout(function () {
+                    self.SaveLargeImage(fileName, width, height, stack,
+                                        finishedCallback);}, 1000);
+                return;
+            }
+        }
+
+        finishedCallback();
+    }
+
+    // This method waits until all tiles are loaded before saving.
+    var SAVE_FINISH_CALLBACK;
+    Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
     var self = this;
-    var note = SA.DualDisplay.GetNote();
-    var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
-    this.SaveImage(fileName);
-    if (note.StartIndex < note.ViewerRecords.length-1) {
-        SA.DualDisplay.NavigationWidget.NextNote();
-        AddFinishedLoadingCallback(
+        SA.AddFinishedLoadingCallback(
+            function () {
+                self.SaveImage(fileName);
+                if (finishedCallback) {
+                    finishedCallback();
+                }
+            }
+        );
+        this.EventuallyRender(false);
+    }
+
+
+    // Not used anymore.  Incorpoarated in SaveLargeImage
+    // delete these.
+// Save a bunch of stack images ----
+    Viewer.prototype.SaveStackImages = function(fileNameRoot) {
+        var self = this;
+        SA.AddFinishedLoadingCallback(
             function () {
                 self.SaveStackImage(fileNameRoot);
             }
         );
         this.EventuallyRender(false);
     }
-}
-//-----
 
-Viewer.prototype.SetOverViewBounds = function(bounds) {
-    this.OverViewBounds = bounds;
-    if (this.OverView) {
-        // With the rotating overview, the overview camera
-        // never changes. Maybe this should be set in
-        // "UpdateCamera".
-        this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
-        this.OverView.Camera.SetFocalPoint( [0.5*(bounds[0]+bounds[1]),
-                                             0.5*(bounds[2]+bounds[3])]);
-        this.OverView.Camera.ComputeMatrix();
-    }
-}
-
-Viewer.prototype.GetOverViewBounds = function() {
-    if (this.OverViewBounds) {
-        return this.OverViewBounds;
-    }
-    var cache = this.GetCache();
-    if (cache && cache.Image) {
-        if (cache.Image.bounds) {
-            return cache.Image.bounds;
-        }
-        if (cache.Image.dimensions) {
-            var dims = cache.Image.dimensions;
-            return [0, dims[0], 0, dims[1]];
-        }
-    }
-    // Depreciated code.
-    if (this.OverView) {
-        var cam = this.OverView.Camera;
-        var halfHeight = cam.GetHeight() / 2;
-        var halfWidth = cam.GetWidth() / 2;
-        this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
-                               cam.FocalPoint[0] + halfWidth,
-                               cam.FocalPoint[1] - halfHeight,
-                               cam.FocalPoint[1] + halfHeight];
-        return this.OverViewBounds;
-    }
-    // This method is called once too soon.  There is no image, and mobile devices have no overview.
-    return [0,10000,0,10000];
-}
-
-
-Viewer.prototype.SetSection = function(section) {
-    if (section == null) {
-        return;
-    }
-    this.MainView.Section = section;
-    if (this.OverView) {
-        this.OverView.Section = section;
-    }
-    this.EventuallyRender(true);
-}
-
-
-// Change the source / cache after a viewer has been created.
-Viewer.prototype.SetCache = function(cache) {
-    if (cache && cache.Image) {
-        if (cache.Image.bounds) {
-            this.SetOverViewBounds(cache.Image.bounds);
-        }
-
-        if (cache.Image.copyright == undefined) {
-            cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
-        }
-        this.CopyrightWrapper
-            .html(cache.Image.copyright);
-    }
-
-    this.MainView.SetCache(cache);
-    if (this.OverView) {
-        this.OverView.SetCache(cache);
-        if (cache) {
-            var bds = cache.GetBounds();
-            if (bds) {
-                this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
-                                                     (bds[2] + bds[3]) / 2]);
-                var height = (bds[3]-bds[2]);
-                // See if the view is constrained by the width.
-                var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
-                if (height2 > height) {
-                    height = height2;
+    Viewer.prototype.SaveStackImage = function(fileNameRoot) {
+        var self = this;
+        var note = SA.DualDisplay.GetNote();
+        var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
+        this.SaveImage(fileName);
+        if (note.StartIndex < note.ViewerRecords.length-1) {
+            SA.DualDisplay.NavigationWidget.NextNote();
+            SA.AddFinishedLoadingCallback(
+                function () {
+                    self.SaveStackImage(fileNameRoot);
                 }
-                this.OverView.Camera.SetHeight(height);
+            );
+            this.EventuallyRender(false);
+        }
+    }
+    //-----
+
+    Viewer.prototype.SetOverViewBounds = function(bounds) {
+        this.OverViewBounds = bounds;
+        if (this.OverView) {
+            // With the rotating overview, the overview camera
+            // never changes. Maybe this should be set in
+            // "UpdateCamera".
+            this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+            this.OverView.Camera.SetFocalPoint( [0.5*(bounds[0]+bounds[1]),
+                                                 0.5*(bounds[2]+bounds[3])]);
+            this.OverView.Camera.ComputeMatrix();
+        }
+    }
+
+    Viewer.prototype.GetOverViewBounds = function() {
+        if (this.OverViewBounds) {
+            return this.OverViewBounds;
+        }
+        var cache = this.GetCache();
+        if (cache && cache.Image) {
+            if (cache.Image.bounds) {
+                return cache.Image.bounds;
+            }
+            if (cache.Image.dimensions) {
+                var dims = cache.Image.dimensions;
+                return [0, dims[0], 0, dims[1]];
+            }
+        }
+        // Depreciated code.
+        if (this.OverView) {
+            var cam = this.OverView.Camera;
+            var halfHeight = cam.GetHeight() / 2;
+            var halfWidth = cam.GetWidth() / 2;
+            this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
+                                   cam.FocalPoint[0] + halfWidth,
+                                   cam.FocalPoint[1] - halfHeight,
+                                   cam.FocalPoint[1] + halfHeight];
+            return this.OverViewBounds;
+        }
+        // This method is called once too soon.  There is no image, and mobile devices have no overview.
+        return [0,10000,0,10000];
+    }
+
+
+    Viewer.prototype.SetSection = function(section) {
+        if (section == null) {
+            return;
+        }
+        this.MainView.Section = section;
+        if (this.OverView) {
+            this.OverView.Section = section;
+        }
+        this.EventuallyRender(true);
+    }
+
+
+    // Change the source / cache after a viewer has been created.
+    Viewer.prototype.SetCache = function(cache) {
+        if (cache && cache.Image) {
+            if (cache.Image.bounds) {
+                this.SetOverViewBounds(cache.Image.bounds);
+            }
+
+            if (cache.Image.copyright == undefined) {
+                cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
+            }
+            this.CopyrightWrapper
+                .html(cache.Image.copyright);
+        }
+
+        this.MainView.SetCache(cache);
+        if (this.OverView) {
+            this.OverView.SetCache(cache);
+            if (cache) {
+                var bds = cache.GetBounds();
+                if (bds) {
+                    this.OverView.Camera.SetFocalPoint( [(bds[0] + bds[1]) / 2,
+                                                         (bds[2] + bds[3]) / 2]);
+                    var height = (bds[3]-bds[2]);
+                    // See if the view is constrained by the width.
+                    var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+                    if (height2 > height) {
+                        height = height2;
+                    }
+                    this.OverView.Camera.SetHeight(height);
+                    this.OverView.Camera.ComputeMatrix();
+                }
+            }
+        }
+        // Change the overview to fit the new image dimensions.
+        // TODO: Get rid of this hack.
+        $(window).trigger('resize');
+    }
+
+    Viewer.prototype.GetCache = function() {
+        return this.MainView.GetCache();
+    }
+
+    // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
+    // I intend this method to get called when the window resizes.
+    // TODO: Redo all this overview viewport junk.
+    // viewport: [left, top, width, height]
+    // When I remove this function, move the logic to UpdateSize().
+    Viewer.prototype.SetViewport = function(viewport) {
+
+        // TODO: Get rid of this positioning hack.
+        // Caller should be positioning the parent.
+        // The whole "viewport" concept needs to be eliminated.
+        //this.MainView.SetViewport(viewport, this.Parent);
+        //this.MainView.Camera.ComputeMatrix();
+
+        // I do not know the way the viewport is used to place
+        // this overview.  It should be like other widgets
+        // and be placed relative to the parent.
+        if (this.OverView) {
+            var area = viewport[2]*viewport[3];
+            var bounds = this.GetOverViewBounds();
+            var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
+            // size of overview
+            var h = Math.sqrt(area*this.OverViewScale/aspect);
+            var w = h*aspect;
+            // Limit size
+            if (h > viewport[3]/2) {
+                h = viewport[3]/2;
+                var w = h*aspect;
+                this.OverViewScale = w*h/area;
+            }
+            // center of overview
+            var radius = Math.sqrt(h*h+w*w)/2;
+            // Construct the viewport.  Hack: got rid of viewport[0]
+            // TODO: I really need to get rid of the viewport stuff
+            this.OverViewport = [viewport[2]-radius-w/2,
+                                 viewport[1]+radius-h/2,
+                                 w, h];
+
+            this.OverViewDiv.css({
+                'left'  : this.OverViewport[0]+"px",
+                'width' : this.OverViewport[2]+"px",
+                'top'   : this.OverViewport[1]+"px",
+                'height': this.OverViewport[3]+"px"
+            });
+            this.OverView.UpdateCanvasSize();
+        }
+    }
+
+    Viewer.prototype.GetViewport = function() {
+        return this.MainView.Viewport;
+    }
+
+    // To fix a bug in the perk and elmer uploader.
+    Viewer.prototype.ToggleMirror = function() {
+        this.MainView.Camera.Mirror = ! this.MainView.Camera.Mirror;
+        if (this.OverView) {
+            this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
+        }
+    }
+
+    // Same as set camera but use animation
+    Viewer.prototype.AnimateCamera = function(center, rotation, height) {
+
+        this.ZoomTarget = height;
+        // Compute traslate target to keep position in the same place.
+        this.TranslateTarget[0] = center[0];
+        this.TranslateTarget[1] = center[1];
+        this.RollTarget = rotation;
+
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0; // hard code 200 milliseconds
+        this.EventuallyRender(true);
+    }
+
+    // This sets the overview camera from the main view camera.
+    // The user can change the mainview camera and then call this method.
+    Viewer.prototype.UpdateCamera = function() {
+
+        var cam = this.MainView.Camera;
+        this.ZoomTarget = cam.Height;
+
+        this.TranslateTarget[0] = cam.FocalPoint[0];
+        this.TranslateTarget[1] = cam.FocalPoint[1];
+        this.RollTarget = cam.Roll;
+        if (this.OverView) {
+            //this.OverView.Camera.Roll = cam.Roll;
+            //this.OverView.Camera.ComputeMatrix();
+            this.OverView.CanvasDiv.css({'transform':'rotate('+cam.Roll+'rad'});
+            this.OverView.Camera.Roll = 0;
+            this.OverView.Camera.ComputeMatrix();
+        }
+
+        this.MainView.Camera.ComputeMatrix();
+        this.UpdateZoomGui();
+    }
+
+    // This is used to set the default camera so the complexities
+    // of the target and overview are hidden.
+    Viewer.prototype.SetCamera = function(center, rotation, height) {
+        this.MainView.Camera.SetHeight(height);
+        this.MainView.Camera.SetFocalPoint( [center[0], center[1]]);
+        this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
+
+        this.UpdateCamera();
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.GetCamera = function() {
+        return this.MainView.Camera;
+    }
+
+    // I could merge zoom methods if position defaulted to focal point.
+    Viewer.prototype.AnimateZoomTo = function(factor, position) {
+        if (this.AnimateDuration > 0.0) {
+            // Odd effect with multiple fast zoom clicks.  Center shifted.
+            return;
+        }
+
+        SA.StackCursorFlag = false;
+
+        this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
+        if (this.ZoomTarget < 0.9 / (1 << 5)) {
+            this.ZoomTarget = 0.9 / (1 << 5);
+        }
+
+        // Lets restrict discrete zoom values to be standard values.
+        var windowHeight = this.GetViewport()[3];
+        var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) /
+                             Math.log(2));
+        this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
+
+        factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
+
+        // Compute translate target to keep position in the same place.
+        this.TranslateTarget[0] = position[0]
+            - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+        this.TranslateTarget[1] = position[1]
+            - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
+
+        this.RollTarget = this.MainView.Camera.Roll;
+
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0; // hard code 200 milliseconds
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.AnimateZoom = function(factor) {
+        // I cannot get the canvas from processing this event too.
+        // Issue with double click. Hack to stop double click from firing.
+        this.MouseUpTime -= 1000.0;
+
+        if (this.AnimateDuration > 0.0) {
+            return;
+        }
+
+        var focalPoint = this.GetCamera().GetFocalPoint();
+        this.AnimateZoomTo(factor, focalPoint);
+    }
+
+    Viewer.prototype.AnimateTranslate = function(dx, dy) {
+        this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
+        this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
+
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.RollTarget = this.MainView.Camera.Roll;
+
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0; // hard code 200 milliseconds
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.AnimateRoll = function(dRoll) {
+        dRoll *= Math.PI / 180.0;
+        this.RollTarget = this.MainView.Camera.Roll + dRoll;
+
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+        this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0; // hard code 200 milliseconds
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
+        this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
+        this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
+
+        this.RollTarget = this.MainView.Camera.Roll + dRoll;
+
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0; // hard code 200 milliseconds
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.DegToRad = function(degrees) {
+        return degrees * Math.PI / 180;
+    }
+
+    Viewer.prototype.Draw = function() {
+        // I do not think this is actaully necessary.
+        // I was worried about threads, but javascript does not work that way.
+        if (this.Drawing) { return; }
+        this.Drawing = true;
+
+        if (SA.GL) {
+            // Layers might share canvas. We will nedd a helper object to
+            // clear the shared canvas.7
+            SA.GL.clear(SA.GL.COLOR_BUFFER_BIT | SA.GL.DEPTH_BUFFER_BIT);
+        }
+
+        // This just changes the camera based on the current time.
+        this.Animate();
+
+        //console.time("ViewerDraw");
+
+        // connectome
+        if ( ! this.MainView || ! this.MainView.Section) {
+            return;
+        }
+
+        this.ConstrainCamera();
+        // Should the camera have the viewport in them?
+        // The do not currently hav a viewport.
+
+        // Rendering text uses blending / transparency.
+        if (SA.GL) {
+            SA.GL.enable(SA.GL.BLEND);
+            SA.GL.disable(SA.GL.DEPTH_TEST);
+        }
+
+        // If we are still waiting for tiles to load, schedule another render.
+        // This works fine, but results in many renders while waiting.
+        // TODO: Consider having the tile load callback scheduling the next render.
+        if ( ! this.MainView.DrawTiles() ) {
+            this.EventuallyRender();
+        }
+
+        // This is only necessary for webgl, Canvas2d just uses a border.
+        //Even for weggl, the overview will be a canvas
+        //this.MainView.DrawOutline(false);
+
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.Layers[i].Draw(this.MainView);
+        }
+
+        // This is not used anymore
+        this.MainView.DrawShapes();
+        if (this.OverView) {
+            this.OverView.DrawTiles();
+            this.OverView.DrawOutline(true);
+        }
+
+
+        // Draw a rectangle in the overview representing the camera's view.
+        if (this.OverView) {
+            this.MainView.Camera.Draw(this.OverView);
+            if (this.HistoryFlag) {
+                this.OverView.DrawHistory(this.MainView.Viewport[3]);
+            }
+        }
+
+        var cache = this.GetCache();
+        if (cache != undefined) {
+            var copyright = cache.Image.copyright;
+            //this.MainView.DrawCopyright(copyright);
+        }
+
+        // TODO: Drawing correlations should not be embedded in a single
+        // viewer. Maybe dualViewWidget or a new stack object should handle it.
+
+        // I am using shift for stack interaction.
+        // Turn on the focal point when shift is pressed.
+        if (SA.StackCursorFlag && SA.Edit) {
+            this.MainView.DrawFocalPoint();
+            if (this.StackCorrelations) {
+                this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
+            }
+        }
+
+        // Here to trigger SA.FinishedLoadingCallbacks
+        SA.LoadQueueUpdate();
+        //console.timeEnd("ViewerDraw");
+        this.Drawing = false;
+    }
+
+    // Makes the viewer clean to setup a new slide...
+    Viewer.prototype.Reset = function() {
+        this.SetCache(null);
+        this.MainView.ShapeList = [];
+
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if (this.Layers[i].Reset) {
+                this.Layers[i].Reset();
+            }
+        }
+    }
+
+    // A list of shapes to render in the viewer
+    Viewer.prototype.AddShape = function(shape) {
+        this.MainView.AddShape(shape);
+    }
+
+    Viewer.prototype.Animate = function() {
+        if (this.AnimateDuration <= 0.0) {
+            return;
+        }
+        var timeNow = new Date().getTime();
+        if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
+            this.AnimateDuration = 0;
+            // We have past the target. Just set the target values.
+            this.MainView.Camera.SetHeight(this.ZoomTarget);
+            this.MainView.Camera.Roll = this.RollTarget;
+            if (this.OverView) {
+                //this.OverView.Camera.Roll = this.RollTarget;
+                var roll = this.RollTarget;
+                this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
+                this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
+            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
+                                                 this.TranslateTarget[1]]);
+            this.UpdateZoomGui();
+            // Save the state when the animation is finished.
+            if (SA.RECORDER_WIDGET) {
+                SA.RECORDER_WIDGET.RecordState();
+            }
+        } else {
+            // Interpolate
+            var currentHeight = this.MainView.Camera.GetHeight();
+            var currentCenter = this.MainView.Camera.GetFocalPoint();
+            var currentRoll   = this.MainView.Camera.Roll;
+            this.MainView.Camera.SetHeight(
+                currentHeight + (this.ZoomTarget-currentHeight)
+                    *(timeNow-this.AnimateLast)/this.AnimateDuration);
+            this.MainView.Camera.Roll
+                = currentRoll + (this.RollTarget-currentRoll)
+                *(timeNow-this.AnimateLast)/this.AnimateDuration;
+            if (this.OverView) {
+                //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
+                var roll = this.MainView.Camera.Roll;
+                this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
+                this.OverView.Camera.Roll = 0;
+                this.OverView.Camera.ComputeMatrix();
+            }
+            this.MainView.Camera.SetFocalPoint(
+                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
+                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+            this.AnimateDuration -= (timeNow-this.AnimateLast);
+            // We are not finished yet.
+            // Schedule another render
+            this.EventuallyRender(true);
         }
-    }
-    // Change the overview to fit the new image dimensions.
-    // TODO: Get rid of this hack.
-    $(window).trigger('resize');
-}
-
-Viewer.prototype.GetCache = function() {
-    return this.MainView.GetCache();
-}
-
-// ORIGIN SEEMS TO BE BOTTOM LEFT !!!
-// I intend this method to get called when the window resizes.
-// TODO: Redo all this overview viewport junk.
-// viewport: [left, top, width, height]
-// When I remove this function, move the logic to UpdateSize().
-Viewer.prototype.SetViewport = function(viewport) {
-
-    // TODO: Get rid of this positioning hack.
-    // Caller should be positioning the parent.
-    // The whole "viewport" concept needs to be eliminated.
-    //this.MainView.SetViewport(viewport, this.Parent);
-    //this.MainView.Camera.ComputeMatrix();
-
-    // I do not know the way the viewport is used to place
-    // this overview.  It should be like other widgets
-    // and be placed relative to the parent.
-    if (this.OverView) {
-        var area = viewport[2]*viewport[3];
-        var bounds = this.GetOverViewBounds();
-        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
-        // size of overview
-        var h = Math.sqrt(area*this.OverViewScale/aspect);
-        var w = h*aspect;
-        // Limit size
-        if (h > viewport[3]/2) {
-            h = viewport[3]/2;
-            var w = h*aspect;
-            this.OverViewScale = w*h/area;
-        }
-        // center of overview
-        var radius = Math.sqrt(h*h+w*w)/2;
-        // Construct the viewport.  Hack: got rid of viewport[0]
-        // TODO: I really need to get rid of the viewport stuff
-        this.OverViewport = [viewport[2]-radius-w/2,
-                             viewport[1]+radius-h/2,
-                             w, h];
-
-        this.OverViewDiv.css({
-            'left'  : this.OverViewport[0]+"px",
-            'width' : this.OverViewport[2]+"px",
-            'top'   : this.OverViewport[1]+"px",
-            'height': this.OverViewport[3]+"px"
-        });
-        this.OverView.UpdateCanvasSize();
-    }
-}
-
-Viewer.prototype.GetViewport = function() {
-    return this.MainView.Viewport;
-}
-
-// To fix a bug in the perk and elmer uploader.
-Viewer.prototype.ToggleMirror = function() {
-    this.MainView.Camera.Mirror = ! this.MainView.Camera.Mirror;
-    if (this.OverView) {
-        this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
-    }
-}
-
-// Same as set camera but use animation
-Viewer.prototype.AnimateCamera = function(center, rotation, height) {
-
-    this.ZoomTarget = height;
-    // Compute traslate target to keep position in the same place.
-    this.TranslateTarget[0] = center[0];
-    this.TranslateTarget[1] = center[1];
-    this.RollTarget = rotation;
-
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender(true);
-}
-
-// This sets the overview camera from the main view camera.
-// The user can change the mainview camera and then call this method.
-Viewer.prototype.UpdateCamera = function() {
-
-    var cam = this.MainView.Camera;
-    this.ZoomTarget = cam.Height;
-
-    this.TranslateTarget[0] = cam.FocalPoint[0];
-    this.TranslateTarget[1] = cam.FocalPoint[1];
-    this.RollTarget = cam.Roll;
-    if (this.OverView) {
-        //this.OverView.Camera.Roll = cam.Roll;
-        //this.OverView.Camera.ComputeMatrix();
-        this.OverView.CanvasDiv.css({'transform':'rotate('+cam.Roll+'rad'});
-        this.OverView.Camera.Roll = 0;
-        this.OverView.Camera.ComputeMatrix();
-    }
-
-    this.MainView.Camera.ComputeMatrix();
-    this.UpdateZoomGui();
-}
-
-// This is used to set the default camera so the complexities
-// of the target and overview are hidden.
-Viewer.prototype.SetCamera = function(center, rotation, height) {
-    this.MainView.Camera.SetHeight(height);
-    this.MainView.Camera.SetFocalPoint( [center[0], center[1]]);
-    this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
-
-    this.UpdateCamera();
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.GetCamera = function() {
-    return this.MainView.Camera;
-}
-
-// I could merge zoom methods if position defaulted to focal point.
-Viewer.prototype.AnimateZoomTo = function(factor, position) {
-    if (this.AnimateDuration > 0.0) {
-        // Odd effect with multiple fast zoom clicks.  Center shifted.
-        return;
-    }
-
-    SA.StackCursorFlag = false;
-
-    this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
-    if (this.ZoomTarget < 0.9 / (1 << 5)) {
-        this.ZoomTarget = 0.9 / (1 << 5);
-    }
-
-    // Lets restrict discrete zoom values to be standard values.
-    var windowHeight = this.GetViewport()[3];
-    var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) /
-                         Math.log(2));
-    this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
-
-    factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
-
-    // Compute translate target to keep position in the same place.
-    this.TranslateTarget[0] = position[0]
-        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-    this.TranslateTarget[1] = position[1]
-        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-
-    this.RollTarget = this.MainView.Camera.Roll;
-
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.AnimateZoom = function(factor) {
-    // I cannot get the canvas from processing this event too.
-    // Issue with double click. Hack to stop double click from firing.
-    this.MouseUpTime -= 1000.0;
-
-    if (this.AnimateDuration > 0.0) {
-        return;
-    }
-
-    var focalPoint = this.GetCamera().GetFocalPoint();
-    this.AnimateZoomTo(factor, focalPoint);
-}
-
-Viewer.prototype.AnimateTranslate = function(dx, dy) {
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
-
-    this.ZoomTarget = this.MainView.Camera.GetHeight();
-    this.RollTarget = this.MainView.Camera.Roll;
-
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.AnimateRoll = function(dRoll) {
-    dRoll *= Math.PI / 180.0;
-    this.RollTarget = this.MainView.Camera.Roll + dRoll;
-
-    this.ZoomTarget = this.MainView.Camera.GetHeight();
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
-
-    this.RollTarget = this.MainView.Camera.Roll + dRoll;
-
-    this.ZoomTarget = this.MainView.Camera.GetHeight();
-
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.DegToRad = function(degrees) {
-    return degrees * Math.PI / 180;
-}
-
-Viewer.prototype.Draw = function() {
-    // I do not think this is actaully necessary.
-    // I was worried about threads, but javascript does not work that way.
-    if (this.Drawing) { return; }
-    this.Drawing = true;
-
-    if (GL) {
-      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    }
-
-    // This just changes the camera based on the current time.
-    this.Animate();
-
-    //console.time("ViewerDraw");
-
-    // connectome
-    if ( ! this.MainView || ! this.MainView.Section) {
-        return;
-    }
-
-    this.ConstrainCamera();
-    // Should the camera have the viewport in them?
-    // The do not currently hav a viewport.
-
-    // Rendering text uses blending / transparency.
-    if (GL) {
-        GL.enable(GL.BLEND);
-        GL.disable(GL.DEPTH_TEST);
-    }
-
-    if ( this.AnnotationLayer) {
-        this.AnnotationLayer.Clear();
-    }
-
-    // If we are still waiting for tiles to load, schedule another render.
-    // This works fine, but results in many renders while waiting.
-    // TODO: Consider having the tile load callback scheduling the next render.
-    if ( ! this.MainView.DrawTiles() ) {
-        this.EventuallyRender();
-    }
-
-    if (this.HeatMap) {
-        this.HeatMap.DrawTiles();
-    }
-
-    // This is only necessary for webgl, Canvas2d just uses a border.
-    //Even for weggl, the overview will be a canvas
-    //this.MainView.DrawOutline(false);
-    this.AnnotationLayer.Draw();
-    // This is not used anymore
-    this.MainView.DrawShapes();
-    if (this.OverView) {
-        this.OverView.DrawTiles();
-        this.OverView.DrawOutline(true);
-    }
-
-
-    // Draw a rectangle in the overview representing the camera's view.
-    if (this.OverView) {
-        this.MainView.Camera.Draw(this.OverView);
-        if (this.HistoryFlag) {
-            this.OverView.DrawHistory(this.MainView.Viewport[3]);
-        }
-    }
-
-    var cache = this.GetCache();
-    if (cache != undefined) {
-        var copyright = cache.Image.copyright;
-        //this.MainView.DrawCopyright(copyright);
-    }
-
-    // TODO: Drawing correlations should not be embedded in a single
-    // viewer. Maybe dualViewWidget or a new stack object should handle it.
-
-    // I am using shift for stack interaction.
-    // Turn on the focal point when shift is pressed.
-    if (SA.StackCursorFlag && SA.Edit) {
-        this.MainView.DrawFocalPoint();
-        if (this.StackCorrelations) {
-            this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
-        }
-    }
-
-    // Here to trigger SA.FinishedLoadingCallbacks
-    LoadQueueUpdate();
-    //console.timeEnd("ViewerDraw");
-    this.Drawing = false;
-}
-
-// Makes the viewer clean to setup a new slide...
-Viewer.prototype.Reset = function() {
-    this.SetCache(null);
-    if (this.AnnotationLayer) {
-        this.AnnotationLayer.Reset();
-    }
-    this.MainView.ShapeList = [];
-}
-
-// A list of shapes to render in the viewer
-Viewer.prototype.AddShape = function(shape) {
-    this.MainView.AddShape(shape);
-}
-
-Viewer.prototype.Animate = function() {
-    if (this.AnimateDuration <= 0.0) {
-        return;
-    }
-    var timeNow = new Date().getTime();
-    if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
-        this.AnimateDuration = 0;
-        // We have past the target. Just set the target values.
-        this.MainView.Camera.SetHeight(this.ZoomTarget);
-        this.MainView.Camera.Roll = this.RollTarget;
+        this.MainView.Camera.ComputeMatrix();
         if (this.OverView) {
-            //this.OverView.Camera.Roll = this.RollTarget;
-            var roll = this.RollTarget;
-            this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
-            this.OverView.Camera.Roll = 0;
             this.OverView.Camera.ComputeMatrix();
         }
-        this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
-                                             this.TranslateTarget[1]]);
-        this.UpdateZoomGui();
-        // Save the state when the animation is finished.
-        if (RECORDER_WIDGET) {
-            RECORDER_WIDGET.RecordState();
+        this.AnimateLast = timeNow;
+        // Synchronize cameras is necessary
+    }
+
+    Viewer.prototype.OverViewPlaceCamera = function(x, y) {
+        if ( ! this.OverView) {
+            return;
         }
-    } else {
-        // Interpolate
-        var currentHeight = this.MainView.Camera.GetHeight();
-        var currentCenter = this.MainView.Camera.GetFocalPoint();
-        var currentRoll   = this.MainView.Camera.Roll;
-        this.MainView.Camera.SetHeight(
-            currentHeight + (this.ZoomTarget-currentHeight)
-                *(timeNow-this.AnimateLast)/this.AnimateDuration);
-        this.MainView.Camera.Roll
-            = currentRoll + (this.RollTarget-currentRoll)
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
-        if (this.OverView) {
-            //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
-            var roll = this.MainView.Camera.Roll;
-            this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
-            this.OverView.Camera.Roll = 0;
-            this.OverView.Camera.ComputeMatrix();
-        }
-        this.MainView.Camera.SetFocalPoint(
-            [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-                *(timeNow-this.AnimateLast)/this.AnimateDuration,
-             currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-                *(timeNow-this.AnimateLast)/this.AnimateDuration]);
-        this.AnimateDuration -= (timeNow-this.AnimateLast);
-        // We are not finished yet.
-        // Schedule another render
+        // Compute focal point from inverse overview camera.
+        x = x/this.OverView.Viewport[2];
+        y = y/this.OverView.Viewport[3];
+        x = (x*2.0 - 1.0)*this.OverView.Camera.Matrix[15];
+        y = (1.0 - y*2.0)*this.OverView.Camera.Matrix[15];
+        var m = this.OverView.Camera.Matrix;
+        var det = m[0]*m[5] - m[1]*m[4];
+        var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
+        var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
+
+        // Animate to get rid of jerky panning (overview to low resolution).
+        this.TranslateTarget[0] = xNew;
+        this.TranslateTarget[1] = yNew;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 100.0;
         this.EventuallyRender(true);
     }
-    this.MainView.Camera.ComputeMatrix();
-    if (this.OverView) {
-        this.OverView.Camera.ComputeMatrix();
+
+    Viewer.prototype.SetInteractionEnabled = function(enabled) {
+        this.InteractionEnabled = enabled;
     }
-    this.AnimateLast = timeNow;
-    // Synchronize cameras is necessary
-}
-
-Viewer.prototype.OverViewPlaceCamera = function(x, y) {
-    if ( ! this.OverView) {
-        return;
+    Viewer.prototype.EnableInteraction = function() {
+        this.InteractionEnabled = true;
     }
-    // Compute focal point from inverse overview camera.
-    x = x/this.OverView.Viewport[2];
-    y = y/this.OverView.Viewport[3];
-    x = (x*2.0 - 1.0)*this.OverView.Camera.Matrix[15];
-    y = (1.0 - y*2.0)*this.OverView.Camera.Matrix[15];
-    var m = this.OverView.Camera.Matrix;
-    var det = m[0]*m[5] - m[1]*m[4];
-    var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
-    var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
-
-    // Animate to get rid of jerky panning (overview to low resolution).
-    this.TranslateTarget[0] = xNew;
-    this.TranslateTarget[1] = yNew;
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 100.0;
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.SetInteractionEnabled = function(enabled) {
-    this.InteractionEnabled = enabled;
-}
-Viewer.prototype.EnableInteraction = function() {
-    this.InteractionEnabled = true;
-}
-Viewer.prototype.DisableInteraction = function() {
-    this.InteractionEnabled = false;
-}
-
-// Used to be in EventManager. 
-// TODO: Evaluate and cleanup.
-Viewer.prototype.RecordMouseDown = function(event) {
-    // Evaluate where LastMouseX / Y are used.
-    this.LastMouseX = this.MouseX || 0;
-    this.LastMouseY = this.MouseY || 0;
-    this.LastMouseTime = this.MouseTime || 0;
-    this.SetMousePositionFromEvent(event);
-
-    // TODO:  Formalize a call back to make GUI disappear when
-    // navigation starts.  I think I did this already but have not
-    // converted this code yet.
-    // Get rid of the favorites and the link divs if they are visible
-    if ( SA.LinkDiv && SA.LinkDiv.is(':visible')) {
-	      SA.LinkDiv.fadeOut();
-    }
-    if (typeof FAVORITES_WIDGET !== 'undefined' &&
-	      FAVORITES_WIDGET.hidden == false) {
-	      FAVORITES_WIDGET.ShowHideFavorites();
+    Viewer.prototype.DisableInteraction = function() {
+        this.InteractionEnabled = false;
     }
 
-    var date = new Date();
-    var dTime = date.getTime() - this.MouseUpTime;
-    if (dTime < 200.0) { // 200 milliseconds
-        this.DoubleClick = true;
+    // Used to be in EventManager. 
+    // TODO: Evaluate and cleanup.
+    Viewer.prototype.RecordMouseDown = function(event) {
+        // Evaluate where LastMouseX / Y are used.
+        this.LastMouseX = this.MouseX || 0;
+        this.LastMouseY = this.MouseY || 0;
+        this.LastMouseTime = this.MouseTime || 0;
+        this.SetMousePositionFromEvent(event);
+
+        // TODO:  Formalize a call back to make GUI disappear when
+        // navigation starts.  I think I did this already but have not
+        // converted this code yet.
+        // Get rid of the favorites and the link divs if they are visible
+        if ( SA.LinkDiv && SA.LinkDiv.is(':visible')) {
+	          SA.LinkDiv.fadeOut();
+        }
+        if (typeof FAVORITES_WIDGET !== 'undefined' &&
+	          FAVORITES_WIDGET.hidden == false) {
+	          FAVORITES_WIDGET.ShowHideFavorites();
+        }
+
+        var date = new Date();
+        var dTime = date.getTime() - this.MouseUpTime;
+        if (dTime < 200.0) { // 200 milliseconds
+            this.DoubleClick = true;
+        }
+
+        //this.TriggerStartInteraction();
+    }
+    // Used to be in EventManager. 
+    // TODO: Evaluate and cleanup.
+    Viewer.prototype.SetMousePositionFromEvent = function(event) {
+        if (event.offsetX && event.offsetY) {
+            this.MouseX = event.offsetX;
+            this.MouseY = event.offsetY;
+            this.MouseTime = (new Date()).getTime();
+        } else if (event.layerX && event.layerY) {
+            this.MouseX = event.layerX;
+            this.MouseY = event.layerY;
+            this.MouseTime = (new Date()).getTime();
+            event.offsetX = event.layerX;
+            event.offsetY = event.layerY;
+        }
+    }
+    Viewer.prototype.RecordMouseMove = function(event) {
+        this.LastMouseX = this.MouseX;
+        this.LastMouseY = this.MouseY;
+        this.LastMouseTime = this.MouseTime;
+        this.SetMousePositionFromEvent(event);
+        this.MouseDeltaX = this.MouseX - this.LastMouseX;
+        this.MouseDeltaY = this.MouseY - this.LastMouseY;
+        this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+        return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
+    }
+    Viewer.prototype.RecordMouseUp = function(event) {
+        this.SetMousePositionFromEvent(event);
+        this.MouseDown = false;
+
+        // Record time so we can detect double click.
+        var date = new Date();
+        this.MouseUpTime = date.getTime();
+        this.DoubleClick = false;
     }
 
-    //this.TriggerStartInteraction();
-}
-// Used to be in EventManager. 
-// TODO: Evaluate and cleanup.
-Viewer.prototype.SetMousePositionFromEvent = function(event) {
-    if (event.offsetX && event.offsetY) {
-        this.MouseX = event.offsetX;
-        this.MouseY = event.offsetY;
-        this.MouseTime = (new Date()).getTime();
-    } else if (event.layerX && event.layerY) {
-        this.MouseX = event.layerX;
-        this.MouseY = event.layerY;
-        this.MouseTime = (new Date()).getTime();
-        event.offsetX = event.layerX;
-        event.offsetY = event.layerY;
-    }
-}
-Viewer.prototype.RecordMouseMove = function(event) {
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-    this.LastMouseTime = this.MouseTime;
-    this.SetMousePositionFromEvent(event);
-    this.MouseDeltaX = this.MouseX - this.LastMouseX;
-    this.MouseDeltaY = this.MouseY - this.LastMouseY;
-    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
-    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
-}
-Viewer.prototype.RecordMouseUp = function(event) {
-    this.SetMousePositionFromEvent(event);
-    this.MouseDown = false;
-
-    // Record time so we can detect double click.
-    var date = new Date();
-    this.MouseUpTime = date.getTime();
-    this.DoubleClick = false;
-}
 
 
+    /**/
+    // Save the previous touches and record the new
+    // touch locations in viewport coordinates.
+    Viewer.prototype.HandleTouch = function(e, startFlag) {
+        var date = new Date();
+        var t = date.getTime();
+        // I have had trouble on the iPad with 0 delta times.
+        // Lets see how it behaves with fewer events.
+        // It was a bug in iPad4 Javascript.
+        // This throttle is not necessary.
+        if (t-this.Time < 20 && ! startFlag) { return false; }
 
-/**/
-// Save the previous touches and record the new
-// touch locations in viewport coordinates.
-Viewer.prototype.HandleTouch = function(e, startFlag) {
-    var date = new Date();
-    var t = date.getTime();
-    // I have had trouble on the iPad with 0 delta times.
-    // Lets see how it behaves with fewer events.
-    // It was a bug in iPad4 Javascript.
-    // This throttle is not necessary.
-    if (t-this.Time < 20 && ! startFlag) { return false; }
+        this.LastTime = this.Time;
+        this.Time = t;
 
-    this.LastTime = this.Time;
-    this.Time = t;
+        if (!e) {
+            var e = event;
+        }
 
-    if (!e) {
-        var e = event;
-    }
+        // Still used on mobile devices?
+        var viewport = this.GetViewport();
+        this.LastTouches = this.Touches;
+        var can = this.Canvas;
+        this.Touches = [];
+        for (var i = 0; i < e.targetTouches.length; ++i) {
+            var offset = this.MainView.Canvas.offset();
+            var x = e.targetTouches[i].pageX - offset.left;
+            var y = e.targetTouches[i].pageY - offset.top;
+            this.Touches.push([x,y]);
+        }
 
-    // Still used on mobile devices?
-    var viewport = this.GetViewport();
-    this.LastTouches = this.Touches;
-    var can = this.Canvas;
-    this.Touches = [];
-    for (var i = 0; i < e.targetTouches.length; ++i) {
-        var offset = this.MainView.Canvas.offset();
-        var x = e.targetTouches[i].pageX - offset.left;
-        var y = e.targetTouches[i].pageY - offset.top;
-        this.Touches.push([x,y]);
-    }
+        this.LastMouseX = this.MouseX;
+        this.LastMouseY = this.MouseY;
 
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
+        // Compute the touch average.
+        var numTouches = this.Touches.length;
+        this.MouseX = this.MouseY = 0.0;
+        for (var i = 0; i < numTouches; ++i) {
+            this.MouseX += this.Touches[i][0];
+            this.MouseY += this.Touches[i][1];
+        }
+        this.MouseX = this.MouseX / numTouches;
+        this.MouseY = this.MouseY / numTouches;
 
-    // Compute the touch average.
-    var numTouches = this.Touches.length;
-    this.MouseX = this.MouseY = 0.0;
-    for (var i = 0; i < numTouches; ++i) {
-        this.MouseX += this.Touches[i][0];
-        this.MouseY += this.Touches[i][1];
-    }
-    this.MouseX = this.MouseX / numTouches;
-    this.MouseY = this.MouseY / numTouches;
+        // Hack because we are moving away from using the event manager
+        // Mouse interaction are already independant...
+        this.offsetX = this.MouseX;
+        this.offsetY = this.MouseY;
 
-    // Hack because we are moving away from using the event manager
-    // Mouse interaction are already independant...
-    this.offsetX = this.MouseX;
-    this.offsetY = this.MouseY;
-
-    return true;
-}
-
-Viewer.prototype.HandleTouchStart = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-
-    // Stuff from event manager
-    this.HandleTouch(event, true);
-    if (this.StartTouchTime == 0) {
-        this.StartTouchTime = this.Time;
-    }
-
-    SA.TriggerStartInteraction();
-
-    this.MomentumX = 0.0;
-    this.MomentumY = 0.0;
-    this.MomentumRoll = 0.0;
-    this.MomentumScale = 0.0;
-    if (this.MomentumTimerId) {
-        window.cancelAnimationFrame(this.MomentumTimerId)
-        this.MomentumTimerId = 0;
-    }
-
-    // Four finger grab resets the view.
-    if ( this.Touches.length >= 4) {
-        var cam = this.GetCamera();
-        var bds = this.MainView.Section.GetBounds();
-        cam.SetFocalPoint( [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5]);
-        cam.Roll = 0.0;
-        cam.SetHeight(bds[3]-bds[2]);
-        cam.ComputeMatrix();
-        this.EventuallyRender();
-        // Return value hides navigation widget
         return true;
     }
 
-    // See if any widget became active.
-    /*
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility()) {
-        // TODO:
-        // I do not like storing these ivars in this object.
-        // I think the widgets rely on them being in the layer.
-        this.MouseX = event.Touches[touchIdx][0];
-        this.MouseY = event.Touches[touchIdx][1];
-        this.MouseWorld = this.ComputeMouseWorld(event);
-        return this.AnnotationLayer.HandleTouchStart(event,viewer);
-    }
-    */
-    return false;
-}
+    Viewer.prototype.HandleTouchStart = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
 
+        // Stuff from event manager
+        this.HandleTouch(event, true);
+        if (this.StartTouchTime == 0) {
+            this.StartTouchTime = this.Time;
+        }
 
-Viewer.prototype.HandleTouchMove = function(e) {
-    // Put a throttle on events
-    if ( ! this.HandleTouch(e, false)) { return; }
+        SA.TriggerStartInteraction();
 
-    if (SA.DualDisplay.NavigationWidget && 
-        SA.DualDisplay.NavigationWidget.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        SA.DualDisplay.NavigationWidget.ToggleVisibility();
-    }
+        this.MomentumX = 0.0;
+        this.MomentumY = 0.0;
+        this.MomentumRoll = 0.0;
+        this.MomentumScale = 0.0;
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
 
-    if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
-               MOBILE_ANNOTATION_WIDGET.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-    }
+        // Four finger grab resets the view.
+        if ( this.Touches.length >= 4) {
+            var cam = this.GetCamera();
+            var bds = this.MainView.Section.GetBounds();
+            cam.SetFocalPoint( [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5]);
+            cam.Roll = 0.0;
+            cam.SetHeight(bds[3]-bds[2]);
+        cam.ComputeMatrix();
+            this.EventuallyRender();
+            // Return value hides navigation widget
+            return true;
+        }
 
-    if (this.Touches.length == 1) {
-        this.HandleTouchPan(this);
-        return;
-    }
-    if (this.Touches.length == 2) {
-        this.HandleTouchPinch(this);
-        return
-    }
-    if (this.Touches.length == 3) {
-        this.HandleTouchRotate(this);
-        return
-    }
-}
-
-
-// Only one touch
-Viewer.prototype.HandleTouchPan = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    if (this.Touches.length != 1 || this.LastTouches.length != 1) {
-        // Sanity check.
-        return;
-    }
-
-    // Forward the events to the widget if one is active.
-    /*
-    if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-        ! this.AnnotationLayer.HandleTouchPan(event, this)) {
         return false;
     }
-    */
 
-    // I see an odd intermittent camera matrix problem
-    // on the iPad that looks like a thread safety issue.
-    if (this.MomentumTimerId) {
-        window.cancelAnimationFrame(this.MomentumTimerId)
-        this.MomentumTimerId = 0;
-    }
 
-    // Convert to world by inverting the camera matrix.
-    // I could simplify and just process the vector.
-    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    Viewer.prototype.HandleTouchMove = function(e) {
+        // Put a throttle on events
+        if ( ! this.HandleTouch(e, false)) { return; }
 
-    // This is the new focal point.
-    var dx = w1[0] - w0[0];
-    var dy = w1[1] - w0[1];
-    var dt = event.Time - this.LastTime;
+        if (SA.DualDisplay.NavigationWidget &&
+            SA.DualDisplay.NavigationWidget.Visibility) {
+            // No slide interaction with the interface up.
+            // I had bad interaction with events going to browser.
+            SA.DualDisplay.NavigationWidget.ToggleVisibility();
+        }
 
-    // Remember the last motion to implement momentum.
-    var momentumX = dx/dt;
-    var momentumY = dy/dt;
+        if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" &&
+            MOBILE_ANNOTATION_WIDGET.Visibility) {
+            // No slide interaction with the interface up.
+            // I had bad interaction with events going to browser.
+            MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+        }
 
-    // Integrate momentum over a time period to avoid a fast event
-    // dominating behavior.
-    var k = Math.min(this.Time - this.LastTime, 250) / 250;
-    this.MomentumX += (momentumX-this.MomentumX)*k;
-    this.MomentumY += (momentumY-this.MomentumY)*k;
-    this.MomentumRoll = 0.0;
-    this.MomentumScale = 0.0;
-
-    var cam = this.GetCamera();
-    cam.Translate( -dx, -dy, 0);
-    cam.ComputeMatrix();
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.HandleTouchRotate = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    var numTouches = this.Touches.length;
-    if (this.LastTouches.length != numTouches || numTouches  != 3) {
-        // Sanity check.
-        return;
-    }
-
-    // I see an odd intermittent camera matrix problem
-    // on the iPad that looks like a thread safety issue.
-    if (this.MomentumTimerId) {
-        window.cancelAnimationFrame(this.MomentumTimerId)
-        this.MomentumTimerId = 0;
-    }
-
-    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
-    var dt = event.Time - this.LastTime;
-
-    // Compute rotation.
-    // Consider weighting rotation by vector length to avoid over contribution of short vectors.
-    // We could also take the maximum.
-    var x;
-    var y;
-    var a = 0;
-    for (var i = 0; i < numTouches; ++i) {
-        x = this.LastTouches[i][0] - this.LastMouseX;
-        y = this.LastTouches[i][1] - this.LastMouseY;
-        var a1  = Math.atan2(y,x);
-        x = this.Touches[i][0] - this.MouseX;
-        y = this.Touches[i][1] - this.MouseY;
-        a1 = a1 - Math.atan2(y,x);
-        if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
-        if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
-        a += a1;
-    }
-    a = a / numTouches;
-
-    // rotation and scale are around the mid point .....
-    // we need to compute focal point height and roll (not just a matrix).
-    // Focal point is the only difficult item.
-    var cam = this.GetCamera();
-    w0[0] = cam.FocalPoint[0] - w1[0];
-    w0[1] = cam.FocalPoint[1] - w1[1];
-    var c = Math.cos(a);
-    var s = Math.sin(a);
-    // This is the new focal point.
-    x = w1[0] + (w0[0]*c - w0[1]*s);
-    y = w1[1] + (w0[0]*s + w0[1]*c);
-
-    // Remember the last motion to implement momentum.
-    var momentumRoll = a/dt;
-
-    this.MomentumX = 0.0;
-    this.MomentumY = 0.0;
-    this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
-    this.MomentumScale = 0.0;
-
-    cam.Roll = cam.Roll - a;
-    cam.ComputeMatrix();
-    if (this.OverView) {
-        var cam2 = this.OverView.Camera;
-        cam2.Roll = cam.Roll;
-        cam2.ComputeMatrix();
-    }
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.HandleTouchPinch = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    var numTouches = this.Touches.length;
-    if (this.LastTouches.length != numTouches || numTouches  != 2) {
-        // Sanity check.
-        return;
-    }
-
-    // I see an odd intermittent camera matrix problem
-    // on the iPad that looks like a thread safety issue.
-    if (this.MomentumTimerId) {
-        window.cancelAnimationFrame(this.MomentumTimerId)
-        this.MomentumTimerId = 0;
-    }
-
-    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
-    var dt = event.Time - this.LastTime;
-    // iPad / iPhone must have low precision time
-    if (dt == 0) {
-        return;
-    }
-
-    // Compute scale.
-    // Consider weighting rotation by vector length to avoid over contribution of short vectors.
-    // We could also take max.
-    // This should rarely be an issue and could only happen with 3 or more touches.
-    var scale = 1;
-    var s0 = 0;
-    var s1 = 0;
-    for (var i = 0; i < numTouches; ++i) {
-        x = this.LastTouches[i][0] - this.LastMouseX;
-        y = this.LastTouches[i][1] - this.LastMouseY;
-        s0 += Math.sqrt(x*x + y*y);
-        x = this.Touches[i][0] - this.MouseX;
-        y = this.Touches[i][1] - this.MouseY;
-        s1 += Math.sqrt(x*x + y*y);
-    }
-    // This should not happen, but I am having trouble with NaN camera parameters.
-    if (s0 < 2 || s1 < 2) {
-         return;
-    }
-    scale = s1/ s0;
-
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleTouchPinch(event, this)) {
-    //    return false;
-    //}
-
-    // scale is around the mid point .....
-    // we need to compute focal point height and roll (not just a matrix).
-    // Focal point is the only difficult item.
-    var cam = this.GetCamera();
-    w0[0] = cam.FocalPoint[0] - w1[0];
-    w0[1] = cam.FocalPoint[1] - w1[1];
-    // This is the new focal point.
-    var x = w1[0] + w0[0] / scale;
-    var y = w1[1] + w0[1] / scale;
-
-    // Remember the last motion to implement momentum.
-    var momentumScale = (scale-1)/dt;
-
-    this.MomentumX = 0.0;
-    this.MomentumY = 0.0;
-    this.MomentumRoll = 0.0;
-    this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
-
-    cam.FocalPoint[0] = x;
-    cam.FocalPoint[1] = y;
-    cam.SetHeight(cam.GetHeight() / scale);
-    cam.ComputeMatrix();
-    this.EventuallyRender(true);
-}
-
-Viewer.prototype.HandleTouchEnd = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-
-    // Code from a conflict
-    var t = new Date().getTime();
-    this.LastTime = this.Time;
-    this.Time = t;
-
-    var k = Math.min(this.Time - this.LastTime, 250) / 250;
-
-    this.MomentumX = this.MomentumX*(1-k);
-    this.MomentumY = this.MomentumY*(1-k);
-    this.MomentumRoll = this.MomentumRoll*(1-k);
-    this.MomentumScale = this.MomentumScale*(1-k);
-
-    t = t - this.StartTouchTime;
-    if (event.targetTouches.length == 0 && MOBILE_DEVICE) {
-        this.StartTouchTime = 0;
-        if (t < 90) {
-            // We should not have a navigation widget on mobile
-            // devices. (maybe iPad?).
-            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
-                SA.DualDisplay.NavigationWidget.ToggleVisibility();
-            }
-            if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
-                MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-            }
+        if (this.Touches.length == 1) {
+            this.HandleTouchPan(this);
             return;
         }
-        if (this.ActiveWidget != null) {
-            this.ActiveWidget.HandleTouchEnd(event);
+        if (this.Touches.length == 2) {
+            this.HandleTouchPinch(this);
+            return
+        }
+        if (this.Touches.length == 3) {
+            this.HandleTouchRotate(this);
+            return
+        }
+    }
+
+
+    // Only one touch
+    Viewer.prototype.HandleTouchPan = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        if (this.Touches.length != 1 || this.LastTouches.length != 1) {
+            // Sanity check.
             return;
         }
+
+        // I see an odd intermittent camera matrix problem
+        // on the iPad that looks like a thread safety issue.
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
+
+        // Convert to world by inverting the camera matrix.
+        // I could simplify and just process the vector.
+        var w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+        var w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+
+        // This is the new focal point.
+        var dx = w1[0] - w0[0];
+        var dy = w1[1] - w0[1];
+        var dt = event.Time - this.LastTime;
+
+        // Remember the last motion to implement momentum.
+        var momentumX = dx/dt;
+        var momentumY = dy/dt;
+
+        // Integrate momentum over a time period to avoid a fast event
+        // dominating behavior.
+        var k = Math.min(this.Time - this.LastTime, 250) / 250;
+        this.MomentumX += (momentumX-this.MomentumX)*k;
+        this.MomentumY += (momentumY-this.MomentumY)*k;
+        this.MomentumRoll = 0.0;
+        this.MomentumScale = 0.0;
+
+        var cam = this.GetCamera();
+        cam.Translate( -dx, -dy, 0);
+        cam.ComputeMatrix();
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.HandleTouchRotate = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        var numTouches = this.Touches.length;
+        if (this.LastTouches.length != numTouches || numTouches  != 3) {
+            // Sanity check.
+            return;
+        }
+
+        // I see an odd intermittent camera matrix problem
+        // on the iPad that looks like a thread safety issue.
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
+
+        w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+        w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+        var dt = event.Time - this.LastTime;
+
+        // Compute rotation.
+        // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+        // We could also take the maximum.
+        var x;
+        var y;
+        var a = 0;
+        for (var i = 0; i < numTouches; ++i) {
+            x = this.LastTouches[i][0] - this.LastMouseX;
+            y = this.LastTouches[i][1] - this.LastMouseY;
+            var a1  = Math.atan2(y,x);
+            x = this.Touches[i][0] - this.MouseX;
+            y = this.Touches[i][1] - this.MouseY;
+            a1 = a1 - Math.atan2(y,x);
+            if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
+            if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
+            a += a1;
+        }
+        a = a / numTouches;
+
+        // rotation and scale are around the mid point .....
+        // we need to compute focal point height and roll (not just a matrix).
+        // Focal point is the only difficult item.
+        var cam = this.GetCamera();
+        w0[0] = cam.FocalPoint[0] - w1[0];
+        w0[1] = cam.FocalPoint[1] - w1[1];
+        var c = Math.cos(a);
+        var s = Math.sin(a);
+        // This is the new focal point.
+        x = w1[0] + (w0[0]*c - w0[1]*s);
+        y = w1[1] + (w0[0]*s + w0[1]*c);
+
+        // Remember the last motion to implement momentum.
+        var momentumRoll = a/dt;
+
+        this.MomentumX = 0.0;
+        this.MomentumY = 0.0;
+        this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
+        this.MomentumScale = 0.0;
+
+        cam.Roll = cam.Roll - a;
+        cam.ComputeMatrix();
+        if (this.OverView) {
+            var cam2 = this.OverView.Camera;
+            cam2.Roll = cam.Roll;
+            cam2.ComputeMatrix();
+        }
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.HandleTouchPinch = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        var numTouches = this.Touches.length;
+        if (this.LastTouches.length != numTouches || numTouches  != 2) {
+            // Sanity check.
+            return;
+        }
+
+        // I see an odd intermittent camera matrix problem
+        // on the iPad that looks like a thread safety issue.
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
+
+        w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+        w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+        var dt = event.Time - this.LastTime;
+        // iPad / iPhone must have low precision time
+        if (dt == 0) {
+            return;
+        }
+
+        // Compute scale.
+        // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+        // We could also take max.
+        // This should rarely be an issue and could only happen with 3 or more touches.
+        var scale = 1;
+        var s0 = 0;
+        var s1 = 0;
+        for (var i = 0; i < numTouches; ++i) {
+            x = this.LastTouches[i][0] - this.LastMouseX;
+            y = this.LastTouches[i][1] - this.LastMouseY;
+            s0 += Math.sqrt(x*x + y*y);
+            x = this.Touches[i][0] - this.MouseX;
+            y = this.Touches[i][1] - this.MouseY;
+            s1 += Math.sqrt(x*x + y*y);
+        }
+        // This should not happen, but I am having trouble with NaN camera parameters.
+        if (s0 < 2 || s1 < 2) {
+            return;
+        }
+        scale = s1/ s0;
+
+        // scale is around the mid point .....
+        // we need to compute focal point height and roll (not just a matrix).
+        // Focal point is the only difficult item.
+        var cam = this.GetCamera();
+        w0[0] = cam.FocalPoint[0] - w1[0];
+        w0[1] = cam.FocalPoint[1] - w1[1];
+        // This is the new focal point.
+        var x = w1[0] + w0[0] / scale;
+        var y = w1[1] + w0[1] / scale;
+
+        // Remember the last motion to implement momentum.
+        var momentumScale = (scale-1)/dt;
+
+        this.MomentumX = 0.0;
+        this.MomentumY = 0.0;
+        this.MomentumRoll = 0.0;
+        this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
+
+        cam.FocalPoint[0] = x;
+        cam.FocalPoint[1] = y;
+        cam.SetHeight(cam.GetHeight() / scale);
+        cam.ComputeMatrix();
+        this.EventuallyRender(true);
+    }
+
+    Viewer.prototype.HandleTouchEnd = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+
+        // Code from a conflict
+        var t = new Date().getTime();
+        this.LastTime = this.Time;
+        this.Time = t;
+
+        var k = Math.min(this.Time - this.LastTime, 250) / 250;
+
+        this.MomentumX = this.MomentumX*(1-k);
+        this.MomentumY = this.MomentumY*(1-k);
+        this.MomentumRoll = this.MomentumRoll*(1-k);
+        this.MomentumScale = this.MomentumScale*(1-k);
+
+        t = t - this.StartTouchTime;
+        if (event.targetTouches.length == 0 && SA.MOBILE_DEVICE) {
+            this.StartTouchTime = 0;
+            if (t < 90) {
+                // We should not have a navigation widget on mobile
+                // devices. (maybe iPad?).
+                if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
+                    SA.DualDisplay.NavigationWidget.ToggleVisibility();
+                }
+                if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
+                    MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+                }
+                return;
+            }
+            if (this.ActiveWidget != null) {
+                this.ActiveWidget.HandleTouchEnd(event);
+                return;
+            }
+            //this.UpdateZoomGui();
+            this.HandleMomentum();
+        }
+        // end conflict
+
         //this.UpdateZoomGui();
-        this.HandleMomentum();
-    }
-    // end conflict
-
-
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && 
-    //    this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleTouchEnd(event, this)) {
-    //    return false;
-    //}
-
-    //this.UpdateZoomGui();
-    this.HandleMomentum(event);
-}
-
-Viewer.prototype.HandleMomentum = function() {
-    // I see an odd intermittent camera matrix problem
-    // on the iPad that looks like a thread safety issue.
-    if (this.MomentumTimerId) {
-        window.cancelAnimationFrame(this.MomentumTimerId)
-        this.MomentumTimerId = 0;
+        this.HandleMomentum(event);
     }
 
-    var t = new Date().getTime();
-    if (t - this.LastTime < 50) {
-        var self = this;
-        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
-        return;
+    Viewer.prototype.HandleMomentum = function() {
+        // I see an odd intermittent camera matrix problem
+        // on the iPad that looks like a thread safety issue.
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
+
+        var t = new Date().getTime();
+        if (t - this.LastTime < 50) {
+            var self = this;
+            this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
+            return;
+        }
+
+        // Integrate the momentum.
+        this.LastTime = this.Time;
+        this.Time = t;
+        var dt = this.Time - this.LastTime;
+
+        var k = 200.0;
+        var decay = Math.exp(-dt/k);
+        var integ = (-k * decay + k);
+
+        var cam = this.MainView.Camera;
+        cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
+        cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
+        cam.Roll = cam.Roll - (this.MomentumRoll* integ);
+        cam.ComputeMatrix();
+        if (this.OverView) {
+            var cam2 = this.OverView.Camera;
+            cam2.Roll = cam.Roll;
+            cam2.ComputeMatrix();
+        }
+        // I think the problem with the ipad is thie asynchronous render.
+        // Maybe two renders occur at the same time.
+        //this.EventuallyRender();
+        this.Draw();
+
+        // Decay the momentum.
+        this.MomentumX *= decay;
+        this.MomentumY *= decay;
+        this.MomentumScale *= decay;
+        this.MomentumRoll *= decay;
+
+        if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
+            Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
+            // Change is small. Stop the motion.
+            this.MomentumTimerId = 0;
+            if (this.InteractionState != INTERACTION_NONE) {
+                this.InteractionState = INTERACTION_NONE;
+                if (SA.RECORDER_WIDGET) {
+                    SA.RECORDER_WIDGET.RecordState();
+                }
+            }
+            this.UpdateZoomGui();
+        } else {
+            var self = this;
+            this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
+        }
     }
 
-    // Integrate the momentum.
-    this.LastTime = this.Time;
-    this.Time = t;
-    var dt = this.Time - this.LastTime;
 
-    var k = 200.0;
-    var decay = Math.exp(-dt/k);
-    var integ = (-k * decay + k);
+    Viewer.prototype.ConstrainCamera = function () {
+        var bounds = this.GetOverViewBounds();
+        if ( ! bounds) {
+            // Cache has not been set.
+            return;
+        }
+        var spacing = this.MainView.GetLeafSpacing();
+        var viewport = this.MainView.GetViewport();
+        var cam = this.MainView.Camera;
 
-    var cam = this.MainView.Camera;
-    cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
-    cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
-    cam.Roll = cam.Roll - (this.MomentumRoll* integ);
-    cam.ComputeMatrix();
-    if (this.OverView) {
-        var cam2 = this.OverView.Camera;
-        cam2.Roll = cam.Roll;
-        cam2.ComputeMatrix();
+        var modified = false;
+        if (cam.FocalPoint[0] < bounds[0]) {
+            cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
+            modified = true;
+        }
+        if (cam.FocalPoint[0] > bounds[1]) {
+            cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
+            modified = true;
+        }
+        if (cam.FocalPoint[1] < bounds[2]) {
+            cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
+            modified = true;
+        }
+        if (cam.FocalPoint[1] > bounds[3]) {
+            cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
+            modified = true;
+        }
+        var heightMax = 2*(bounds[3]-bounds[2]);
+        if (cam.GetHeight() > heightMax) {
+            cam.SetHeight(heightMax);
+            this.ZoomTarget = heightMax;
+            modified = true;
+        }
+        var heightMin = viewport[3] * spacing * 0.5;
+        if (cam.GetHeight() < heightMin) {
+            cam.SetHeight(heightMin);
+            this.ZoomTarget = heightMin;
+            modified = true;
+        }
+        if (modified) {
+            cam.ComputeMatrix();
+        }
     }
-    // I think the problem with the ipad is thie asynchronous render.
-    // Maybe two renders occur at the same time.
-    //this.EventuallyRender();
-    draw();
 
-    // Decay the momentum.
-    this.MomentumX *= decay;
-    this.MomentumY *= decay;
-    this.MomentumScale *= decay;
-    this.MomentumRoll *= decay;
+    Viewer.prototype.HandleMouseDown = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
 
-    if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
-        Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
-        // Change is small. Stop the motion.
-        this.MomentumTimerId = 0;
+        this.FireFoxWhich = event.which;
+        event.preventDefault(); // Keep browser from selecting images.
+        this.RecordMouseDown(event);
+
+        if (this.RotateIconDrag) {
+            // Problem with leaving the browser with mouse down.
+            // This is a mouse down outside the icon, so the mouse must
+            // have been let up and we did not get the event.
+            this.RotateIconDrag = false;
+        }
+
+        if (this.DoubleClick) {
+            // Without this, double click selects sub elementes.
+            event.preventDefault();
+            return this.HandleDoubleClick(event);
+        }
+
+        // Choose what interaction will be performed.
+        if (event.which == 1 ) {
+            if (event.ctrlKey) {
+                this.InteractionState = INTERACTION_ROTATE;
+            } else if (event.altKey) {
+                this.InteractionState = INTERACTION_ZOOM;
+            } else {
+                this.InteractionState = INTERACTION_DRAG;
+            }
+            return false;
+        }
+        if (event.which == 2 ) {
+            this.InteractionState = INTERACTION_ROTATE;
+            return false;
+        }
+        return true;
+    }
+
+    Viewer.prototype.HandleDoubleClick = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+
+        var mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        if (event.which == 1) {
+            this.AnimateZoomTo(0.5, mWorld);
+        } else if (event.which == 3) {
+            this.AnimateZoomTo(2.0, mWorld);
+        }
+        return true;
+    }
+
+    Viewer.prototype.HandleMouseUp = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        var date = new Date();
+        this.MouseUpTime = date.getTime();
+        this.FireFoxWhich = 0;
+        this.RecordMouseUp(event);
+
+        if (this.RotateIconDrag) {
+            this.RollUp(event);
+            return false;
+        }
+
+        if (this.InteractionState == INTERACTION_OVERVIEW ||
+            this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+            return this.HandleOverViewMouseUp(event);
+        }
+
         if (this.InteractionState != INTERACTION_NONE) {
             this.InteractionState = INTERACTION_NONE;
-            if (RECORDER_WIDGET) {
-                RECORDER_WIDGET.RecordState();
+            if (SA.RECORDER_WIDGET) {
+                SA.RECORDER_WIDGET.RecordState();
             }
         }
-        this.UpdateZoomGui();
-    } else {
-        var self = this;
-        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
-    }
-}
 
-
-Viewer.prototype.ConstrainCamera = function () {
-    var bounds = this.GetOverViewBounds();
-    if ( ! bounds) {
-        // Cache has not been set.
-        return;
-    }
-    var spacing = this.MainView.GetLeafSpacing();
-    var viewport = this.MainView.GetViewport();
-    var cam = this.MainView.Camera;
-
-    var modified = false;
-    if (cam.FocalPoint[0] < bounds[0]) {
-        cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
-        modified = true;
-    }
-    if (cam.FocalPoint[0] > bounds[1]) {
-        cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
-        modified = true;
-    }
-    if (cam.FocalPoint[1] < bounds[2]) {
-        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
-        modified = true;
-    }
-    if (cam.FocalPoint[1] > bounds[3]) {
-        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
-        modified = true;
-    }
-    var heightMax = 2*(bounds[3]-bounds[2]);
-    if (cam.GetHeight() > heightMax) {
-        cam.SetHeight(heightMax);
-        this.ZoomTarget = heightMax;
-        modified = true;
-    }
-    var heightMin = viewport[3] * spacing * 0.5;
-    if (cam.GetHeight() < heightMin) {
-        cam.SetHeight(heightMin);
-        this.ZoomTarget = heightMin;
-        modified = true;
-    }
-    if (modified) {
-        cam.ComputeMatrix();
-    }
-}
-
-Viewer.prototype.HandleMouseDown = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-
-    this.FireFoxWhich = event.which;
-    event.preventDefault(); // Keep browser from selecting images.
-    this.RecordMouseDown(event);
-
-    if (this.RotateIconDrag) {
-        // Problem with leaving the browser with mouse down.
-        // This is a mouse down outside the icon, so the mouse must
-        // have been let up and we did not get the event.
-        this.RotateIconDrag = false;
+        return false; // trying to keep the browser from selecting images
     }
 
-    if (this.DoubleClick) {
-        // Without this, double click selects sub elementes.
-        event.preventDefault();
-        return this.HandleDoubleClick(event);
-    }
+    Viewer.prototype.HandleMouseMove = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
 
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleMouseDown(event, this)) {
-    //    return false;
-    //}
-
-    // Choose what interaction will be performed.
-    if (event.which == 1 ) {
-        if (event.ctrlKey) {
-            this.InteractionState = INTERACTION_ROTATE;
-        } else if (event.altKey) {
-            this.InteractionState = INTERACTION_ZOOM;
-        } else {
-            this.InteractionState = INTERACTION_DRAG;
-        }
-        return false;
-    }
-    if (event.which == 2 ) {
-        this.InteractionState = INTERACTION_ROTATE;
-        return false;
-    }
-    return true;
-}
-
-Viewer.prototype.HandleDoubleClick = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleDoubleClick(event, this)) {
-    //    return false;
-    //}
-
-    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-    if (event.which == 1) {
-        this.AnimateZoomTo(0.5, mWorld);
-    } else if (event.which == 3) {
-        this.AnimateZoomTo(2.0, mWorld);
-    }
-    return true;
-}
-
-Viewer.prototype.HandleMouseUp = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    var date = new Date();
-    this.MouseUpTime = date.getTime();
-    this.FireFoxWhich = 0;
-    this.RecordMouseUp(event);
-
-    if (this.RotateIconDrag) {
-        this.RollUp(event);
-        return false;
-    }
-
-    if (this.InteractionState == INTERACTION_OVERVIEW ||
-        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-        return this.HandleOverViewMouseUp(event);
-    }
-
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleMouseUp(event, this)) {
-    //    return false;
-    //}
-
-    if (this.InteractionState != INTERACTION_NONE) {
-        this.InteractionState = INTERACTION_NONE;
-        if (RECORDER_WIDGET) {
-            RECORDER_WIDGET.RecordState();
-        }
-    }
-
-    return false; // trying to keep the browser from selecting images
-}
-
-/*
-Viewer.prototype.ComputeMouseWorld = function(event) {
-    // We need to save these for pasting annotation.
-    this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-    // Put this extra ivar in the even object.
-    // This could be obsolete because we never pass this event to another object.
-    event.worldX = this.MouseWorld[0];
-    event.worldY= this.MouseWorld[1];
-    // NOTE: DANGER!  user could change this pointer.
-    return this.MouseWorld;
-}
-*/
-
-Viewer.prototype.HandleMouseMove = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-
-    // The event position is relative to the target which can be a tab on
-    // top of the canvas.  Just skip these events.
-    if ($(event.target).width() != $(event.currentTarget).width()) {
-        return true;
-    }
-
-
-    // TODO: Get rid of this. Should be done with image properties.
-    //event.preventDefault(); // Keep browser from selecting images.
-    if ( ! this.RecordMouseMove(event)) { return true; }
-    //this.ComputeMouseWorld(event);
-
-    // I think we need to deal with the move here because the mouse can
-    // exit the icon and the events are lost.
-    if (this.RotateIconDrag) {
-        this.RollMove(event);
-        return false;
-    }
-
-    if (this.InteractionState == INTERACTION_OVERVIEW ||
-        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-        return this.HandleOverViewMouseMove(event);
-    }
-
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleMouseMove(event, this)) {
-    //    return false;
-    //}
-
-    if (this.InteractionState == INTERACTION_NONE) {
-        // Allow the ResizePanel drag to process the events.
-        return true;
-    }
-
-    var x = event.offsetX;
-    var y = event.offsetY;
-
-    // Drag camera in main view.
-    // Dragging is too slow.  I want to accelerate dragging the further
-    // this mouse moves.  This is a moderate change, so I am
-    // going to try to accelerate with speed.
-    if (this.InteractionState == INTERACTION_ROTATE) {
-        // Rotate
-        // Origin in the center.
-        // GLOBAL GL will use view's viewport instead.
-        var cx = x - (this.MainView.Viewport[2]*0.5);
-        var cy = y - (this.MainView.Viewport[3]*0.5);
-        // GLOBAL views will go away when views handle this.
-        this.MainView.Camera.HandleRoll(cx, cy,
-                                        this.MouseDeltaX,
-                                        this.MouseDeltaY);
-        this.RollTarget = this.MainView.Camera.Roll;
-        this.UpdateCamera();
-    } else if (this.InteractionState == INTERACTION_ZOOM) {
-        var dy = this.MouseDeltaY / this.MainView.Viewport[2];
-        this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
-                                       / (1.0 + (dy* 5.0)));
-        this.ZoomTarget = this.MainView.Camera.GetHeight();
-        this.UpdateCamera();
-    } else if (this.InteractionState == INTERACTION_DRAG) {
-
-        // Translate
-        // Convert to view [-0.5,0.5] coordinate system.
-        // Note: the origin gets subtracted out in delta above.
-        var dx = -this.MouseDeltaX / this.MainView.Viewport[2];
-        var dy = -this.MouseDeltaY / this.MainView.Viewport[2];
-        // compute the speed of the movement.
-        var speed = Math.sqrt(dx*dx + dy*dy) / this.MouseDeltaTime;
-        speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
-        // I am not sure I like the speed acceleration.
-        // Lets try a limit.
-        if (speed > 3.0) { speed = 3.0; }
-        dx = dx * speed;
-        dy = dy * speed;
-        this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
-    }
-    // The only interaction that does not go through animate camera.
-    this.TriggerInteraction();
-    this.EventuallyRender(true);
-
-    var x = event.offsetX;
-    var y = event.offsetY;
-
-    return false; 
-}
-
-Viewer.prototype.HandleMouseWheel = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleMouseWheel(event, this)) {
-    //    return false;
-    //}
-
-    if ( ! event.offsetX) {
-        // for firefox
-        event.offsetX = event.layerX;
-        event.offsetY = event.layerY;
-    }
-
-    // We want to accumulate the target, but not the duration.
-    var tmp = 0;
-    if (event.deltaY) {
-        tmp = event.deltaY;
-    } else if (event.wheelDelta) {
-        tmp = event.wheelDelta;
-    }
-    // Wheel event seems to be in increments of 3.
-    // depreciated mousewheel had increments of 120....
-    // Initial delta cause another bug.
-    // Lets restrict to one zoom step per event.
-    if (tmp > 0) {
-        this.ZoomTarget *= 1.1;
-    } else if (tmp < 0) {
-        this.ZoomTarget /= 1.1;
-    }
-
-    // Compute translate target to keep position in the same place.
-    //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-    //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-    var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-    var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
-    this.TranslateTarget[0] = position[0]
-        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-    this.TranslateTarget[1] = position[1]
-        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-
-    this.RollTarget = this.MainView.Camera.Roll;
-
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender(true);
-    return false;
-}
-
-// returns false if the event was "consumed" (browser convention).
-// Returns true if nothing was done with the event.
-Viewer.prototype.HandleKeyDown = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
-        if ( ! SAVING_IMAGE) {
-            SAVING_IMAGE = new SAM.Dialog();
-            SAVING_IMAGE.Title.text('Saving');
-            SAVING_IMAGE.Body.css({'margin':'1em 2em'});
-            SAVING_IMAGE.WaitingImage = $('<img>')
-                .appendTo(SAVING_IMAGE.Body)
-                .attr("src", SA.ImagePathUrl+"circular.gif")
-                .attr("alt", "waiting...")
-                .addClass("sa-view-save")
-            SAVING_IMAGE.ApplyButton.hide();
-            SAVING_IMAGE.SavingFlag = false;
-            SAVING_IMAGE.Count = 0;
-        }
-        if ( ! SAVING_IMAGE.SavingFlag) {
-            SAVING_IMAGE.SavingFlag = true;
-            SAVING_IMAGE.Show(1);
-            this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
-                                     function() {
-                                         SAVING_IMAGE.SavingFlag = false;
-                                         SAVING_IMAGE.Count += 1;
-                                         SAVING_IMAGE.Hide();
-                                     });
-        }
-        return false;
-    }
-
-    // Handle paste
-    if (event.keyCode == 86 && event.ctrlKey) {
-        // control-v for paste
-
-        var clip = JSON.parse(localStorage.ClipBoard);
-        var camera;
-        if (clip.Camera) {
-            camera = new SAM.Camera();
-            camera.Load(clip.Camera);
-        }
-        if (clip.Type == "CircleWidget") {
-            var widget = new CircleWidget(this, false);
-            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
-        }
-        if (clip.Type == "PolylineWidget") {
-            var widget = new PolylineWidget(this, false);
-            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
-        }
-        if (clip.Type == "TextWidget") {
-            var widget = new TextWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
-        }
-        if (clip.Type == "RectWidget") {
-            var widget = new RectWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
-        }
-        if (clip.Type == "GridWidget") {
-            var widget = new GridWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+        // The event position is relative to the target which can be a tab on
+        // top of the canvas.  Just skip these events.
+        if ($(event.target).width() != $(event.currentTarget).width()) {
+            return true;
         }
 
-        return false;
-    }
+        // TODO: Get rid of this. Should be done with image properties.
+        //event.preventDefault(); // Keep browser from selecting images.
+        if ( ! this.RecordMouseMove(event)) { return true; }
+        //this.ComputeMouseWorld(event);
 
-    //----------------------
-    // Forward the events to the widget if one is active.
-    //if (this.AnnotationLayer && this.AnnotationLayer.GetVisibility() &&
-    //    ! this.AnnotationLayer.HandleKeyDown(event, this)) {
-    //    return false;
-    //}
+        // I think we need to deal with the move here because the mouse can
+        // exit the icon and the events are lost.
+        if (this.RotateIconDrag) {
+            this.RollMove(event);
+            return false;
+        }
 
-    if (String.fromCharCode(event.keyCode) == 'R') {
-        //this.MainView.Camera.Reset();
-        this.MainView.Camera.ComputeMatrix();
-        this.ZoomTarget = this.MainView.Camera.GetHeight();
-        this.EventuallyRender(true);
-        return false;
-    }
+        if (this.InteractionState == INTERACTION_OVERVIEW ||
+            this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+            return this.HandleOverViewMouseMove(event);
+        }
 
-    if (event.keyCode == 38) {
-        // Up cursor key
-        var cam = this.GetCamera();
-        var c = Math.cos(cam.Roll);
-        var s = -Math.sin(cam.Roll);
-        var dx = 0.0;
-        var dy = -0.9 * cam.GetHeight();
-        var rx = dx*c - dy*s;
-        var ry = dx*s + dy*c;
-        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-        this.AnimateLast = new Date().getTime();
-        this.AnimateDuration = 200.0;
-        this.EventuallyRender(true);
-        return false;
-    } else if (event.keyCode == 40) {
-        // Down cursor key
-        var cam = this.GetCamera();
-        var c = Math.cos(cam.Roll);
-        var s = -Math.sin(cam.Roll);
-        var dx = 0.0;
-        var dy = 0.9 * cam.GetHeight();
-        var rx = dx*c - dy*s;
-        var ry = dx*s + dy*c;
-        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-        this.AnimateLast = new Date().getTime();
-        this.AnimateDuration = 200.0;
-        this.EventuallyRender(true);
-        return false;
-    } else if (event.keyCode == 37) {
-        // Left cursor key
-        var cam = this.GetCamera();
-        var c = Math.cos(cam.Roll);
-        var s = -Math.sin(cam.Roll);
-        var dx = -0.9 * cam.GetWidth();
-        var dy = 0.0;
-        var rx = dx*c - dy*s;
-        var ry = dx*s + dy*c;
-        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-        this.AnimateLast = new Date().getTime();
-        this.AnimateDuration = 200.0;
-        this.EventuallyRender(true);
-        return false;
-    } else if (event.keyCode == 39) {
-        // Right cursor key
-        var cam = this.GetCamera();
-        var c = Math.cos(cam.Roll);
-        var s = -Math.sin(cam.Roll);
-        var dx = 0.9 * cam.GetWidth();
-        var dy = 0.0;
-        var rx = dx*c - dy*s;
-        var ry = dx*s + dy*c;
-        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-        this.AnimateLast = new Date().getTime();
-        this.AnimateDuration = 200.0;
-        this.EventuallyRender(true);
-        return false;
-    }
-    return true;
-}
+        if (this.InteractionState == INTERACTION_NONE) {
+            // Allow the ResizePanel drag to process the events.
+            return true;
+        }
 
-// Get the current scale factor between pixels and world units.
-Viewer.prototype.GetPixelsPerUnit = function() {
-    return this.MainView.GetPixelsPerUnit();
-}
-
-
-Viewer.prototype.GetMetersPerUnit = function() {
-    return this.MainView.GetMetersPerUnit();
-}
-
-// Covert a point from world coordiante system to viewer coordinate system (units pixels).
-Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
-    var cam = this.MainView.Camera;
-    return cam.ConvertPointWorldToViewer(x, y);
-}
-
-Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
-    var cam = this.MainView.Camera;
-    return cam.ConvertPointViewerToWorld(x, y);
-}
-
-
-// Where else should I put this?
-function colorNameToHex(color)
-{
-    var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
-                  "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
-                  "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
-                  "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b","darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b","darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
-                  "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000","darksalmon":"#e9967a","darkseagreen":"#8fbc8f","darkslateblue":"#483d8b","darkslategray":"#2f4f4f","darkturquoise":"#00ced1",
-                  "darkviolet":"#9400d3","deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969","dodgerblue":"#1e90ff",
-                  "firebrick":"#b22222","floralwhite":"#fffaf0","forestgreen":"#228b22","fuchsia":"#ff00ff",
-                  "gainsboro":"#dcdcdc","ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520","gray":"#808080","green":"#008000","greenyellow":"#adff2f",
-                  "honeydew":"#f0fff0","hotpink":"#ff69b4",
-                  "indianred ":"#cd5c5c","indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
-                  "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00","lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080","lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
-                  "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1","lightsalmon":"#ffa07a","lightseagreen":"#20b2aa","lightskyblue":"#87cefa","lightslategray":"#778899","lightsteelblue":"#b0c4de",
-                  "lightyellow":"#ffffe0","lime":"#00ff00","limegreen":"#32cd32","linen":"#faf0e6",
-                  "magenta":"#ff00ff","maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd","mediumorchid":"#ba55d3","mediumpurple":"#9370d8","mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
-                  "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc","mediumvioletred":"#c71585","midnightblue":"#191970","mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
-                  "navajowhite":"#ffdead","navy":"#000080",
-                  "oldlace":"#fdf5e6","olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500","orangered":"#ff4500","orchid":"#da70d6",
-                  "palegoldenrod":"#eee8aa","palegreen":"#98fb98","paleturquoise":"#afeeee","palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9","peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd","powderblue":"#b0e0e6","purple":"#800080",
-                  "red":"#ff0000","rosybrown":"#bc8f8f","royalblue":"#4169e1",
-                  "saddlebrown":"#8b4513","salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57","seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0","skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090","snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
-                  "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347","turquoise":"#40e0d0",
-                  "violet":"#ee82ee",
-                  "wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5",
-                  "yellow":"#ffff00","yellowgreen":"#9acd32"};
-
-    if (typeof colors[color.toLowerCase()] != 'undefined')
-        return colors[color.toLowerCase()];
-
-    return false;
-}
-
-
-
-
-
-//==============================================================================
-// OverView slide widget stuff.
-
-Viewer.prototype.OverViewCheckActive = function(event) {
-    if ( ! this.OverView) {
-        return false;
-    }
-    var x = event.offsetX;
-    var y = event.offsetY;
-    // Half height and width
-    var hw = this.OverViewport[2]/2;
-    var hh = this.OverViewport[3]/2;
-    // Center of the overview.
-    var cx = this.OverViewport[0]+hw;
-    var cy = this.OverViewport[1]+hh;
-
-    x = x-cx;
-    y = y-cy;
-    // Rotate into overview slide coordinates.
-    var roll = this.MainView.Camera.Roll;
-    var c = Math.cos(roll);
-    var s = Math.sin(roll);
-    var nx = Math.abs(c*x+s*y);
-    var ny = Math.abs(c*y-s*x);
-    if ((Math.abs(hw-nx) < 5 && ny < hh) ||
-        (Math.abs(hh-ny) < 5 && nx < hw)) {
-        this.OverViewActive = true;
-        this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
-    } else {
-        this.OverViewActive = false;
-        this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
-    }
-    //return this.OverViewActive;
-}
-
-
-
-
-
-// Interaction events that change the main camera.
-
-
-// Resize of overview window will be drag with left mouse.
-// Reposition camera with left click (no drag).
-// Removing drag camera in overview.
-
-// TODO: Make the overview slide a widget.
-Viewer.prototype.HandleOverViewMouseDown = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    if (this.RotateIconDrag) { return;}
-
-    this.InteractionState = INTERACTION_OVERVIEW;
-
-    // Delay actions until we see if it is a drag or click.
-    this.OverviewEventX = event.pageX;
-    this.OverviewEventY = event.pageY;
-
-    return false;
-}
-
-
-Viewer.prototype.HandleOverViewMouseUp = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    if (this.RotateIconDrag) { return;}
-    if (this.InteractionState == INTERACTION_OVERVIEW_DRAG)
-    {
-        this.InteractionState = INTERACTION_NONE;
-        return;
-    }
-
-    // This target for animation is not implemented cleanly.
-    // This fixes a bug: OverView translated rotates camamera back to zero.
-    this.RollTarget = this.MainView.Camera.Roll;
-
-    if (event.which == 1) {
         var x = event.offsetX;
         var y = event.offsetY;
-        if (x == undefined) {x = event.layerX;}
-        if (y == undefined) {y = event.layerY;}
-        // Transform to view's coordinate system.
-        this.OverViewPlaceCamera(x, y);
-    }
 
-    this.InteractionState = INTERACTION_NONE;
-
-    return false;
-}
-
-Viewer.prototype.HandleOverViewMouseMove = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    if (this.RotateIconDrag) {
-        this.RollMove(event);
-        return false;
-    }
-
-    if (this.InteractionState == INTERACTION_OVERVIEW) {
-        // Do not start dragging until the mouse has moved some distance.
-        if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
-            Math.abs(event.pageY - this.OverviewEventY) > 5) {
-            // Start dragging the overview window.
-            this.InteractionState = INTERACTION_OVERVIEW_DRAG;
-            var w = this.GetViewport()[2];
-            var p = Math.max(w-event.pageX,event.pageY);
-            this.OverViewScaleLast = p;
+        // Drag camera in main view.
+        // Dragging is too slow.  I want to accelerate dragging the further
+        // this mouse moves.  This is a moderate change, so I am
+        // going to try to accelerate with speed.
+        if (this.InteractionState == INTERACTION_ROTATE) {
+            // Rotate
+            // Origin in the center.
+            // GLOBAL GL will use view's viewport instead.
+            var cx = x - (this.MainView.Viewport[2]*0.5);
+            var cy = y - (this.MainView.Viewport[3]*0.5);
+            // GLOBAL views will go away when views handle this.
+            this.MainView.Camera.HandleRoll(cx, cy,
+                                            this.MouseDeltaX,
+                                            this.MouseDeltaY);
+            this.RollTarget = this.MainView.Camera.Roll;
+            this.UpdateCamera();
+        } else if (this.InteractionState == INTERACTION_ZOOM) {
+            var dy = this.MouseDeltaY / this.MainView.Viewport[2];
+            this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
+                                           / (1.0 + (dy* 5.0)));
+            this.ZoomTarget = this.MainView.Camera.GetHeight();
+            this.UpdateCamera();
+        } else if (this.InteractionState == INTERACTION_DRAG) {
+            // Translate
+            // Convert to view [-0.5,0.5] coordinate system.
+            // Note: the origin gets subtracted out in delta above.
+            var dx = -this.MouseDeltaX / this.MainView.Viewport[2];
+            var dy = -this.MouseDeltaY / this.MainView.Viewport[2];
+            // compute the speed of the movement.
+            var speed = Math.sqrt(dx*dx + dy*dy) / this.MouseDeltaTime;
+            speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
+            // I am not sure I like the speed acceleration.
+            // Lets try a limit.
+            if (speed > 3.0) { speed = 3.0; }
+            dx = dx * speed;
+            dy = dy * speed;
+            this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
         }
+        // The only interaction that does not go through animate camera.
+        this.TriggerInteraction();
+        this.EventuallyRender(true);
+
+        var x = event.offsetX;
+        var y = event.offsetY;
+
         return false;
     }
 
-    // This consumes events even when I return true. Why?
-    if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
-        // Drag originated outside overview.
-        // Could be panning.
+    Viewer.prototype.HandleMouseWheel = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+
+        if ( ! event.offsetX) {
+            // for firefox
+            event.offsetX = event.layerX;
+            event.offsetY = event.layerY;
+        }
+
+        // We want to accumulate the target, but not the duration.
+        var tmp = 0;
+        if (event.deltaY) {
+            tmp = event.deltaY;
+        } else if (event.wheelDelta) {
+            tmp = event.wheelDelta;
+        }
+        // Wheel event seems to be in increments of 3.
+        // depreciated mousewheel had increments of 120....
+        // Initial delta cause another bug.
+        // Lets restrict to one zoom step per event.
+        if (tmp > 0) {
+            this.ZoomTarget *= 1.1;
+        } else if (tmp < 0) {
+            this.ZoomTarget /= 1.1;
+        }
+
+        // Compute translate target to keep position in the same place.
+        //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+        //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+        var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
+        this.TranslateTarget[0] = position[0]
+            - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+        this.TranslateTarget[1] = position[1]
+            - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
+
+        this.RollTarget = this.MainView.Camera.Roll;
+
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0; // hard code 200 milliseconds
+        this.EventuallyRender(true);
+        return false;
+    }
+
+    // returns false if the event was "consumed" (browser convention).
+    // Returns true if nothing was done with the event.
+    Viewer.prototype.HandleKeyDown = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
+            if ( ! SAVING_IMAGE) {
+                SAVING_IMAGE = new SAM.Dialog();
+                SAVING_IMAGE.Title.text('Saving');
+                SAVING_IMAGE.Body.css({'margin':'1em 2em'});
+                SAVING_IMAGE.WaitingImage = $('<img>')
+                    .appendTo(SAVING_IMAGE.Body)
+                    .attr("src", SA.ImagePathUrl+"circular.gif")
+                    .attr("alt", "waiting...")
+                    .addClass("sa-view-save")
+                SAVING_IMAGE.ApplyButton.hide();
+                SAVING_IMAGE.SavingFlag = false;
+                SAVING_IMAGE.Count = 0;
+            }
+            if ( ! SAVING_IMAGE.SavingFlag) {
+                SAVING_IMAGE.SavingFlag = true;
+                SAVING_IMAGE.Show(1);
+                this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                                         function() {
+                                             SAVING_IMAGE.SavingFlag = false;
+                                             SAVING_IMAGE.Count += 1;
+                                             SAVING_IMAGE.Hide();
+                                         });
+            }
+            return false;
+        }
+
+        // Handle paste
+        if (event.keyCode == 86 && event.ctrlKey) {
+            // control-v for paste
+
+            var clip = JSON.parse(localStorage.ClipBoard);
+            var camera;
+            if (clip.Camera) {
+                camera = new SAM.Camera();
+                camera.Load(clip.Camera);
+            }
+            if (clip.Type == "CircleWidget") {
+                var widget = new SAM.CircleWidget(this, false);
+                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+            }
+            if (clip.Type == "PolylineWidget") {
+                var widget = new SAM.PolylineWidget(this, false);
+                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+            }
+            if (clip.Type == "TextWidget") {
+                var widget = new SAM.TextWidget(this, "");
+                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+            }
+            if (clip.Type == "RectWidget") {
+                var widget = new SAM.RectWidget(this, "");
+                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+            }
+            if (clip.Type == "GridWidget") {
+                var widget = new SAM.GridWidget(this, "");
+                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+            }
+
+            return false;
+        }
+
+        if (String.fromCharCode(event.keyCode) == 'R') {
+            //this.MainView.Camera.Reset();
+            this.MainView.Camera.ComputeMatrix();
+            this.ZoomTarget = this.MainView.Camera.GetHeight();
+            this.EventuallyRender(true);
+            return false;
+        }
+
+        if (event.keyCode == 38) {
+            // Up cursor key
+            var cam = this.GetCamera();
+            var c = Math.cos(cam.Roll);
+            var s = -Math.sin(cam.Roll);
+            var dx = 0.0;
+            var dy = -0.9 * cam.GetHeight();
+            var rx = dx*c - dy*s;
+            var ry = dx*s + dy*c;
+            this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+            this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+            this.AnimateLast = new Date().getTime();
+            this.AnimateDuration = 200.0;
+            this.EventuallyRender(true);
+            return false;
+        } else if (event.keyCode == 40) {
+            // Down cursor key
+            var cam = this.GetCamera();
+            var c = Math.cos(cam.Roll);
+            var s = -Math.sin(cam.Roll);
+            var dx = 0.0;
+            var dy = 0.9 * cam.GetHeight();
+            var rx = dx*c - dy*s;
+            var ry = dx*s + dy*c;
+            this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+            this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+            this.AnimateLast = new Date().getTime();
+            this.AnimateDuration = 200.0;
+            this.EventuallyRender(true);
+            return false;
+        } else if (event.keyCode == 37) {
+            // Left cursor key
+            var cam = this.GetCamera();
+            var c = Math.cos(cam.Roll);
+            var s = -Math.sin(cam.Roll);
+            var dx = -0.9 * cam.GetWidth();
+            var dy = 0.0;
+            var rx = dx*c - dy*s;
+            var ry = dx*s + dy*c;
+            this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+            this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+            this.AnimateLast = new Date().getTime();
+            this.AnimateDuration = 200.0;
+            this.EventuallyRender(true);
+            return false;
+        } else if (event.keyCode == 39) {
+            // Right cursor key
+            var cam = this.GetCamera();
+            var c = Math.cos(cam.Roll);
+            var s = -Math.sin(cam.Roll);
+            var dx = 0.9 * cam.GetWidth();
+            var dy = 0.0;
+            var rx = dx*c - dy*s;
+            var ry = dx*s + dy*c;
+            this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+            this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+            this.AnimateLast = new Date().getTime();
+            this.AnimateDuration = 200.0;
+            this.EventuallyRender(true);
+            return false;
+        }
         return true;
     }
 
-    // Drag to change overview size
-    var w = this.GetViewport()[2];
-    var p = Math.max(w-event.pageX,event.pageY);
-    var d = p/this.OverViewScaleLast;
-    this.OverViewScale *= d*d;
-    this.OverViewScaleLast = p;
-    if (p < 60) {
-        this.RotateIcon.hide();
-    } else {
-        this.RotateIcon.show();
+    // Get the current scale factor between pixels and world units.
+    Viewer.prototype.GetPixelsPerUnit = function() {
+        return this.MainView.GetPixelsPerUnit();
     }
 
-    // TODO: Get rid of this hack.
-    $(window).trigger('resize');
 
-    return false;
-}
-
-Viewer.prototype.HandleOverViewMouseWheel = function(event) {
-    if ( ! this.InteractionEnabled) { return true; }
-    var tmp = 0;
-    if (event.deltaY) {
-	      tmp = event.deltaY;
-    } else if (event.wheelDelta) {
-	      tmp = event.wheelDelta;
+    Viewer.prototype.GetMetersPerUnit = function() {
+        return this.MainView.GetMetersPerUnit();
     }
 
-    if (tmp > 0) {
-        this.OverViewScale *= 1.2;
-	  } else if (tmp < 0) {
-        this.OverViewScale /= 1.2;
+    // Covert a point from world coordiante system to viewer coordinate system (units pixels).
+    Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
+        var cam = this.MainView.Camera;
+        return cam.ConvertPointWorldToViewer(x, y);
     }
 
-    // TODO: Get rid of this hack.
-    $(window).trigger('resize');
+    Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
+        var cam = this.MainView.Camera;
+        return cam.ConvertPointViewerToWorld(x, y);
+    }
 
-    return true;
-}
 
-Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
-    if (vis) {
-        if ( ! this.AnnotationWidget) {
-            this.AnnotationWidget = new AnnotationWidget(this.AnnotationLayer);
+    // Where else should I put this?
+    function colorNameToHex(color)
+    {
+        var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
+                      "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
+                      "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
+                      "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b","darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b","darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
+                      "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000","darksalmon":"#e9967a","darkseagreen":"#8fbc8f","darkslateblue":"#483d8b","darkslategray":"#2f4f4f","darkturquoise":"#00ced1",
+                      "darkviolet":"#9400d3","deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969","dodgerblue":"#1e90ff",
+                      "firebrick":"#b22222","floralwhite":"#fffaf0","forestgreen":"#228b22","fuchsia":"#ff00ff",
+                      "gainsboro":"#dcdcdc","ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520","gray":"#808080","green":"#008000","greenyellow":"#adff2f",
+                      "honeydew":"#f0fff0","hotpink":"#ff69b4",
+                      "indianred ":"#cd5c5c","indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
+                      "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00","lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080","lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
+                      "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1","lightsalmon":"#ffa07a","lightseagreen":"#20b2aa","lightskyblue":"#87cefa","lightslategray":"#778899","lightsteelblue":"#b0c4de",
+                      "lightyellow":"#ffffe0","lime":"#00ff00","limegreen":"#32cd32","linen":"#faf0e6",
+                      "magenta":"#ff00ff","maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd","mediumorchid":"#ba55d3","mediumpurple":"#9370d8","mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
+                      "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc","mediumvioletred":"#c71585","midnightblue":"#191970","mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
+                      "navajowhite":"#ffdead","navy":"#000080",
+                      "oldlace":"#fdf5e6","olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500","orangered":"#ff4500","orchid":"#da70d6",
+                      "palegoldenrod":"#eee8aa","palegreen":"#98fb98","paleturquoise":"#afeeee","palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9","peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd","powderblue":"#b0e0e6","purple":"#800080",
+                      "red":"#ff0000","rosybrown":"#bc8f8f","royalblue":"#4169e1",
+                      "saddlebrown":"#8b4513","salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57","seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0","skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090","snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
+                      "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347","turquoise":"#40e0d0",
+                      "violet":"#ee82ee",
+                      "wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5",
+                      "yellow":"#ffff00","yellowgreen":"#9acd32"};
+
+        if (typeof colors[color.toLowerCase()] != 'undefined')
+            return colors[color.toLowerCase()];
+
+        return false;
+    }
+
+
+
+    //==============================================================================
+    // OverView slide widget stuff.
+
+    Viewer.prototype.OverViewCheckActive = function(event) {
+        if ( ! this.OverView) {
+            return false;
         }
-        this.AnnotationWidget.show();
-    } else {
-        if ( this.AnnotationWidget) {
-            this.AnnotationWidget.hide();
+        var x = event.offsetX;
+        var y = event.offsetY;
+        // Half height and width
+        var hw = this.OverViewport[2]/2;
+        var hh = this.OverViewport[3]/2;
+        // Center of the overview.
+        var cx = this.OverViewport[0]+hw;
+        var cy = this.OverViewport[1]+hh;
+
+        x = x-cx;
+        y = y-cy;
+        // Rotate into overview slide coordinates.
+        var roll = this.MainView.Camera.Roll;
+        var c = Math.cos(roll);
+        var s = Math.sin(roll);
+        var nx = Math.abs(c*x+s*y);
+        var ny = Math.abs(c*y-s*x);
+        if ((Math.abs(hw-nx) < 5 && ny < hh) ||
+            (Math.abs(hh-ny) < 5 && nx < hw)) {
+            this.OverViewActive = true;
+            this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
+        } else {
+            this.OverViewActive = false;
+            this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
+        }
+        //return this.OverViewActive;
+    }
+
+
+    // Interaction events that change the main camera.
+
+
+    // Resize of overview window will be drag with left mouse.
+    // Reposition camera with left click (no drag).
+    // Removing drag camera in overview.
+
+    // TODO: Make the overview slide a widget.
+    Viewer.prototype.HandleOverViewMouseDown = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        if (this.RotateIconDrag) { return;}
+
+        this.InteractionState = INTERACTION_OVERVIEW;
+
+        // Delay actions until we see if it is a drag or click.
+        this.OverviewEventX = event.pageX;
+        this.OverviewEventY = event.pageY;
+
+        return false;
+    }
+
+
+    Viewer.prototype.HandleOverViewMouseUp = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        if (this.RotateIconDrag) { return;}
+        if (this.InteractionState == INTERACTION_OVERVIEW_DRAG)
+        {
+            this.InteractionState = INTERACTION_NONE;
+            return;
+        }
+
+        // This target for animation is not implemented cleanly.
+        // This fixes a bug: OverView translated rotates camamera back to zero.
+        this.RollTarget = this.MainView.Camera.Roll;
+
+        if (event.which == 1) {
+            var x = event.offsetX;
+            var y = event.offsetY;
+            if (x == undefined) {x = event.layerX;}
+            if (y == undefined) {y = event.layerY;}
+            // Transform to view's coordinate system.
+            this.OverViewPlaceCamera(x, y);
+        }
+
+        this.InteractionState = INTERACTION_NONE;
+
+        return false;
+    }
+
+    Viewer.prototype.HandleOverViewMouseMove = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        if (this.RotateIconDrag) {
+            this.RollMove(event);
+            return false;
+        }
+
+        if (this.InteractionState == INTERACTION_OVERVIEW) {
+            // Do not start dragging until the mouse has moved some distance.
+            if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
+                Math.abs(event.pageY - this.OverviewEventY) > 5) {
+                // Start dragging the overview window.
+                this.InteractionState = INTERACTION_OVERVIEW_DRAG;
+                var w = this.GetViewport()[2];
+                var p = Math.max(w-event.pageX,event.pageY);
+                this.OverViewScaleLast = p;
+            }
+            return false;
+        }
+
+        // This consumes events even when I return true. Why?
+        if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
+            // Drag originated outside overview.
+            // Could be panning.
+            return true;
+        }
+
+        // Drag to change overview size
+        var w = this.GetViewport()[2];
+        var p = Math.max(w-event.pageX,event.pageY);
+        var d = p/this.OverViewScaleLast;
+        this.OverViewScale *= d*d;
+        this.OverViewScaleLast = p;
+        if (p < 60) {
+            this.RotateIcon.hide();
+        } else {
+            this.RotateIcon.show();
+        }
+
+        // TODO: Get rid of this hack.
+        $(window).trigger('resize');
+
+        return false;
+    }
+
+    Viewer.prototype.HandleOverViewMouseWheel = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        var tmp = 0;
+        if (event.deltaY) {
+	          tmp = event.deltaY;
+        } else if (event.wheelDelta) {
+	          tmp = event.wheelDelta;
+        }
+
+        if (tmp > 0) {
+            this.OverViewScale *= 1.2;
+	      } else if (tmp < 0) {
+            this.OverViewScale /= 1.2;
+        }
+
+        // TODO: Get rid of this hack.
+        $(window).trigger('resize');
+
+        return true;
+    }
+
+    // TODO: Get rid of this function.
+    // AnnotationWidget should not be here either.
+    Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
+        // hack
+        if (this.Layers.length == 0) {return;}
+        var annotationWidget = this.Layer[0];
+        if (vis) {
+            if ( ! this.AnnotationWidget) {
+                this.AnnotationWidget = new SA.AnnotationWidget(annotationLayer);
+            }
+            this.AnnotationWidget.show();
+        } else {
+            if ( this.AnnotationWidget) {
+                this.AnnotationWidget.hide();
+            }
         }
     }
-}
 
-Viewer.prototype.SetZoomWidgetVisibility = function(vis) {
-    if (vis) {
-        if ( ! this.ZoomTab) {
-            this.InitializeZoomGui();
-        }
-        this.ZoomTab.show();
-    } else {
-        if ( this.ZoomTab) {
-            this.ZoomTab.hide();
+    Viewer.prototype.SetZoomWidgetVisibility = function(vis) {
+        if (vis) {
+            if ( ! this.ZoomTab) {
+                this.InitializeZoomGui();
+            }
+            this.ZoomTab.show();
+        } else {
+            if ( this.ZoomTab) {
+                this.ZoomTab.hide();
+            }
         }
     }
-}
 
-Viewer.prototype.SetCopyrightVisibility = function(vis) {
-    if (vis) {
-        this.CopyrightWrapper.show();
-    } else {
-        this.CopyrightWrapper.hide();
+    Viewer.prototype.SetCopyrightVisibility = function(vis) {
+        if (vis) {
+            this.CopyrightWrapper.show();
+        } else {
+            this.CopyrightWrapper.hide();
+        }
     }
-}
+
+    SA.Viewer = Viewer;
+
+})();
 
 
 
 
 
 
+
+(function () {
+    "use strict";
 
 
 
@@ -30771,7 +30856,7 @@ PairTransformation.prototype.Load = function(obj) {
 
 PairTransformation.prototype.AddCorrelation = function(pt0, pt1) {
     index = this.Correlations.length;
-    var corr = new PairCorrelation();
+    var corr = new SA.PairCorrelation();
     corr.SetPoint0(pt0);
     corr.SetPoint1(pt1);
     this.Correlations.push(corr);
@@ -30788,7 +30873,7 @@ PairTransformation.prototype.Load = function(obj) {
         this.View1 = obj.View1;
     }
     for (var i = 0; i < obj.Correlations.length; ++i) {
-        var correlation = new PairCorrelation();
+        var correlation = new SA.PairCorrelation();
         correlation.Load(obj.Correlations[i]);
         this.Correlations.push(correlation);
     }
@@ -30966,3 +31051,8 @@ PairTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
     //camOut.Width = camIn.Width;
     camOut.Width = camOut.Height * camOut.ViewportWidth / camOut.ViewportHeight;
 }
+
+
+    SA.PairTransformation = PairTransformation;
+
+})();

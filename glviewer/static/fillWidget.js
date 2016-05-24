@@ -303,7 +303,7 @@
             this.Shapes[i].UpdateBuffers(this.Viewer.AnnotationView);
         }
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         eventuallyRender();
     }
 

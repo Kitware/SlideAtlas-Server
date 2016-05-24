@@ -1,7 +1,7 @@
 // Tabbed gui.
 
 // Closure namespace
-Tab = (function () {
+(function () {
 
     var Tabs = [];
 
@@ -95,7 +95,8 @@ Tab = (function () {
 
 
     // Export the tab object.
-    return Tab;
+    SA.Tab = Tab;
+
 })();
     
     

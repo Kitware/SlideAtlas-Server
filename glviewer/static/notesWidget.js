@@ -473,7 +473,7 @@
 
         if ( ! this.UrlDialog) {
             var self = this;
-            var dialog = new Dialog(function() {
+            var dialog = new SAM.Dialog(function() {
                 self.InsertUrlLinkAccept();
             });
             dialog.Body.css({'margin':'1em 2em'});
@@ -732,6 +732,13 @@
     //==============================================================================
 
 
+
+
+
+(function () {
+    "use strict";
+
+
 function NotesWidget(parent, display) {
     this.ModifiedCallback = null;
     this.LinkDiv;
@@ -793,7 +800,7 @@ function NotesWidget(parent, display) {
     this.SelectedNote;
 
     // GUI elements
-    this.TabbedWindow = new TabbedDiv(this.Window);
+    this.TabbedWindow = new SA.TabbedDiv(this.Window);
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
     this.LinksRoot = $('<ul>')
         .addClass('sa-ul')
@@ -1180,7 +1187,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     // Bug: canvas.getDataUrl() not supported in Safari on iPad.
     // Fix: If on mobile, use the thumbnail for the entire slide.
     var src;
-    if(MOBILE_DEVICE){
+    if(SA.MOBILE_DEVICE){
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
@@ -1200,7 +1207,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
             FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
         },
         error: function() {
-            saDebug( "AJAX - error() : saveusernote 2" );
+            SA.Debug( "AJAX - error() : saveusernote 2" );
         },
     });
 }
@@ -1283,7 +1290,7 @@ NotesWidget.prototype.RequestUserNote = function(imageId) {
         url: "/webgl-viewer/getusernotes",
         data: {"imageid": imageId},
         success: function(data,status) { self.LoadUserNote(data, imageId);},
-        error: function() { saDebug( "AJAX - error() : getusernotes" ); },
+        error: function() { SA.Debug( "AJAX - error() : getusernotes" ); },
     });
 }
 
@@ -1301,7 +1308,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {
-            saDebug("Warning: Only showing the first user note.");
+            SA.Debug("Warning: Only showing the first user note.");
         }
         var noteData = data.Notes[0];
         this.UserNote.Load(noteData);
@@ -1311,7 +1318,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         // Only copoy the first viewer records.  More could be problematic.
         var note = this.GetCurrentNote();
         if (note && note.ViewerRecords.length > 0) {
-            var record = new ViewerRecord();
+            var record = new SA.ViewerRecord();
             record.DeepCopy(note.ViewerRecords[0]);
             this.UserNote.ViewerRecords.push(record);
         }
@@ -1335,3 +1342,6 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
 
 
 
+    SA.NotesWidget = NotesWidget;
+
+})();

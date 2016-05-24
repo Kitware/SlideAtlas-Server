@@ -48,6 +48,8 @@
 // Embed option of viewer.
 
 
+(function () {
+    "use strict";
 
 
 // TODO:
@@ -82,7 +84,7 @@ function Presentation(rootNote, edit) {
     }
 
     // Eliminate the GUI in the viewers.
-    //MOBILE_DEVICE = "Simple";
+    //SA.MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
     // Hack.  It is only used for events.
@@ -108,9 +110,9 @@ function Presentation(rootNote, edit) {
 
     // Hack so all viewers will shar the same browser.
     // We should really use the brower tab in the left panel.
-    VIEW_BROWSER = new ViewBrowser(this.WindowDiv);
+    SA.VIEW_BROWSER = new SA.ViewBrowser(this.WindowDiv);
 
-    this.ResizePanel = new ResizePanel(this.WindowDiv);
+    this.ResizePanel = new SA.ResizePanel(this.WindowDiv);
 
     //this.PresentationDiv = $('<div>')
     //    .appendTo(this.WindowDiv)
@@ -348,7 +350,7 @@ Presentation.prototype.EditOn = function () {
 
 
 Presentation.prototype.InitializeLeftPanel = function (parent) {
-    this.EditTabs = new TabbedDiv(parent);
+    this.EditTabs = new SA.TabbedDiv(parent);
     this.EditTabs.Div.css({'width':'100%',
                           'height':'100%'})
 
@@ -444,19 +446,19 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
         }
 
 
-        this.BrowserPanel = new BrowserPanel(
+        this.BrowserPanel = new SA.BrowserPanel(
             this.BrowserDiv,
             function (viewObj) {
                 self.AddViewCallback(viewObj);
             });
         this.BrowserDiv.css({'overflow-y':'auto'});
 
-        this.SearchPanel = new SearchPanel(
+        this.SearchPanel = new SA.SearchPanel(
             this.SearchDiv,
             function (imageObj) {
                 self.AddImageCallback(imageObj);
             });
-        this.ClipboardPanel = new ClipboardPanel(
+        this.ClipboardPanel = new SA.ClipboardPanel(
             this.ClipboardDiv,
             function (viewObj) {
                 self.AddViewCallback(viewObj);
@@ -466,7 +468,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 
     this.UserTextDiv = this.EditTabs.NewTabDiv("Notes", "private notes");
     // Private notes.
-    this.UserNoteEditor = new UserNoteEditor(this.UserTextDiv);
+    this.UserNoteEditor = new SA.UserNoteEditor(this.UserTextDiv);
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
@@ -594,7 +596,7 @@ UserNoteEditor.prototype.SetNote = function (parentNote) {
         url: "/webgl-viewer/getusernotes",
         data: {"parentid": parentNote.Id},
         success: function(data,status) { self.LoadUserNote(data, parentNote.Id);},
-        error: function() { saDebug( "AJAX - error() : getusernotes" ); },
+        error: function() { SA.Debug( "AJAX - error() : getusernotes" ); },
     });
 }
 
@@ -609,7 +611,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 
     if (data.Notes && data.Notes.length > 0) {
         if (data.Notes.length > 1) {
-            saDebug("Warning: Only showing the first user note.");
+            SA.Debug("Warning: Only showing the first user note.");
         }
         var noteData = data.Notes[0];
         parentNote.UserNote.Load(noteData);
@@ -716,7 +718,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
         return;
     }
 
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
@@ -725,7 +727,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.OverviewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
@@ -825,11 +827,11 @@ Presentation.prototype.Save = function () {
                         url: "webgl-viewer/session-add-view",
                         success: function(data,status){
                             if (status != "success") {
-                                saDebug("ajax failed - session-add-view");
+                                SA.Debug("ajax failed - session-add-view");
                             }
                         },
                         error: function() {
-                            saDebug( "AJAX - error() : session-add-view" );
+                            SA.Debug( "AJAX - error() : session-add-view" );
                         },
                     });
                 }
@@ -853,7 +855,7 @@ Presentation.prototype.Save = function () {
     // The root needs a record to show up in the session.
     var rootNote = this.RootNote;
     if (rootNote.ViewerRecords.length < 1) {
-        var record = new ViewerRecord();
+        var record = new SA.ViewerRecord();
         record.Load(
             {AnnotationVisibility: 2,
              Annotations: [],
@@ -1212,7 +1214,7 @@ function SlidePage(parent, edit) {
               'bottom': '5px',
               'width': '100%'});
     // List of question answers.
-    this.List = new TextEditor(this.TextDiv, VIEWERS);
+    this.List = new SA.TextEditor(this.TextDiv, SA.VIEWERS);
     if ( ! edit) {
         this.List.EditOff();
     }
@@ -1236,11 +1238,11 @@ function SlidePage(parent, edit) {
     if (this.Edit) {
         // TODO: Better API (jquery) for adding widgets.
         // TODO: Better placement control for the widget.
-        this.AnnotationWidget1 = new AnnotationWidget(
+        this.AnnotationWidget1 = new SA.AnnotationWidget(
             this.ViewerDiv1[0].saViewer.AnnotationLayer);
         this.AnnotationWidget1.SetVisibility(2);
 
-        this.AnnotationWidget2 = new AnnotationWidget(
+        this.AnnotationWidget2 = new SA.AnnotationWidget(
             this.ViewerDiv2[0].saViewer.AnnotationLayer);
         this.AnnotationWidget2.SetVisibility(2);
 
@@ -1432,7 +1434,7 @@ SlidePage.prototype.EditOff = function () {
         this.RemoveView2Button.hide();
         this.List.EditOff();
         // This causes the viewers to look transparent.
-        //VIEWER.MainView.CanvasDiv.resizable('disable');
+        //SA.VIEWER.MainView.CanvasDiv.resizable('disable');
     }
 }
 
@@ -2231,7 +2233,7 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     delete newNote.Id;
     newNote.Id = tmpId;
     if (newNote.ViewerRecords.length == 0) {
-        saDebug("Insert failed: Note has no viewer records.");
+        SA.Debug("Insert failed: Note has no viewer records.");
     } else if (this.Note.Parent) {
         this.Note.Children.push(newNote);
         newNote.Parent = this.Note;
@@ -2416,7 +2418,7 @@ HtmlPage.prototype.UpdateEdits = function () {
         // prune deleted records.
         // I should really do this when a view is deleted, but there are
         // deleted records in the database.
-        // NOTE: THIS ASSUME THAT ALL THE VIEWERS USE THIS NOTE!!!
+        // NOTE: THIS ASSUME THAT ALL THE SA.VIEWERS USE THIS NOTE!!!
         var newRecords = [];
         for (var i = 0; i < this.Note.ViewerRecords.length; ++i) {
             var record = this.Note.ViewerRecords[i];
@@ -2494,7 +2496,7 @@ SearchPanel.prototype.SearchCallback = function() {
             self.Parent.css({'cursor':'default'});
         },
         error: function() {
-            saDebug( "AJAX - error() : query" );
+            SA.Debug( "AJAX - error() : query" );
             self.Parent.css({'cursor':'default'});
         },
     });
@@ -2533,7 +2535,7 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
             image.bounds = [0, imgObj.dimensions[0], 0,
                       imgObj.dimensions[1]];
         }
-        var thumb = new CutoutThumb(image, 100);
+        var thumb = new SA.CutoutThumb(image, 100);
         thumb.Div.appendTo(imageDiv)
         var labelDiv = $('<div>')
             .css({'font-size':'50%'})
@@ -2574,9 +2576,9 @@ function ClipboardPanel(parent, callback) {
         success: function(data,status){
             if (status == "success") {
                 self.LoadClipboardCallback(data);
-            } else { saDebug("ajax failed - get favorite views 2"); }
+            } else { SA.Debug("ajax failed - get favorite views 2"); }
         },
-        error: function() { saDebug( "AJAX - error() : getfavoriteviews 2" );
+        error: function() { SA.Debug( "AJAX - error() : getfavoriteviews 2" );
         },
     });
 }
@@ -2629,7 +2631,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
             success: function(data,status) {
             },
             error: function() {
-                saDebug( "AJAX - error() : deleteusernote" );
+                SA.Debug( "AJAX - error() : deleteusernote" );
             },
         });
     }
@@ -2637,5 +2639,10 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
 
 
 
+    SA.SearchPanel = SearchPanel;
+    SA.ClipboardPanel = ClipboardPanel;
+    SA.Presentation = Presentation;
+
+})();
 
 
