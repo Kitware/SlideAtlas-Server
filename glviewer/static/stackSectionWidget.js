@@ -349,7 +349,7 @@
         spacing = Math.sqrt((bds2[1]-bds2[0])*(bds2[3]-bds2[2])/160000);
         // Note. gradient decent messes up with spacing too small.
 
-        var distMap = new DistanceMap(bds2, spacing);
+        var distMap = new SA.DistanceMap(bds2, spacing);
         for (var i = 0; i < section.Shapes.length; ++i) {
             // ignore origin.
             distMap.AddPolyline(section.Shapes[i]);

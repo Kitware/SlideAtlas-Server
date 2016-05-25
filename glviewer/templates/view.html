@@ -31,8 +31,8 @@
 <script type="text/javascript" src="/static/thirdparty/webgl-utils/webgl-utils.js"></script>
 
 <!-- Edit menu, right click -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='objectId.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='objectId.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
@@ -166,6 +166,8 @@ shape has visibility and
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
 
+      window.SA = window.SA || {};
+
       SA.ViewId = "{{view}}";
       SA.Template = "view.html";
       SA.User = "{{user}}";
@@ -175,7 +177,10 @@ shape has visibility and
       SA.ImagePathUrl = "{{ url_for('glviewer.static', filename='') }}";
 
       SA.SessionId = "{{sess}}";
-      SA.Run();
+
+      if ( ! SA.Running && SA.Run) {
+          SA.Run();
+      }
   });
 
 </script>

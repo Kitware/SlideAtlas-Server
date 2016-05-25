@@ -192,7 +192,7 @@
             .keypress(function(event) { return event.keyCode != 13; });
 
         this.Tolerance = 0.05;
-        if (MOBILE_DEVICE) {
+        if (SA.MOBILE_DEVICE) {
             this.Tolerance = 0.1;
         }
 
@@ -428,7 +428,7 @@
     // returns false when it is finished doing its work.
     GridWidget.prototype.HandleMouseUp = function(event) {
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
 
         return true;
     };
@@ -715,7 +715,7 @@
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw();
 
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});

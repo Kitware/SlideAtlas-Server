@@ -91,7 +91,7 @@
         var cam = view.Camera;
         var viewport = view.Viewport;
 
-        if (GL) {
+        if (view.gl) {
             alert("webGL cutout not supported");
         } else {
             // The 2d canvas was left in world coordinates.

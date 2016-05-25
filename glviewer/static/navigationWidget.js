@@ -2,6 +2,13 @@
 // entwined with the notes widget at the moment.
 
 
+
+
+(function () {
+    "use strict";
+
+
+
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function NavigationWidget(parent,display) {
@@ -10,13 +17,13 @@ function NavigationWidget(parent,display) {
    // Load the session slides from the localStorage
     this.SlideIndex = 0;
     this.Session = [];
-    this.NoteIterator = new NoteIterator();
+    this.NoteIterator = new SA.NoteIterator();
 
     var self = this;
     var size = '40px';
     var left = '170px';
     var bottom = '10px';
-    if (MOBILE_DEVICE) {
+    if (SA.MOBILE_DEVICE) {
         // fake a tab
         this.Tab = {};
         this.Tab.Panel = $('<div>')
@@ -35,7 +42,7 @@ function NavigationWidget(parent,display) {
         }
         //SA.OnStartInteraction( function () { panel.hide();} );
     } else {
-        this.Tab = new Tab(parent,SA.ImagePathUrl+"nav.png", "navigationTab");
+        this.Tab = new SA.Tab(parent,SA.ImagePathUrl+"nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");
         this.Tab.Div.addClass("sa-view-navigation-div");
         this.Tab.Panel.addClass("sa-view-navigation-panel");
@@ -76,9 +83,9 @@ function NavigationWidget(parent,display) {
         .click(function(){self.NextSlide();});
 
     // TODO: Fix the main css file for mobile.  Hack this until fixed.
-    if (MOBILE_DEVICE) {
+    if (SA.MOBILE_DEVICE) {
         size = '80px';
-        if (MOBILE_DEVICE == "iPhone") {
+        if (SA.MOBILE_DEVICE == "iPhone") {
             size = '100px';
         }
         this.PreviousSlideButton
@@ -125,7 +132,7 @@ NavigationWidget.prototype.SetInteractionEnabled = function(flag) {
 }
 
 NavigationWidget.prototype.HandleKeyDown = function(event) {
-    keyCode = event.keyCode;
+    var keyCode = event.keyCode;
     // 34=page down, 78=n, 32=space
     if (keyCode == 34) {
         this.NextSlide();
@@ -170,7 +177,7 @@ NavigationWidget.prototype.SetNote = function(note) {
                     self.Update();
                 },
                 error: function() {
-                    saDebug("AJAX - error() : session" );
+                    SA.Debug("AJAX - error() : session" );
                 },
             });
         }
@@ -593,3 +600,9 @@ NoteIterator.prototype.GetNote = function() {
     return this.Note;
 }
 
+
+
+    SA.NoteIterator = NoteIterator;
+    SA.NavigationWidget = NavigationWidget;
+
+})();

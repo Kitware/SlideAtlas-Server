@@ -6,6 +6,13 @@
 
 
 
+// Not used.  Nothing public. All hidden.
+
+
+(function () {
+    "use strict";
+
+
 
 function GetDataValue(d, x, y, threshold, insideOut) {
     if (x < 0 || x >= d.width ||
@@ -190,7 +197,7 @@ function GenerateContourFromViewer(viewer, threshold) {
     }
 
     // Create a polylineWidget from the loop.
-    var plWidget = new PolylineWidget(viewer,false);
+    var plWidget = new SAM.PolylineWidget(viewer,false);
     plWidget.Shape.Points = slideLoop;
     plWidget.Shape.Closed = true;
     plWidget.LineWidth = 0;
@@ -200,10 +207,5 @@ function GenerateContourFromViewer(viewer, threshold) {
 
 
 
-
-
-
-
-
-    
+})();
     

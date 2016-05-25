@@ -19,6 +19,7 @@
     window.SAM = window.SAM || {};
     window.SAM.ImagePathUrl = "/webgl-viewer/static/";
 
+
     // Not used at the moment.
     // Make sure the color is an array of values 0->1
     SAM.ConvertColor = function(color) {
@@ -360,7 +361,7 @@
                 // So key events go the the right viewer.
                 this.focus();
                 // Firefox does not set which for mouse move events.
-                saFirefoxWhich(event);
+                SA.FirefoxWhich(event);
                 return self.HandleMouseMove(event);
             });
         // We need to detect the mouse up even if it happens outside the canvas,
@@ -418,19 +419,6 @@
         this.EventuallyDraw();
     }
 
-    // This is the general way for the master view to control this slave
-    // view.  The master receives events to  control the camera.  I might
-    // abstract the event processor to a separate "interactor" object.
-    // roll is in radians. (Clockwise or counter?)
-    AnnotationLayer.prototype.UpdateCamera = function (focalPoint, height, roll) {
-        this.AnnotationView.Camera.FocalPoint[0] = focalPoint[0];
-        this.AnnotationView.Camera.FocalPoint[1] = focalPoint[1];
-        this.AnnotationView.Camera.Height = height;
-        this.AnnotationView.Camera.Roll = roll;
-        this.AnnotationView.Camera.ComputeMatrix();
-        this.Draw();
-    }
-
     AnnotationLayer.prototype.GetCamera = function () {
         return this.AnnotationView.GetCamera();
     }
@@ -460,16 +448,21 @@
 
     // the view arg is necessary for rendering into a separate canvas for
     // saving large images.
-    AnnotationLayer.prototype.Draw = function (view) {
-        view = view || this.AnnotationView;
-        view.Clear();
+    AnnotationLayer.prototype.Draw = function (masterView) {
+        masterView = masterView || this.AnnotationView;
+        this.AnnotationView.Clear();
         if ( ! this.Visibility) { return;}
+
+        var cam = masterView.Camera;
+        this.AnnotationView.Camera.DeepCopy(cam);
+
+
         for(var i = 0; i < this.WidgetList.length; ++i) {
             // The last parameter is obsolete (visiblity mode)
-            this.WidgetList[i].Draw(view, 2);
+            this.WidgetList[i].Draw(this.AnnotationView, 2);
         }
         if (this.ScaleWidget) {
-            this.ScaleWidget.Draw(view);
+            this.ScaleWidget.Draw(this.AnnotationView);
         }
     }
 

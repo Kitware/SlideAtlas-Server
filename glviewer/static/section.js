@@ -1,6 +1,12 @@
 //==============================================================================
 // Section Object
 // Leftover from Connectome.
+
+
+(function () {
+    "use strict";
+
+
 var SLICE = 0;
 
 
@@ -88,7 +94,7 @@ Section.prototype.FindImage = function (imageCollectionName) {
 Section.prototype.Draw = function (view) {
     var finishedRendering = true;
     if (view.gl) {
-        var program = imageProgram;
+        var program = SA.imageProgram;
         view.gl.useProgram(program);
         // Draw tiles.
         view.gl.viewport(view.Viewport[0], view.Viewport[1],
@@ -177,6 +183,9 @@ Section.prototype.LoadTilesInView = function (view) {
 }
 
 
+    SA.Section = Section;
+
+})();
 
 
 

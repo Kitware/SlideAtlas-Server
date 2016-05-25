@@ -279,7 +279,7 @@
             // NOTE: This assume that the shapes are polylines.
             //this.Decimate(this.Shapes.GetShape(last), spacing);
             this.Shapes.GetShape(last).Decimate(spacing);
-            RecordState();
+            SA.RecordState();
         }
         return false;
     }
@@ -420,7 +420,7 @@
         this.Shapes.SetLineWidth(parseFloat(this.Dialog.LineWidthInput.val()));
         this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        RecordState();
+        SA.RecordState();
         this.Layer.EventuallyDraw();
 
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,

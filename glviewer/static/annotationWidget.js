@@ -11,13 +11,23 @@
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
 // or maybe the delete key.
 
+
+
+(function () {
+    "use strict";
+
+    var ANNOTATION_OFF = 0;
+    var ANNOTATION_NO_TEXT = 1;
+    var ANNOTATION_ON = 2;
+
+
 function AnnotationWidget (layer, viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
     this.Layer = layer;
     layer.AnnotationWidget = this;
 
-    this.Tab = new Tab(layer.GetCanvasDiv(),
+    this.Tab = new SA.Tab(layer.GetCanvasDiv(),
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
     this.Tab.Div
@@ -172,7 +182,7 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
         vis = ANNOTATION_OFF;
     }
     this.SetVisibility( vis );
-    RecordState();
+    SA.RecordState();
 }
 
 
@@ -328,10 +338,16 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
 
     widget.SetActive(true);
-    widget.DeactivateCallback = 
+    widget.DeactivateCallback =
         function () {
             button.removeClass('sa-active');
             widget.DeactivateCallback = undefined;
             button.Pressed = false;
         }
 }
+
+
+    SA.AnnotationWidget = AnnotationWidget;
+
+})();
+

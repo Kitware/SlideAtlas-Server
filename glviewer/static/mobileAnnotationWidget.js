@@ -1,6 +1,12 @@
 // Testing annotation widget with touch events.
 
 
+
+
+(function () {
+    "use strict";
+
+
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function MobileAnnotationWidget() {
@@ -8,7 +14,7 @@ function MobileAnnotationWidget() {
     //var left = '620px';
     var right = '0px';
     var bottom = '170px';
-    if (MOBILE_DEVICE == "iPhone") {
+    if (SA.MOBILE_DEVICE == "iPhone") {
         size = '100px';
         bottom = '80px';
         left = '80px';
@@ -19,7 +25,7 @@ function MobileAnnotationWidget() {
 
     var self = this;
     this.Div =
-        $('<div>').appendTo(VIEWERS[0].GetDiv())
+        $('<div>').appendTo(SA.VIEWERS[0].GetDiv())
         .css({'position':'absolute',
               'right':'0px',
               'bottom':'0px',
@@ -64,12 +70,12 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
     console.log("New circle");
 
     // Hard code only a single view for now.
-    this.Layer = VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].AnnotationLayer;
 
     if ( this.Layer.ActiveWidget != undefined && widget ) {
         this.Layer.ActiveWidget.Deactivate();
     }
-    var widget = new CircleWidget(this.Layer, false);
+    var widget = new SAM.CircleWidget(this.Layer, false);
     var cam = this.Layer.GetCamera();
     var x = cam.FocalPoint[0];
     var y = cam.FocalPoint[1];
@@ -83,14 +89,14 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-    this.Layer = VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].AnnotationLayer;
     var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         widget.Deactivate();
     }
 
     this.Layer.SetVisibility(true);
-    var widget = new TextWidget(this.Layer, "");
+    var widget = new SAM.TextWidget(this.Layer, "");
     var cam = this.Layer.GetCamera();
     var x = cam.FocalPoint[0];
     var y = cam.FocalPoint[1];
@@ -122,6 +128,10 @@ MobileAnnotationWidget.prototype.ToggleVisibility = function() {
     }
 }
 
+
+    SA.MobileAnnotationWidget = MobileAnnotationWidget;
+
+})();
 
 
 

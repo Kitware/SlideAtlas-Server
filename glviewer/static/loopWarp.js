@@ -1,6 +1,14 @@
 // Mesh: loop with one point in the middle.
 
 
+
+// I doubt this is used.  Lets see what happens if noting is visible.
+
+(function () {
+    "use strict";
+
+
+
 // Source is the directory that contains the tile files.
 function LoopWarp(loop, loopCenter)
 {
@@ -160,6 +168,7 @@ LoopWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
 }
 
 
+})();
 
 
 

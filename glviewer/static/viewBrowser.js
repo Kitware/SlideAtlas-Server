@@ -1,9 +1,16 @@
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
+
 //==============================================================================
 // Create and manage the menu to browse and select views.
 // I am changing this to be more about selecting an image.
 // I am also making this into a dialog object. (not based on the dialog class).
 
 // It may be better to undock and redock
+
+
+(function () {
+    "use strict";
 
 
 function ViewBrowser(parent) {
@@ -23,7 +30,7 @@ function ViewBrowser(parent) {
             'color'     : '#303030'})
         .mouseleave(function () {self.Div.fadeOut();});
 
-    this.TabbedDiv = new TabbedDiv(this.Div);
+    this.TabbedDiv = new SA.TabbedDiv(this.Div);
     this.BrowserDiv = this.TabbedDiv.NewTabDiv("Browser");
     this.BrowserDiv.css({'overflow-y':'auto'});
     this.SearchDiv = this.TabbedDiv.NewTabDiv("Search");
@@ -35,13 +42,13 @@ function ViewBrowser(parent) {
             self.SelectView(viewObj);
         });
 
-    this.SearchPanel = new SearchPanel(
+    this.SearchPanel = new SA.SearchPanel(
         this.SearchDiv,
         function (imageObj) {
             self.SelectImage(imageObj);
         });
 
-    this.ClipboardPanel = new ClipboardPanel(
+    this.ClipboardPanel = new SA.ClipboardPanel(
         this.ClipboardDiv,
         function (viewObj) {
             self.SelectView(viewObj);
@@ -57,22 +64,21 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
     }
 
     // This will get the camera and the annotations too.
-    var record = new ViewerRecord();
+    var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     record.Apply(this.Viewer);
-    delete record;
     //this.SelectImage(viewObj.ViewerRecords[0].Image);
 }
 
 ViewBrowser.prototype.SelectImage = function(imgobj) {
     this.Div.fadeOut();
-    var source = FindCache(imgobj);
+    var source = SA.FindCache(imgobj);
 
     // We have to get rid of annotation which does not apply to the new image.
     this.Viewer.Reset();
     this.Viewer.SetCache(source);
 
-    RecordState();
+    SA.RecordState();
 
     eventuallyRender();
 }
@@ -190,21 +196,21 @@ BrowserPanel.prototype.LoadGUI = function() {
     var self = this;
     var data = this.BrowserInfo;
     this.BrowserDiv.empty();
-    groupList = $('<ul>')
+    var groupList = $('<ul>')
         .addClass('sa-ul')
         .appendTo(this.BrowserDiv);
 
-    for (i=0; i < data.sessions.length; ++i) {
-        groupItem = $('<li>')
+    for (var i=0; i < data.sessions.length; ++i) {
+        var groupItem = $('<li>')
             .appendTo(groupList);
         var group = data.sessions[i];
         var groupFolder = new BrowserFolder(groupItem, group.rule);
         // Initialize immediately.
         var sessionList = groupFolder.List;
-        for (j=0; j < group.sessions.length; ++j) {
+        for (var j=0; j < group.sessions.length; ++j) {
             var session = group.sessions[j];
             var sessionData = {'db': session.sessdb, 'sessid': session.sessid};
-            sessionItem = $('<li>')
+            var sessionItem = $('<li>')
                 .appendTo(sessionList);
             new BrowserFolder(
                 sessionItem, session.label, sessionData,
@@ -229,7 +235,7 @@ BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
                   // I might want to sort the sessions to put the recent at the top.
                   self.LoadGUI(data);
               } else {
-                  saDebug("ajax failed.");
+                  SA.Debug("ajax failed.");
               }
           });
 }
@@ -243,7 +249,7 @@ BrowserPanel.prototype.RequestSessionViews = function(sessionFolder) {
               self.PopProgress();
               if (status == "success") {
                   self.AddSessionViews(sessionFolder, data);
-              } else { saDebug("ajax failed."); }
+              } else { SA.Debug("ajax failed."); }
           });
 }
 
@@ -290,7 +296,7 @@ BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
             self.LoadViewChildren(viewFolder, data);
         },
         error: function() { 
-            saDebug( "AJAX - error() : getview" ); 
+            SA.Debug( "AJAX - error() : getview" ); 
             self.PopProgress();
         },
     });
@@ -371,13 +377,14 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
         },
         error: function() {
             self.PopProgress();
-            saDebug( "AJAX - error() : getview (browser)" );
+            SA.Debug( "AJAX - error() : getview (browser)" );
         },
     });
 }
 
 
+    SA.ViewBrowser = ViewBrowser;
 
-
+})();
 
 

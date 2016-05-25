@@ -2,6 +2,9 @@
 // Is it time to switch to lowercase?  No.  I still like lower case for
 // local variables. Upper case for instance variables 
 
+(function () {
+    "use strict";
+
 
 function TabbedDiv(parent) {
     // Default css can be changed by the caller.
@@ -167,3 +170,6 @@ function TabPanel(tabbedDiv, title) {
 
 //==============================================================================
 
+    SA.TabbedDiv = TabbedDiv;
+    SA.TabPanel = TabPanel;
+})();

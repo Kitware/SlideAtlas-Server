@@ -1,7 +1,14 @@
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
+
 // Utilities to manage cookies
 
+(function () {
+    "use strict";
 
-function setCookie(c_name,value,exdays)
+
+
+SA.setCookie = function(c_name,value,exdays)
 {
     var exdate=new Date();
     exdate.setDate(exdate.getDate() + exdays);
@@ -9,7 +16,7 @@ function setCookie(c_name,value,exdays)
     document.cookie=c_name + "=" + c_value;
 }
 
-function getCookie(c_name)
+SA.getCookie = function(c_name)
 {
     var i,x,y,ARRcookies=document.cookie.split(";");
     for (i=0;i<ARRcookies.length;i++)
@@ -24,3 +31,5 @@ function getCookie(c_name)
       }
 }
 
+
+})();

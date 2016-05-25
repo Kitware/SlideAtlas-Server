@@ -4,6 +4,10 @@
 // the image to load.  The callback only gives a single reference.
 
 
+(function () {
+    "use strict";
+
+
 
 function LoadTileCallback(tile,cache) {
     this.Tile = tile;
@@ -41,7 +45,7 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
 
     var curtime = new Date().getTime();
     TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
-    LoadQueueLoaded(this.Tile);
+    SA.LoadQueueLoaded(this.Tile);
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
@@ -49,7 +53,7 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
 LoadTileCallback.prototype.HandleErrorImage = function () {
     console.log("LoadTile error " + this.Tile.Name);
 
-    LoadQueueError(this.Tile);
+    SA.LoadQueueError(this.Tile);
 }
 
 function TileStats() {
@@ -81,7 +85,7 @@ function GetErrorImageFunction (callback) {
     return function () {callback.HandleErrorImage();}
 }
 
-TILESTATS = new TileStats();
+var TILESTATS = new TileStats();
 
 
 // Three stages to loading a tile: (texture map is created when the tile is rendered.
@@ -129,9 +133,9 @@ function Tile(x, y, z, level, name, cache) {
 
         //if (GL) {
             // These tiles share the same buffers.  Do not crop when there is no warp.
-            this.VertexPositionBuffer = window.tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = window.tileVertexTextureCoordBuffer;
-            this.CellBuffer = window.tileCellBuffer;
+            this.VertexPositionBuffer = SA.tileVertexPositionBuffer;
+            this.VertexTextureCoordBuffer = SA.tileVertexTextureCoordBuffer;
+            this.CellBuffer = SA.tileCellBuffer;
         //}
     } else {
         // Warp model.
@@ -191,7 +195,7 @@ Tile.prototype.LoadQueueAdd = function() {
   }
 
   // The tile's parent is loaded.  Add the tile to the load queue.
-  LoadQueueAddTile(this);
+  SA.LoadQueueAddTile(this);
 }
 
 
@@ -315,72 +319,71 @@ Tile.prototype.LoadWebSocket = function (cache) {
     ws.FetchTile(name, image, cache, this.Image);
 }
 
-// TODO: Put program as iVar of view.
-Tile.prototype.Draw = function (program, view) {
-  // Load state 0 is: Not loaded and not scheduled to be loaded yet.
-  // Load state 1 is: not loaded but in the load queue.
-  if ( this.LoadState != 3) {
-    // This should never happen.
-    return;
-  }
+    // TODO: Put program as iVar of view.
+    Tile.prototype.Draw = function (program, view) {
+        // Load state 0 is: Not loaded and not scheduled to be loaded yet.
+        // Load state 1 is: not loaded but in the load queue.
+        if ( this.LoadState != 3) {
+            // This should never happen.
+            return;
+        }
 
-  if (view.gl) {
-    if (this.Texture == null) {
-      this.CreateTexture(view.gl);
+        if (view.gl) {
+            if (this.Texture == null) {
+                this.CreateTexture(view.gl);
+            }
+            // These are the same for every tile.
+            // Vertex points (shifted by tiles matrix)
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            // Needed for outline ??? For some reason, DrawOutline did not work
+            // without this call first.
+            view.gl.vertexAttribPointer(SA.imageProgram.vertexPositionAttribute,
+                                        this.VertexPositionBuffer.itemSize,
+                                        view.gl.FLOAT, false, 0, 0);     // Texture coordinates
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+            view.gl.vertexAttribPointer(SA.imageProgram.textureCoordAttribute,
+                                        this.VertexTextureCoordBuffer.itemSize,
+                                        view.gl.FLOAT, false, 0, 0);
+            // Cell Connectivity
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+            // Texture
+            view.gl.activeTexture(view.gl.TEXTURE0);
+            view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
+
+            view.gl.uniform1i(program.samplerUniform, 0);
+            // Matrix that tranforms the vertex p
+            view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+            view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
+        } else {
+            // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
+            // WebGL handles this by flipping the texture coordinates.  Here we have to
+            // translate the tiles to the correct location.
+            view.Context2d.save(); // Save the state of the transform so we can restore for the next tile.
+
+            // Map tile to world.
+            // Matrix is world to 0-1.
+            view.Context2d.transform(this.Matrix[0], this.Matrix[1],
+                                     this.Matrix[4], this.Matrix[5],
+                                     this.Matrix[12], this.Matrix[13]);
+
+            // Flip the tile upside down, but leave it in the same place
+            view.Context2d.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
+
+            // map pixels to Tile
+            var tileSize = this.Cache.Image.TileSize;
+            // This should not be necessary, quick hack around a bug in __init__.py
+            if ( tileSize == undefined) {
+                tileSize = 256;
+            }
+            view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
+            view.Context2d.drawImage(this.Image,0,0);
+
+            //  Transform to map (0->1, 0->1)
+            view.Context2d.restore();
+        }
     }
-    // These are the same for every tile.
-    // Vertex points (shifted by tiles matrix)
-    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
-    // Needed for outline ??? For some reason, DrawOutline did not work
-    // without this call first.
-    view.gl.vertexAttribPointer(imageProgram.vertexPositionAttribute,
-                          this.VertexPositionBuffer.itemSize,
-                          view.gl.FLOAT, false, 0, 0);     // Texture coordinates
-    view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    view.gl.vertexAttribPointer(imageProgram.textureCoordAttribute,
-                          this.VertexTextureCoordBuffer.itemSize,
-                          view.gl.FLOAT, false, 0, 0);
-    // Cell Connectivity
-    view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-
-      // Texture
-    view.gl.activeTexture(view.gl.TEXTURE0);
-    view.gl.bindTexture(view.gl.TEXTURE_2D, this.Texture);
-
-    view.gl.uniform1i(program.samplerUniform, 0);
-    // Matrix that tranforms the vertex p
-    view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
-
-    view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
-  } else {
-    // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
-    // WebGL handles this by flipping the texture coordinates.  Here we have to
-    // translate the tiles to the correct location.
-    view.Context2d.save(); // Save the state of the transform so we can restore for the next tile.
-
-    // Map tile to world.
-    // Matrix is world to 0-1.
-    view.Context2d.transform(this.Matrix[0], this.Matrix[1],
-                      this.Matrix[4], this.Matrix[5],
-                      this.Matrix[12], this.Matrix[13]);
-
-
-    // Flip the tile upside down, but leave it in the same place
-    view.Context2d.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
-
-    // map pixels to Tile
-    var tileSize = this.Cache.Image.TileSize;
-    // This should not be necessary, quick hack around a bug in __init__.py
-    if ( tileSize == undefined) {
-      tileSize = 256;
-    }
-    view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-    view.Context2d.drawImage(this.Image,0,0);
-
-    //  Transform to map (0->1, 0->1)
-    view.Context2d.restore();
-  }
-}
 
 Tile.prototype.CreateTexture = function (gl) {
     if (! gl) { 
@@ -414,3 +417,7 @@ Tile.prototype.DeleteTexture = function (gl) {
         this.Texture = null;
     }
 }
+
+    SA.Tile = Tile;
+
+})();

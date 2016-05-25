@@ -32,7 +32,7 @@
 
         // A global list of notes so we can find a note by its id.
         // TODO: Legacy.  Get rid of TempId.
-        this.Id = this.TempId = new ObjectId().toString();
+        this.Id = this.TempId = new SA.ObjectId().toString();
         SA.Notes.push(this);
 
         var self = this;
@@ -41,7 +41,7 @@
         // 2: received
         this.LoadState = 0;
 
-        this.User = GetUser(); // Reset by flask.
+        this.User = SA.GetUser(); // Reset by flask.
         var d = new Date();
         this.Date = d.getTime(); // Also reset later.
         this.Type = "Note";
@@ -160,7 +160,7 @@
         this.Image = Note.Image; // not really deep.
         this.Children = [];
         for (var i = 0; i < note.Children.length; ++i) {
-            var child = new Note();
+            var child = new SA.Note();
             child.DeepCopy(note.Children[i]);
             this.Children.push(child);
         }
@@ -176,7 +176,7 @@
         //this.UserText = note.UserText;
         this.ViewerRecords = [];
         for (var i = 0; i < note.ViewerRecords.length; ++i) {
-            var record = new ViewerRecord();
+            var record = new SA.ViewerRecord();
             record.DeepCopy(note.ViewerRecords[i]);
             this.ViewerRecords.push(record);
         }
@@ -360,7 +360,7 @@
         }
         this.ViewerRecords = [];
         for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
-            var viewerRecord = new ViewerRecord();
+            var viewerRecord = new SA.ViewerRecord();
             viewerRecord.CopyViewer(display.GetViewer(i));
             this.ViewerRecords.push(viewerRecord);
         }
@@ -443,7 +443,7 @@
     }
 
     Note.prototype.NewIterator = function() {
-        return new NoteIterator(this);
+        return new SA.NoteIterator(this);
     }
 
     Note.prototype.Contains = function(decendent) {
@@ -463,7 +463,7 @@
     // The new note is not automatically selected.
     Note.prototype.NewChild = function(childIdx, title) {
         // Create a new note.
-        var childNote = new Note();
+        var childNote = new SA.Note();
         childNote.Title = title;
         var d = new Date();
         childNote.Date = d.getTime(); // Temporary. Set for real by server.
@@ -498,7 +498,7 @@
             },
             error: function() {
                 SA.PopProgress();
-                saDebug("AJAX - error() : saveviewnotes" );
+                SA.Debug("AJAX - error() : saveviewnotes" );
             },
         });
     }
@@ -708,7 +708,7 @@
             if (this.ViewerRecords[i]) {
                 obj = this.ViewerRecords[i];
                 // It would be nice to have a constructor that took an object.
-                this.ViewerRecords[i] = new ViewerRecord();
+                this.ViewerRecords[i] = new SA.ViewerRecord();
                 this.ViewerRecords[i].Load(obj);
             }
         }
@@ -734,7 +734,7 @@
             },
             error: function() {
                 SA.PopProgress();
-                saDebug( "AJAX - error() : getview" )
+                SA.Debug( "AJAX - error() : getview" )
             },
         });
     }
@@ -829,7 +829,7 @@
                 var cam1 = this.ViewerRecords[i].Camera;
                 var dRoll = cam1.Roll - cam0.Roll;
                 if (dRoll < 0.0) { dRoll += 2*Math.PI; }
-                var trans = new PairTransformation();
+                var trans = new SA.PairTransformation();
                 trans.AddCorrelation(cam0.FocalPoint, cam1.FocalPoint, dRoll,
                                      0.5*(cam0.Height+cam1.Height));
                 this.ViewerRecords[i].Transform = trans;

@@ -1,3 +1,6 @@
+// It seems I cannot control the order these files are loaded.
+window.SA = window.SA || {};
+
 // TODO: 
 //  ShowViewBrowser();});
 // get rid of these.
@@ -9,9 +12,14 @@
 //ViewEditMenu.prototype.SessionAdvanceAjax = function() {
 
 
+(function () {
+    "use strict";
+
+
+
 // All edit menus share a ViewBrowser.  Next to consider.  Share the
 // presentation browser panel.
-var VIEW_BROWSER;
+SA.VIEW_BROWSER;
 
 
 // Other viewer is a hack for copy camera.
@@ -21,7 +29,7 @@ function ViewEditMenu (viewer, otherViewer) {
     this.Viewer = viewer;
     // Other viewer is a hack for copy camera.
     this.OtherViewer = otherViewer;
-    this.Tab = new Tab(viewer.GetDiv(),SA.ImagePathUrl+"Menu.jpg", "editTab");
+    this.Tab = new SA.Tab(viewer.GetDiv(),SA.ImagePathUrl+"Menu.jpg", "editTab");
     this.Tab.Div
         .css({'position':'absolute',
               'right':'47px',
@@ -31,7 +39,7 @@ function ViewEditMenu (viewer, otherViewer) {
 
     this.Tab.Panel.addClass("sa-view-edit-panel");
 
-    if (VIEW_BROWSER) {
+    if (SA.VIEW_BROWSER) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Load Slide")
@@ -39,7 +47,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .click(
                 function(){
                     self.Tab.PanelOff();
-                    VIEW_BROWSER.Open(self.Viewer);
+                    SA.VIEW_BROWSER.Open(self.Viewer);
                 });
     }
     if (SA.Edit) {
@@ -93,7 +101,7 @@ function ViewEditMenu (viewer, otherViewer) {
                 self.Tab.PanelOff();
                 // When the circle button is pressed, create the widget.
                 if ( ! self.Viewer) { return; }
-                new CutoutWidget(parent, self.Viewer);
+                new SA.CutoutWidget(parent, self.Viewer);
             });
         // color threshold is also broken
         for(var plugin in window.PLUGINS) {
@@ -202,7 +210,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
             success: function(data,status) {
                 self.Viewer.EventuallyRender();
             },
-            error: function() { saDebug( "AJAX - error() : saveviewnotes (bounds)" ); },
+            error: function() { SA.Debug( "AJAX - error() : saveviewnotes (bounds)" ); },
         });
     }
 }
@@ -233,7 +241,7 @@ ViewEditMenu.prototype.SetImageBounds = function() {
                "bds" : JSON.stringify(bounds)},
         success: function(data,status) {},
         error: function() {
-            saDebug( "AJAX - error() : saveusernote 1" );
+            SA.Debug( "AJAX - error() : saveusernote 1" );
         },
     });
 }
@@ -271,7 +279,7 @@ ViewEditMenu.prototype.FlipHorizontal = function() {
     var cam = this.Viewer.GetCamera();
     this.Viewer.ToggleMirror();
     this.Viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
-    RecordState();
+    SA.RecordState();
 }
 
 
@@ -282,11 +290,10 @@ var DownloadImage = (function () {
 
     // Dialogs require an object when accept is pressed.
     var DOWNLOAD_WIDGET = undefined;
-    var VIEWER;
 
     function DownloadImage(viewer) {
         // Use a global so apply callback can get the viewer.
-        VIEWER = viewer;
+        SA.VIEWER = viewer;
 
         if ( ! DOWNLOAD_WIDGET) {
             InitializeDialogs();
@@ -330,7 +337,7 @@ var DownloadImage = (function () {
         }
         var StartDownloadCallback = function () {
             // Trigger the process to start rendering the image.
-            DOWNLOAD_WIDGET.Viewer = VIEWER;
+            DOWNLOAD_WIDGET.Viewer = SA.VIEWER;
             var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
             var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
             var stack = DOWNLOAD_WIDGET.DimensionDialog.StackCheckbox.prop('checked');
@@ -343,7 +350,7 @@ var DownloadImage = (function () {
             } else {
                 DOWNLOAD_WIDGET.CancelDialog.StackMessage.hide();
             }
-            VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
+            SA.VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
                                   function () {
                                       // Rendering has finished.
                                       // The user can no longer cancel.
@@ -663,7 +670,7 @@ var DownloadImage = (function () {
 
 // Create a selection list of sessions.
 // This does not belong here.
-function InitSlideSelector(parent) {
+SA.InitSlideSelector = function(parent) {
     $('<div>')
         .appendTo(parent)
         .css({
@@ -886,8 +893,11 @@ ImageInformationDialog.prototype.Close = function()
         success: function(data,status) {
             if (self.Viewer) {self.Viewer.EventuallyRender();}
         },
-        error: function() { saDebug( "AJAX - error() : saveimagedata" ); },
+        error: function() { SA.Debug( "AJAX - error() : saveimagedata" ); },
     });
 
 }
 
+    SA.ViewEditMenu = ViewEditMenu;
+
+})();

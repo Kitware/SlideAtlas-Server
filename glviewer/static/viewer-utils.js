@@ -75,6 +75,13 @@
 //         interactive: true,
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
+
+
+
+
+(function () {
+    "use strict";
+
  
 jQuery.prototype.saElement = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
@@ -699,7 +706,7 @@ saElement.prototype.RaiseToTop = function() {
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
     if (! this.Interactive) { return true;}
-    saFirefoxWhich(event);
+    SA.FirefoxWhich(event);
     if (event.which == 0) {
         // Is it dangerous to modify the event object?
         while (event.srcElement && event.srcElement != this.Div[0]) {
@@ -751,7 +758,7 @@ saElement.prototype.HandleMouseMoveCursor = function(event) {
 
 
 saElement.prototype.HandleMouseMove = function(event) {
-    saFirefoxWhich(event);
+    SA.FirefoxWhich(event);
     if (event.which == 1) {
         // Wait for the click duration to start dragging.
         if (Date.now() - this.ClickStart < 200) {
@@ -1168,7 +1175,7 @@ saRectangle.prototype.DialogInitialize = function () {
         this.GradientColor.spectrum('set',color.substring(idx0,idx1));
         return;
     }
-    saDebug("parse error: " + color);
+    SA.Debug("parse error: " + color);
 }
 
 saRectangle.prototype.DialogApply = function () {
@@ -2852,9 +2859,9 @@ function saViewerSetup(self, args) {
                 // TODO: dual has to be set on the first call.  Make this
                 // order independant. Also get rid of args here. We should
                 // use process arguments to setup options.
-                self[i].saViewer = new DualViewWidget($(self[i]));
+                self[i].saViewer = new SA.DualViewWidget($(self[i]));
             } else {
-                self[i].saViewer = new Viewer($(self[i]));
+                self[i].saViewer = new SA.Viewer($(self[i]));
             }
 
             // When the div resizes, we need to synch the camera and
@@ -2918,9 +2925,9 @@ function saResizeCallback() {
     var width = window.innerWidth;
     var top = 0;
     var left = 0;
-    items = $('.sa-full-height');
+    var items = $('.sa-full-height');
     for (var i = 0; i < items.length; ++i) {
-        item = items[i];
+        var item = items[i];
         $(item).css({'top': '0px',
                      'height': height+'px'});
     }
@@ -3878,7 +3885,7 @@ jQuery.prototype.saAnnotationWidget = function(args) {
             return this;
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")
-            item.saAnnotationWidget = new AnnotationWidget(item.saViewer);
+            item.saAnnotationWidget = new SA.AnnotationWidget(item.saViewer);
             item.saAnnotationWidget.SetVisibility(2);
         }
         // This hides and shows the button/tools but does not change the
@@ -3971,19 +3978,7 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 
+    SA.ResizePanel = ResizePanel;
 
 
-
-
-//==============================================================================
-
-
-
-
-//==============================================================================
-
-
-
-
-
-
+})();

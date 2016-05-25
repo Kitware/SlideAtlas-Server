@@ -205,7 +205,7 @@
         if (this.IsEmpty()) {
             this.RemoveFromViewer();
             this.Layer.EventuallyDraw();
-            RecordState();
+            SA.RecordState();
         }
     }
 
@@ -545,7 +545,7 @@
                 // Look for contours crossing the xMax and yMax edges.
                 var xContour = SeedIsoContour(data, x,y, x-1,y, threshold);
                 if (xContour) {
-                    var c = new Contour();
+                    var c = new SA.Contour();
                     c.Camera = data.Camera;
                     c.Threshold = threshold;
                     c.SetPoints(xContour);
@@ -556,7 +556,7 @@
 
                 var yContour = SeedIsoContour(data, x,y, x,y-1, threshold);
                 if (yContour) {
-                    c = new Contour();
+                    c = new SA.Contour();
                     c.Camera = data.Camera;
                     c.Threshold = threshold;
                     c.SetPoints(yContour);

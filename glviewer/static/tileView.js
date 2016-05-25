@@ -10,17 +10,19 @@
         SAM.View.call(this, parent, useWebGL);
 
         // connectome : default section so we cen set cache
-        this.Section = new Section;
+        this.Section = new SA.Section;
 
         this.Tiles = []; // Not really used
 
         if (useWebGL) {
             this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
-            GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
+            SA.GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
             // TODO: Fix this.
         }
         if (this.gl) {
-            initWebGL(this.gl);
+            // Probably need a canvas object that keep track of
+            // initialization (shared between layers).
+            SA.initWebGL(this.gl);
         } else {
             this.Context2d = this.Canvas[0].getContext("2d");
         }

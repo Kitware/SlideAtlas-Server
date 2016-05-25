@@ -1,5 +1,11 @@
 // Generic mesh. Arbitrary control points and arbitrary triangles.
 
+
+
+(function () {
+    "use strict";
+
+
 // Source is the directory that contains the tile files.
 // Points is an array of correlations (image and world coordinates).
 // Triangles is an array of triples (indexes into the point array).
@@ -271,3 +277,4 @@ meshWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
 
 
 
+})();
