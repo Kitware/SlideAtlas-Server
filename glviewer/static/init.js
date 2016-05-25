@@ -510,10 +510,6 @@ window.SA = window.SA || {};
         initShaderPrograms(gl);
         initOutlineBuffers(gl);
         initImageTileBuffers(gl);
-        // Not needed.  DOne before rendering.
-        gl.clearColor(1.0, 1.0, 1.0, 1.0);
-        gl.disable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
     }
 
 
@@ -550,6 +546,7 @@ window.SA = window.SA || {};
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
 </script>
+
 <script id="shader-text-fs" type="x-shader/x-fragment">
   precision mediump float;
 
@@ -580,7 +577,7 @@ window.SA = window.SA || {};
 
     function initShaderPrograms(gl) {
 
-        // An experiment to make rgb have an alpha channel
+        // Test threshold value for alpha.
         var heatMapTestFragmentShaderString = 
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
@@ -593,7 +590,8 @@ window.SA = window.SA || {};
             "   }" +
             "   gl_FragColor = textureColor;" +
             " }";
-        var heatMapFragmentShaderString = 
+        // Test red->alpha, greed->hue
+        var heatMapHueFragmentShaderString = 
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "varying vec2 vTextureCoord;" +
@@ -628,6 +626,17 @@ window.SA = window.SA || {};
             "  }" +
             "  gl_FragColor = textureColor;" +
             "}";
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString = 
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  textureColor = vec4(uColor, textureColor[0]);" +
+            "  gl_FragColor = textureColor;" +
+            "}";
         var fragmentShaderString = 
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
@@ -655,6 +664,7 @@ window.SA = window.SA || {};
             = gl.getAttribLocation(SA.imageProgram,"aTextureCoord");
         gl.enableVertexAttribArray(SA.imageProgram.textureCoordAttribute);
         SA.imageProgram.samplerUniform = gl.getUniformLocation(SA.imageProgram, "uSampler");
+        SA.imageProgram.colorUniform = gl.getUniformLocation(SA.imageProgram, "uColor");
 
 
         //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
@@ -1082,15 +1092,27 @@ window.SA = window.SA || {};
             
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
-            var heatMap = new SA.HeatMap(viewer1.Div);
-            heatMap.SetImageData(
+            SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                  levels:     12,
                  dimensions: [419168, 290400, 1],
                  bounds: [0,419167, 0, 290399, 0,0],
-                 spacing: [0.2,0.2,1.0],
+                 spacing: [0.1,0.1,1.0],
                  origin : [100, 10000]});
-            viewer1.AddLayer(heatMap);
+            viewer1.AddLayer(SA.heatMap1);
+            /*
+            SA.heatMap2 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap2.Color = [0.0, 0.0, 0.7];
+            SA.heatMap2.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.1,0.1,1.0],
+                 origin : [2000, 10000]});
+            viewer1.AddLayer(SA.heatMap2);
+            */
 
             var viewer2 = SA.DualDisplay.Viewers[1];
             var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);

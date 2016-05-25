@@ -17,6 +17,7 @@
             .addClass('sa-resize');
 
         this.View = new SA.TileView(this.HeatMapDiv,true);
+        this.Color = [0.0, 0.4, 0.0];
 
         var self = this;
         this.HeatMapDiv.saOnResize(
@@ -67,6 +68,23 @@
 
 
         outCam.ComputeMatrix();
+
+        if (this.View.gl) {
+            var gl = this.View.gl;
+            var program = SA.imageProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            //gl.blendEquation( gl.FUNC_ADD );
+            //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            //gl.blendFunc(gl.ONE, gl.ZERO);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
+
+            gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+        }
+
+
 
         this.View.DrawTiles();
     }
