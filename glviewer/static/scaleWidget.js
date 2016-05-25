@@ -207,7 +207,7 @@
     ScaleWidget.prototype.HandleMouseUp = function(event) {
         /*
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         */
         return true;
     };

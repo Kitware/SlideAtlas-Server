@@ -27,6 +27,7 @@ function AnnotationWidget (layer, viewer) {
     this.Layer = layer;
     layer.AnnotationWidget = this;
 
+    SAM.detectMobile();
     this.Tab = new SA.Tab(layer.GetCanvasDiv(),
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
@@ -182,7 +183,7 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
         vis = ANNOTATION_OFF;
     }
     this.SetVisibility( vis );
-    SA.RecordState();
+    if (window.SA) {SA.RecordState();}
 }
 
 

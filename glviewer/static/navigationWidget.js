@@ -23,7 +23,7 @@ function NavigationWidget(parent,display) {
     var size = '40px';
     var left = '170px';
     var bottom = '10px';
-    if (SA.MOBILE_DEVICE) {
+    if (SAM.detectMobile()) {
         // fake a tab
         this.Tab = {};
         this.Tab.Panel = $('<div>')
@@ -83,9 +83,9 @@ function NavigationWidget(parent,display) {
         .click(function(){self.NextSlide();});
 
     // TODO: Fix the main css file for mobile.  Hack this until fixed.
-    if (SA.MOBILE_DEVICE) {
+    if (SAM.MOBILE_DEVICE) {
         size = '80px';
-        if (SA.MOBILE_DEVICE == "iPhone") {
+        if (SAM.MOBILE_DEVICE == "iPhone") {
             size = '100px';
         }
         this.PreviousSlideButton

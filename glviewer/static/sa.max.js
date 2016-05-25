@@ -8028,7 +8028,6 @@ window.SA = window.SA || {};
     SA.tileVertexTextureCoordBuffer;
     SA.tileCellBuffer;
 
-    SA.MOBILE_DEVICE = false;
     // Hack to get rid of white lines.
     var I_PAD_FLAG = false;
 
@@ -8443,39 +8442,6 @@ window.SA = window.SA || {};
         return range;
     }
 
-
-
-    function detectMobile() {
-        SA.MOBILE_DEVICE = false;
-
-        if ( navigator.userAgent.match(/Android/i)) {
-            SA.MOBILE_DEVICE = "Andriod";
-        }
-        if ( navigator.userAgent.match(/webOS/i)) {
-            SA.MOBILE_DEVICE = "webOS";
-        }
-        if ( navigator.userAgent.match(/iPhone/i)) {
-            SA.MOBILE_DEVICE = "iPhone";
-        }
-        if ( navigator.userAgent.match(/iPad/i)) {
-            SA.MOBILE_DEVICE = "iPad";
-            I_PAD_FLAG = true;
-        }
-        if ( navigator.userAgent.match(/iPod/i)) {
-            SA.MOBILE_DEVICE = "iPod";
-        }
-        if ( navigator.userAgent.match(/BlackBerry/i)) {
-            SA.MOBILE_DEVICE = "BlackBerry";
-        }
-        if ( navigator.userAgent.match(/Windows Phone/i)) {
-            SA.MOBILE_DEVICE = "Windows Phone";
-        }
-        if (SA.MOBILE_DEVICE) {
-            SA.MaximumNumberOfTiles = 5000;
-        }
-
-        return SA.MOBILE_DEVICE;
-    }
 
 
     SA.GetUser = function() {
@@ -8978,14 +8944,14 @@ window.SA = window.SA || {};
         // memory properly.
         // NOTE: I am getting similar crashe with the canvas too.
         // Stack is running out of some resource.
-        if ( ! SA.MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
+        if ( ! SAM.detectMobile() && false) { // && doesBrowserSupportWebGL(testCanvas)) {
             initGL(); // Sets CANVAS and GL global variables
         } else {
             initGC();
         }
 
         // TODO: Get rid of this global variable.
-        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+        if (SAM.detectMobile() && MOBILE_ANNOTATION_WIDGET) {
             MOBILE_ANNOTATION_WIDGET = new SA.MobileAnnotationWidget();
         }
 
@@ -9023,7 +8989,7 @@ window.SA = window.SA || {};
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
-        if (SA.User != "" && ! SA.MOBILE_DEVICE) {
+        if (SA.User != "" && ! SAM.detectMobile()) {
             if ( SA.Edit) {
                 // Put a save button here when editing.
                 SA.SaveButton = $('<img>')
@@ -9048,11 +9014,11 @@ window.SA = window.SA || {};
             }
         }
 
-        if (SA.MOBILE_DEVICE && SA.DualDisplay && 
+        if (SAM.MOBILE_DEVICE && SA.DualDisplay && 
             SA.DualDisplay.NavigationWidget) {
             SA.DualDisplay.NavigationWidget.SetVisibility(false);
         }
-        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+        if (SAM.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
             MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
         }
 
@@ -9067,7 +9033,7 @@ window.SA = window.SA || {};
         // Keep the browser from showing the left click menu.
         document.oncontextmenu = cancelContextMenu;
 
-        if ( ! SA.MOBILE_DEVICE) {
+        if ( ! SAM.MOBILE_DEVICE) {
             // Hack for all viewer edit menus to share browser.
             SA.VIEW_BROWSER = new SA.ViewBrowser($('body'));
 
@@ -10537,7 +10503,7 @@ window.SA = window.SA || {};
         this.AnimationDuration = 0;
         this.AnimationTarget = 0;
 
-        if ( ! SA.MOBILE_DEVICE || SA.MOBILE_DEVICE == 'iPad') {
+        if ( ! SAM.MOBILE_DEVICE || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
             $('<img>')
                 .appendTo(this.ViewerDivs[0])
@@ -13285,7 +13251,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     // Bug: canvas.getDataUrl() not supported in Safari on iPad.
     // Fix: If on mobile, use the thumbnail for the entire slide.
     var src;
-    if(SA.MOBILE_DEVICE){
+    if(SAM.detectMobile()){
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
@@ -13575,6 +13541,7 @@ function AnnotationWidget (layer, viewer) {
     this.Layer = layer;
     layer.AnnotationWidget = this;
 
+    SAM.detectMobile();
     this.Tab = new SA.Tab(layer.GetCanvasDiv(),
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
@@ -13730,7 +13697,7 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
         vis = ANNOTATION_OFF;
     }
     this.SetVisibility( vis );
-    SA.RecordState();
+    if (window.SA) {SA.RecordState();}
 }
 
 
@@ -14409,7 +14376,7 @@ function NavigationWidget(parent,display) {
     var size = '40px';
     var left = '170px';
     var bottom = '10px';
-    if (SA.MOBILE_DEVICE) {
+    if (SAM.detectMobile()) {
         // fake a tab
         this.Tab = {};
         this.Tab.Panel = $('<div>')
@@ -14469,9 +14436,9 @@ function NavigationWidget(parent,display) {
         .click(function(){self.NextSlide();});
 
     // TODO: Fix the main css file for mobile.  Hack this until fixed.
-    if (SA.MOBILE_DEVICE) {
+    if (SAM.MOBILE_DEVICE) {
         size = '80px';
-        if (SA.MOBILE_DEVICE == "iPhone") {
+        if (SAM.MOBILE_DEVICE == "iPhone") {
             size = '100px';
         }
         this.PreviousSlideButton
@@ -15060,7 +15027,7 @@ NoteIterator.prototype.GetNote = function() {
             .click(function(){self.SaveFavorite();});
         this.SaveFavoriteButton.prop('title', "Save Favorite");
 
-        if(SA.MOBILE_DEVICE){
+        if(SAM.MOBILE_DEVICE){
             this.SaveFavoriteButton
                 .addClass("sa-view-favorites-button");
         }
@@ -15200,7 +15167,7 @@ function MobileAnnotationWidget() {
     //var left = '620px';
     var right = '0px';
     var bottom = '170px';
-    if (SA.MOBILE_DEVICE == "iPhone") {
+    if (SAM.detectMobile() == "iPhone") {
         size = '100px';
         bottom = '80px';
         left = '80px';
@@ -19393,7 +19360,6 @@ function Presentation(rootNote, edit) {
     }
 
     // Eliminate the GUI in the viewers.
-    //SA.MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
     // Hack.  It is only used for events.
@@ -28450,7 +28416,7 @@ Section.prototype.LoadTilesInView = function (view) {
 
         this.Layers = [];
 
-        if (! SA.MOBILE_DEVICE || SA.MOBILE_DEVICE == "iPad") {
+        if (! SAM.detectMobile() || SAM.MOBILE_DEVICE == "iPad") {
             this.OverViewVisibility = true;
             this.OverViewScale = 0.02; // Experimenting with scroll
 	          this.OverViewport = [80, 20, 180, 180];

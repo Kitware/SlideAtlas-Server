@@ -17,7 +17,6 @@ window.SA = window.SA || {};
     SA.tileVertexTextureCoordBuffer;
     SA.tileCellBuffer;
 
-    SA.MOBILE_DEVICE = false;
     // Hack to get rid of white lines.
     var I_PAD_FLAG = false;
 
@@ -432,39 +431,6 @@ window.SA = window.SA || {};
         return range;
     }
 
-
-
-    function detectMobile() {
-        SA.MOBILE_DEVICE = false;
-
-        if ( navigator.userAgent.match(/Android/i)) {
-            SA.MOBILE_DEVICE = "Andriod";
-        }
-        if ( navigator.userAgent.match(/webOS/i)) {
-            SA.MOBILE_DEVICE = "webOS";
-        }
-        if ( navigator.userAgent.match(/iPhone/i)) {
-            SA.MOBILE_DEVICE = "iPhone";
-        }
-        if ( navigator.userAgent.match(/iPad/i)) {
-            SA.MOBILE_DEVICE = "iPad";
-            I_PAD_FLAG = true;
-        }
-        if ( navigator.userAgent.match(/iPod/i)) {
-            SA.MOBILE_DEVICE = "iPod";
-        }
-        if ( navigator.userAgent.match(/BlackBerry/i)) {
-            SA.MOBILE_DEVICE = "BlackBerry";
-        }
-        if ( navigator.userAgent.match(/Windows Phone/i)) {
-            SA.MOBILE_DEVICE = "Windows Phone";
-        }
-        if (SA.MOBILE_DEVICE) {
-            SA.MaximumNumberOfTiles = 5000;
-        }
-
-        return SA.MOBILE_DEVICE;
-    }
 
 
     SA.GetUser = function() {
@@ -967,14 +933,14 @@ window.SA = window.SA || {};
         // memory properly.
         // NOTE: I am getting similar crashe with the canvas too.
         // Stack is running out of some resource.
-        if ( ! SA.MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
+        if ( ! SAM.detectMobile() && false) { // && doesBrowserSupportWebGL(testCanvas)) {
             initGL(); // Sets CANVAS and GL global variables
         } else {
             initGC();
         }
 
         // TODO: Get rid of this global variable.
-        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+        if (SAM.detectMobile() && MOBILE_ANNOTATION_WIDGET) {
             MOBILE_ANNOTATION_WIDGET = new SA.MobileAnnotationWidget();
         }
 
@@ -1012,7 +978,7 @@ window.SA = window.SA || {};
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
-        if (SA.User != "" && ! SA.MOBILE_DEVICE) {
+        if (SA.User != "" && ! SAM.detectMobile()) {
             if ( SA.Edit) {
                 // Put a save button here when editing.
                 SA.SaveButton = $('<img>')
@@ -1037,11 +1003,11 @@ window.SA = window.SA || {};
             }
         }
 
-        if (SA.MOBILE_DEVICE && SA.DualDisplay && 
+        if (SAM.MOBILE_DEVICE && SA.DualDisplay && 
             SA.DualDisplay.NavigationWidget) {
             SA.DualDisplay.NavigationWidget.SetVisibility(false);
         }
-        if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
+        if (SAM.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
             MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
         }
 
@@ -1056,7 +1022,7 @@ window.SA = window.SA || {};
         // Keep the browser from showing the left click menu.
         document.oncontextmenu = cancelContextMenu;
 
-        if ( ! SA.MOBILE_DEVICE) {
+        if ( ! SAM.MOBILE_DEVICE) {
             // Hack for all viewer edit menus to share browser.
             SA.VIEW_BROWSER = new SA.ViewBrowser($('body'));
 
@@ -1079,7 +1045,7 @@ window.SA = window.SA || {};
                 new SA.AnnotationWidget(annotationLayer1, viewer1);
             annotationWidget1.SetVisibility(2);
 
-            
+            /*
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
             var heatMap = new SA.HeatMap(viewer1.Div);
@@ -1091,6 +1057,7 @@ window.SA = window.SA || {};
                  spacing: [0.2,0.2,1.0],
                  origin : [100, 10000]});
             viewer1.AddLayer(heatMap);
+            */
 
             var viewer2 = SA.DualDisplay.Viewers[1];
             var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);

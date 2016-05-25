@@ -14,7 +14,7 @@ function MobileAnnotationWidget() {
     //var left = '620px';
     var right = '0px';
     var bottom = '170px';
-    if (SA.MOBILE_DEVICE == "iPhone") {
+    if (SAM.detectMobile() == "iPhone") {
         size = '100px';
         bottom = '80px';
         left = '80px';

@@ -83,7 +83,7 @@
         }
 
         this.Tolerance = 0.05;
-        if (SA.MOBILE_DEVICE) {
+        if (SAM.MOBILE_DEVICE) {
             this.Tolerance = 0.1;
         }
 
@@ -233,7 +233,7 @@
         if ( this.State == CIRCLE_WIDGET_DRAG ||
              this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
             this.SetActive(false);
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
         return false;
     }
@@ -437,7 +437,7 @@
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
 
         // TODO: See if anything has changed.
         this.Layer.EventuallyDraw();

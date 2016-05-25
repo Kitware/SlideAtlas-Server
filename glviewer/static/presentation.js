@@ -84,7 +84,6 @@ function Presentation(rootNote, edit) {
     }
 
     // Eliminate the GUI in the viewers.
-    //SA.MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
     // Hack.  It is only used for events.

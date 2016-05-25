@@ -72,7 +72,7 @@ window.SA = window.SA || {};
         this.AnimationDuration = 0;
         this.AnimationTarget = 0;
 
-        if ( ! SA.MOBILE_DEVICE || SA.MOBILE_DEVICE == 'iPad') {
+        if ( ! SAM.MOBILE_DEVICE || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
             $('<img>')
                 .appendTo(this.ViewerDivs[0])

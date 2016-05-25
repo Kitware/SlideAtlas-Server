@@ -418,10 +418,10 @@
         if (event.which == 1) {
             if (this.State == DRAG) {
                 this.State = ACTIVE;
-                SA.RecordState();
+                if (window.SA) {SA.RecordState();}
             } else if (this.State == DRAG_TEXT) {
                 this.State = ACTIVE_TEXT;
-                SA.RecordState();
+                if (window.SA) {SA.RecordState();}
             }
             return false;
         }
@@ -664,7 +664,7 @@
              VisibilityMode: this.VisibilityMode,
              BackgroundFlag: backgroundFlag});
 
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
 
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack

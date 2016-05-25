@@ -205,7 +205,7 @@
         if (this.IsEmpty()) {
             this.RemoveFromViewer();
             this.Layer.EventuallyDraw();
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
     }
 

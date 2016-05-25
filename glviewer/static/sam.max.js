@@ -50,6 +50,41 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     window.SAM = window.SAM || {};
     window.SAM.ImagePathUrl = "/webgl-viewer/static/";
+    window.SAM.MOBILE_DEVICE = false;
+
+
+    SAM.detectMobile = function() {
+        if ( SAM.MOBILE_DEVICE) {
+            return SAM.MOBILE_DEVICE;
+        }
+        SAM.MOBILE_DEVICE = false;
+        if ( navigator.userAgent.match(/Android/i)) {
+            SAM.MOBILE_DEVICE = "Andriod";
+        }
+        if ( navigator.userAgent.match(/webOS/i)) {
+            SAM.MOBILE_DEVICE = "webOS";
+        }
+        if ( navigator.userAgent.match(/iPhone/i)) {
+            SAM.MOBILE_DEVICE = "iPhone";
+        }
+        if ( navigator.userAgent.match(/iPad/i)) {
+            SAM.MOBILE_DEVICE = "iPad";
+            I_PAD_FLAG = true;
+        }
+        if ( navigator.userAgent.match(/iPod/i)) {
+            SAM.MOBILE_DEVICE = "iPod";
+        }
+        if ( navigator.userAgent.match(/BlackBerry/i)) {
+            SAM.MOBILE_DEVICE = "BlackBerry";
+        }
+        if ( navigator.userAgent.match(/Windows Phone/i)) {
+            SAM.MOBILE_DEVICE = "Windows Phone";
+        }
+        if (SA.MOBILE_DEVICE) {
+            SAM.MaximumNumberOfTiles = 5000;
+        }
+        return SAM.MOBILE_DEVICE;
+    }
 
 
     // Not used at the moment.
@@ -2180,7 +2215,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (this.IsEmpty()) {
             this.RemoveFromViewer();
             this.Layer.EventuallyDraw();
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
     }
 
@@ -3822,10 +3857,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (event.which == 1) {
             if (this.State == DRAG) {
                 this.State = ACTIVE;
-                SA.RecordState();
+                if (window.SA) {SA.RecordState();}
             } else if (this.State == DRAG_TEXT) {
                 this.State = ACTIVE_TEXT;
-                SA.RecordState();
+                if (window.SA) {SA.RecordState();}
             }
             return false;
         }
@@ -4068,7 +4103,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
              VisibilityMode: this.VisibilityMode,
              BackgroundFlag: backgroundFlag});
 
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
 
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
@@ -4868,7 +4903,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Deactivate.
             this.Layer.DeactivateWidget(this);
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
             return false;
         }
 
@@ -4952,7 +4987,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Polyline.MergePoints(this.Circle.Radius);
             // TODO: Manage modidfied more consistently.
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
             return false;
         }
 
@@ -4981,7 +5016,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 this.Polyline.Points.pop();
                 this.Polyline.Closed = true;
                 this.Layer.DeactivateWidget(this);
-                SA.RecordState();
+                if (window.SA) {SA.RecordState();}
                 return false;
             }
             // Insert another point to drag around.
@@ -5347,7 +5382,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw(false);
 
         localStorage.PolylineWidgetDefaults = JSON.stringify(
@@ -5818,7 +5853,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // NOTE: This assume that the shapes are polylines.
             //this.Decimate(this.Shapes.GetShape(last), spacing);
             this.Shapes.GetShape(last).Decimate(spacing);
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
         return false;
     }
@@ -5959,7 +5994,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shapes.SetLineWidth(parseFloat(this.Dialog.LineWidthInput.val()));
         this.Shapes.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
@@ -6332,7 +6367,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Shapes[i].UpdateBuffers(this.Viewer.AnnotationView);
         }
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         eventuallyRender();
     }
 
@@ -6604,7 +6639,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.ComputeActiveCenter();
             this.Layer.EventuallyDraw();
 
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
         return false;
     }
@@ -6755,7 +6790,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Loop.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
@@ -6921,7 +6956,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 this.Loop.Points = points1;
             }
 
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
 
         // Remove the extra point added at the begining of this method.
@@ -7076,7 +7111,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Widget.Layer.EventuallyDraw();
         this.Widget.Layer.RemoveWidget(this.Widget);
 
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
     }
 
     WidgetPopup.prototype.PropertiesCallback = function() {
@@ -7107,7 +7142,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if ( ! this.HideTimerId) {
             var self = this;
 
-            if(SA.MOBILE_DEVICE) {
+            if(SAM.detectMobile()) {
                 this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
             } else {
                 this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);
@@ -7927,7 +7962,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
 
         this.Tolerance = 0.05;
-        if (SA.MOBILE_DEVICE) {
+        if (SAM.MOBILE_DEVICE) {
             this.Tolerance = 0.1;
         }
 
@@ -8077,7 +8112,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if ( this.State == CIRCLE_WIDGET_DRAG ||
              this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
             this.SetActive(false);
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
         return false;
     }
@@ -8281,7 +8316,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
 
         // TODO: See if anything has changed.
         this.Layer.EventuallyDraw();
@@ -8424,7 +8459,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
       }
 
       this.Tolerance = 0.05;
-      if (SA.MOBILE_DEVICE) {
+      if (SAM.detectMobile()) {
         this.Tolerance = 0.1;
       }
 
@@ -8573,7 +8608,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     RectWidget.prototype.HandleMouseUp = function(event) {
         if ( this.State == DRAG || this.State == DRAG_RADIUS) {
             this.SetActive(false);
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
         }
     };
 
@@ -8786,7 +8821,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
       this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
       this.Shape.UpdateBuffers(this.Layer.AnnotationView);
       this.SetActive(false);
-      SA.RecordState();
+      if (window.SA) {SA.RecordState();}
       eventuallyRender();
 
       localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
@@ -8989,7 +9024,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             .keypress(function(event) { return event.keyCode != 13; });
 
         this.Tolerance = 0.05;
-        if (SA.MOBILE_DEVICE) {
+        if (SAM.MOBILE_DEVICE) {
             this.Tolerance = 0.1;
         }
 
@@ -9225,7 +9260,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // returns false when it is finished doing its work.
     GridWidget.prototype.HandleMouseUp = function(event) {
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
 
         return true;
     };
@@ -9512,7 +9547,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Text.String = SAM.DistanceToString(this.Grid.BinWidth*0.25e-6);
         this.Text.UpdateBuffers(this.Layer.AnnotationView);
 
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
@@ -9730,7 +9765,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     ScaleWidget.prototype.HandleMouseUp = function(event) {
         /*
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         */
         return true;
     };

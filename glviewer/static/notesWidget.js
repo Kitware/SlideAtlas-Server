@@ -1187,7 +1187,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     // Bug: canvas.getDataUrl() not supported in Safari on iPad.
     // Fix: If on mobile, use the thumbnail for the entire slide.
     var src;
-    if(SA.MOBILE_DEVICE){
+    if(SAM.detectMobile()){
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {

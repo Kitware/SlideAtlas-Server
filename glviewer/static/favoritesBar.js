@@ -19,7 +19,7 @@
             .click(function(){self.SaveFavorite();});
         this.SaveFavoriteButton.prop('title', "Save Favorite");
 
-        if(SA.MOBILE_DEVICE){
+        if(SAM.MOBILE_DEVICE){
             this.SaveFavoriteButton
                 .addClass("sa-view-favorites-button");
         }

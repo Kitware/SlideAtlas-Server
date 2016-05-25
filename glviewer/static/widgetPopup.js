@@ -54,7 +54,7 @@
         this.Widget.Layer.EventuallyDraw();
         this.Widget.Layer.RemoveWidget(this.Widget);
 
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
     }
 
     WidgetPopup.prototype.PropertiesCallback = function() {
@@ -85,7 +85,7 @@
         if ( ! this.HideTimerId) {
             var self = this;
 
-            if(SA.MOBILE_DEVICE) {
+            if(SAM.detectMobile()) {
                 this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
             } else {
                 this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);

@@ -297,7 +297,7 @@
             // Deactivate.
             this.Layer.DeactivateWidget(this);
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
             return false;
         }
 
@@ -381,7 +381,7 @@
             this.Polyline.MergePoints(this.Circle.Radius);
             // TODO: Manage modidfied more consistently.
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
-            SA.RecordState();
+            if (window.SA) {SA.RecordState();}
             return false;
         }
 
@@ -410,7 +410,7 @@
                 this.Polyline.Points.pop();
                 this.Polyline.Closed = true;
                 this.Layer.DeactivateWidget(this);
-                SA.RecordState();
+                if (window.SA) {SA.RecordState();}
                 return false;
             }
             // Insert another point to drag around.
@@ -776,7 +776,7 @@
         this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         this.SetActive(false);
-        SA.RecordState();
+        if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw(false);
 
         localStorage.PolylineWidgetDefaults = JSON.stringify(

@@ -18,6 +18,41 @@
 
     window.SAM = window.SAM || {};
     window.SAM.ImagePathUrl = "/webgl-viewer/static/";
+    window.SAM.MOBILE_DEVICE = false;
+
+
+    SAM.detectMobile = function() {
+        if ( SAM.MOBILE_DEVICE) {
+            return SAM.MOBILE_DEVICE;
+        }
+        SAM.MOBILE_DEVICE = false;
+        if ( navigator.userAgent.match(/Android/i)) {
+            SAM.MOBILE_DEVICE = "Andriod";
+        }
+        if ( navigator.userAgent.match(/webOS/i)) {
+            SAM.MOBILE_DEVICE = "webOS";
+        }
+        if ( navigator.userAgent.match(/iPhone/i)) {
+            SAM.MOBILE_DEVICE = "iPhone";
+        }
+        if ( navigator.userAgent.match(/iPad/i)) {
+            SAM.MOBILE_DEVICE = "iPad";
+            I_PAD_FLAG = true;
+        }
+        if ( navigator.userAgent.match(/iPod/i)) {
+            SAM.MOBILE_DEVICE = "iPod";
+        }
+        if ( navigator.userAgent.match(/BlackBerry/i)) {
+            SAM.MOBILE_DEVICE = "BlackBerry";
+        }
+        if ( navigator.userAgent.match(/Windows Phone/i)) {
+            SAM.MOBILE_DEVICE = "Windows Phone";
+        }
+        if (SA.MOBILE_DEVICE) {
+            SAM.MaximumNumberOfTiles = 5000;
+        }
+        return SAM.MOBILE_DEVICE;
+    }
 
 
     // Not used at the moment.

@@ -69,7 +69,7 @@
 
         this.Layers = [];
 
-        if (! SA.MOBILE_DEVICE || SA.MOBILE_DEVICE == "iPad") {
+        if (! SAM.detectMobile() || SAM.MOBILE_DEVICE == "iPad") {
             this.OverViewVisibility = true;
             this.OverViewScale = 0.02; // Experimenting with scroll
 	          this.OverViewport = [80, 20, 180, 180];
