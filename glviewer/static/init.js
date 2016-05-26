@@ -1132,6 +1132,8 @@ window.SA = window.SA || {};
 
             SA.heatMap3 = new SA.HeatMap(viewer2.Div);
             SA.heatMap3.Color = [0.0, 0.0, 0.7];
+            SA.heatMap3.Window = -1.0;
+            SA.heatMap3.Gama = 0.2;
             SA.heatMap3.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                  levels:     12,
@@ -1140,8 +1142,7 @@ window.SA = window.SA || {};
                  spacing: [0.15,0.15,1.0],
                  origin : [2000, 10000]});
             viewer2.AddLayer(SA.heatMap3);
-            */
-
+            */            
         }
 
         $(window).bind('orientationchange', function(event) {

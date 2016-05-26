@@ -19,6 +19,9 @@
         this.View = new SA.TileView(this.HeatMapDiv,true);
         var gl = this.View.gl;
         this.Color = [0.0, 0.4, 0.0];
+        this.Window = 1.0;
+        this.Level = 0.5;
+        this.Gama = 1.0;
 
         var self = this;
         this.HeatMapDiv.saOnResize(
@@ -32,12 +35,25 @@
         // Test red->alpha, constant color set externally
         var heatMapFragmentShaderString =
             "precision highp float;" +
+            "varying vec2 vTextureCoord;" +
             "uniform sampler2D uSampler;" +
             "uniform vec3 uColor;" +
-            "varying vec2 vTextureCoord;" +
+            "uniform vec2 uWindowLevel;" +
+            "uniform float uGama;" +
             "void main(void) {" +
             "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
-            "  textureColor = vec4(uColor, textureColor[0]);" +
+            "  float alpha = textureColor[0];" +
+            "  if (uWindowLevel[0] != 1.0 || uWindowLevel[1] != 0.5) {" +
+            "    alpha = ((alpha-0.5)/uWindowLevel[0]) + uWindowLevel[1];" +
+            "  }" +
+            "  if (uGama != 1.0) {" +
+            "    if (uGama < 0.0) {" +
+            "      alpha = pow((1.0-alpha), -uGama);" +
+            "    } else {" +
+            "      alpha = pow(alpha, uGama);" +
+            "    }" +
+            "  }" +
+            "  textureColor = vec4(uColor, alpha);" +
             "  gl_FragColor = textureColor;" +
             "}";
         var vertexShaderString =
@@ -59,6 +75,8 @@
         gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
         shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
         shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        shaderProgram.gamaUniform = gl.getUniformLocation(shaderProgram,"uGama");
+        shaderProgram.windowLevelUniform = gl.getUniformLocation(shaderProgram,"uWindowLevel");
         this.View.ShaderProgram = shaderProgram;
     }
 
@@ -113,6 +131,8 @@
             // It is bleniding with data from canvas behind the webGl canvas.
             gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
             gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            gl.uniform1f(program.gamaUniform, this.Gama);
+            gl.uniform2f(program.windowLevelUniform, this.Window, this.Level);
         }
 
 
