@@ -17,6 +17,7 @@
             .addClass('sa-resize');
 
         this.View = new SA.TileView(this.HeatMapDiv,true);
+        var gl = this.View.gl;
         this.Color = [0.0, 0.4, 0.0];
 
         var self = this;
@@ -27,6 +28,38 @@
                 // view's camera anyway.
             });
 
+
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  textureColor = vec4(uColor, textureColor[0]);" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var vertexShaderString =
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
+
+        var shaderProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Setup the shader program to render heatmaps.
+        shaderProgram.textureCoordAttribute
+            = gl.getAttribLocation(shaderProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        this.View.ShaderProgram = shaderProgram;
     }
 
 
@@ -71,16 +104,14 @@
 
         if (this.View.gl) {
             var gl = this.View.gl;
-            var program = SA.imageProgram;
+            var program = this.View.ShaderProgram;
             gl.useProgram(program);
             gl.clearColor(1.0, 1.0, 1.0, 1.0);
             gl.disable(gl.DEPTH_TEST);
             gl.enable(gl.BLEND);
-            //gl.blendEquation( gl.FUNC_ADD );
-            //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-            //gl.blendFunc(gl.ONE, gl.ZERO);
+            // The blending in funky because there is no destination.
+            // It is bleniding with data from canvas behind the webGl canvas.
             gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
-
             gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
         }
 

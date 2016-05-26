@@ -8515,12 +8515,12 @@ window.SA = window.SA || {};
     }
 
 
-    SA.initWebGL = function (gl) {
-        if (SA.imageProgram) { return; }
+    SA.initWebGL = function (view) {
+        //if (view.imageProgram) { return; }
         // Defined in HTML
-        initShaderPrograms(gl);
-        initOutlineBuffers(gl);
-        initImageTileBuffers(gl);
+        //initShaderPrograms(view.gl);
+        //initOutlineBuffers(view.gl);
+        initImageTileBuffers(view);
     }
 
 
@@ -8638,7 +8638,7 @@ window.SA = window.SA || {};
             "  gl_FragColor = textureColor;" +
             "}";
         // Test red->alpha, constant color set externally
-        var heatMapFragmentShaderString = 
+        var heatMapFragmentShaderString =
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "uniform vec3 uColor;" +
@@ -8648,7 +8648,7 @@ window.SA = window.SA || {};
             "  textureColor = vec4(uColor, textureColor[0]);" +
             "  gl_FragColor = textureColor;" +
             "}";
-        var fragmentShaderString = 
+        var fragmentShaderString =
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "varying vec2 vTextureCoord;" +
@@ -8656,7 +8656,7 @@ window.SA = window.SA || {};
             "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
             "   gl_FragColor = textureColor;" +
             " }";
-        var vertexShaderString = 
+        var vertexShaderString =
             "attribute vec3 aVertexPosition;" +
             "attribute vec2 aTextureCoord;" +
             "uniform mat4 uMVMatrix;" +
@@ -8668,20 +8668,20 @@ window.SA = window.SA || {};
             "  vTextureCoord = aTextureCoord;" +
             "}";
 
-        //SA.imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
-        SA.imageProgram = createProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        //SA.imageProgram = SA.createWebGlProgram(fragmentShaderString, vertexShaderString, gl);
+        view.imageProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
         // Texture coordinate attribute and texture image uniform
-        SA.imageProgram.textureCoordAttribute
-            = gl.getAttribLocation(SA.imageProgram,"aTextureCoord");
-        gl.enableVertexAttribArray(SA.imageProgram.textureCoordAttribute);
-        SA.imageProgram.samplerUniform = gl.getUniformLocation(SA.imageProgram, "uSampler");
-        SA.imageProgram.colorUniform = gl.getUniformLocation(SA.imageProgram, "uColor");
+        view.imageProgram.textureCoordAttribute
+            = gl.getAttribLocation(view.imageProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(view.imageProgram.textureCoordAttribute);
+        view.imageProgram.samplerUniform = gl.getUniformLocation(view.imageProgram, "uSampler");
+        view.imageProgram.colorUniform = gl.getUniformLocation(view.imageProgram, "uColor");
 
 
-        //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+        //polyProgram = SA.createWebGlProgram("shader-poly-fs", "shader-poly-vs", gl);
         //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-        //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+        //textProgram = SA.createWebGlProgram("shader-text-fs", "shader-text-vs", gl);
         //textProgram.textureCoordAttribute
         //    = gl.getAttribLocation(textProgram, "aTextureCoord");
         //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
@@ -8691,7 +8691,7 @@ window.SA = window.SA || {};
     }
 
     
-    function createProgram(fragmentShaderString, vertexShaderString, gl) {
+    SA.createWebGlProgram = function(fragmentShaderString, vertexShaderString, gl) {
         var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
         var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
@@ -8745,12 +8745,13 @@ window.SA = window.SA || {};
 
 
 
-
     //==============================================================================
 
 
+    function initImageTileBuffers(view) {
+        if (view.tileVertexTextureCoordinateBuffer) { return; }
 
-    function initImageTileBuffers(gl) {
+        var gl = view.gl;
         var vertexPositionData = [];
         var textureCoordData = [];
 
@@ -8789,23 +8790,23 @@ window.SA = window.SA || {};
         cellData.push(1);
         cellData.push(3);
 
-        SA.tileVertexTextureCoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexTextureCoordBuffer);
+        view.tileVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, view.tileVertexTextureCoordBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
-        SA.tileVertexTextureCoordBuffer.itemSize = 2;
-        SA.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+        view.tileVertexTextureCoordBuffer.itemSize = 2;
+        view.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-        SA.tileVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexPositionBuffer);
+        view.tileVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, view.tileVertexPositionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-        SA.tileVertexPositionBuffer.itemSize = 3;
-        SA.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
+        view.tileVertexPositionBuffer.itemSize = 3;
+        view.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-        SA.tileCellBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, SA.tileCellBuffer);
+        view.tileCellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, view.tileCellBuffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-        SA.tileCellBuffer.itemSize = 1;
-        SA.tileCellBuffer.numItems = cellData.length;
+        view.tileCellBuffer.itemSize = 1;
+        view.tileCellBuffer.numItems = cellData.length;
     }
 
 
@@ -9101,30 +9102,6 @@ window.SA = window.SA || {};
             annotationWidget1.SetVisibility(2);
 
             
-            // ==============================
-            // Experiment wit combining tranparent webgl ontop of canvas.
-            SA.heatMap1 = new SA.HeatMap(viewer1.Div);
-            SA.heatMap1.SetImageData(
-                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
-                 levels:     12,
-                 dimensions: [419168, 290400, 1],
-                 bounds: [0,419167, 0, 290399, 0,0],
-                 spacing: [0.1,0.1,1.0],
-                 origin : [100, 10000]});
-            viewer1.AddLayer(SA.heatMap1);
-            /*
-            SA.heatMap2 = new SA.HeatMap(viewer1.Div);
-            SA.heatMap2.Color = [0.0, 0.0, 0.7];
-            SA.heatMap2.SetImageData(
-                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
-                 levels:     12,
-                 dimensions: [419168, 290400, 1],
-                 bounds: [0,419167, 0, 290399, 0,0],
-                 spacing: [0.1,0.1,1.0],
-                 origin : [2000, 10000]});
-            viewer1.AddLayer(SA.heatMap2);
-            */
-
             var viewer2 = SA.DualDisplay.Viewers[1];
             var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
             viewer2.AddLayer(annotationLayer2);
@@ -9138,6 +9115,44 @@ window.SA = window.SA || {};
             annotationWidget2.SetVisibility(2);
 
             SA.DualDisplay.UpdateGui();
+
+
+            // ==============================
+            // Experiment wit combining tranparent webgl ontop of canvas.
+            /*
+            SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.1,0.1,1.0],
+                 origin : [100, 10000]});
+            viewer1.AddLayer(SA.heatMap1);
+
+            SA.heatMap2 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap2.Color = [0.0, 0.0, 0.7];
+            SA.heatMap2.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.15,0.15,1.0],
+                 origin : [20000, 20000]});
+            viewer1.AddLayer(SA.heatMap2);
+
+            SA.heatMap3 = new SA.HeatMap(viewer2.Div);
+            SA.heatMap3.Color = [0.0, 0.0, 0.7];
+            SA.heatMap3.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.15,0.15,1.0],
+                 origin : [2000, 10000]});
+            viewer2.AddLayer(SA.heatMap3);
+            */
+
         }
 
         $(window).bind('orientationchange', function(event) {
@@ -10944,6 +10959,8 @@ window.SA = window.SA || {};
         } else {
             this.Viewers[1].Show();
         }
+
+        $(window).trigger('resize');
     }
 
 
@@ -26979,15 +26996,21 @@ function Tile(x, y, z, level, name, cache) {
         this.Matrix[13] = (this.Y+1) * yScale;
         this.Matrix[15] = 1.0;
 
-        //if (GL) {
-            // These tiles share the same buffers.  Do not crop when there is no warp.
-            this.VertexPositionBuffer = SA.tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = SA.tileVertexTextureCoordBuffer;
-            this.CellBuffer = SA.tileCellBuffer;
-        //}
+        // Note:  I am breaking the warping to test multiple gl Contexts.
+        // We do not have the view at this spot to build buffers.
+        /*
+        if (view && view.gl) {
+            // These tiles share the same buffers.  Do not crop when there
+            // is no warp. Actually, we should crop.
+            this.VertexPositionBuffer = view.tileVertexPositionBuffer;
+            this.VertexTextureCoordBuffer = view.tileVertexTextureCoordBuffer;
+            this.CellBuffer = view.tileCellBuffer;
+        }
+        */
     } else {
         // Warp model.
-        this.CreateWarpBuffer(cache.Warp);
+        // In draw now.
+        //this.CreateWarpBuffer(cache.Warp);
     }
 
     ++SA.NumberOfTiles;
@@ -27049,46 +27072,43 @@ Tile.prototype.LoadQueueAdd = function() {
 
 
 
+    // This is for connectome stitching.  It uses texture mapping
+    // to dynamically warp images.  It only works with webGL.
+    Tile.prototype.CreateWarpBuffer = function (warp, gl) {
+        // Compute the tile bounds.
+        var tileDimensions = this.Cache.TileDimensions;
+        var rootSpacing = this.Cache.RootSpacing;
+        var p = (1 << this.Level);
+        var size = [rootSpacing[0]*tileDimensions[0]/p, rootSpacing[1]*tileDimensions[1]/p];
+        var bds = [size[0]*this.X, size[0]*(this.X+1),
+                   size[1]*this.Y, size[1]*(this.Y+1),
+                   this.Level, this.Level];
 
+        // Tile geometry buffers.
+        var vertexPositionData = [];
+        var tCoordsData = [];
+        var cellData = [];
 
+        warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
 
-// This is for connectome stitching.  It uses texture mapping
-// to dynamically warp images.  It only works with webGL.
-Tile.prototype.CreateWarpBuffer = function (warp, gl) {
-  // Compute the tile bounds.
-  var tileDimensions = this.Cache.TileDimensions;
-  var rootSpacing = this.Cache.RootSpacing;
-  var p = (1 << this.Level);
-  var size = [rootSpacing[0]*tileDimensions[0]/p, rootSpacing[1]*tileDimensions[1]/p];
-  var bds = [size[0]*this.X, size[0]*(this.X+1),
-             size[1]*this.Y, size[1]*(this.Y+1),
-             this.Level, this.Level];
+        this.VertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tCoordsData), gl.STATIC_DRAW);
+        this.VertexTextureCoordBuffer.itemSize = 2;
+        this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
 
-  // Tile geometry buffers.
-  var vertexPositionData = [];
-  var tCoordsData = [];
-  var cellData = [];
+        this.VertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
+        this.VertexPositionBuffer.itemSize = 3;
+        this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-  warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
-
-  this.VertexTextureCoordBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tCoordsData), gl.STATIC_DRAW);
-  this.VertexTextureCoordBuffer.itemSize = 2;
-  this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
-
-  this.VertexPositionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexPositionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-  this.VertexPositionBuffer.itemSize = 3;
-  this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
-
-  this.CellBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-  this.CellBuffer.itemSize = 1;
-  this.CellBuffer.numItems = cellData.length;
-}
+        this.CellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
+        this.CellBuffer.itemSize = 1;
+        this.CellBuffer.numItems = cellData.length;
+    }
 
 
 
@@ -27167,6 +27187,8 @@ Tile.prototype.LoadWebSocket = function (cache) {
     ws.FetchTile(name, image, cache, this.Image);
 }
 
+
+
     // TODO: Put program as iVar of view.
     Tile.prototype.Draw = function (program, view) {
         // Load state 0 is: Not loaded and not scheduled to be loaded yet.
@@ -27176,24 +27198,40 @@ Tile.prototype.LoadWebSocket = function (cache) {
             return;
         }
 
+        /* sacrifice clipped/warped tiles so tiles can be shared between views.
+        // Initialization has to be here because we do not have the view in
+        // the constructor.  NOTE: tiles cannot be shared between views
+        if (view.gl && ! this.VertexPositionBuffer) {
+            if ( ! cache.Warp) {
+                this.VertexPositionBuffer = view.tileVertexPositionBuffer;
+                this.VertexTextureCoordBuffer = view.tileVertexTextureCoordBuffer;
+                this.CellBuffer = view.tileCellBuffer;
+            } else {
+                // Warp model.
+                this.CreateWarpBuffer(cache.Warp, view.gl);
+            }
+        }
+        */
+
+
         if (view.gl) {
             if (this.Texture == null) {
                 this.CreateTexture(view.gl);
             }
             // These are the same for every tile.
             // Vertex points (shifted by tiles matrix)
-            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, view.tileVertexPositionBuffer);
             // Needed for outline ??? For some reason, DrawOutline did not work
             // without this call first.
-            view.gl.vertexAttribPointer(SA.imageProgram.vertexPositionAttribute,
-                                        this.VertexPositionBuffer.itemSize,
+            view.gl.vertexAttribPointer(view.ShaderProgram.vertexPositionAttribute,
+                                        view.tileVertexPositionBuffer.itemSize,
                                         view.gl.FLOAT, false, 0, 0);     // Texture coordinates
-            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-            view.gl.vertexAttribPointer(SA.imageProgram.textureCoordAttribute,
-                                        this.VertexTextureCoordBuffer.itemSize,
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, view.tileVertexTextureCoordBuffer);
+            view.gl.vertexAttribPointer(view.ShaderProgram.textureCoordAttribute,
+                                        view.tileVertexTextureCoordBuffer.itemSize,
                                         view.gl.FLOAT, false, 0, 0);
             // Cell Connectivity
-            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, view.tileCellBuffer);
 
             // Texture
             view.gl.activeTexture(view.gl.TEXTURE0);
@@ -27203,7 +27241,7 @@ Tile.prototype.LoadWebSocket = function (cache) {
             // Matrix that tranforms the vertex p
             view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-            view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
+            view.gl.drawElements(view.gl.TRIANGLES, view.tileCellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
         } else {
             // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
             // WebGL handles this by flipping the texture coordinates.  Here we have to
@@ -28194,12 +28232,12 @@ Section.prototype.FindImage = function (imageCollectionName) {
 Section.prototype.Draw = function (view) {
     var finishedRendering = true;
     if (view.gl) {
-        var program = SA.imageProgram;
-        view.gl.useProgram(program);
         // Draw tiles.
-        view.gl.viewport(view.Viewport[0], view.Viewport[1],
+        var program = view.ShaderProgram;
+        var gl = view.gl;
+        gl.viewport(view.Viewport[0], view.Viewport[1],
                          view.Viewport[2], view.Viewport[3]);
-        view.gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
     } else {
         // The camera maps the world coordinate system to (-1->1, -1->1).
         var h = 1.0 / view.Camera.Matrix[15];
@@ -28307,13 +28345,11 @@ Section.prototype.LoadTilesInView = function (view) {
 
         if (useWebGL) {
             this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
-            SA.GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
-            // TODO: Fix this.
         }
         if (this.gl) {
             // Probably need a canvas object that keep track of
             // initialization (shared between layers).
-            SA.initWebGL(this.gl);
+            SA.initWebGL(this);
         } else {
             this.Context2d = this.Canvas[0].getContext("2d");
         }
@@ -28350,6 +28386,26 @@ Section.prototype.LoadTilesInView = function (view) {
         // TODO: try to get rid of this
         return this.Section.Caches[0];
     }
+
+
+
+    // Not used at the moment
+    TileView.prototype.Draw = function () {
+
+        if (this.gl) {
+            var gl = this.gl;
+            gl.clear(SA.GL.COLOR_BUFFER_BIT | SA.GL.DEPTH_BUFFER_BIT);
+            var program = SA.imageProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        }
+
+        return this.DrawTiles();
+    }
+
 
     // I want only the annotation to create a mask image.
     var MASK_HACK = false;
@@ -29082,7 +29138,7 @@ Section.prototype.LoadTilesInView = function (view) {
         }
         console.log(sectionFileName + " " + SA.LoadQueue.length + " " + SA.LoadingCount);
 
-        if ( ! view.DrawTiles() ) {
+        if ( ! view.Draw() ) {
             console.log("Sanity check failed. Not all tiles were available.");
         }
         this.MainView.DrawShapes();
@@ -29456,12 +29512,6 @@ Section.prototype.LoadTilesInView = function (view) {
         if (this.Drawing) { return; }
         this.Drawing = true;
 
-        if (SA.GL) {
-            // Layers might share canvas. We will nedd a helper object to
-            // clear the shared canvas.7
-            SA.GL.clear(SA.GL.COLOR_BUFFER_BIT | SA.GL.DEPTH_BUFFER_BIT);
-        }
-
         // This just changes the camera based on the current time.
         this.Animate();
 
@@ -29476,16 +29526,10 @@ Section.prototype.LoadTilesInView = function (view) {
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
-        // Rendering text uses blending / transparency.
-        if (SA.GL) {
-            SA.GL.enable(SA.GL.BLEND);
-            SA.GL.disable(SA.GL.DEPTH_TEST);
-        }
-
         // If we are still waiting for tiles to load, schedule another render.
         // This works fine, but results in many renders while waiting.
         // TODO: Consider having the tile load callback scheduling the next render.
-        if ( ! this.MainView.DrawTiles() ) {
+        if ( ! this.MainView.Draw() ) {
             this.EventuallyRender();
         }
 
@@ -29500,7 +29544,7 @@ Section.prototype.LoadTilesInView = function (view) {
         // This is not used anymore
         this.MainView.DrawShapes();
         if (this.OverView) {
-            this.OverView.DrawTiles();
+            this.OverView.Draw();
             this.OverView.DrawOutline(true);
         }
 

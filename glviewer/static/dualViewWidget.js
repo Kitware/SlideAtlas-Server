@@ -458,6 +458,8 @@ window.SA = window.SA || {};
         } else {
             this.Viewers[1].Show();
         }
+
+        $(window).trigger('resize');
     }
 
 

@@ -504,12 +504,12 @@ window.SA = window.SA || {};
     }
 
 
-    SA.initWebGL = function (gl) {
-        if (SA.imageProgram) { return; }
+    SA.initWebGL = function (view) {
+        //if (view.imageProgram) { return; }
         // Defined in HTML
-        initShaderPrograms(gl);
-        initOutlineBuffers(gl);
-        initImageTileBuffers(gl);
+        //initShaderPrograms(view.gl);
+        //initOutlineBuffers(view.gl);
+        initImageTileBuffers(view);
     }
 
 
@@ -627,7 +627,7 @@ window.SA = window.SA || {};
             "  gl_FragColor = textureColor;" +
             "}";
         // Test red->alpha, constant color set externally
-        var heatMapFragmentShaderString = 
+        var heatMapFragmentShaderString =
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "uniform vec3 uColor;" +
@@ -637,7 +637,7 @@ window.SA = window.SA || {};
             "  textureColor = vec4(uColor, textureColor[0]);" +
             "  gl_FragColor = textureColor;" +
             "}";
-        var fragmentShaderString = 
+        var fragmentShaderString =
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "varying vec2 vTextureCoord;" +
@@ -645,7 +645,7 @@ window.SA = window.SA || {};
             "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
             "   gl_FragColor = textureColor;" +
             " }";
-        var vertexShaderString = 
+        var vertexShaderString =
             "attribute vec3 aVertexPosition;" +
             "attribute vec2 aTextureCoord;" +
             "uniform mat4 uMVMatrix;" +
@@ -657,20 +657,20 @@ window.SA = window.SA || {};
             "  vTextureCoord = aTextureCoord;" +
             "}";
 
-        //SA.imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
-        SA.imageProgram = createProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        //SA.imageProgram = SA.createWebGlProgram(fragmentShaderString, vertexShaderString, gl);
+        view.imageProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
         // Texture coordinate attribute and texture image uniform
-        SA.imageProgram.textureCoordAttribute
-            = gl.getAttribLocation(SA.imageProgram,"aTextureCoord");
-        gl.enableVertexAttribArray(SA.imageProgram.textureCoordAttribute);
-        SA.imageProgram.samplerUniform = gl.getUniformLocation(SA.imageProgram, "uSampler");
-        SA.imageProgram.colorUniform = gl.getUniformLocation(SA.imageProgram, "uColor");
+        view.imageProgram.textureCoordAttribute
+            = gl.getAttribLocation(view.imageProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(view.imageProgram.textureCoordAttribute);
+        view.imageProgram.samplerUniform = gl.getUniformLocation(view.imageProgram, "uSampler");
+        view.imageProgram.colorUniform = gl.getUniformLocation(view.imageProgram, "uColor");
 
 
-        //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+        //polyProgram = SA.createWebGlProgram("shader-poly-fs", "shader-poly-vs", gl);
         //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-        //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+        //textProgram = SA.createWebGlProgram("shader-text-fs", "shader-text-vs", gl);
         //textProgram.textureCoordAttribute
         //    = gl.getAttribLocation(textProgram, "aTextureCoord");
         //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
@@ -680,7 +680,7 @@ window.SA = window.SA || {};
     }
 
     
-    function createProgram(fragmentShaderString, vertexShaderString, gl) {
+    SA.createWebGlProgram = function(fragmentShaderString, vertexShaderString, gl) {
         var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
         var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
@@ -734,12 +734,13 @@ window.SA = window.SA || {};
 
 
 
-
     //==============================================================================
 
 
+    function initImageTileBuffers(view) {
+        if (view.tileVertexTextureCoordinateBuffer) { return; }
 
-    function initImageTileBuffers(gl) {
+        var gl = view.gl;
         var vertexPositionData = [];
         var textureCoordData = [];
 
@@ -778,23 +779,23 @@ window.SA = window.SA || {};
         cellData.push(1);
         cellData.push(3);
 
-        SA.tileVertexTextureCoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexTextureCoordBuffer);
+        view.tileVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, view.tileVertexTextureCoordBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
-        SA.tileVertexTextureCoordBuffer.itemSize = 2;
-        SA.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+        view.tileVertexTextureCoordBuffer.itemSize = 2;
+        view.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-        SA.tileVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexPositionBuffer);
+        view.tileVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, view.tileVertexPositionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-        SA.tileVertexPositionBuffer.itemSize = 3;
-        SA.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
+        view.tileVertexPositionBuffer.itemSize = 3;
+        view.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-        SA.tileCellBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, SA.tileCellBuffer);
+        view.tileCellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, view.tileCellBuffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-        SA.tileCellBuffer.itemSize = 1;
-        SA.tileCellBuffer.numItems = cellData.length;
+        view.tileCellBuffer.itemSize = 1;
+        view.tileCellBuffer.numItems = cellData.length;
     }
 
 
@@ -1090,30 +1091,6 @@ window.SA = window.SA || {};
             annotationWidget1.SetVisibility(2);
 
             
-            // ==============================
-            // Experiment wit combining tranparent webgl ontop of canvas.
-            SA.heatMap1 = new SA.HeatMap(viewer1.Div);
-            SA.heatMap1.SetImageData(
-                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
-                 levels:     12,
-                 dimensions: [419168, 290400, 1],
-                 bounds: [0,419167, 0, 290399, 0,0],
-                 spacing: [0.1,0.1,1.0],
-                 origin : [100, 10000]});
-            viewer1.AddLayer(SA.heatMap1);
-            /*
-            SA.heatMap2 = new SA.HeatMap(viewer1.Div);
-            SA.heatMap2.Color = [0.0, 0.0, 0.7];
-            SA.heatMap2.SetImageData(
-                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
-                 levels:     12,
-                 dimensions: [419168, 290400, 1],
-                 bounds: [0,419167, 0, 290399, 0,0],
-                 spacing: [0.1,0.1,1.0],
-                 origin : [2000, 10000]});
-            viewer1.AddLayer(SA.heatMap2);
-            */
-
             var viewer2 = SA.DualDisplay.Viewers[1];
             var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
             viewer2.AddLayer(annotationLayer2);
@@ -1127,6 +1104,44 @@ window.SA = window.SA || {};
             annotationWidget2.SetVisibility(2);
 
             SA.DualDisplay.UpdateGui();
+
+
+            // ==============================
+            // Experiment wit combining tranparent webgl ontop of canvas.
+            /*
+            SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.1,0.1,1.0],
+                 origin : [100, 10000]});
+            viewer1.AddLayer(SA.heatMap1);
+
+            SA.heatMap2 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap2.Color = [0.0, 0.0, 0.7];
+            SA.heatMap2.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.15,0.15,1.0],
+                 origin : [20000, 20000]});
+            viewer1.AddLayer(SA.heatMap2);
+
+            SA.heatMap3 = new SA.HeatMap(viewer2.Div);
+            SA.heatMap3.Color = [0.0, 0.0, 0.7];
+            SA.heatMap3.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.15,0.15,1.0],
+                 origin : [2000, 10000]});
+            viewer2.AddLayer(SA.heatMap3);
+            */
+
         }
 
         $(window).bind('orientationchange', function(event) {

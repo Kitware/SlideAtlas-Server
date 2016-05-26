@@ -680,7 +680,7 @@
         }
         console.log(sectionFileName + " " + SA.LoadQueue.length + " " + SA.LoadingCount);
 
-        if ( ! view.DrawTiles() ) {
+        if ( ! view.Draw() ) {
             console.log("Sanity check failed. Not all tiles were available.");
         }
         this.MainView.DrawShapes();
@@ -1054,12 +1054,6 @@
         if (this.Drawing) { return; }
         this.Drawing = true;
 
-        if (SA.GL) {
-            // Layers might share canvas. We will nedd a helper object to
-            // clear the shared canvas.7
-            SA.GL.clear(SA.GL.COLOR_BUFFER_BIT | SA.GL.DEPTH_BUFFER_BIT);
-        }
-
         // This just changes the camera based on the current time.
         this.Animate();
 
@@ -1074,16 +1068,10 @@
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
-        // Rendering text uses blending / transparency.
-        if (SA.GL) {
-            SA.GL.enable(SA.GL.BLEND);
-            SA.GL.disable(SA.GL.DEPTH_TEST);
-        }
-
         // If we are still waiting for tiles to load, schedule another render.
         // This works fine, but results in many renders while waiting.
         // TODO: Consider having the tile load callback scheduling the next render.
-        if ( ! this.MainView.DrawTiles() ) {
+        if ( ! this.MainView.Draw() ) {
             this.EventuallyRender();
         }
 
@@ -1098,7 +1086,7 @@
         // This is not used anymore
         this.MainView.DrawShapes();
         if (this.OverView) {
-            this.OverView.DrawTiles();
+            this.OverView.Draw();
             this.OverView.DrawOutline(true);
         }
 
