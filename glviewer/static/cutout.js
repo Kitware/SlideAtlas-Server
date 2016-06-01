@@ -96,7 +96,7 @@
 
         if (returnCallback) {
             var ctx  = view.Context2d;
-            var data = GetImageData(view);
+            var data = view.GetImageData();
             returnCallback(data);
         }
     }

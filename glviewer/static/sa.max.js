@@ -8055,10 +8055,10 @@ window.SA = window.SA || {};
 
     // for debugging
     function MOVE_TO(x,y) {
-        SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-        SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-        if (SA.DualDisplay) {
-            SA.DualDisplay.Draw();
+        if (SA.dualDisplay) {
+            SA.dualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+            SA.dualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+            SA.dualDisplay.Draw();
         }
     }
 
@@ -8194,8 +8194,8 @@ window.SA = window.SA || {};
             return false;
         }
 
-        if (SA.Presentation) {
-            SA.Presentation.HandleKeyDown(event);
+        if (SA.presentation) {
+            SA.presentation.HandleKeyDown(event);
             return true;
         }
 
@@ -8241,8 +8241,8 @@ window.SA = window.SA || {};
 
         // Is SA really necessary?
         // TODO: Try to remove SA and test presentation stuff.
-        if (SA.Presentation) {
-            SA.Presentation.HandleKeyUp(event);
+        if (SA.presentation) {
+            SA.presentation.HandleKeyUp(event);
             return true;
         }
 
@@ -8445,7 +8445,7 @@ window.SA = window.SA || {};
 
 
 
-    function detectMobile() {
+    SA.detectMobile = function() {
         SA.MOBILE_DEVICE = false;
 
         if ( navigator.userAgent.match(/Android/i)) {
@@ -8491,8 +8491,8 @@ window.SA = window.SA || {};
     //    if (typeof(SA.ViewId) != "undefined") {
     //        return SA.ViewId;
     //    }
-    //    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
-    //        return SA.NotesWidget.RootNote._id;
+    //    if ( ! SA.notesWidget && ! SA.notesWidget.RootNote) {
+    //        return SA.notesWidget.RootNote._id;
     //    }
     //    SA.Debug("Could not find view id");
     //    return "";
@@ -8838,8 +8838,7 @@ window.SA = window.SA || {};
 
 
     function initGC() {
-
-        detectMobile();
+        SA.detectMobile();
     }
 
 
@@ -8930,7 +8929,7 @@ window.SA = window.SA || {};
         return SA.HandleKeyUpStack(event);
     }
 
-    function cancelContextMenu(e) {
+    SA.cancelContextMenu = function(e) {
         //alert("Try to cancel context menu");
         if (e && e.stopPropagation) {
             e.stopPropagation();
@@ -8956,7 +8955,7 @@ window.SA = window.SA || {};
     // This function gets called when the save button is pressed.
     function SaveCallback() {
         // TODO: This is no longer called by a button, so change its name.
-        SA.NotesWidget.SaveCallback(
+        SA.notesWidget.SaveCallback(
             function () {
                 // finished
                 SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
@@ -8973,11 +8972,11 @@ window.SA = window.SA || {};
 
         if (rootNote.Type == "Presentation" ||
             rootNote.Type == "HTML") {
-            SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
+            SA.presentation = new SA.Presentation(rootNote, SA.Edit);
             return;
         }
 
-        detectMobile();
+        SA.detectMobile();
         $(body).addClass("sa-view-body");
         // Just to see if webgl is supported:
         //var testCanvas = document.getElementById("gltest");
@@ -9010,27 +9009,25 @@ window.SA = window.SA || {};
         //.addClass("sa-view-canvas-panel")
 
         // Left panel for notes.
-        SA.ResizePanel = new SA.ResizePanel(SA.MainDiv);
-        SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
-        SA.NotesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
-                                            SA.DualDisplay);
+        SA.resizePanel = new SA.ResizePanel(SA.MainDiv);
+        SA.dualDisplay = new SA.DualViewWidget(SA.resizePanel.MainDiv);
+        SA.notesWidget = new SA.NotesWidget(SA.resizePanel.PanelDiv,
+                                            SA.dualDisplay);
 
         if (rootNote.Type == "Stack") {
-            SA.DualDisplay.SetNumberOfViewers(2);
+            SA.dualDisplay.SetNumberOfViewers(2);
         }
 
-        SA.NotesWidget.SetModifiedCallback(NotesModified);
-        SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+        SA.notesWidget.SetModifiedCallback(NotesModified);
+        SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
         // Navigation widget keeps track of which note is current.
         // Notes widget needs to access and change this.
-        SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-        if (SA.DualDisplay.NavigationWidget) {
-            SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        SA.notesWidget.SetNavigationWidget(SA.dualDisplay.NavigationWidget);
+        if (SA.dualDisplay.NavigationWidget) {
+            SA.dualDisplay.NavigationWidget.SetInteractionEnabled(true);
         }
 
-        new SA.RecorderWidget(SA.DualDisplay);
-
-        SA.DualDisplay.SetNote(rootNote);
+        new SA.RecorderWidget(SA.dualDisplay);
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
@@ -9038,7 +9035,7 @@ window.SA = window.SA || {};
             if ( SA.Edit) {
                 // Put a save button here when editing.
                 SA.SaveButton = $('<img>')
-                    .appendTo(SA.ResizePanel.MainDiv)
+                    .appendTo(SA.resizePanel.MainDiv)
                     .css({'position':'absolute',
                           'bottom':'4px',
                           'left':'10px',
@@ -9048,20 +9045,20 @@ window.SA = window.SA || {};
                     .addClass('editButton')
                     .attr('src',SA.ImagePathUrl+"save22.png")
                     .click(SaveCallback);
-                for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
-                SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.NotesWidget.RecordView();});
+                for (var i = 0; i < SA.dualDisplay.Viewers.length; ++i) {
+                SA.dualDisplay.Viewers[i].OnInteraction(
+                    function () {SA.notesWidget.RecordView();});
                 }
             } else {
                 // Favorites when not editing.
-                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.dualDisplay);
                 //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
             }
         }
 
-        if (SA.MOBILE_DEVICE && SA.DualDisplay && 
-            SA.DualDisplay.NavigationWidget) {
-            SA.DualDisplay.NavigationWidget.SetVisibility(false);
+        if (SA.MOBILE_DEVICE && SA.dualDisplay && 
+            SA.dualDisplay.NavigationWidget) {
+            SA.dualDisplay.NavigationWidget.SetVisibility(false);
         }
         if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
             MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
@@ -9076,7 +9073,7 @@ window.SA = window.SA || {};
         document.onkeyup = handleKeyUp;
 
         // Keep the browser from showing the left click menu.
-        document.oncontextmenu = cancelContextMenu;
+        document.oncontextmenu = SA.cancelContextMenu;
 
         if ( ! SA.MOBILE_DEVICE) {
             // Hack for all viewer edit menus to share browser.
@@ -9085,37 +9082,14 @@ window.SA = window.SA || {};
             // TODO: See if we can get rid of this, or combine it with
             // the view browser.
             SA.InitSlideSelector(SA.MainDiv); // What is this?
-            var viewMenu1 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[0],
-                                                SA.DualDisplay.Viewers[1]);
-            var viewMenu2 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[1],
-                                                SA.DualDisplay.Viewers[0]);
-            var viewer1 = SA.DualDisplay.Viewers[0];
-            var annotationLayer1 = new SAM.AnnotationLayer(viewer1.Div);
-            viewer1.AddLayer(annotationLayer1);
-            // TODO: Get rid of this.  master view is passed to draw.
-            //Hack so the scale widget can get the spacing.
-            annotationLayer1.ScaleWidget.View = viewer1.MainView;
-            // Hack only used for girder testing.
-            annotationLayer1.Viewer = viewer1;
-            var annotationWidget1 =
-                new SA.AnnotationWidget(annotationLayer1, viewer1);
-            annotationWidget1.SetVisibility(2);
+            var viewMenu1 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[0],
+                                                SA.dualDisplay.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[1],
+                                                SA.dualDisplay.Viewers[0]);
+            var viewer1 = SA.dualDisplay.Viewers[0];
+            var viewer2 = SA.dualDisplay.Viewers[1];
 
-            
-            var viewer2 = SA.DualDisplay.Viewers[1];
-            var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
-            viewer2.AddLayer(annotationLayer2);
-            // TODO: Get rid of this.  master view is passed to draw.
-            //Hack so the scale widget can get the spacing.
-            annotationLayer2.ScaleWidget.View = viewer2.MainView;
-            // Hack only used for girder testing.
-            annotationLayer2.Viewer = viewer2;
-            var annotationWidget2 =
-                new SA.AnnotationWidget(annotationLayer2, viewer2);
-            annotationWidget2.SetVisibility(2);
-
-            SA.DualDisplay.UpdateGui();
-
+            SA.dualDisplay.UpdateGui();
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
@@ -9153,8 +9127,10 @@ window.SA = window.SA || {};
                  spacing: [0.15,0.15,1.0],
                  origin : [2000, 10000]});
             viewer2.AddLayer(SA.heatMap3);
-            */            
+            */
         }
+
+        SA.dualDisplay.SetNote(rootNote);
 
         $(window).bind('orientationchange', function(event) {
             handleResize();
@@ -9164,15 +9140,15 @@ window.SA = window.SA || {};
             handleResize();
         }).trigger('resize');
 
-        if (SA.DualDisplay) {
-            SA.DualDisplay.Draw();
+        if (SA.dualDisplay) {
+            SA.dualDisplay.Draw();
         }
     }
 
 
     // I had to prune all the annotations (lassos) that were not visible.
     function keepVisible(){
-        var n = SA.DualDisplay.GetNote();
+        var n = SA.dualDisplay.GetNote();
         var r = n.ViewerRecords[n.StartIndex];
         var w = SA.VIEWER1.WidgetList;
         var c = SA.VIEWER1.GetCamera();
@@ -9266,7 +9242,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
-    if (SA.NotesWidget) {
+    if (SA.notesWidget) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Download Image")
@@ -9375,7 +9351,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
 // Record the viewer into the current note and save into the database.
 ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
-    if (SA.NotesWidget) SA.NotesWidget.SaveCallback();
+    if (SA.notesWidget) SA.notesWidget.SaveCallback();
 }
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
@@ -9390,7 +9366,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     // Which view record?
     var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
 
@@ -9407,7 +9383,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     var self = this;
     if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
-        //SA.NotesWidget.SaveCallback();
+        //SA.notesWidget.SaveCallback();
         // Lets try just setting this one note.
         var noteObj = JSON.stringify(note.Serialize(true));
         var d = new Date();
@@ -9473,9 +9449,7 @@ ViewEditMenu.prototype.CopyZoom = function() {
 
 ViewEditMenu.prototype.ShowSlideInformation = function() {
     this.Tab.PanelOff();
-
-    imageObj = this.Viewer.MainView.Section.Caches[0].Image;
-
+    var imageObj = this.Viewer.MainView.Section.Caches[0].Image;
     SA.SlideInformation.Open(imageObj, this.Viewer);
 }
 
@@ -9519,7 +9493,7 @@ var DownloadImage = (function () {
         d.AspectRatio = viewport[2] / viewport[3];
 
         // Hide or show the stack option.
-        if (SA.DualDisplay.GetNote().Type == "Stack") {
+        if (SA.dualDisplay.GetNote().Type == "Stack") {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
         } else {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();
@@ -10085,7 +10059,7 @@ ImageInformationDialog.prototype.Close = function()
         this.ImageObj.dimensions.push(1);
     }
 
-    imageObj = {
+    var imageObj = {
         _id       : this.ImageObj._id,
         database  : this.ImageObj.database,
         label     : this.ImageObj.label,
@@ -10495,6 +10469,7 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
 }
 
 
+    SA.BrowserPanel = BrowserPanel;
     SA.ViewBrowser = ViewBrowser;
 
 })();
@@ -10761,8 +10736,8 @@ window.SA = window.SA || {};
             note.DisplayView(this);
         }
 
-        if (SA.NotesWidget) {
-            SA.NotesWidget.SelectNote(note);
+        if (SA.notesWidget) {
+            SA.notesWidget.SelectNote(note);
         }
     }
     DualViewWidget.prototype.GetNote = function () {
@@ -11491,8 +11466,8 @@ function TabPanel(tabbedDiv, title) {
 
         this.Children = newChildren;
         this.UpdateChildrenGUI();
-        if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
         }
     }
 
@@ -11549,8 +11524,8 @@ function TabPanel(tabbedDiv, title) {
     Note.prototype.TitleFocusInCallback = function() {
         // Keep the viewer from processing arrow keys.
         SA.ContentEditableHasFocus = true;
-        if (SA.DualDisplay) {
-            SA.DualDisplay.SetNote(this);
+        if (SA.dualDisplay) {
+            SA.dualDisplay.SetNote(this);
         }
     }
 
@@ -11560,8 +11535,8 @@ function TabPanel(tabbedDiv, title) {
             // Move the Title from the GUI to the note.
             this.Modified = false;
             this.Title = this.TitleEntry.text();
-            if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+            if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
             }
         }
         // Allow the viewer to process arrow keys.
@@ -11608,11 +11583,11 @@ function TabPanel(tabbedDiv, title) {
         this.ClearHyperlink();
 
         if (this.Type != 'view') {
-            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget &&
-                SA.DualDisplay.NavigationWidget.GetNote() == this) {
+            if (SA.dualDisplay && SA.dualDisplay.NavigationWidget &&
+                SA.dualDisplay.NavigationWidget.GetNote() == this) {
                 // Move the current note off this note.
                 // There is always a previous.
-                SA.DualDisplay.NavigationWidget.PreviousNote();
+                SA.dualDisplay.NavigationWidget.PreviousNote();
             }
         }
 
@@ -11623,8 +11598,8 @@ function TabPanel(tabbedDiv, title) {
 
         // Redraw the GUI.
         parent.UpdateChildrenGUI();
-        if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
         }
     }
 
@@ -11765,7 +11740,7 @@ function TabPanel(tabbedDiv, title) {
 
         // Now insert the child after the current note.
         this.Children.splice(childIdx,0,childNote);
-        childNote.SetParent(parentNote);
+        childNote.SetParent(this);
 
         return childNote;
     }
@@ -11814,7 +11789,7 @@ function TabPanel(tabbedDiv, title) {
 
         this.TitleEntry
             .click(function() {
-                if (SA.DualDisplay) { SA.DualDisplay.SetNote(self); }
+                if (SA.dualDisplay) { SA.dualDisplay.SetNote(self); }
                 self.ButtonsDiv.show();
             })
             .bind('input', function () {
@@ -11826,7 +11801,7 @@ function TabPanel(tabbedDiv, title) {
                 if (self.Modified) {
                     self.Modified = false;
                     self.Title = self.TitleEntry.text();
-                    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();}
+                    if (SA.notesWidget) {SA.notesWidget.MarkAsModified();}
                 }
             });
 
@@ -11834,7 +11809,7 @@ function TabPanel(tabbedDiv, title) {
             .hover(
                 function() {
                     self.TitleEntry.css({'color':'#33D'});
-                    if (SA.NotesWidget && SA.NotesWidget.SelectedNote == self) {
+                    if (SA.notesWidget && SA.notesWidget.SelectedNote == self) {
                         self.ButtonsDiv.show();
                     }
                 },
@@ -11855,7 +11830,7 @@ function TabPanel(tabbedDiv, title) {
             // Removing and adding removes the callbacks.
             this.AddButton
                 .click(function () {
-                    if (SA.NotesWidget) {SA.NotesWidget.NewCallback();}
+                    if (SA.notesWidget) {SA.notesWidget.NewCallback();}
                 });
             this.LinkButton
                 .click(function () {
@@ -12036,19 +12011,19 @@ function TabPanel(tabbedDiv, title) {
 
     Note.prototype.Collapse = function() {
         this.ChildrenVisibility = false;
-        if (this.Contains(SA.NotesWidget.SelectedNote)) {
+        if (this.Contains(SA.notesWidget.SelectedNote)) {
             // Selected note should not be in collapsed branch.
             // Make the visible ancestor active.
-            SA.DualDisplay.SetNote(this);
+            SA.dualDisplay.SetNote(this);
         }
         this.UpdateChildrenGUI();
-        SA.DualDisplay.NavigationWidget.Update();
+        SA.dualDisplay.NavigationWidget.Update();
     }
 
     Note.prototype.Expand = function() {
         this.ChildrenVisibility = true;
         this.UpdateChildrenGUI();
-        SA.DualDisplay.NavigationWidget.Update();
+        SA.dualDisplay.NavigationWidget.Update();
     }
 
     // Extra stuff for stack.
@@ -12080,8 +12055,8 @@ function TabPanel(tabbedDiv, title) {
 
         // To determine which notes camera to save.
         // For when the user creates a camera link.
-        if (SA.NotesWidget) {
-            SA.NotesWidget.DisplayedNote = this;
+        if (SA.notesWidget) {
+            SA.notesWidget.DisplayedNote = this;
         }
 
         var numViewers = display.GetNumberOfViewers();
@@ -12720,7 +12695,7 @@ function TabPanel(tabbedDiv, title) {
         // Create a child note.
         var parentNote = this.Note;
         if ( ! parentNote) {
-            parentNote = SA.DualDisplay.GetRootNote();
+            parentNote = SA.dualDisplay.GetRootNote();
         }
 
         // Create a new note to hold the view.
@@ -12938,13 +12913,16 @@ function NotesWidget(parent, display) {
 
     // GUI elements
     this.TabbedWindow = new SA.TabbedDiv(this.Window);
+
+    this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
+    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
     this.LinksRoot = $('<ul>')
         .addClass('sa-ul')
         .css({'padding-left':'0px'})
         .appendTo(this.LinksDiv);
-    this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
+
+
 
     for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
         this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
@@ -13149,13 +13127,13 @@ NotesWidget.prototype.SelectNote = function(note) {
     note.TitleEntry.css({'background':'#f0f0f0'});
     // This highlighting can be confused with the selection highlighting.
     // Indicate hyperlink current note.
-    //$('#'+SA.NotesWidget.SelectedNote.Id).css({'background':'#CCC'});
+    //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
     // Select the current hyper link
     note.SelectHyperlink();
 
-    //if (SA.DualDisplay &&
-    //    SA.DualDisplay.NavigationWidget) {
-    //    SA.DualDisplay.NavigationWidget.Update();
+    //if (SA.dualDisplay &&
+    //    SA.dualDisplay.NavigationWidget) {
+    //    SA.dualDisplay.NavigationWidget.Update();
     //}
 
     //if (this.Display.GetNumberOfViewers() > 1) {
@@ -13235,8 +13213,8 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
 
     // Set the state of the notes widget.
     // Should we ever turn it off?
-    if (SA.ResizePanel) {
-        SA.ResizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
+    if (SA.resizePanel) {
+        SA.resizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
     }
 
     this.UpdateQuestionMode();
@@ -13288,7 +13266,7 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     }
     note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
-    note.NotesPanelOpen = (SA.ResizePanel && SA.ResizePanel.Visibility);
+    note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
 
     var rootNote = this.Display.GetRootNote();
     if (rootNote.Type == "Stack") {
@@ -13328,7 +13306,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
-        var thumb = SA.DualDisplay.CreateThumbnailImage(110);
+        var thumb = SA.dualDisplay.CreateThumbnailImage(110);
         src = thumb.src;
     }
 
@@ -13369,7 +13347,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.AddViewButton
             .appendTo(this.LinksDiv)
             .click(function () {
-                var parentNote = SA.NotesWidget.RootNote;
+                var parentNote = SA.notesWidget.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
                 // Setup and save
@@ -13736,9 +13714,9 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     // Hack to make all stack viewers share a single annotation visibility
     // flag.
-    if (SA.NotesWidget) {
-        var note = SA.NotesWidget.GetCurrentNote();
-        if (note.Type == 'Stack') {
+    if (SA.notesWidget) {
+        var note = SA.notesWidget.GetCurrentNote();
+        if (note && note.Type == 'Stack') {
             for (var i = 0; i < note.ViewerRecords.length; ++i) {
                 note.ViewerRecords[i].AnnotationVisibility = visibility;
             }
@@ -13989,9 +13967,13 @@ ViewerRecord.prototype.DeepCopy = function(source) {
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
-    if ( ! obj.Image.units) {
-        obj.Image.spacing[0] = obj.Image.spacing[1] = 0.25;
-        obj.Image.units = "\xB5m"; // um / micro meters
+    if ( ! obj.Image.units && obj.Image.filename) {
+        var tmp = obj.Image.filename.split();
+        var ext = tmp[tmp.length-1];
+        if (ext == "ptif") {
+            obj.Image.spacing = [0.25, 0.25, 1.0];
+            obj.Image.units = "\xB5m"; // um / micro meters
+        }
     }
 
     if ( ! obj.Camera) {
@@ -14137,17 +14119,20 @@ ViewerRecord.prototype.Apply = function (viewer) {
     if (viewer.AnnotationWidget && this.AnnotationVisibility != undefined) {
         viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
     }
-    if (this.Annotations != undefined && viewer.AnnotationLayer) {
-        // TODO: Fix this.  Keep actual widgets in the records / notes.
-        // For now lets just do the easy thing and recreate all the
-        // annotations.
-        viewer.AnnotationLayer.Reset();
-        for (var i = 0; i < this.Annotations.length; ++i) {
-            var widget = viewer.AnnotationLayer.LoadWidget(this.Annotations[i]);
-            if (! widget) {
-                // Get rid of corrupt widgets that do not load properly
-                this.Annotations.splice(i,1);
-                --i;
+    if (this.Annotations != undefined) {
+        var annotationLayer = viewer.GetAnnotationLayer();
+        if (annotationLayer) {
+            // TODO: Fix this.  Keep actual widgets in the records / notes.
+            // For now lets just do the easy thing and recreate all the
+            // annotations.
+            annotationLayer.Reset();
+            for (var i = 0; i < this.Annotations.length; ++i) {
+                var widget = annotationLayer.LoadWidget(this.Annotations[i]);
+                if (! widget) {
+                    // Get rid of corrupt widgets that do not load properly
+                    this.Annotations.splice(i,1);
+                    --i;
+                }
             }
         }
     }
@@ -14170,7 +14155,7 @@ ViewerRecord.prototype.LoadTiles = function (viewport) {
     // Load only the tiles we need.
     var tiles = cache.ChooseTiles(cam, 0, []);
     for (var i = 0; i < tiles.length; ++i) {
-        LoadQueueAddTile(tiles[i]);
+        SA.LoadQueueAddTile(tiles[i]);
     }
 }
 
@@ -14311,8 +14296,8 @@ RecorderWidget.prototype.RecordStateCallback = function() {
 
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
-    if (SA.DualDisplay) {
-        var parentNote = SA.DualDisplay.GetNote();
+    if (SA.dualDisplay) {
+        var parentNote = SA.dualDisplay.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -14730,8 +14715,8 @@ NavigationWidget.prototype.PreviousNote = function() {
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
     // TODO: Clean this up. Is a call to display SetNote enough?
-    if (SA.DualDisplay) {
-        SA.DualDisplay.SetNote(note);
+    if (SA.dualDisplay) {
+        SA.dualDisplay.SetNote(note);
     } else {
         note.DisplayView(this.Display);
     }
@@ -14781,8 +14766,8 @@ NavigationWidget.prototype.NextNote = function() {
     var note = this.NoteIterator.Next();
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
-    if (SA.DualDisplay) {
-        SA.DualDisplay.SetNote(note);
+    if (SA.dualDisplay) {
+        SA.dualDisplay.SetNote(note);
     } else {
         note.DisplayView(this.Display);
     }
@@ -14791,15 +14776,22 @@ NavigationWidget.prototype.NextNote = function() {
 
 NavigationWidget.prototype.PreviousSlide = function() {
     SA.StackCursorFlag = false;
-    if (this.SlideIndex <= 0) { return; }
+    // Find the previous slide ( skip presentations)
+    var prevSlideIdx = this.SlideIndex - 1;
+    while (prevSlideIdx >= 0 &&
+           this.Session[prevSlideIdx].Type == "Presentation") {
+        --prevSlideIdx;
+    }
+    if (prevSlideIdx < 0) { return; }
+
     var check = true;
-    if (SA.NotesWidget && SA.NotesWidget.Modified) {
+    if (SA.notesWidget && SA.notesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
         // TODO: Improve the API here.  Get rid of global access.
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
-        this.SlideIndex -= 1;
+        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
+        this.SlideIndex = prevSlideIdx;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
@@ -14810,14 +14802,20 @@ NavigationWidget.prototype.PreviousSlide = function() {
 
 NavigationWidget.prototype.NextSlide = function() {
     SA.StackCursorFlag = false;
-    if (this.SlideIndex >= this.Session.length - 1) { return; }
+    // Find the next slide ( skip presentations)
+    var nextSlideIdx = this.SlideIndex + 1;
+    while (nextSlideIdx < this.Session.length &&
+           this.Session[nextSlideIdx].Type == "Presentation") {
+        ++nextSlideIdx;
+    }
+    if (nextSlideIdx >= this.Session.length) { return; }
     var check = true;
-    if ( SA.NotesWidget && SA.NotesWidget.Modified) {
+    if ( SA.notesWidget && SA.notesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
-        this.SlideIndex += 1;
+        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
+        this.SlideIndex = nextSlideIdx;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
@@ -15009,8 +15007,8 @@ NoteIterator.prototype.SetNote = function(note) {
             this.Note = note;
             // BIG Hack here.
             // I got rid of a special SetRootNote call too soon.
-            if (SA.NotesWidget) {
-                SA.NotesWidget.SetRootNote(note);
+            if (SA.notesWidget) {
+                SA.notesWidget.SetRootNote(note);
             }
             return;
         }
@@ -15137,7 +15135,7 @@ NoteIterator.prototype.GetNote = function() {
 
 
     FavoritesBar.prototype.SaveFavorite = function() {
-        SA.NotesWidget.SaveBrownNote();
+        SA.notesWidget.SaveBrownNote();
         // Hide shifts the other buttons to the left to fill the gap.
         var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
         button.addClass("sa-inactive");
@@ -15195,7 +15193,7 @@ NoteIterator.prototype.GetNote = function() {
         var index = $(img).attr('index');
         note.Load(this.Favorites[index]);
 
-        note.DisplayView(SA.DualDisplay);
+        note.DisplayView(SA.dualDisplay);
     }
 
     FavoritesBar.prototype.DeleteFavorite = function(img){
@@ -15295,7 +15293,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
     console.log("New circle");
 
     // Hard code only a single view for now.
-    this.Layer = SA.VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].GetAnnotationLayer();
 
     if ( this.Layer.ActiveWidget != undefined && widget ) {
         this.Layer.ActiveWidget.Deactivate();
@@ -15314,7 +15312,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-    this.Layer = SA.VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].GetAnnotationLayer();
     var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         widget.Deactivate();
@@ -16402,7 +16400,7 @@ jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
     this.saElement();
     this.addClass('sa-presentation-rectangle');
     for (var i = 0; i < this.length; ++i) {
-        dom = this[i];
+        var dom = this[i];
         if ( ! dom.saRectangle) {
             dom.saRectangle = new saRectangle($(dom));
         }
@@ -16564,7 +16562,7 @@ jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
     this.saRectangle();
     this.addClass('sa-text');
     for (var i = 0; i < this.length; ++i) {
-        dom = this[i];
+        var dom = this[i];
         if ( ! dom.saText) {
             dom.saText = new saText($(dom));
         }
@@ -18030,7 +18028,7 @@ jQuery.prototype.saHtml = function(string) {
         this.find('.ui-resizable').removeClass('ui-resizable');
 
         // We need to load the note.
-        viewDivs = this.find('.sa-lightbox-viewer');
+        var viewDivs = this.find('.sa-lightbox-viewer');
         viewDivs.saLightBoxViewer({'hideCopyright': true,
                                    'interaction':   false});
 
@@ -18520,7 +18518,7 @@ jQuery.prototype.saScalableFont = function(args) {
                     scale = this.saScalableFont.scale;
                     // Scale it relative to the window.
                     var height = $(this).parent().innerHeight();
-                    fontSize = Math.round(scale * height) + 'px';
+                    var fontSize = Math.round(scale * height) + 'px';
                     this.style.fontSize = fontSize;
                     // Getting and setting the html creates text chidlren
                     // with their own font size.
@@ -19171,7 +19169,7 @@ function saMenuButton(args, menuButton) {
               'z-index' : '5'})
         .hide();
 
-    for (label in args) {
+    for (var label in args) {
         this.AddMenuItem(label, args[label]);
     }
     // Jquery UI formatting
@@ -19278,7 +19276,7 @@ function saMenuButton(args, menuButton) {
               'z-index' : '5'})
         .hide();
 
-    for (label in args) {
+    for (var label in args) {
         this.AddMenuItem(label, args[label]);
     }
     // Jquery UI formatting
@@ -19435,19 +19433,6 @@ function Presentation(rootNote, edit) {
     //SA.MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
-    // Hack.  It is only used for events.
-    // TODO: Fix events and get rid of this.
-    CANVAS = $('<div>')
-            .appendTo('body')
-            .css({
-                'position': 'absolute',
-                'width': '100%',
-                'height': '100%',
-                'top' : '0px',
-                'left' : '0px',
-                'z-index': '-1'
-            });
-
     this.WindowDiv = $('<div>')
         .appendTo('body')
         .css({
@@ -19503,7 +19488,7 @@ function Presentation(rootNote, edit) {
     this.LeftPanel = this.ResizePanel.PanelDiv;
     this.InitializeLeftPanel(this.LeftPanel);
     // Left panel is closed by default on mobile devices.
-    if (detectMobile()) {
+    if (SA.detectMobile()) {
         this.ResizePanel.Hide();
     }
 
@@ -19565,7 +19550,7 @@ function Presentation(rootNote, edit) {
     this.GotoSlide(0);
 
     // Keep the browser from showing the left click menu.
-    document.oncontextmenu = cancelContextMenu;
+    document.oncontextmenu = SA.cancelContextMenu;
 
     $('body').on(
         'keydown',
@@ -19816,7 +19801,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 
     this.UserTextDiv = this.EditTabs.NewTabDiv("Notes", "private notes");
     // Private notes.
-    this.UserNoteEditor = new SA.UserNoteEditor(this.UserTextDiv);
+    this.UserNoteEditor = new UserNoteEditor(this.UserTextDiv);
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
@@ -20070,7 +20055,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
-    this.SlidePage.DisplayNote(this.Note, SA.Presentation.Index);
+    this.SlidePage.DisplayNote(this.Note, SA.presentation.Index);
 }
 
 // Callback from search.
@@ -20475,7 +20460,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
             .text(title)
             .data("index",i)
             .click(function () {
-                SA.Presentation.GotoSlide($(this).data("index"));
+                SA.presentation.GotoSlide($(this).data("index"));
             });
         var sortHandle = $('<span>')
             .appendTo(slideDiv)
@@ -20586,12 +20571,15 @@ function SlidePage(parent, edit) {
     if (this.Edit) {
         // TODO: Better API (jquery) for adding widgets.
         // TODO: Better placement control for the widget.
+
+        var viewer = this.ViewerDiv1[0].saViewer;
         this.AnnotationWidget1 = new SA.AnnotationWidget(
-            this.ViewerDiv1[0].saViewer.AnnotationLayer);
+            viewer.GetAnnotationLayer(), viewer);
         this.AnnotationWidget1.SetVisibility(2);
 
+        var viewer = this.ViewerDiv2[0].saViewer;
         this.AnnotationWidget2 = new SA.AnnotationWidget(
-            this.ViewerDiv2[0].saViewer.AnnotationLayer);
+            viewer.GetAnnotationLayer(), viewer);
         this.AnnotationWidget2.SetVisibility(2);
 
         // TODO: Move this to bind in jquery.  (not sure how to do this yet)
@@ -20609,9 +20597,9 @@ function SlidePage(parent, edit) {
                   'height':'12px',
                   'z-index':'5'})
             .click(function () {
-                SA.Presentation.Note.ViewerRecords.splice(0,1);
+                SA.presentation.Note.ViewerRecords.splice(0,1);
                 // Redisplay the viewers
-                self.DisplayNote(self.Note, SA.Presentation.Index);
+                self.DisplayNote(self.Note, SA.presentation.Index);
             });
         this.RemoveView2Button = $('<img>')
             .appendTo(this.ViewerDiv2)
@@ -20625,9 +20613,9 @@ function SlidePage(parent, edit) {
                   'height':'12px',
                   'z-index':'5'})
             .click(function () {
-                SA.Presentation.Note.ViewerRecords.splice(1,1);
+                SA.presentation.Note.ViewerRecords.splice(1,1);
                 // Redisplay the viewers
-                self.DisplayNote(self.Note, SA.Presentation.Index);
+                self.DisplayNote(self.Note, SA.presentation.Index);
             });
 
         // Setup view resizing.
@@ -20727,7 +20715,7 @@ function SlidePage(parent, edit) {
 
 SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
     if (viewerDiv) {
-        SA.Presentation.EditOff();
+        SA.presentation.EditOff();
         this.FullWindowViewOffButton.show();
         this.FullWindowView1Button.hide();
         this.FullWindowView2Button.hide();
@@ -20742,7 +20730,7 @@ SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
             'bottom': '300px',
             'height': 'auto'});
         if (SA.Edit) {
-            SA.Presentation.EditOn();
+            SA.presentation.EditOn();
         }
 
     }
@@ -20946,7 +20934,7 @@ SlidePage.prototype.InsertViewNote = function (note) {
         this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
     }
 
-    this.DisplayNote(this.Note, SA.Presentation.Index);
+    this.DisplayNote(this.Note, SA.presentation.Index);
 }
 
 
@@ -21723,15 +21711,15 @@ HtmlPage.prototype.ViewDeleteCallback = function (dom) {
 // I could make this scalabe ifram as a jquery extension too.
 HtmlPage.prototype.BindElements = function() {
     // Similar to text, we need to scale the content.
-    frameElements = $('.sa-presentation-iframe');
+    var frameElements = $('.sa-presentation-iframe');
     frameElements.addClass('sa-resize');
     for (var i = 0; i < frameElements.length; ++i) {
-        frame = frameElements[i];
+        var frame = frameElements[i];
         frame.onresize =
             function () {
                 var w = $(this).parent().width();
                 var h = $(this).parent().height();
-                scale = Math.min(h,w/1.62) / 700;
+                var scale = Math.min(h,w/1.62) / 700;
                 scaleStr = scale.toString();
                 w = (Math.floor(w/scale)).toString();
                 h = (Math.floor(h/scale)).toString();
@@ -21858,7 +21846,7 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
 
     // These are in order of best match.
     for (var i = 0; i < data.images.length; ++i) {
-        imgObj = data.images[i];
+        var imgObj = data.images[i];
 
         var imageDiv = $('<div>')
             .appendTo(this.SearchResults)
@@ -22767,7 +22755,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
 
         if (returnCallback) {
             var ctx  = view.Context2d;
-            var data = GetImageData(view);
+            var data = view.GetImageData();
             returnCallback(data);
         }
     }
@@ -23667,9 +23655,9 @@ function Segmentation (viewer) {
     var context  = viewer.MainView.Context2d;
     this.Viewer = viewer;
     this.Context = context;
-    this.Data = GetImageData(viewer.MainView);
+    this.Data = viewer.MainView.GetImageData();
     // Lets add a center surround channel by over writing alpha.
-    var tmp = GetImageData(viewer.MainView);
+    var tmp = viewer.MainView.GetImageData();
     // Smooth for the center.
     SmoothDataAlphaRGB(tmp,1);
     // Save the results.
@@ -24815,85 +24803,6 @@ DistanceMap.prototype.GetGradient = function(x, y) {
 }
 
 
-//=================================================
-// Extend the image data returned by the canvas.
-
-function ImageData() {
-    this.IncX = 1;
-    this.IncY = 1;
-}
-
-ImageData.prototype.GetIntensity = function (x,y) {
-    if (! this.data) { return 0;}
-    x = Math.round(x);
-    y = Math.round(y);
-    var idx = x*this.IncX + y*this.IncY;
-    return (this.data[idx] + this.data[idx+1] + this.data[idx+2]) / 3;
-}
-
-ImageData.prototype.InBounds = function (x,y) {
-    if (! this.data) { return false;}
-    return (x >=0 && x < this.width && y >=0 && y < this.height);
-}
-
-
-// Add a couple methods to the object.
-// change this to take a view instead of a viewer.
-function GetImageData(view) {
-    // interesting: When does it need to be set?
-    //ctx.imageSmoothingEnabled = true; 
-    // useful for debugging
-    //ctx.putImageData(imagedata, dx, dy);
-    var cam = view.Camera;
-    var width = Math.floor(cam.ViewportWidth);
-    var height = Math.floor(cam.ViewportHeight);
-    var ctx  = view.Context2d;
-    var data = ctx.getImageData(0,0,width,height);
-    data.Camera = new SAM.Camera();
-    data.Camera.DeepCopy(view.Camera);
-    data.__proto__ = new ImageData();
-    data.IncX = 4;
-    data.width = width;
-    data.height = height;
-    data.IncY = data.IncX * data.width;
-    return data;
-}
-
-
-
-// Mark edges visited so we do not create the same contour twice.
-// I cannot mark the pixel cell because two contours can go through the same cell.
-// Note:  I have to keep track of both the edge and the direction the contour leaves
-// the edge.  The backward direction was to being contoured because the starting
-// edge was already marked.  The order of the points here matters.  Each point
-// marks 4 edges.
-ImageData.prototype.MarkEdge = function (x0,y0, x1,y1) {
-    if ( ! this.EdgeMarks) {
-        var numTemplates = Math.round((this.width)*(this.height));
-        this.EdgeMarks = new Array(numTemplates);
-        for (var i = 0; i < numTemplates; ++i) {
-            this.EdgeMarks[i] = 0;
-        }
-    }
-
-    var edge = 0;
-    if (x0 != x1) {
-        edge = (x0 < x1) ? 1 : 4;
-    } else if (y0 != y1) {
-        edge = (y0 < y1) ? 2 : 8;
-    }
-
-    var idx = x0  + y0*(this.width);
-    var mask = this.EdgeMarks[idx];
-    if (mask & edge) {
-        return true;
-    }
-    this.EdgeMarks[idx] = mask | edge;
-    return false;
-}
-
-
-
 //--------------------------------
 // iso contouring from canvas data
 
@@ -25646,7 +25555,7 @@ function testDebug() {
 var WAITING;
 
 function DeformableAlignViewers() {
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -25676,14 +25585,14 @@ function DeformableAlignViewers() {
             var spacing = 3;
 
             var viewer = SA.VIEWERS[0];
-            var data1 = GetImageData(viewer.MainView);
+            var data1 = viewer.MainView.GetImageData();
             SmoothDataAlphaRGB(data1, 2);
             var histogram1 = ComputeIntensityHistogram(data1, true);
             var threshold1 = PickThreshold(histogram1);
             var contour1 = LongestContour(data1, threshold1);
 
             viewer = SA.VIEWERS[1];
-            var data2 = GetImageData(viewer.MainView);
+            var data2 = viewer.MainView.GetImageData();
             SmoothDataAlphaRGB(data2, 2);
             var histogram2 = ComputeIntensityHistogram(data2, true);
             var threshold2 = PickThreshold(histogram2);
@@ -25737,7 +25646,7 @@ function DeformableAlignViewers() {
 
             console.log("Finished alignment");
             // Syncronize views
-            SA.DualDisplay.SynchronizeViews(0, note);
+            SA.dualDisplay.SynchronizeViews(0, note);
 
             WAITING.hide();
 
@@ -25828,7 +25737,7 @@ function MaskPolylinesByColor(rgb) {
     }
 
     // Do the note too.
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     // Display has no get root.
     while (note.Parent) {
         note = note.Parent;
@@ -25946,7 +25855,7 @@ function IntegratePolylinesByColor(rgb) {
 
 
 function AlignPolylines2(pLine1, pLine2, replace) {
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -26028,7 +25937,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
 
     console.log("Finished alignment");
     // Syncronize views
-    SA.DualDisplay.SynchronizeViews(0, note);
+    SA.dualDisplay.SynchronizeViews(0, note);
 
     eventuallyRender();
 }
@@ -26198,7 +26107,7 @@ function intensityHistogram(viewer, color, min, max) {
     }
     PLOT.Clear();
 
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     var histogram1 = ComputeIntensityHistogram(data1);
     PLOT.Draw(histogram1, color, min, max);
     var d = HistogramIntegral(histogram1);
@@ -26207,7 +26116,7 @@ function intensityHistogram(viewer, color, min, max) {
 
 // Takes around a second for r = 3;
 function testSmooth(radius) {
-    var data1 = GetImageData(SA.VIEWERS[0].MainView);
+    var data1 = SA.VIEWERS[0].MainView.GetImageData();
     SmoothDataAlphaRGB(data1,radius);
     DrawImageData(SA.VIEWERS[0], data1);
 }
@@ -26219,7 +26128,7 @@ function testSmooth(radius) {
 // Some tissue has the same value as background. I would need a fill to segment background better.
 // Deep red tissue keeps blue red component from dominating.
 function testPrincipleComponentEncoding() {
-    var data1 = GetImageData(SA.VIEWERS[0].MainView);
+    var data1 = SA.VIEWERS[0].MainView.GetImageData();
     SmoothDataAlphaRGB(data1,2);
     //EncodePrincipleComponent(data1);
     var histogram1 = ComputeIntensityHistogram(data1);
@@ -26235,13 +26144,13 @@ function testPrincipleComponentEncoding() {
 
 // Worked sometimes, but not always.
 function testAlignTranslationPixelMean() {
-    var data1 = GetImageData(SA.VIEWERS[0].MainView);
+    var data1 = SA.VIEWERS[0].MainView.GetImageData();
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     ThresholdData(data1, threshold1);
     //DrawImageData(SA.VIEWERS[0], data1);
 
-    var data2 = GetImageData(SA.VIEWERS[1].MainView);
+    var data2 = SA.VIEWERS[1].MainView.GetImageData();
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     ThresholdData(data2, threshold2);
@@ -26272,7 +26181,7 @@ function testAlignTranslationPixelMean() {
 // Minimize distance between two contours. (Distance map to keep distance computation fast).
 function testAlignTranslation(debug) {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -26280,7 +26189,7 @@ function testAlignTranslation(debug) {
 
     var viewer2 = SA.VIEWERS[1];
     var viewport2 = viewer2.GetViewport();
-    var data2 = GetImageData(viewer2.MainView);
+    var data2 = viewer2.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -26314,14 +26223,14 @@ function testAlignTranslation(debug) {
 
 function testAlignTranslation2(debug) {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
     var viewer2 = SA.VIEWERS[1];
-    var data2 = GetImageData(viewer2.MainView);
+    var data2 = viewer2.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -26358,7 +26267,7 @@ function testAlignTranslation2(debug) {
 // Moving toward deformation of contour
 function testAlignTranslation() {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -26367,7 +26276,7 @@ function testAlignTranslation() {
     //MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
     var viewer2 = SA.VIEWERS[1];
-    var data2 = GetImageData(viewer2.MainView);
+    var data2 = viewer2.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 5);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -26412,7 +26321,7 @@ function testAlignTranslation() {
 
 function testDistanceMapContour() {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
@@ -26429,7 +26338,7 @@ function testDistanceMapContour() {
 function testDistanceMapThreshold() {
     var viewer1 = SA.VIEWERS[0];
     var ctx1 = viewer1.MainView.Context2d;
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
@@ -26449,7 +26358,7 @@ function testDistanceMapThreshold() {
 // lets do it after.  Scan for edge. Trace the edge. Mark pixels that have already been contoured.
 function testContour(threshold) {
     var viewer = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var points = LongestContour(data1, threshold);
     ContourRemoveDuplicatePoints(points, 1);
@@ -26468,7 +26377,7 @@ function testContourMesh(deci) {
         deci = 3;
     }
     var viewer = SA.VIEWERS[1];
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -26504,7 +26413,7 @@ function testDeformableAlign(spacing) {
         spacing = 3;
     }
     var viewer = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -26512,7 +26421,7 @@ function testDeformableAlign(spacing) {
     MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
     viewer = SA.VIEWERS[1];
-    var data2 = GetImageData(viewer.MainView);
+    var data2 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -26657,7 +26566,7 @@ function findHagFishSections(smooth, min, max) {
     VERIFIED_HAGFISH_CONTOURS = [];
 
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, smooth);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -28666,7 +28575,7 @@ Section.prototype.LoadTilesInView = function (view) {
         this.CopyrightWrapper = $('<div>')
             .appendTo(this.MainView.CanvasDiv)
             .addClass("sa-view-copyright");
-        if (SA.Session.sessid == "560b5127a7a1412195d13685") {
+        if (SA.Session && SA.Session.sessid == "560b5127a7a1412195d13685") {
             this.Icon = $('<img>')
                 .appendTo(this.MainView.CanvasDiv)
                 .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
@@ -28677,6 +28586,17 @@ Section.prototype.LoadTilesInView = function (view) {
                       'width'   : '128px',
                       'z-index' : '4'});
         }
+
+        // Create an annotation layer by default.
+        var annotationLayer1 = new SAM.AnnotationLayer(this.Div);
+        this.AddLayer(annotationLayer1);
+        // TODO: Get rid of this.  master view is passed to draw.
+        //Hack so the scale widget can get the spacing.
+        annotationLayer1.ScaleWidget.View = this.MainView;
+        // Hack only used for girder testing.
+        annotationLayer1.Viewer = this;
+        var annotationWidget1 =
+            new SA.AnnotationWidget(annotationLayer1, this);
     }
 
     // Try to remove all global references to this viewer.
@@ -28702,6 +28622,16 @@ Section.prototype.LoadTilesInView = function (view) {
     // Layers have a Draw(masterView) method.
     Viewer.prototype.AddLayer = function (layer) {
         this.Layers.push(layer);
+    }
+
+    // Hack to get the annotation layer
+    Viewer.prototype.GetAnnotationLayer = function () {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if (this.Layers[i] instanceof SAM.AnnotationLayer) {
+                return this.Layers[i];
+            }
+        }
+        return null;
     }
 
     // Abstracting saViewer  for viewer and dualViewWidget.
@@ -29127,7 +29057,7 @@ Section.prototype.LoadTilesInView = function (view) {
                                                 finishedCallback) {
         var sectionFileName = fileName;
         if (stack) {
-            var note = SA.DualDisplay.GetNote();
+            var note = SA.dualDisplay.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
                 sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -29150,9 +29080,9 @@ Section.prototype.LoadTilesInView = function (view) {
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
-            var note = SA.DualDisplay.GetNote();
+            var note = SA.dualDisplay.GetNote();
             if (note.StartIndex < note.ViewerRecords.length-1) {
-                SA.DualDisplay.NavigationWidget.NextNote();
+                SA.dualDisplay.NavigationWidget.NextNote();
                 var self = this;
                 setTimeout(function () {
                     self.SaveLargeImage(fileName, width, height, stack,
@@ -29195,11 +29125,11 @@ Section.prototype.LoadTilesInView = function (view) {
 
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
-        var note = SA.DualDisplay.GetNote();
+        var note = SA.dualDisplay.GetNote();
         var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
-            SA.DualDisplay.NavigationWidget.NextNote();
+            SA.dualDisplay.NavigationWidget.NextNote();
             SA.AddFinishedLoadingCallback(
                 function () {
                     self.SaveStackImage(fileNameRoot);
@@ -29850,11 +29780,11 @@ Section.prototype.LoadTilesInView = function (view) {
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
-        if (SA.DualDisplay.NavigationWidget &&
-            SA.DualDisplay.NavigationWidget.Visibility) {
+        if (SA.dualDisplay.NavigationWidget &&
+            SA.dualDisplay.NavigationWidget.Visibility) {
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
-            SA.DualDisplay.NavigationWidget.ToggleVisibility();
+            SA.dualDisplay.NavigationWidget.ToggleVisibility();
         }
 
         if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" &&
@@ -30080,8 +30010,8 @@ Section.prototype.LoadTilesInView = function (view) {
             if (t < 90) {
                 // We should not have a navigation widget on mobile
                 // devices. (maybe iPad?).
-                if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
-                    SA.DualDisplay.NavigationWidget.ToggleVisibility();
+                if (SA.dualDisplay && SA.dualDisplay.NavigationWidget) {
+                    SA.dualDisplay.NavigationWidget.ToggleVisibility();
                 }
                 if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
                     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();

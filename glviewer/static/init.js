@@ -44,10 +44,10 @@ window.SA = window.SA || {};
 
     // for debugging
     function MOVE_TO(x,y) {
-        SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-        SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-        if (SA.DualDisplay) {
-            SA.DualDisplay.Draw();
+        if (SA.dualDisplay) {
+            SA.dualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+            SA.dualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+            SA.dualDisplay.Draw();
         }
     }
 
@@ -183,8 +183,8 @@ window.SA = window.SA || {};
             return false;
         }
 
-        if (SA.Presentation) {
-            SA.Presentation.HandleKeyDown(event);
+        if (SA.presentation) {
+            SA.presentation.HandleKeyDown(event);
             return true;
         }
 
@@ -230,8 +230,8 @@ window.SA = window.SA || {};
 
         // Is SA really necessary?
         // TODO: Try to remove SA and test presentation stuff.
-        if (SA.Presentation) {
-            SA.Presentation.HandleKeyUp(event);
+        if (SA.presentation) {
+            SA.presentation.HandleKeyUp(event);
             return true;
         }
 
@@ -434,7 +434,7 @@ window.SA = window.SA || {};
 
 
 
-    function detectMobile() {
+    SA.detectMobile = function() {
         SA.MOBILE_DEVICE = false;
 
         if ( navigator.userAgent.match(/Android/i)) {
@@ -480,8 +480,8 @@ window.SA = window.SA || {};
     //    if (typeof(SA.ViewId) != "undefined") {
     //        return SA.ViewId;
     //    }
-    //    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
-    //        return SA.NotesWidget.RootNote._id;
+    //    if ( ! SA.notesWidget && ! SA.notesWidget.RootNote) {
+    //        return SA.notesWidget.RootNote._id;
     //    }
     //    SA.Debug("Could not find view id");
     //    return "";
@@ -827,8 +827,7 @@ window.SA = window.SA || {};
 
 
     function initGC() {
-
-        detectMobile();
+        SA.detectMobile();
     }
 
 
@@ -919,7 +918,7 @@ window.SA = window.SA || {};
         return SA.HandleKeyUpStack(event);
     }
 
-    function cancelContextMenu(e) {
+    SA.cancelContextMenu = function(e) {
         //alert("Try to cancel context menu");
         if (e && e.stopPropagation) {
             e.stopPropagation();
@@ -945,7 +944,7 @@ window.SA = window.SA || {};
     // This function gets called when the save button is pressed.
     function SaveCallback() {
         // TODO: This is no longer called by a button, so change its name.
-        SA.NotesWidget.SaveCallback(
+        SA.notesWidget.SaveCallback(
             function () {
                 // finished
                 SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
@@ -962,11 +961,11 @@ window.SA = window.SA || {};
 
         if (rootNote.Type == "Presentation" ||
             rootNote.Type == "HTML") {
-            SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
+            SA.presentation = new SA.Presentation(rootNote, SA.Edit);
             return;
         }
 
-        detectMobile();
+        SA.detectMobile();
         $(body).addClass("sa-view-body");
         // Just to see if webgl is supported:
         //var testCanvas = document.getElementById("gltest");
@@ -999,27 +998,25 @@ window.SA = window.SA || {};
         //.addClass("sa-view-canvas-panel")
 
         // Left panel for notes.
-        SA.ResizePanel = new SA.ResizePanel(SA.MainDiv);
-        SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
-        SA.NotesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
-                                            SA.DualDisplay);
+        SA.resizePanel = new SA.ResizePanel(SA.MainDiv);
+        SA.dualDisplay = new SA.DualViewWidget(SA.resizePanel.MainDiv);
+        SA.notesWidget = new SA.NotesWidget(SA.resizePanel.PanelDiv,
+                                            SA.dualDisplay);
 
         if (rootNote.Type == "Stack") {
-            SA.DualDisplay.SetNumberOfViewers(2);
+            SA.dualDisplay.SetNumberOfViewers(2);
         }
 
-        SA.NotesWidget.SetModifiedCallback(NotesModified);
-        SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+        SA.notesWidget.SetModifiedCallback(NotesModified);
+        SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
         // Navigation widget keeps track of which note is current.
         // Notes widget needs to access and change this.
-        SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-        if (SA.DualDisplay.NavigationWidget) {
-            SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        SA.notesWidget.SetNavigationWidget(SA.dualDisplay.NavigationWidget);
+        if (SA.dualDisplay.NavigationWidget) {
+            SA.dualDisplay.NavigationWidget.SetInteractionEnabled(true);
         }
 
-        new SA.RecorderWidget(SA.DualDisplay);
-
-        SA.DualDisplay.SetNote(rootNote);
+        new SA.RecorderWidget(SA.dualDisplay);
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
@@ -1027,7 +1024,7 @@ window.SA = window.SA || {};
             if ( SA.Edit) {
                 // Put a save button here when editing.
                 SA.SaveButton = $('<img>')
-                    .appendTo(SA.ResizePanel.MainDiv)
+                    .appendTo(SA.resizePanel.MainDiv)
                     .css({'position':'absolute',
                           'bottom':'4px',
                           'left':'10px',
@@ -1037,20 +1034,20 @@ window.SA = window.SA || {};
                     .addClass('editButton')
                     .attr('src',SA.ImagePathUrl+"save22.png")
                     .click(SaveCallback);
-                for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
-                SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.NotesWidget.RecordView();});
+                for (var i = 0; i < SA.dualDisplay.Viewers.length; ++i) {
+                SA.dualDisplay.Viewers[i].OnInteraction(
+                    function () {SA.notesWidget.RecordView();});
                 }
             } else {
                 // Favorites when not editing.
-                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.dualDisplay);
                 //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
             }
         }
 
-        if (SA.MOBILE_DEVICE && SA.DualDisplay && 
-            SA.DualDisplay.NavigationWidget) {
-            SA.DualDisplay.NavigationWidget.SetVisibility(false);
+        if (SA.MOBILE_DEVICE && SA.dualDisplay && 
+            SA.dualDisplay.NavigationWidget) {
+            SA.dualDisplay.NavigationWidget.SetVisibility(false);
         }
         if (SA.MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
             MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
@@ -1065,7 +1062,7 @@ window.SA = window.SA || {};
         document.onkeyup = handleKeyUp;
 
         // Keep the browser from showing the left click menu.
-        document.oncontextmenu = cancelContextMenu;
+        document.oncontextmenu = SA.cancelContextMenu;
 
         if ( ! SA.MOBILE_DEVICE) {
             // Hack for all viewer edit menus to share browser.
@@ -1074,37 +1071,14 @@ window.SA = window.SA || {};
             // TODO: See if we can get rid of this, or combine it with
             // the view browser.
             SA.InitSlideSelector(SA.MainDiv); // What is this?
-            var viewMenu1 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[0],
-                                                SA.DualDisplay.Viewers[1]);
-            var viewMenu2 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[1],
-                                                SA.DualDisplay.Viewers[0]);
-            var viewer1 = SA.DualDisplay.Viewers[0];
-            var annotationLayer1 = new SAM.AnnotationLayer(viewer1.Div);
-            viewer1.AddLayer(annotationLayer1);
-            // TODO: Get rid of this.  master view is passed to draw.
-            //Hack so the scale widget can get the spacing.
-            annotationLayer1.ScaleWidget.View = viewer1.MainView;
-            // Hack only used for girder testing.
-            annotationLayer1.Viewer = viewer1;
-            var annotationWidget1 =
-                new SA.AnnotationWidget(annotationLayer1, viewer1);
-            annotationWidget1.SetVisibility(2);
+            var viewMenu1 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[0],
+                                                SA.dualDisplay.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[1],
+                                                SA.dualDisplay.Viewers[0]);
+            var viewer1 = SA.dualDisplay.Viewers[0];
+            var viewer2 = SA.dualDisplay.Viewers[1];
 
-            
-            var viewer2 = SA.DualDisplay.Viewers[1];
-            var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
-            viewer2.AddLayer(annotationLayer2);
-            // TODO: Get rid of this.  master view is passed to draw.
-            //Hack so the scale widget can get the spacing.
-            annotationLayer2.ScaleWidget.View = viewer2.MainView;
-            // Hack only used for girder testing.
-            annotationLayer2.Viewer = viewer2;
-            var annotationWidget2 =
-                new SA.AnnotationWidget(annotationLayer2, viewer2);
-            annotationWidget2.SetVisibility(2);
-
-            SA.DualDisplay.UpdateGui();
-
+            SA.dualDisplay.UpdateGui();
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
@@ -1142,8 +1116,10 @@ window.SA = window.SA || {};
                  spacing: [0.15,0.15,1.0],
                  origin : [2000, 10000]});
             viewer2.AddLayer(SA.heatMap3);
-            */            
+            */
         }
+
+        SA.dualDisplay.SetNote(rootNote);
 
         $(window).bind('orientationchange', function(event) {
             handleResize();
@@ -1153,15 +1129,15 @@ window.SA = window.SA || {};
             handleResize();
         }).trigger('resize');
 
-        if (SA.DualDisplay) {
-            SA.DualDisplay.Draw();
+        if (SA.dualDisplay) {
+            SA.dualDisplay.Draw();
         }
     }
 
 
     // I had to prune all the annotations (lassos) that were not visible.
     function keepVisible(){
-        var n = SA.DualDisplay.GetNote();
+        var n = SA.dualDisplay.GetNote();
         var r = n.ViewerRecords[n.StartIndex];
         var w = SA.VIEWER1.WidgetList;
         var c = SA.VIEWER1.GetCamera();

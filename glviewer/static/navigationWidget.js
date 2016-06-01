@@ -305,8 +305,8 @@ NavigationWidget.prototype.PreviousNote = function() {
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
     // TODO: Clean this up. Is a call to display SetNote enough?
-    if (SA.DualDisplay) {
-        SA.DualDisplay.SetNote(note);
+    if (SA.dualDisplay) {
+        SA.dualDisplay.SetNote(note);
     } else {
         note.DisplayView(this.Display);
     }
@@ -356,8 +356,8 @@ NavigationWidget.prototype.NextNote = function() {
     var note = this.NoteIterator.Next();
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
-    if (SA.DualDisplay) {
-        SA.DualDisplay.SetNote(note);
+    if (SA.dualDisplay) {
+        SA.dualDisplay.SetNote(note);
     } else {
         note.DisplayView(this.Display);
     }
@@ -366,15 +366,22 @@ NavigationWidget.prototype.NextNote = function() {
 
 NavigationWidget.prototype.PreviousSlide = function() {
     SA.StackCursorFlag = false;
-    if (this.SlideIndex <= 0) { return; }
+    // Find the previous slide ( skip presentations)
+    var prevSlideIdx = this.SlideIndex - 1;
+    while (prevSlideIdx >= 0 &&
+           this.Session[prevSlideIdx].Type == "Presentation") {
+        --prevSlideIdx;
+    }
+    if (prevSlideIdx < 0) { return; }
+
     var check = true;
-    if (SA.NotesWidget && SA.NotesWidget.Modified) {
+    if (SA.notesWidget && SA.notesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
         // TODO: Improve the API here.  Get rid of global access.
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
-        this.SlideIndex -= 1;
+        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
+        this.SlideIndex = prevSlideIdx;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
@@ -385,14 +392,20 @@ NavigationWidget.prototype.PreviousSlide = function() {
 
 NavigationWidget.prototype.NextSlide = function() {
     SA.StackCursorFlag = false;
-    if (this.SlideIndex >= this.Session.length - 1) { return; }
+    // Find the next slide ( skip presentations)
+    var nextSlideIdx = this.SlideIndex + 1;
+    while (nextSlideIdx < this.Session.length &&
+           this.Session[nextSlideIdx].Type == "Presentation") {
+        ++nextSlideIdx;
+    }
+    if (nextSlideIdx >= this.Session.length) { return; }
     var check = true;
-    if ( SA.NotesWidget && SA.NotesWidget.Modified) {
+    if ( SA.notesWidget && SA.notesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
-        this.SlideIndex += 1;
+        if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
+        this.SlideIndex = nextSlideIdx;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
@@ -584,8 +597,8 @@ NoteIterator.prototype.SetNote = function(note) {
             this.Note = note;
             // BIG Hack here.
             // I got rid of a special SetRootNote call too soon.
-            if (SA.NotesWidget) {
-                SA.NotesWidget.SetRootNote(note);
+            if (SA.notesWidget) {
+                SA.notesWidget.SetRootNote(note);
             }
             return;
         }

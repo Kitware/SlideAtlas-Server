@@ -259,8 +259,8 @@ window.SA = window.SA || {};
             note.DisplayView(this);
         }
 
-        if (SA.NotesWidget) {
-            SA.NotesWidget.SelectNote(note);
+        if (SA.notesWidget) {
+            SA.notesWidget.SelectNote(note);
         }
     }
     DualViewWidget.prototype.GetNote = function () {

@@ -57,7 +57,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
-    if (SA.NotesWidget) {
+    if (SA.notesWidget) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Download Image")
@@ -166,7 +166,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
 // Record the viewer into the current note and save into the database.
 ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
-    if (SA.NotesWidget) SA.NotesWidget.SaveCallback();
+    if (SA.notesWidget) SA.notesWidget.SaveCallback();
 }
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
@@ -181,7 +181,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     // Which view record?
     var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
 
@@ -198,7 +198,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     var self = this;
     if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
-        //SA.NotesWidget.SaveCallback();
+        //SA.notesWidget.SaveCallback();
         // Lets try just setting this one note.
         var noteObj = JSON.stringify(note.Serialize(true));
         var d = new Date();
@@ -264,9 +264,7 @@ ViewEditMenu.prototype.CopyZoom = function() {
 
 ViewEditMenu.prototype.ShowSlideInformation = function() {
     this.Tab.PanelOff();
-
-    imageObj = this.Viewer.MainView.Section.Caches[0].Image;
-
+    var imageObj = this.Viewer.MainView.Section.Caches[0].Image;
     SA.SlideInformation.Open(imageObj, this.Viewer);
 }
 
@@ -310,7 +308,7 @@ var DownloadImage = (function () {
         d.AspectRatio = viewport[2] / viewport[3];
 
         // Hide or show the stack option.
-        if (SA.DualDisplay.GetNote().Type == "Stack") {
+        if (SA.dualDisplay.GetNote().Type == "Stack") {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
         } else {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();
@@ -876,7 +874,7 @@ ImageInformationDialog.prototype.Close = function()
         this.ImageObj.dimensions.push(1);
     }
 
-    imageObj = {
+    var imageObj = {
         _id       : this.ImageObj._id,
         database  : this.ImageObj.database,
         label     : this.ImageObj.label,

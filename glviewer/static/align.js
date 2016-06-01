@@ -530,9 +530,9 @@ function Segmentation (viewer) {
     var context  = viewer.MainView.Context2d;
     this.Viewer = viewer;
     this.Context = context;
-    this.Data = GetImageData(viewer.MainView);
+    this.Data = viewer.MainView.GetImageData();
     // Lets add a center surround channel by over writing alpha.
-    var tmp = GetImageData(viewer.MainView);
+    var tmp = viewer.MainView.GetImageData();
     // Smooth for the center.
     SmoothDataAlphaRGB(tmp,1);
     // Save the results.
@@ -1678,85 +1678,6 @@ DistanceMap.prototype.GetGradient = function(x, y) {
 }
 
 
-//=================================================
-// Extend the image data returned by the canvas.
-
-function ImageData() {
-    this.IncX = 1;
-    this.IncY = 1;
-}
-
-ImageData.prototype.GetIntensity = function (x,y) {
-    if (! this.data) { return 0;}
-    x = Math.round(x);
-    y = Math.round(y);
-    var idx = x*this.IncX + y*this.IncY;
-    return (this.data[idx] + this.data[idx+1] + this.data[idx+2]) / 3;
-}
-
-ImageData.prototype.InBounds = function (x,y) {
-    if (! this.data) { return false;}
-    return (x >=0 && x < this.width && y >=0 && y < this.height);
-}
-
-
-// Add a couple methods to the object.
-// change this to take a view instead of a viewer.
-function GetImageData(view) {
-    // interesting: When does it need to be set?
-    //ctx.imageSmoothingEnabled = true; 
-    // useful for debugging
-    //ctx.putImageData(imagedata, dx, dy);
-    var cam = view.Camera;
-    var width = Math.floor(cam.ViewportWidth);
-    var height = Math.floor(cam.ViewportHeight);
-    var ctx  = view.Context2d;
-    var data = ctx.getImageData(0,0,width,height);
-    data.Camera = new SAM.Camera();
-    data.Camera.DeepCopy(view.Camera);
-    data.__proto__ = new ImageData();
-    data.IncX = 4;
-    data.width = width;
-    data.height = height;
-    data.IncY = data.IncX * data.width;
-    return data;
-}
-
-
-
-// Mark edges visited so we do not create the same contour twice.
-// I cannot mark the pixel cell because two contours can go through the same cell.
-// Note:  I have to keep track of both the edge and the direction the contour leaves
-// the edge.  The backward direction was to being contoured because the starting
-// edge was already marked.  The order of the points here matters.  Each point
-// marks 4 edges.
-ImageData.prototype.MarkEdge = function (x0,y0, x1,y1) {
-    if ( ! this.EdgeMarks) {
-        var numTemplates = Math.round((this.width)*(this.height));
-        this.EdgeMarks = new Array(numTemplates);
-        for (var i = 0; i < numTemplates; ++i) {
-            this.EdgeMarks[i] = 0;
-        }
-    }
-
-    var edge = 0;
-    if (x0 != x1) {
-        edge = (x0 < x1) ? 1 : 4;
-    } else if (y0 != y1) {
-        edge = (y0 < y1) ? 2 : 8;
-    }
-
-    var idx = x0  + y0*(this.width);
-    var mask = this.EdgeMarks[idx];
-    if (mask & edge) {
-        return true;
-    }
-    this.EdgeMarks[idx] = mask | edge;
-    return false;
-}
-
-
-
 //--------------------------------
 // iso contouring from canvas data
 
@@ -2509,7 +2430,7 @@ function testDebug() {
 var WAITING;
 
 function DeformableAlignViewers() {
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -2539,14 +2460,14 @@ function DeformableAlignViewers() {
             var spacing = 3;
 
             var viewer = SA.VIEWERS[0];
-            var data1 = GetImageData(viewer.MainView);
+            var data1 = viewer.MainView.GetImageData();
             SmoothDataAlphaRGB(data1, 2);
             var histogram1 = ComputeIntensityHistogram(data1, true);
             var threshold1 = PickThreshold(histogram1);
             var contour1 = LongestContour(data1, threshold1);
 
             viewer = SA.VIEWERS[1];
-            var data2 = GetImageData(viewer.MainView);
+            var data2 = viewer.MainView.GetImageData();
             SmoothDataAlphaRGB(data2, 2);
             var histogram2 = ComputeIntensityHistogram(data2, true);
             var threshold2 = PickThreshold(histogram2);
@@ -2600,7 +2521,7 @@ function DeformableAlignViewers() {
 
             console.log("Finished alignment");
             // Syncronize views
-            SA.DualDisplay.SynchronizeViews(0, note);
+            SA.dualDisplay.SynchronizeViews(0, note);
 
             WAITING.hide();
 
@@ -2691,7 +2612,7 @@ function MaskPolylinesByColor(rgb) {
     }
 
     // Do the note too.
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     // Display has no get root.
     while (note.Parent) {
         note = note.Parent;
@@ -2809,7 +2730,7 @@ function IntegratePolylinesByColor(rgb) {
 
 
 function AlignPolylines2(pLine1, pLine2, replace) {
-    var note = SA.DualDisplay.GetNote();
+    var note = SA.dualDisplay.GetNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -2891,7 +2812,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
 
     console.log("Finished alignment");
     // Syncronize views
-    SA.DualDisplay.SynchronizeViews(0, note);
+    SA.dualDisplay.SynchronizeViews(0, note);
 
     eventuallyRender();
 }
@@ -3061,7 +2982,7 @@ function intensityHistogram(viewer, color, min, max) {
     }
     PLOT.Clear();
 
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     var histogram1 = ComputeIntensityHistogram(data1);
     PLOT.Draw(histogram1, color, min, max);
     var d = HistogramIntegral(histogram1);
@@ -3070,7 +2991,7 @@ function intensityHistogram(viewer, color, min, max) {
 
 // Takes around a second for r = 3;
 function testSmooth(radius) {
-    var data1 = GetImageData(SA.VIEWERS[0].MainView);
+    var data1 = SA.VIEWERS[0].MainView.GetImageData();
     SmoothDataAlphaRGB(data1,radius);
     DrawImageData(SA.VIEWERS[0], data1);
 }
@@ -3082,7 +3003,7 @@ function testSmooth(radius) {
 // Some tissue has the same value as background. I would need a fill to segment background better.
 // Deep red tissue keeps blue red component from dominating.
 function testPrincipleComponentEncoding() {
-    var data1 = GetImageData(SA.VIEWERS[0].MainView);
+    var data1 = SA.VIEWERS[0].MainView.GetImageData();
     SmoothDataAlphaRGB(data1,2);
     //EncodePrincipleComponent(data1);
     var histogram1 = ComputeIntensityHistogram(data1);
@@ -3098,13 +3019,13 @@ function testPrincipleComponentEncoding() {
 
 // Worked sometimes, but not always.
 function testAlignTranslationPixelMean() {
-    var data1 = GetImageData(SA.VIEWERS[0].MainView);
+    var data1 = SA.VIEWERS[0].MainView.GetImageData();
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     ThresholdData(data1, threshold1);
     //DrawImageData(SA.VIEWERS[0], data1);
 
-    var data2 = GetImageData(SA.VIEWERS[1].MainView);
+    var data2 = SA.VIEWERS[1].MainView.GetImageData();
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     ThresholdData(data2, threshold2);
@@ -3135,7 +3056,7 @@ function testAlignTranslationPixelMean() {
 // Minimize distance between two contours. (Distance map to keep distance computation fast).
 function testAlignTranslation(debug) {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -3143,7 +3064,7 @@ function testAlignTranslation(debug) {
 
     var viewer2 = SA.VIEWERS[1];
     var viewport2 = viewer2.GetViewport();
-    var data2 = GetImageData(viewer2.MainView);
+    var data2 = viewer2.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -3177,14 +3098,14 @@ function testAlignTranslation(debug) {
 
 function testAlignTranslation2(debug) {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
     var viewer2 = SA.VIEWERS[1];
-    var data2 = GetImageData(viewer2.MainView);
+    var data2 = viewer2.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -3221,7 +3142,7 @@ function testAlignTranslation2(debug) {
 // Moving toward deformation of contour
 function testAlignTranslation() {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -3230,7 +3151,7 @@ function testAlignTranslation() {
     //MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
     var viewer2 = SA.VIEWERS[1];
-    var data2 = GetImageData(viewer2.MainView);
+    var data2 = viewer2.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 5);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -3275,7 +3196,7 @@ function testAlignTranslation() {
 
 function testDistanceMapContour() {
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
@@ -3292,7 +3213,7 @@ function testDistanceMapContour() {
 function testDistanceMapThreshold() {
     var viewer1 = SA.VIEWERS[0];
     var ctx1 = viewer1.MainView.Context2d;
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
@@ -3312,7 +3233,7 @@ function testDistanceMapThreshold() {
 // lets do it after.  Scan for edge. Trace the edge. Mark pixels that have already been contoured.
 function testContour(threshold) {
     var viewer = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var points = LongestContour(data1, threshold);
     ContourRemoveDuplicatePoints(points, 1);
@@ -3331,7 +3252,7 @@ function testContourMesh(deci) {
         deci = 3;
     }
     var viewer = SA.VIEWERS[1];
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -3367,7 +3288,7 @@ function testDeformableAlign(spacing) {
         spacing = 3;
     }
     var viewer = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer.MainView);
+    var data1 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -3375,7 +3296,7 @@ function testDeformableAlign(spacing) {
     MakeContourPolyline(contour1, SA.VIEWERS[0]);
 
     viewer = SA.VIEWERS[1];
-    var data2 = GetImageData(viewer.MainView);
+    var data2 = viewer.MainView.GetImageData();
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -3520,7 +3441,7 @@ function findHagFishSections(smooth, min, max) {
     VERIFIED_HAGFISH_CONTOURS = [];
 
     var viewer1 = SA.VIEWERS[0];
-    var data1 = GetImageData(viewer1.MainView);
+    var data1 = viewer1.MainView.GetImageData();
     SmoothDataAlphaRGB(data1, smooth);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);

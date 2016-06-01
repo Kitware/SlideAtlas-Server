@@ -70,7 +70,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
     console.log("New circle");
 
     // Hard code only a single view for now.
-    this.Layer = SA.VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].GetAnnotationLayer();
 
     if ( this.Layer.ActiveWidget != undefined && widget ) {
         this.Layer.ActiveWidget.Deactivate();
@@ -89,7 +89,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-    this.Layer = SA.VIEWERS[0].AnnotationLayer;
+    this.Layer = SA.VIEWERS[0].GetAnnotationLayer();
     var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         widget.Deactivate();

@@ -227,13 +227,13 @@
         // Convert to microns
         if (lengthStr.substring(len-2,len) == "\xB5m") {
             length = parseFloat(lengthStr.substring(0,len-2)) / 1e6;
-        } else if (lengthStr.substring(len-2,len) == "mm") { 
+        } else if (lengthStr.substring(len-2,len) == "mm") {
             length = parseFloat(lengthStr.substring(0,len-2)) / 1e3;
-        } else if (lengthStr.substring(len-2,len) == "cm") { 
+        } else if (lengthStr.substring(len-2,len) == "cm") {
             length = parseFloat(lengthStr.substring(0,len-2)) / 1e2;
-        } else if (lengthStr.substring(len-2,len) == " m") { 
+        } else if (lengthStr.substring(len-2,len) == " m") {
             length = parseFloat(lengthStr.substring(0,len-2));
-        } else if (lengthStr.substring(len-2,len) == "km") { 
+        } else if (lengthStr.substring(len-2,len) == "km") {
             length = parseFloat(lengthStr.substring(0,len-2)) * 1e3;
         }
 
@@ -243,6 +243,10 @@
     // ConvertToMeters.
     window.SAM.ConvertToMeters = function (distObj) 
     {
+        if ( ! distObj.units || distObj.units == "Units") {
+            return distObj.value;
+        }
+
         if (distObj.units.toLowerCase() == "nm") {
             distObj.units = "m";
             return distObj.value *= 1e-9;
@@ -277,6 +281,10 @@
 
     window.SAM.ConvertForGui = function (distObj) 
     {
+        if ( ! distObj.units) {
+            distObj.units = "Units";
+            return;
+        }
         SAM.ConvertToMeters(distObj);
         if (distObj.value > 1000) {
             distObj.value = distObj.value/1000;
@@ -458,8 +466,7 @@
 
 
         for(var i = 0; i < this.WidgetList.length; ++i) {
-            // The last parameter is obsolete (visiblity mode)
-            this.WidgetList[i].Draw(this.AnnotationView, 2);
+            this.WidgetList[i].Draw(this.AnnotationView);
         }
         if (this.ScaleWidget) {
             this.ScaleWidget.Draw(this.AnnotationView);

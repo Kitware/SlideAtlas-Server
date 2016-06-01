@@ -57,7 +57,7 @@
 
 
     FavoritesBar.prototype.SaveFavorite = function() {
-        SA.NotesWidget.SaveBrownNote();
+        SA.notesWidget.SaveBrownNote();
         // Hide shifts the other buttons to the left to fill the gap.
         var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
         button.addClass("sa-inactive");
@@ -115,7 +115,7 @@
         var index = $(img).attr('index');
         note.Load(this.Favorites[index]);
 
-        note.DisplayView(SA.DualDisplay);
+        note.DisplayView(SA.dualDisplay);
     }
 
     FavoritesBar.prototype.DeleteFavorite = function(img){

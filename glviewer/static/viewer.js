@@ -207,7 +207,7 @@
         this.CopyrightWrapper = $('<div>')
             .appendTo(this.MainView.CanvasDiv)
             .addClass("sa-view-copyright");
-        if (SA.Session.sessid == "560b5127a7a1412195d13685") {
+        if (SA.Session && SA.Session.sessid == "560b5127a7a1412195d13685") {
             this.Icon = $('<img>')
                 .appendTo(this.MainView.CanvasDiv)
                 .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
@@ -218,6 +218,17 @@
                       'width'   : '128px',
                       'z-index' : '4'});
         }
+
+        // Create an annotation layer by default.
+        var annotationLayer1 = new SAM.AnnotationLayer(this.Div);
+        this.AddLayer(annotationLayer1);
+        // TODO: Get rid of this.  master view is passed to draw.
+        //Hack so the scale widget can get the spacing.
+        annotationLayer1.ScaleWidget.View = this.MainView;
+        // Hack only used for girder testing.
+        annotationLayer1.Viewer = this;
+        var annotationWidget1 =
+            new SA.AnnotationWidget(annotationLayer1, this);
     }
 
     // Try to remove all global references to this viewer.
@@ -243,6 +254,16 @@
     // Layers have a Draw(masterView) method.
     Viewer.prototype.AddLayer = function (layer) {
         this.Layers.push(layer);
+    }
+
+    // Hack to get the annotation layer
+    Viewer.prototype.GetAnnotationLayer = function () {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if (this.Layers[i] instanceof SAM.AnnotationLayer) {
+                return this.Layers[i];
+            }
+        }
+        return null;
     }
 
     // Abstracting saViewer  for viewer and dualViewWidget.
@@ -668,7 +689,7 @@
                                                 finishedCallback) {
         var sectionFileName = fileName;
         if (stack) {
-            var note = SA.DualDisplay.GetNote();
+            var note = SA.dualDisplay.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
                 sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -691,9 +712,9 @@
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
-            var note = SA.DualDisplay.GetNote();
+            var note = SA.dualDisplay.GetNote();
             if (note.StartIndex < note.ViewerRecords.length-1) {
-                SA.DualDisplay.NavigationWidget.NextNote();
+                SA.dualDisplay.NavigationWidget.NextNote();
                 var self = this;
                 setTimeout(function () {
                     self.SaveLargeImage(fileName, width, height, stack,
@@ -736,11 +757,11 @@
 
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
-        var note = SA.DualDisplay.GetNote();
+        var note = SA.dualDisplay.GetNote();
         var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
-            SA.DualDisplay.NavigationWidget.NextNote();
+            SA.dualDisplay.NavigationWidget.NextNote();
             SA.AddFinishedLoadingCallback(
                 function () {
                     self.SaveStackImage(fileNameRoot);
@@ -1391,11 +1412,11 @@
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
-        if (SA.DualDisplay.NavigationWidget &&
-            SA.DualDisplay.NavigationWidget.Visibility) {
+        if (SA.dualDisplay.NavigationWidget &&
+            SA.dualDisplay.NavigationWidget.Visibility) {
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
-            SA.DualDisplay.NavigationWidget.ToggleVisibility();
+            SA.dualDisplay.NavigationWidget.ToggleVisibility();
         }
 
         if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" &&
@@ -1621,8 +1642,8 @@
             if (t < 90) {
                 // We should not have a navigation widget on mobile
                 // devices. (maybe iPad?).
-                if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
-                    SA.DualDisplay.NavigationWidget.ToggleVisibility();
+                if (SA.dualDisplay && SA.dualDisplay.NavigationWidget) {
+                    SA.dualDisplay.NavigationWidget.ToggleVisibility();
                 }
                 if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
                     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();

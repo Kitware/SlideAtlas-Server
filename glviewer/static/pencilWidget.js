@@ -279,7 +279,7 @@
             // NOTE: This assume that the shapes are polylines.
             //this.Decimate(this.Shapes.GetShape(last), spacing);
             this.Shapes.GetShape(last).Decimate(spacing);
-            SA.RecordState();
+            if (SA) {SA.RecordState();}
         }
         return false;
     }

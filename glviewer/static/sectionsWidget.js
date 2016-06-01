@@ -57,7 +57,7 @@
             .css({'height': '20px',
                   'position': 'absolute',
                   'z-index': '5'})
-            .attr('src',SA.ImagePathUrl+"deleteSmall.png")
+            .attr('src',SAM.ImagePathUrl+"deleteSmall.png")
             .click(function(){
                 self.DeleteActiveSection();
             });
@@ -92,7 +92,7 @@
 
 
     SectionsWidget.prototype.ComputeSections = function() {
-        var data = GetImageData(this.Viewer.MainView);
+        var data = this.Viewer.MainView.GetImageData();
         // slow: SmoothDataAlphaRGB(data, 2);
         var histogram = ComputeIntensityHistogram(data, true);
         var threshold = PickThreshold(histogram);

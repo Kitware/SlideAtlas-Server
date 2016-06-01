@@ -1038,7 +1038,7 @@ jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
     this.saElement();
     this.addClass('sa-presentation-rectangle');
     for (var i = 0; i < this.length; ++i) {
-        dom = this[i];
+        var dom = this[i];
         if ( ! dom.saRectangle) {
             dom.saRectangle = new saRectangle($(dom));
         }
@@ -1200,7 +1200,7 @@ jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
     this.saRectangle();
     this.addClass('sa-text');
     for (var i = 0; i < this.length; ++i) {
-        dom = this[i];
+        var dom = this[i];
         if ( ! dom.saText) {
             dom.saText = new saText($(dom));
         }
@@ -2666,7 +2666,7 @@ jQuery.prototype.saHtml = function(string) {
         this.find('.ui-resizable').removeClass('ui-resizable');
 
         // We need to load the note.
-        viewDivs = this.find('.sa-lightbox-viewer');
+        var viewDivs = this.find('.sa-lightbox-viewer');
         viewDivs.saLightBoxViewer({'hideCopyright': true,
                                    'interaction':   false});
 
@@ -3156,7 +3156,7 @@ jQuery.prototype.saScalableFont = function(args) {
                     scale = this.saScalableFont.scale;
                     // Scale it relative to the window.
                     var height = $(this).parent().innerHeight();
-                    fontSize = Math.round(scale * height) + 'px';
+                    var fontSize = Math.round(scale * height) + 'px';
                     this.style.fontSize = fontSize;
                     // Getting and setting the html creates text chidlren
                     // with their own font size.
@@ -3807,7 +3807,7 @@ function saMenuButton(args, menuButton) {
               'z-index' : '5'})
         .hide();
 
-    for (label in args) {
+    for (var label in args) {
         this.AddMenuItem(label, args[label]);
     }
     // Jquery UI formatting
@@ -3914,7 +3914,7 @@ function saMenuButton(args, menuButton) {
               'z-index' : '5'})
         .hide();
 
-    for (label in args) {
+    for (var label in args) {
         this.AddMenuItem(label, args[label]);
     }
     // Jquery UI formatting

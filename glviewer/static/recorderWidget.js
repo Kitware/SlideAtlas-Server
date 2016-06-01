@@ -49,9 +49,13 @@ ViewerRecord.prototype.DeepCopy = function(source) {
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
-    if ( ! obj.Image.units) {
-        obj.Image.spacing[0] = obj.Image.spacing[1] = 0.25;
-        obj.Image.units = "\xB5m"; // um / micro meters
+    if ( ! obj.Image.units && obj.Image.filename) {
+        var tmp = obj.Image.filename.split();
+        var ext = tmp[tmp.length-1];
+        if (ext == "ptif") {
+            obj.Image.spacing = [0.25, 0.25, 1.0];
+            obj.Image.units = "\xB5m"; // um / micro meters
+        }
     }
 
     if ( ! obj.Camera) {
@@ -197,17 +201,20 @@ ViewerRecord.prototype.Apply = function (viewer) {
     if (viewer.AnnotationWidget && this.AnnotationVisibility != undefined) {
         viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
     }
-    if (this.Annotations != undefined && viewer.AnnotationLayer) {
-        // TODO: Fix this.  Keep actual widgets in the records / notes.
-        // For now lets just do the easy thing and recreate all the
-        // annotations.
-        viewer.AnnotationLayer.Reset();
-        for (var i = 0; i < this.Annotations.length; ++i) {
-            var widget = viewer.AnnotationLayer.LoadWidget(this.Annotations[i]);
-            if (! widget) {
-                // Get rid of corrupt widgets that do not load properly
-                this.Annotations.splice(i,1);
-                --i;
+    if (this.Annotations != undefined) {
+        var annotationLayer = viewer.GetAnnotationLayer();
+        if (annotationLayer) {
+            // TODO: Fix this.  Keep actual widgets in the records / notes.
+            // For now lets just do the easy thing and recreate all the
+            // annotations.
+            annotationLayer.Reset();
+            for (var i = 0; i < this.Annotations.length; ++i) {
+                var widget = annotationLayer.LoadWidget(this.Annotations[i]);
+                if (! widget) {
+                    // Get rid of corrupt widgets that do not load properly
+                    this.Annotations.splice(i,1);
+                    --i;
+                }
             }
         }
     }
@@ -230,7 +237,7 @@ ViewerRecord.prototype.LoadTiles = function (viewport) {
     // Load only the tiles we need.
     var tiles = cache.ChooseTiles(cam, 0, []);
     for (var i = 0; i < tiles.length; ++i) {
-        LoadQueueAddTile(tiles[i]);
+        SA.LoadQueueAddTile(tiles[i]);
     }
 }
 
@@ -371,8 +378,8 @@ RecorderWidget.prototype.RecordStateCallback = function() {
 
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
-    if (SA.DualDisplay) {
-        var parentNote = SA.DualDisplay.GetNote();
+    if (SA.dualDisplay) {
+        var parentNote = SA.dualDisplay.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more

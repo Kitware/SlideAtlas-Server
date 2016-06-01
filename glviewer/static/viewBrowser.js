@@ -383,6 +383,7 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
 }
 
 
+    SA.BrowserPanel = BrowserPanel;
     SA.ViewBrowser = ViewBrowser;
 
 })();
