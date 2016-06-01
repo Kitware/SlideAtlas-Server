@@ -207,7 +207,7 @@
         this.CopyrightWrapper = $('<div>')
             .appendTo(this.MainView.CanvasDiv)
             .addClass("sa-view-copyright");
-        if (SA.Session.sessid == "560b5127a7a1412195d13685") {
+        if (SA.Session && SA.Session.sessid == "560b5127a7a1412195d13685") {
             this.Icon = $('<img>')
                 .appendTo(this.MainView.CanvasDiv)
                 .attr('src',"http://static1.squarespace.com/static/5126bbb4e4b08c2e6d1cb6e4/t/54e66f05e4b0440df79a5729/1424387847915/")
@@ -218,6 +218,17 @@
                       'width'   : '128px',
                       'z-index' : '4'});
         }
+
+        // Create an annotation layer by default.
+        var annotationLayer1 = new SAM.AnnotationLayer(this.Div);
+        this.AddLayer(annotationLayer1);
+        // TODO: Get rid of this.  master view is passed to draw.
+        //Hack so the scale widget can get the spacing.
+        annotationLayer1.ScaleWidget.View = this.MainView;
+        // Hack only used for girder testing.
+        annotationLayer1.Viewer = this;
+        var annotationWidget1 =
+            new SA.AnnotationWidget(annotationLayer1, this);
     }
 
     // Try to remove all global references to this viewer.
@@ -243,6 +254,16 @@
     // Layers have a Draw(masterView) method.
     Viewer.prototype.AddLayer = function (layer) {
         this.Layers.push(layer);
+    }
+
+    // Hack to get the annotation layer
+    Viewer.prototype.GetAnnotationLayer = function () {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if (this.Layers[i] instanceof SAM.AnnotationLayer) {
+                return this.Layers[i];
+            }
+        }
+        return null;
     }
 
     // Abstracting saViewer  for viewer and dualViewWidget.
@@ -668,7 +689,7 @@
                                                 finishedCallback) {
         var sectionFileName = fileName;
         if (stack) {
-            var note = SA.DualDisplay.GetNote();
+            var note = SA.dualDisplay.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
                 sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -680,7 +701,7 @@
         }
         console.log(sectionFileName + " " + SA.LoadQueue.length + " " + SA.LoadingCount);
 
-        if ( ! view.DrawTiles() ) {
+        if ( ! view.Draw() ) {
             console.log("Sanity check failed. Not all tiles were available.");
         }
         this.MainView.DrawShapes();
@@ -691,9 +712,9 @@
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
-            var note = SA.DualDisplay.GetNote();
+            var note = SA.dualDisplay.GetNote();
             if (note.StartIndex < note.ViewerRecords.length-1) {
-                SA.DualDisplay.NavigationWidget.NextNote();
+                SA.dualDisplay.NavigationWidget.NextNote();
                 var self = this;
                 setTimeout(function () {
                     self.SaveLargeImage(fileName, width, height, stack,
@@ -736,11 +757,11 @@
 
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
-        var note = SA.DualDisplay.GetNote();
+        var note = SA.dualDisplay.GetNote();
         var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
-            SA.DualDisplay.NavigationWidget.NextNote();
+            SA.dualDisplay.NavigationWidget.NextNote();
             SA.AddFinishedLoadingCallback(
                 function () {
                     self.SaveStackImage(fileNameRoot);
@@ -1054,12 +1075,6 @@
         if (this.Drawing) { return; }
         this.Drawing = true;
 
-        if (SA.GL) {
-            // Layers might share canvas. We will nedd a helper object to
-            // clear the shared canvas.7
-            SA.GL.clear(SA.GL.COLOR_BUFFER_BIT | SA.GL.DEPTH_BUFFER_BIT);
-        }
-
         // This just changes the camera based on the current time.
         this.Animate();
 
@@ -1074,16 +1089,10 @@
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
-        // Rendering text uses blending / transparency.
-        if (SA.GL) {
-            SA.GL.enable(SA.GL.BLEND);
-            SA.GL.disable(SA.GL.DEPTH_TEST);
-        }
-
         // If we are still waiting for tiles to load, schedule another render.
         // This works fine, but results in many renders while waiting.
         // TODO: Consider having the tile load callback scheduling the next render.
-        if ( ! this.MainView.DrawTiles() ) {
+        if ( ! this.MainView.Draw() ) {
             this.EventuallyRender();
         }
 
@@ -1098,7 +1107,7 @@
         // This is not used anymore
         this.MainView.DrawShapes();
         if (this.OverView) {
-            this.OverView.DrawTiles();
+            this.OverView.Draw();
             this.OverView.DrawOutline(true);
         }
 
@@ -1403,11 +1412,11 @@
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
-        if (SA.DualDisplay.NavigationWidget &&
-            SA.DualDisplay.NavigationWidget.Visibility) {
+        if (SA.dualDisplay.NavigationWidget &&
+            SA.dualDisplay.NavigationWidget.Visibility) {
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
-            SA.DualDisplay.NavigationWidget.ToggleVisibility();
+            SA.dualDisplay.NavigationWidget.ToggleVisibility();
         }
 
         if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" &&
@@ -1633,8 +1642,8 @@
             if (t < 90) {
                 // We should not have a navigation widget on mobile
                 // devices. (maybe iPad?).
-                if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
-                    SA.DualDisplay.NavigationWidget.ToggleVisibility();
+                if (SA.dualDisplay && SA.dualDisplay.NavigationWidget) {
+                    SA.dualDisplay.NavigationWidget.ToggleVisibility();
                 }
                 if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
                     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();

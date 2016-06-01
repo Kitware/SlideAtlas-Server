@@ -131,15 +131,21 @@ function Tile(x, y, z, level, name, cache) {
         this.Matrix[13] = (this.Y+1) * yScale;
         this.Matrix[15] = 1.0;
 
-        //if (GL) {
-            // These tiles share the same buffers.  Do not crop when there is no warp.
-            this.VertexPositionBuffer = SA.tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = SA.tileVertexTextureCoordBuffer;
-            this.CellBuffer = SA.tileCellBuffer;
-        //}
+        // Note:  I am breaking the warping to test multiple gl Contexts.
+        // We do not have the view at this spot to build buffers.
+        /*
+        if (view && view.gl) {
+            // These tiles share the same buffers.  Do not crop when there
+            // is no warp. Actually, we should crop.
+            this.VertexPositionBuffer = view.tileVertexPositionBuffer;
+            this.VertexTextureCoordBuffer = view.tileVertexTextureCoordBuffer;
+            this.CellBuffer = view.tileCellBuffer;
+        }
+        */
     } else {
         // Warp model.
-        this.CreateWarpBuffer(cache.Warp);
+        // In draw now.
+        //this.CreateWarpBuffer(cache.Warp);
     }
 
     ++SA.NumberOfTiles;
@@ -201,46 +207,43 @@ Tile.prototype.LoadQueueAdd = function() {
 
 
 
+    // This is for connectome stitching.  It uses texture mapping
+    // to dynamically warp images.  It only works with webGL.
+    Tile.prototype.CreateWarpBuffer = function (warp, gl) {
+        // Compute the tile bounds.
+        var tileDimensions = this.Cache.TileDimensions;
+        var rootSpacing = this.Cache.RootSpacing;
+        var p = (1 << this.Level);
+        var size = [rootSpacing[0]*tileDimensions[0]/p, rootSpacing[1]*tileDimensions[1]/p];
+        var bds = [size[0]*this.X, size[0]*(this.X+1),
+                   size[1]*this.Y, size[1]*(this.Y+1),
+                   this.Level, this.Level];
 
+        // Tile geometry buffers.
+        var vertexPositionData = [];
+        var tCoordsData = [];
+        var cellData = [];
 
+        warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
 
-// This is for connectome stitching.  It uses texture mapping
-// to dynamically warp images.  It only works with webGL.
-Tile.prototype.CreateWarpBuffer = function (warp, gl) {
-  // Compute the tile bounds.
-  var tileDimensions = this.Cache.TileDimensions;
-  var rootSpacing = this.Cache.RootSpacing;
-  var p = (1 << this.Level);
-  var size = [rootSpacing[0]*tileDimensions[0]/p, rootSpacing[1]*tileDimensions[1]/p];
-  var bds = [size[0]*this.X, size[0]*(this.X+1),
-             size[1]*this.Y, size[1]*(this.Y+1),
-             this.Level, this.Level];
+        this.VertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tCoordsData), gl.STATIC_DRAW);
+        this.VertexTextureCoordBuffer.itemSize = 2;
+        this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
 
-  // Tile geometry buffers.
-  var vertexPositionData = [];
-  var tCoordsData = [];
-  var cellData = [];
+        this.VertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
+        this.VertexPositionBuffer.itemSize = 3;
+        this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-  warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
-
-  this.VertexTextureCoordBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tCoordsData), gl.STATIC_DRAW);
-  this.VertexTextureCoordBuffer.itemSize = 2;
-  this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
-
-  this.VertexPositionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, this.VertexPositionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-  this.VertexPositionBuffer.itemSize = 3;
-  this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
-
-  this.CellBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-  this.CellBuffer.itemSize = 1;
-  this.CellBuffer.numItems = cellData.length;
-}
+        this.CellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
+        this.CellBuffer.itemSize = 1;
+        this.CellBuffer.numItems = cellData.length;
+    }
 
 
 
@@ -319,6 +322,8 @@ Tile.prototype.LoadWebSocket = function (cache) {
     ws.FetchTile(name, image, cache, this.Image);
 }
 
+
+
     // TODO: Put program as iVar of view.
     Tile.prototype.Draw = function (program, view) {
         // Load state 0 is: Not loaded and not scheduled to be loaded yet.
@@ -328,24 +333,40 @@ Tile.prototype.LoadWebSocket = function (cache) {
             return;
         }
 
+        /* sacrifice clipped/warped tiles so tiles can be shared between views.
+        // Initialization has to be here because we do not have the view in
+        // the constructor.  NOTE: tiles cannot be shared between views
+        if (view.gl && ! this.VertexPositionBuffer) {
+            if ( ! cache.Warp) {
+                this.VertexPositionBuffer = view.tileVertexPositionBuffer;
+                this.VertexTextureCoordBuffer = view.tileVertexTextureCoordBuffer;
+                this.CellBuffer = view.tileCellBuffer;
+            } else {
+                // Warp model.
+                this.CreateWarpBuffer(cache.Warp, view.gl);
+            }
+        }
+        */
+
+
         if (view.gl) {
             if (this.Texture == null) {
                 this.CreateTexture(view.gl);
             }
             // These are the same for every tile.
             // Vertex points (shifted by tiles matrix)
-            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexPositionBuffer);
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, view.tileVertexPositionBuffer);
             // Needed for outline ??? For some reason, DrawOutline did not work
             // without this call first.
-            view.gl.vertexAttribPointer(SA.imageProgram.vertexPositionAttribute,
-                                        this.VertexPositionBuffer.itemSize,
+            view.gl.vertexAttribPointer(view.ShaderProgram.vertexPositionAttribute,
+                                        view.tileVertexPositionBuffer.itemSize,
                                         view.gl.FLOAT, false, 0, 0);     // Texture coordinates
-            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-            view.gl.vertexAttribPointer(SA.imageProgram.textureCoordAttribute,
-                                        this.VertexTextureCoordBuffer.itemSize,
+            view.gl.bindBuffer(view.gl.ARRAY_BUFFER, view.tileVertexTextureCoordBuffer);
+            view.gl.vertexAttribPointer(view.ShaderProgram.textureCoordAttribute,
+                                        view.tileVertexTextureCoordBuffer.itemSize,
                                         view.gl.FLOAT, false, 0, 0);
             // Cell Connectivity
-            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+            view.gl.bindBuffer(view.gl.ELEMENT_ARRAY_BUFFER, view.tileCellBuffer);
 
             // Texture
             view.gl.activeTexture(view.gl.TEXTURE0);
@@ -355,7 +376,7 @@ Tile.prototype.LoadWebSocket = function (cache) {
             // Matrix that tranforms the vertex p
             view.gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-            view.gl.drawElements(view.gl.TRIANGLES, this.CellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
+            view.gl.drawElements(view.gl.TRIANGLES, view.tileCellBuffer.numItems, view.gl.UNSIGNED_SHORT, 0);
         } else {
             // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
             // WebGL handles this by flipping the texture coordinates.  Here we have to

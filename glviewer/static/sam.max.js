@@ -294,13 +294,13 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Convert to microns
         if (lengthStr.substring(len-2,len) == "\xB5m") {
             length = parseFloat(lengthStr.substring(0,len-2)) / 1e6;
-        } else if (lengthStr.substring(len-2,len) == "mm") { 
+        } else if (lengthStr.substring(len-2,len) == "mm") {
             length = parseFloat(lengthStr.substring(0,len-2)) / 1e3;
-        } else if (lengthStr.substring(len-2,len) == "cm") { 
+        } else if (lengthStr.substring(len-2,len) == "cm") {
             length = parseFloat(lengthStr.substring(0,len-2)) / 1e2;
-        } else if (lengthStr.substring(len-2,len) == " m") { 
+        } else if (lengthStr.substring(len-2,len) == " m") {
             length = parseFloat(lengthStr.substring(0,len-2));
-        } else if (lengthStr.substring(len-2,len) == "km") { 
+        } else if (lengthStr.substring(len-2,len) == "km") {
             length = parseFloat(lengthStr.substring(0,len-2)) * 1e3;
         }
 
@@ -310,6 +310,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // ConvertToMeters.
     window.SAM.ConvertToMeters = function (distObj) 
     {
+        if ( ! distObj.units || distObj.units == "Units") {
+            return distObj.value;
+        }
+
         if (distObj.units.toLowerCase() == "nm") {
             distObj.units = "m";
             return distObj.value *= 1e-9;
@@ -344,6 +348,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     window.SAM.ConvertForGui = function (distObj) 
     {
+        if ( ! distObj.units) {
+            distObj.units = "Units";
+            return;
+        }
         SAM.ConvertToMeters(distObj);
         if (distObj.value > 1000) {
             distObj.value = distObj.value/1000;
@@ -525,8 +533,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
         for(var i = 0; i < this.WidgetList.length; ++i) {
-            // The last parameter is obsolete (visiblity mode)
-            this.WidgetList[i].Draw(this.AnnotationView, 2);
+            this.WidgetList[i].Draw(this.AnnotationView);
         }
         if (this.ScaleWidget) {
             this.ScaleWidget.Draw(this.AnnotationView);
@@ -2067,7 +2074,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             .css({'height': '20px',
                   'position': 'absolute',
                   'z-index': '5'})
-            .attr('src',SA.ImagePathUrl+"deleteSmall.png")
+            .attr('src',SAM.ImagePathUrl+"deleteSmall.png")
             .click(function(){
                 self.DeleteActiveSection();
             });
@@ -2102,7 +2109,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     SectionsWidget.prototype.ComputeSections = function() {
-        var data = GetImageData(this.Viewer.MainView);
+        var data = this.Viewer.MainView.GetImageData();
         // slow: SmoothDataAlphaRGB(data, 2);
         var histogram = ComputeIntensityHistogram(data, true);
         var threshold = PickThreshold(histogram);
@@ -2639,7 +2646,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     function CutoutWidget (parent, viewer) {
         this.Viewer = viewer;
-        this.Layer = viewer.AnnotationLayer;
+        this.Layer = viewer.GetAnnotationLayer();
         var cam = layer.GetCamera();
         var fp = cam.GetFocalPoint();
 
@@ -3645,17 +3652,15 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // The combined visibilities is confusing.
     // Global text visibility is passed in as argument.
     // Local visiblity mode is the hover state of this text. (0 text only, 1: hover, 2: both on).
-    TextWidget.prototype.Draw = function(view, visibility) {
-        if (visibility != ANNOTATION_OFF && this.VisibilityMode != 0) {
+    TextWidget.prototype.Draw = function(view) {
+        if (this.VisibilityMode != 0) {
             this.Arrow.Draw(view);
         }
-        if (visibility == ANNOTATION_ON) {
-            if (this.VisibilityMode != 1 || this.State != WAITING) {
-                this.Text.Draw(view);
-                this.Text.Visibility = true;
-            } else {
-                this.Text.Visibility = false;
-            }
+        if (this.VisibilityMode != 1 || this.State != WAITING) {
+            this.Text.Draw(view);
+            this.Text.Visibility = true;
+        } else {
+            this.Text.Visibility = false;
         }
     }
 
@@ -9730,6 +9735,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
     ScaleWidget.prototype.Draw = function(view) {
+        if (! this.View || ! this.View.HasUnits()) {
+            return;
+        }
         // Update the scale if zoom changed.
         this.Update();
         this.Shape.Draw(view);
@@ -10033,7 +10041,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     function CutoutWidget (parent, viewer) {
         this.Viewer = viewer;
-        this.Layer = viewer.AnnotationLayer;
+        this.Layer = viewer.GetAnnotationLayer();
         var cam = layer.GetCamera();
         var fp = cam.GetFocalPoint();
 
@@ -11081,6 +11089,28 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return this.Camera;
     }
 
+    // Get raw image data from the view.
+    View.prototype.GetImageData = function() {
+        // interesting: When does it need to be set?
+        //ctx.imageSmoothingEnabled = true;
+        // useful for debugging
+        //ctx.putImageData(imagedata, dx, dy);
+        var cam = this.Camera;
+        var width = Math.floor(cam.ViewportWidth);
+        var height = Math.floor(cam.ViewportHeight);
+        var ctx  = this.Context2d;
+        var data = ctx.getImageData(0,0,width,height);
+        data.Camera = new SAM.Camera();
+        data.Camera.DeepCopy(this.Camera);
+        data.__proto__ = new SAM.ImageData();
+        data.IncX = 4;
+        data.width = width;
+        data.height = height;
+        data.IncY = data.IncX * data.width;
+        return data;
+    }
+
+
 
     // Get the current scale factor between pixels and world units.
     // World unit is the highest resolution image pixel.
@@ -11093,6 +11123,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         // Convert from world coordinate to view (-1->1);
         return 0.5*this.Viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+    }
+
+    View.prototype.HasUnits = function() {
+        var units = this.GetCache().Image.units;
+        return units && units != "Units";
     }
 
     View.prototype.GetMetersPerUnit = function() {
@@ -11427,6 +11462,64 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
 
+
+    //=================================================
+    // Extend the image data returned by the canvas.
+
+    function ImageData() {
+        this.IncX = 1;
+        this.IncY = 1;
+    }
+
+    ImageData.prototype.GetIntensity = function (x,y) {
+        if (! this.data) { return 0;}
+        x = Math.round(x);
+        y = Math.round(y);
+        var idx = x*this.IncX + y*this.IncY;
+        return (this.data[idx] + this.data[idx+1] + this.data[idx+2]) / 3;
+    }
+
+    ImageData.prototype.InBounds = function (x,y) {
+        if (! this.data) { return false;}
+        return (x >=0 && x < this.width && y >=0 && y < this.height);
+    }
+
+
+    // Mark edges visited so we do not create the same contour twice.
+    // I cannot mark the pixel cell because two contours can go through the same cell.
+    // Note:  I have to keep track of both the edge and the direction the contour leaves
+    // the edge.  The backward direction was to being contoured because the starting
+    // edge was already marked.  The order of the points here matters.  Each point
+    // marks 4 edges.
+    ImageData.prototype.MarkEdge = function (x0,y0, x1,y1) {
+        if ( ! this.EdgeMarks) {
+            var numTemplates = Math.round((this.width)*(this.height));
+            this.EdgeMarks = new Array(numTemplates);
+            for (var i = 0; i < numTemplates; ++i) {
+                this.EdgeMarks[i] = 0;
+            }
+        }
+
+        var edge = 0;
+        if (x0 != x1) {
+            edge = (x0 < x1) ? 1 : 4;
+        } else if (y0 != y1) {
+            edge = (y0 < y1) ? 2 : 8;
+        }
+
+        var idx = x0  + y0*(this.width);
+        var mask = this.EdgeMarks[idx];
+        if (mask & edge) {
+            return true;
+        }
+        this.EdgeMarks[idx] = mask | edge;
+        return false;
+    }
+
+
+
+
+    SAM.ImageData = ImageData;
     SAM.View = View;
 
 })();

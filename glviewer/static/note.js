@@ -196,8 +196,8 @@
 
         this.Children = newChildren;
         this.UpdateChildrenGUI();
-        if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
         }
     }
 
@@ -254,8 +254,8 @@
     Note.prototype.TitleFocusInCallback = function() {
         // Keep the viewer from processing arrow keys.
         SA.ContentEditableHasFocus = true;
-        if (SA.DualDisplay) {
-            SA.DualDisplay.SetNote(this);
+        if (SA.dualDisplay) {
+            SA.dualDisplay.SetNote(this);
         }
     }
 
@@ -265,8 +265,8 @@
             // Move the Title from the GUI to the note.
             this.Modified = false;
             this.Title = this.TitleEntry.text();
-            if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+            if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
             }
         }
         // Allow the viewer to process arrow keys.
@@ -313,11 +313,11 @@
         this.ClearHyperlink();
 
         if (this.Type != 'view') {
-            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget &&
-                SA.DualDisplay.NavigationWidget.GetNote() == this) {
+            if (SA.dualDisplay && SA.dualDisplay.NavigationWidget &&
+                SA.dualDisplay.NavigationWidget.GetNote() == this) {
                 // Move the current note off this note.
                 // There is always a previous.
-                SA.DualDisplay.NavigationWidget.PreviousNote();
+                SA.dualDisplay.NavigationWidget.PreviousNote();
             }
         }
 
@@ -328,8 +328,8 @@
 
         // Redraw the GUI.
         parent.UpdateChildrenGUI();
-        if (SA.NotesWidget) {
-            SA.NotesWidget.MarkAsModified();
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
         }
     }
 
@@ -470,7 +470,7 @@
 
         // Now insert the child after the current note.
         this.Children.splice(childIdx,0,childNote);
-        childNote.SetParent(parentNote);
+        childNote.SetParent(this);
 
         return childNote;
     }
@@ -519,7 +519,7 @@
 
         this.TitleEntry
             .click(function() {
-                if (SA.DualDisplay) { SA.DualDisplay.SetNote(self); }
+                if (SA.dualDisplay) { SA.dualDisplay.SetNote(self); }
                 self.ButtonsDiv.show();
             })
             .bind('input', function () {
@@ -531,7 +531,7 @@
                 if (self.Modified) {
                     self.Modified = false;
                     self.Title = self.TitleEntry.text();
-                    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();}
+                    if (SA.notesWidget) {SA.notesWidget.MarkAsModified();}
                 }
             });
 
@@ -539,7 +539,7 @@
             .hover(
                 function() {
                     self.TitleEntry.css({'color':'#33D'});
-                    if (SA.NotesWidget && SA.NotesWidget.SelectedNote == self) {
+                    if (SA.notesWidget && SA.notesWidget.SelectedNote == self) {
                         self.ButtonsDiv.show();
                     }
                 },
@@ -560,7 +560,7 @@
             // Removing and adding removes the callbacks.
             this.AddButton
                 .click(function () {
-                    if (SA.NotesWidget) {SA.NotesWidget.NewCallback();}
+                    if (SA.notesWidget) {SA.notesWidget.NewCallback();}
                 });
             this.LinkButton
                 .click(function () {
@@ -741,19 +741,19 @@
 
     Note.prototype.Collapse = function() {
         this.ChildrenVisibility = false;
-        if (this.Contains(SA.NotesWidget.SelectedNote)) {
+        if (this.Contains(SA.notesWidget.SelectedNote)) {
             // Selected note should not be in collapsed branch.
             // Make the visible ancestor active.
-            SA.DualDisplay.SetNote(this);
+            SA.dualDisplay.SetNote(this);
         }
         this.UpdateChildrenGUI();
-        SA.DualDisplay.NavigationWidget.Update();
+        SA.dualDisplay.NavigationWidget.Update();
     }
 
     Note.prototype.Expand = function() {
         this.ChildrenVisibility = true;
         this.UpdateChildrenGUI();
-        SA.DualDisplay.NavigationWidget.Update();
+        SA.dualDisplay.NavigationWidget.Update();
     }
 
     // Extra stuff for stack.
@@ -785,8 +785,8 @@
 
         // To determine which notes camera to save.
         // For when the user creates a camera link.
-        if (SA.NotesWidget) {
-            SA.NotesWidget.DisplayedNote = this;
+        if (SA.notesWidget) {
+            SA.notesWidget.DisplayedNote = this;
         }
 
         var numViewers = display.GetNumberOfViewers();

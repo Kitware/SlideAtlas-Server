@@ -13,6 +13,8 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+import pdb
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -113,6 +115,9 @@ def view_a_session(session):
             database = models.ImageStore.objects.get_or_404(id=view_son['image_store_id'])
             imgdb = database.to_pymongo()
             imgObj = imgdb["images"].find_one({ "_id" : view_son['image_id']})
+            if  not "dimensions" in imgObj :
+                pdb.set_trace()
+
             bounds = [0,imgObj['dimensions'][0], 0, imgObj['dimensions'][1]]
             if 'bounds' in imgObj:
                 bounds = imgObj['bounds']

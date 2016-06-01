@@ -17,6 +17,11 @@
             .addClass('sa-resize');
 
         this.View = new SA.TileView(this.HeatMapDiv,true);
+        var gl = this.View.gl;
+        this.Color = [0.0, 0.4, 0.0];
+        this.Window = 1.0;
+        this.Level = 0.5;
+        this.Gama = 1.0;
 
         var self = this;
         this.HeatMapDiv.saOnResize(
@@ -26,6 +31,53 @@
                 // view's camera anyway.
             });
 
+
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "varying vec2 vTextureCoord;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "uniform vec2 uWindowLevel;" +
+            "uniform float uGama;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  float alpha = textureColor[0];" +
+            "  if (uWindowLevel[0] != 1.0 || uWindowLevel[1] != 0.5) {" +
+            "    alpha = ((alpha-0.5)/uWindowLevel[0]) + uWindowLevel[1];" +
+            "  }" +
+            "  if (uGama != 1.0) {" +
+            "    if (uGama < 0.0) {" +
+            "      alpha = pow((1.0-alpha), -uGama);" +
+            "    } else {" +
+            "      alpha = pow(alpha, uGama);" +
+            "    }" +
+            "  }" +
+            "  textureColor = vec4(uColor, alpha);" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var vertexShaderString =
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
+
+        var shaderProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Setup the shader program to render heatmaps.
+        shaderProgram.textureCoordAttribute
+            = gl.getAttribLocation(shaderProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        shaderProgram.gamaUniform = gl.getUniformLocation(shaderProgram,"uGama");
+        shaderProgram.windowLevelUniform = gl.getUniformLocation(shaderProgram,"uWindowLevel");
+        this.View.ShaderProgram = shaderProgram;
     }
 
 
@@ -67,6 +119,23 @@
 
 
         outCam.ComputeMatrix();
+
+        if (this.View.gl) {
+            var gl = this.View.gl;
+            var program = this.View.ShaderProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            // The blending in funky because there is no destination.
+            // It is bleniding with data from canvas behind the webGl canvas.
+            gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
+            gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            gl.uniform1f(program.gamaUniform, this.Gama);
+            gl.uniform2f(program.windowLevelUniform, this.Window, this.Level);
+        }
+
+
 
         this.View.DrawTiles();
     }

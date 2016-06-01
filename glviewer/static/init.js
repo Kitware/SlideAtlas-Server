@@ -43,10 +43,10 @@ window.SA = window.SA || {};
 
     // for debugging
     function MOVE_TO(x,y) {
-        SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-        SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-        if (SA.DualDisplay) {
-            SA.DualDisplay.Draw();
+        if (SA.dualDisplay) {
+            SA.dualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+            SA.dualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+            SA.dualDisplay.Draw();
         }
     }
 
@@ -182,8 +182,8 @@ window.SA = window.SA || {};
             return false;
         }
 
-        if (SA.Presentation) {
-            SA.Presentation.HandleKeyDown(event);
+        if (SA.presentation) {
+            SA.presentation.HandleKeyDown(event);
             return true;
         }
 
@@ -229,8 +229,8 @@ window.SA = window.SA || {};
 
         // Is SA really necessary?
         // TODO: Try to remove SA and test presentation stuff.
-        if (SA.Presentation) {
-            SA.Presentation.HandleKeyUp(event);
+        if (SA.presentation) {
+            SA.presentation.HandleKeyUp(event);
             return true;
         }
 
@@ -432,7 +432,6 @@ window.SA = window.SA || {};
     }
 
 
-
     SA.GetUser = function() {
         if (typeof(SA.User) != "undefined") {
             return SA.User;
@@ -446,8 +445,8 @@ window.SA = window.SA || {};
     //    if (typeof(SA.ViewId) != "undefined") {
     //        return SA.ViewId;
     //    }
-    //    if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
-    //        return SA.NotesWidget.RootNote._id;
+    //    if ( ! SA.notesWidget && ! SA.notesWidget.RootNote) {
+    //        return SA.notesWidget.RootNote._id;
     //    }
     //    SA.Debug("Could not find view id");
     //    return "";
@@ -470,16 +469,12 @@ window.SA = window.SA || {};
     }
 
 
-    SA.initWebGL = function (gl) {
-        if (SA.imageProgram) { return; }
+    SA.initWebGL = function (view) {
+        //if (view.imageProgram) { return; }
         // Defined in HTML
-        initShaderPrograms(gl);
-        initOutlineBuffers(gl);
-        initImageTileBuffers(gl);
-        // Not needed.  DOne before rendering.
-        gl.clearColor(1.0, 1.0, 1.0, 1.0);
-        gl.disable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
+        //initShaderPrograms(view.gl);
+        //initOutlineBuffers(view.gl);
+        initImageTileBuffers(view);
     }
 
 
@@ -516,6 +511,7 @@ window.SA = window.SA || {};
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
 </script>
+
 <script id="shader-text-fs" type="x-shader/x-fragment">
   precision mediump float;
 
@@ -546,7 +542,7 @@ window.SA = window.SA || {};
 
     function initShaderPrograms(gl) {
 
-        // An experiment to make rgb have an alpha channel
+        // Test threshold value for alpha.
         var heatMapTestFragmentShaderString = 
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
@@ -559,7 +555,8 @@ window.SA = window.SA || {};
             "   }" +
             "   gl_FragColor = textureColor;" +
             " }";
-        var heatMapFragmentShaderString = 
+        // Test red->alpha, greed->hue
+        var heatMapHueFragmentShaderString = 
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "varying vec2 vTextureCoord;" +
@@ -594,7 +591,18 @@ window.SA = window.SA || {};
             "  }" +
             "  gl_FragColor = textureColor;" +
             "}";
-        var fragmentShaderString = 
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  textureColor = vec4(uColor, textureColor[0]);" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var fragmentShaderString =
             "precision highp float;" +
             "uniform sampler2D uSampler;" +
             "varying vec2 vTextureCoord;" +
@@ -602,7 +610,7 @@ window.SA = window.SA || {};
             "   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));" +
             "   gl_FragColor = textureColor;" +
             " }";
-        var vertexShaderString = 
+        var vertexShaderString =
             "attribute vec3 aVertexPosition;" +
             "attribute vec2 aTextureCoord;" +
             "uniform mat4 uMVMatrix;" +
@@ -614,19 +622,20 @@ window.SA = window.SA || {};
             "  vTextureCoord = aTextureCoord;" +
             "}";
 
-        //SA.imageProgram = createProgram(fragmentShaderString, vertexShaderString, gl);
-        SA.imageProgram = createProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        //SA.imageProgram = SA.createWebGlProgram(fragmentShaderString, vertexShaderString, gl);
+        view.imageProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
         // Texture coordinate attribute and texture image uniform
-        SA.imageProgram.textureCoordAttribute
-            = gl.getAttribLocation(SA.imageProgram,"aTextureCoord");
-        gl.enableVertexAttribArray(SA.imageProgram.textureCoordAttribute);
-        SA.imageProgram.samplerUniform = gl.getUniformLocation(SA.imageProgram, "uSampler");
+        view.imageProgram.textureCoordAttribute
+            = gl.getAttribLocation(view.imageProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(view.imageProgram.textureCoordAttribute);
+        view.imageProgram.samplerUniform = gl.getUniformLocation(view.imageProgram, "uSampler");
+        view.imageProgram.colorUniform = gl.getUniformLocation(view.imageProgram, "uColor");
 
 
-        //polyProgram = createProgram("shader-poly-fs", "shader-poly-vs", gl);
+        //polyProgram = SA.createWebGlProgram("shader-poly-fs", "shader-poly-vs", gl);
         //polyProgram.colorUniform = gl.getUniformLocation(polyProgram, "uColor");
 
-        //textProgram = createProgram("shader-text-fs", "shader-text-vs", gl);
+        //textProgram = SA.createWebGlProgram("shader-text-fs", "shader-text-vs", gl);
         //textProgram.textureCoordAttribute
         //    = gl.getAttribLocation(textProgram, "aTextureCoord");
         //gl.enableVertexAttribArray(textProgram.textureCoordAttribute);
@@ -636,7 +645,7 @@ window.SA = window.SA || {};
     }
 
     
-    function createProgram(fragmentShaderString, vertexShaderString, gl) {
+    SA.createWebGlProgram = function(fragmentShaderString, vertexShaderString, gl) {
         var fragmentShader = getShader(gl, gl.FRAGMENT_SHADER, fragmentShaderString);
         var vertexShader = getShader(gl, gl.VERTEX_SHADER, vertexShaderString);
 
@@ -690,12 +699,13 @@ window.SA = window.SA || {};
 
 
 
-
     //==============================================================================
 
 
+    function initImageTileBuffers(view) {
+        if (view.tileVertexTextureCoordinateBuffer) { return; }
 
-    function initImageTileBuffers(gl) {
+        var gl = view.gl;
         var vertexPositionData = [];
         var textureCoordData = [];
 
@@ -734,23 +744,23 @@ window.SA = window.SA || {};
         cellData.push(1);
         cellData.push(3);
 
-        SA.tileVertexTextureCoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexTextureCoordBuffer);
+        view.tileVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, view.tileVertexTextureCoordBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
-        SA.tileVertexTextureCoordBuffer.itemSize = 2;
-        SA.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
+        view.tileVertexTextureCoordBuffer.itemSize = 2;
+        view.tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
 
-        SA.tileVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, SA.tileVertexPositionBuffer);
+        view.tileVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, view.tileVertexPositionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-        SA.tileVertexPositionBuffer.itemSize = 3;
-        SA.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
+        view.tileVertexPositionBuffer.itemSize = 3;
+        view.tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-        SA.tileCellBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, SA.tileCellBuffer);
+        view.tileCellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, view.tileCellBuffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), gl.STATIC_DRAW);
-        SA.tileCellBuffer.itemSize = 1;
-        SA.tileCellBuffer.numItems = cellData.length;
+        view.tileCellBuffer.itemSize = 1;
+        view.tileCellBuffer.numItems = cellData.length;
     }
 
 
@@ -782,8 +792,7 @@ window.SA = window.SA || {};
 
 
     function initGC() {
-
-        detectMobile();
+        SAM.detectMobile();
     }
 
 
@@ -874,7 +883,7 @@ window.SA = window.SA || {};
         return SA.HandleKeyUpStack(event);
     }
 
-    function cancelContextMenu(e) {
+    SA.cancelContextMenu = function(e) {
         //alert("Try to cancel context menu");
         if (e && e.stopPropagation) {
             e.stopPropagation();
@@ -900,7 +909,7 @@ window.SA = window.SA || {};
     // This function gets called when the save button is pressed.
     function SaveCallback() {
         // TODO: This is no longer called by a button, so change its name.
-        SA.NotesWidget.SaveCallback(
+        SA.notesWidget.SaveCallback(
             function () {
                 // finished
                 SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
@@ -917,11 +926,11 @@ window.SA = window.SA || {};
 
         if (rootNote.Type == "Presentation" ||
             rootNote.Type == "HTML") {
-            SA.Presentation = new SA.Presentation(rootNote, SA.Edit);
+            SA.presentation = new SA.Presentation(rootNote, SA.Edit);
             return;
         }
 
-        detectMobile();
+        SAM.detectMobile();
         $(body).addClass("sa-view-body");
         // Just to see if webgl is supported:
         //var testCanvas = document.getElementById("gltest");
@@ -954,27 +963,25 @@ window.SA = window.SA || {};
         //.addClass("sa-view-canvas-panel")
 
         // Left panel for notes.
-        SA.ResizePanel = new SA.ResizePanel(SA.MainDiv);
-        SA.DualDisplay = new SA.DualViewWidget(SA.ResizePanel.MainDiv);
-        SA.NotesWidget = new SA.NotesWidget(SA.ResizePanel.PanelDiv,
-                                            SA.DualDisplay);
+        SA.resizePanel = new SA.ResizePanel(SA.MainDiv);
+        SA.dualDisplay = new SA.DualViewWidget(SA.resizePanel.MainDiv);
+        SA.notesWidget = new SA.NotesWidget(SA.resizePanel.PanelDiv,
+                                            SA.dualDisplay);
 
         if (rootNote.Type == "Stack") {
-            SA.DualDisplay.SetNumberOfViewers(2);
+            SA.dualDisplay.SetNumberOfViewers(2);
         }
 
-        SA.NotesWidget.SetModifiedCallback(NotesModified);
-        SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
+        SA.notesWidget.SetModifiedCallback(NotesModified);
+        SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
         // Navigation widget keeps track of which note is current.
         // Notes widget needs to access and change this.
-        SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-        if (SA.DualDisplay.NavigationWidget) {
-            SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        SA.notesWidget.SetNavigationWidget(SA.dualDisplay.NavigationWidget);
+        if (SA.dualDisplay.NavigationWidget) {
+            SA.dualDisplay.NavigationWidget.SetInteractionEnabled(true);
         }
 
-        new SA.RecorderWidget(SA.DualDisplay);
-
-        SA.DualDisplay.SetNote(rootNote);
+        new SA.RecorderWidget(SA.dualDisplay);
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
@@ -982,7 +989,7 @@ window.SA = window.SA || {};
             if ( SA.Edit) {
                 // Put a save button here when editing.
                 SA.SaveButton = $('<img>')
-                    .appendTo(SA.ResizePanel.MainDiv)
+                    .appendTo(SA.resizePanel.MainDiv)
                     .css({'position':'absolute',
                           'bottom':'4px',
                           'left':'10px',
@@ -992,13 +999,13 @@ window.SA = window.SA || {};
                     .addClass('editButton')
                     .attr('src',SA.ImagePathUrl+"save22.png")
                     .click(SaveCallback);
-                for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
-                SA.DualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.NotesWidget.RecordView();});
+                for (var i = 0; i < SA.dualDisplay.Viewers.length; ++i) {
+                SA.dualDisplay.Viewers[i].OnInteraction(
+                    function () {SA.notesWidget.RecordView();});
                 }
             } else {
                 // Favorites when not editing.
-                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.dualDisplay);
                 //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
             }
         }
@@ -1020,7 +1027,7 @@ window.SA = window.SA || {};
         document.onkeyup = handleKeyUp;
 
         // Keep the browser from showing the left click menu.
-        document.oncontextmenu = cancelContextMenu;
+        document.oncontextmenu = SA.cancelContextMenu;
 
         if ( ! SAM.MOBILE_DEVICE) {
             // Hack for all viewer edit menus to share browser.
@@ -1029,50 +1036,55 @@ window.SA = window.SA || {};
             // TODO: See if we can get rid of this, or combine it with
             // the view browser.
             SA.InitSlideSelector(SA.MainDiv); // What is this?
-            var viewMenu1 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[0],
-                                                SA.DualDisplay.Viewers[1]);
-            var viewMenu2 = new SA.ViewEditMenu(SA.DualDisplay.Viewers[1],
-                                                SA.DualDisplay.Viewers[0]);
-            var viewer1 = SA.DualDisplay.Viewers[0];
-            var annotationLayer1 = new SAM.AnnotationLayer(viewer1.Div);
-            viewer1.AddLayer(annotationLayer1);
-            // TODO: Get rid of this.  master view is passed to draw.
-            //Hack so the scale widget can get the spacing.
-            annotationLayer1.ScaleWidget.View = viewer1.MainView;
-            // Hack only used for girder testing.
-            annotationLayer1.Viewer = viewer1;
-            var annotationWidget1 =
-                new SA.AnnotationWidget(annotationLayer1, viewer1);
-            annotationWidget1.SetVisibility(2);
+            var viewMenu1 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[0],
+                                                SA.dualDisplay.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[1],
+                                                SA.dualDisplay.Viewers[0]);
+            var viewer1 = SA.dualDisplay.Viewers[0];
+            var viewer2 = SA.dualDisplay.Viewers[1];
 
-            /*
+            SA.dualDisplay.UpdateGui();
+
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
-            var heatMap = new SA.HeatMap(viewer1.Div);
-            heatMap.SetImageData(
+            /*
+            SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                  levels:     12,
                  dimensions: [419168, 290400, 1],
                  bounds: [0,419167, 0, 290399, 0,0],
-                 spacing: [0.2,0.2,1.0],
+                 spacing: [0.1,0.1,1.0],
                  origin : [100, 10000]});
-            viewer1.AddLayer(heatMap);
+            viewer1.AddLayer(SA.heatMap1);
+
+            SA.heatMap2 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap2.Color = [0.0, 0.0, 0.7];
+            SA.heatMap2.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.15,0.15,1.0],
+                 origin : [20000, 20000]});
+            viewer1.AddLayer(SA.heatMap2);
+
+            SA.heatMap3 = new SA.HeatMap(viewer2.Div);
+            SA.heatMap3.Color = [0.0, 0.0, 0.7];
+            SA.heatMap3.Window = -1.0;
+            SA.heatMap3.Gama = 0.2;
+            SA.heatMap3.SetImageData(
+                {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                 levels:     12,
+                 dimensions: [419168, 290400, 1],
+                 bounds: [0,419167, 0, 290399, 0,0],
+                 spacing: [0.15,0.15,1.0],
+                 origin : [2000, 10000]});
+            viewer2.AddLayer(SA.heatMap3);
             */
-
-            var viewer2 = SA.DualDisplay.Viewers[1];
-            var annotationLayer2 = new SAM.AnnotationLayer(viewer2.Div);
-            viewer2.AddLayer(annotationLayer2);
-            // TODO: Get rid of this.  master view is passed to draw.
-            //Hack so the scale widget can get the spacing.
-            annotationLayer2.ScaleWidget.View = viewer2.MainView;
-            // Hack only used for girder testing.
-            annotationLayer2.Viewer = viewer2;
-            var annotationWidget2 =
-                new SA.AnnotationWidget(annotationLayer2, viewer2);
-            annotationWidget2.SetVisibility(2);
-
-            SA.DualDisplay.UpdateGui();
         }
+
+        SA.dualDisplay.SetNote(rootNote);
 
         $(window).bind('orientationchange', function(event) {
             handleResize();
@@ -1082,15 +1094,15 @@ window.SA = window.SA || {};
             handleResize();
         }).trigger('resize');
 
-        if (SA.DualDisplay) {
-            SA.DualDisplay.Draw();
+        if (SA.dualDisplay) {
+            SA.dualDisplay.Draw();
         }
     }
 
 
     // I had to prune all the annotations (lassos) that were not visible.
     function keepVisible(){
-        var n = SA.DualDisplay.GetNote();
+        var n = SA.dualDisplay.GetNote();
         var r = n.ViewerRecords[n.StartIndex];
         var w = SA.VIEWER1.WidgetList;
         var c = SA.VIEWER1.GetCamera();

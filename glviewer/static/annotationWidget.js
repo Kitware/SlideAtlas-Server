@@ -150,9 +150,9 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     // Hack to make all stack viewers share a single annotation visibility
     // flag.
-    if (SA.NotesWidget) {
-        var note = SA.NotesWidget.GetCurrentNote();
-        if (note.Type == 'Stack') {
+    if (SA.notesWidget) {
+        var note = SA.notesWidget.GetCurrentNote();
+        if (note && note.Type == 'Stack') {
             for (var i = 0; i < note.ViewerRecords.length; ++i) {
                 note.ViewerRecords[i].AnnotationVisibility = visibility;
             }

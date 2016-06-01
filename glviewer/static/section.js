@@ -94,12 +94,12 @@ Section.prototype.FindImage = function (imageCollectionName) {
 Section.prototype.Draw = function (view) {
     var finishedRendering = true;
     if (view.gl) {
-        var program = SA.imageProgram;
-        view.gl.useProgram(program);
         // Draw tiles.
-        view.gl.viewport(view.Viewport[0], view.Viewport[1],
+        var program = view.ShaderProgram;
+        var gl = view.gl;
+        gl.viewport(view.Viewport[0], view.Viewport[1],
                          view.Viewport[2], view.Viewport[3]);
-        view.gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
     } else {
         // The camera maps the world coordinate system to (-1->1, -1->1).
         var h = 1.0 / view.Camera.Matrix[15];

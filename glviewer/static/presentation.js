@@ -86,19 +86,6 @@ function Presentation(rootNote, edit) {
     // Eliminate the GUI in the viewers.
     $(body).css({'overflow-x':'hidden'});
 
-    // Hack.  It is only used for events.
-    // TODO: Fix events and get rid of this.
-    CANVAS = $('<div>')
-            .appendTo('body')
-            .css({
-                'position': 'absolute',
-                'width': '100%',
-                'height': '100%',
-                'top' : '0px',
-                'left' : '0px',
-                'z-index': '-1'
-            });
-
     this.WindowDiv = $('<div>')
         .appendTo('body')
         .css({
@@ -154,7 +141,7 @@ function Presentation(rootNote, edit) {
     this.LeftPanel = this.ResizePanel.PanelDiv;
     this.InitializeLeftPanel(this.LeftPanel);
     // Left panel is closed by default on mobile devices.
-    if (detectMobile()) {
+    if (SA.detectMobile()) {
         this.ResizePanel.Hide();
     }
 
@@ -216,7 +203,7 @@ function Presentation(rootNote, edit) {
     this.GotoSlide(0);
 
     // Keep the browser from showing the left click menu.
-    document.oncontextmenu = cancelContextMenu;
+    document.oncontextmenu = SA.cancelContextMenu;
 
     $('body').on(
         'keydown',
@@ -467,7 +454,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 
     this.UserTextDiv = this.EditTabs.NewTabDiv("Notes", "private notes");
     // Private notes.
-    this.UserNoteEditor = new SA.UserNoteEditor(this.UserTextDiv);
+    this.UserNoteEditor = new UserNoteEditor(this.UserTextDiv);
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
@@ -721,7 +708,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
-    this.SlidePage.DisplayNote(this.Note, SA.Presentation.Index);
+    this.SlidePage.DisplayNote(this.Note, SA.presentation.Index);
 }
 
 // Callback from search.
@@ -1126,7 +1113,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
             .text(title)
             .data("index",i)
             .click(function () {
-                SA.Presentation.GotoSlide($(this).data("index"));
+                SA.presentation.GotoSlide($(this).data("index"));
             });
         var sortHandle = $('<span>')
             .appendTo(slideDiv)
@@ -1237,12 +1224,15 @@ function SlidePage(parent, edit) {
     if (this.Edit) {
         // TODO: Better API (jquery) for adding widgets.
         // TODO: Better placement control for the widget.
+
+        var viewer = this.ViewerDiv1[0].saViewer;
         this.AnnotationWidget1 = new SA.AnnotationWidget(
-            this.ViewerDiv1[0].saViewer.AnnotationLayer);
+            viewer.GetAnnotationLayer(), viewer);
         this.AnnotationWidget1.SetVisibility(2);
 
+        var viewer = this.ViewerDiv2[0].saViewer;
         this.AnnotationWidget2 = new SA.AnnotationWidget(
-            this.ViewerDiv2[0].saViewer.AnnotationLayer);
+            viewer.GetAnnotationLayer(), viewer);
         this.AnnotationWidget2.SetVisibility(2);
 
         // TODO: Move this to bind in jquery.  (not sure how to do this yet)
@@ -1260,9 +1250,9 @@ function SlidePage(parent, edit) {
                   'height':'12px',
                   'z-index':'5'})
             .click(function () {
-                SA.Presentation.Note.ViewerRecords.splice(0,1);
+                SA.presentation.Note.ViewerRecords.splice(0,1);
                 // Redisplay the viewers
-                self.DisplayNote(self.Note, SA.Presentation.Index);
+                self.DisplayNote(self.Note, SA.presentation.Index);
             });
         this.RemoveView2Button = $('<img>')
             .appendTo(this.ViewerDiv2)
@@ -1276,9 +1266,9 @@ function SlidePage(parent, edit) {
                   'height':'12px',
                   'z-index':'5'})
             .click(function () {
-                SA.Presentation.Note.ViewerRecords.splice(1,1);
+                SA.presentation.Note.ViewerRecords.splice(1,1);
                 // Redisplay the viewers
-                self.DisplayNote(self.Note, SA.Presentation.Index);
+                self.DisplayNote(self.Note, SA.presentation.Index);
             });
 
         // Setup view resizing.
@@ -1378,7 +1368,7 @@ function SlidePage(parent, edit) {
 
 SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
     if (viewerDiv) {
-        SA.Presentation.EditOff();
+        SA.presentation.EditOff();
         this.FullWindowViewOffButton.show();
         this.FullWindowView1Button.hide();
         this.FullWindowView2Button.hide();
@@ -1393,7 +1383,7 @@ SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
             'bottom': '300px',
             'height': 'auto'});
         if (SA.Edit) {
-            SA.Presentation.EditOn();
+            SA.presentation.EditOn();
         }
 
     }
@@ -1597,7 +1587,7 @@ SlidePage.prototype.InsertViewNote = function (note) {
         this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
     }
 
-    this.DisplayNote(this.Note, SA.Presentation.Index);
+    this.DisplayNote(this.Note, SA.presentation.Index);
 }
 
 
@@ -2374,15 +2364,15 @@ HtmlPage.prototype.ViewDeleteCallback = function (dom) {
 // I could make this scalabe ifram as a jquery extension too.
 HtmlPage.prototype.BindElements = function() {
     // Similar to text, we need to scale the content.
-    frameElements = $('.sa-presentation-iframe');
+    var frameElements = $('.sa-presentation-iframe');
     frameElements.addClass('sa-resize');
     for (var i = 0; i < frameElements.length; ++i) {
-        frame = frameElements[i];
+        var frame = frameElements[i];
         frame.onresize =
             function () {
                 var w = $(this).parent().width();
                 var h = $(this).parent().height();
-                scale = Math.min(h,w/1.62) / 700;
+                var scale = Math.min(h,w/1.62) / 700;
                 scaleStr = scale.toString();
                 w = (Math.floor(w/scale)).toString();
                 h = (Math.floor(h/scale)).toString();
@@ -2509,7 +2499,7 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
 
     // These are in order of best match.
     for (var i = 0; i < data.images.length; ++i) {
-        imgObj = data.images[i];
+        var imgObj = data.images[i];
 
         var imageDiv = $('<div>')
             .appendTo(this.SearchResults)

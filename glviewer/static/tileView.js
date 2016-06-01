@@ -16,13 +16,11 @@
 
         if (useWebGL) {
             this.gl = this.Canvas[0].getContext("webgl") || this.Canvas[0].getContext("experimental-webgl");
-            SA.GL = this.gl; //(hack)  Viewer clears the "shared" webgl canvas.
-            // TODO: Fix this.
         }
         if (this.gl) {
             // Probably need a canvas object that keep track of
             // initialization (shared between layers).
-            SA.initWebGL(this.gl);
+            SA.initWebGL(this);
         } else {
             this.Context2d = this.Canvas[0].getContext("2d");
         }
@@ -59,6 +57,26 @@
         // TODO: try to get rid of this
         return this.Section.Caches[0];
     }
+
+
+
+    // Not used at the moment
+    TileView.prototype.Draw = function () {
+
+        if (this.gl) {
+            var gl = this.gl;
+            gl.clear(SA.GL.COLOR_BUFFER_BIT | SA.GL.DEPTH_BUFFER_BIT);
+            var program = SA.imageProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        }
+
+        return this.DrawTiles();
+    }
+
 
     // I want only the annotation to create a mask image.
     var MASK_HACK = false;

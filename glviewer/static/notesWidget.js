@@ -583,7 +583,7 @@
         // Create a child note.
         var parentNote = this.Note;
         if ( ! parentNote) {
-            parentNote = SA.DualDisplay.GetRootNote();
+            parentNote = SA.dualDisplay.GetRootNote();
         }
 
         // Create a new note to hold the view.
@@ -801,13 +801,16 @@ function NotesWidget(parent, display) {
 
     // GUI elements
     this.TabbedWindow = new SA.TabbedDiv(this.Window);
+
+    this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
+    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
     this.LinksRoot = $('<ul>')
         .addClass('sa-ul')
         .css({'padding-left':'0px'})
         .appendTo(this.LinksDiv);
-    this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
+
+
 
     for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
         this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
@@ -1012,13 +1015,13 @@ NotesWidget.prototype.SelectNote = function(note) {
     note.TitleEntry.css({'background':'#f0f0f0'});
     // This highlighting can be confused with the selection highlighting.
     // Indicate hyperlink current note.
-    //$('#'+SA.NotesWidget.SelectedNote.Id).css({'background':'#CCC'});
+    //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
     // Select the current hyper link
     note.SelectHyperlink();
 
-    //if (SA.DualDisplay &&
-    //    SA.DualDisplay.NavigationWidget) {
-    //    SA.DualDisplay.NavigationWidget.Update();
+    //if (SA.dualDisplay &&
+    //    SA.dualDisplay.NavigationWidget) {
+    //    SA.dualDisplay.NavigationWidget.Update();
     //}
 
     //if (this.Display.GetNumberOfViewers() > 1) {
@@ -1098,8 +1101,8 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
 
     // Set the state of the notes widget.
     // Should we ever turn it off?
-    if (SA.ResizePanel) {
-        SA.ResizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
+    if (SA.resizePanel) {
+        SA.resizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
     }
 
     this.UpdateQuestionMode();
@@ -1151,7 +1154,7 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     }
     note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
-    note.NotesPanelOpen = (SA.ResizePanel && SA.ResizePanel.Visibility);
+    note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
 
     var rootNote = this.Display.GetRootNote();
     if (rootNote.Type == "Stack") {
@@ -1191,7 +1194,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
-        var thumb = SA.DualDisplay.CreateThumbnailImage(110);
+        var thumb = SA.dualDisplay.CreateThumbnailImage(110);
         src = thumb.src;
     }
 
@@ -1232,7 +1235,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.AddViewButton
             .appendTo(this.LinksDiv)
             .click(function () {
-                var parentNote = SA.NotesWidget.RootNote;
+                var parentNote = SA.notesWidget.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
                 // Setup and save
