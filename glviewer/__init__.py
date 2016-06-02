@@ -328,7 +328,7 @@ def glsessionaddview():
     viewid = request.form['view']  # for post
 
     session = models.Session.objects.get_or_404(id=sessid)
-    session.views.append(ObjectId(viewid))
+    session.views.insert(0, ObjectId(viewid))
     session.save()
 
     return "Success"

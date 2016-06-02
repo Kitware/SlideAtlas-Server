@@ -141,7 +141,7 @@ function Presentation(rootNote, edit) {
     this.LeftPanel = this.ResizePanel.PanelDiv;
     this.InitializeLeftPanel(this.LeftPanel);
     // Left panel is closed by default on mobile devices.
-    if (SA.detectMobile()) {
+    if (SAM.detectMobile()) {
         this.ResizePanel.Hide();
     }
 
@@ -465,6 +465,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 // What should i do if the user starts editing before the note loads?
 // Editor will not be active until it has a note.
 function UserNoteEditor(parent) {
+    this.Modified = false;
     this.UpdateTimer = null;
     this.ParentNote = null;
     //this.UserNote = null;
@@ -479,11 +480,11 @@ function UserNoteEditor(parent) {
               'right' : '2px',
               'top'  : '20px',
               'bottom':'2px'});
-        //.saTextEditor();
 
     var self = this;
     this.TextEditor.attr('contenteditable', 'false')
         .bind('input', function () {
+            self.Modified = true;
             // Leave events are not triggering.
             self.EventuallyUpdate();
         })
@@ -517,12 +518,9 @@ UserNoteEditor.prototype.UpdateNote = function () {
         var userNote = this.ParentNote.UserNote;
         userNote.Text = this.TextEditor.html();
         // Do not save the user not until the parent has been saved.
-        if (this.ParentNote.Id) {
-            // Do not save new empty user notes.
-            if(userNote.Id || userNote.Text != "") {
-                // Do not save the user not if it has no text.
-                userNote.Save();
-            }
+        if (this.ParentNote.Id && this.Modified) {
+            var self = this;
+            userNote.Save(function() { self.Modified = false;});
         }
     }
 }
@@ -800,7 +798,7 @@ Presentation.prototype.Save = function () {
     // normal notes anymore because we are generating ids on the client.
 
     for (var i = 0; i < SA.Notes.length; ++i) {
-        note = SA.Notes[i];
+        var note = SA.Notes[i];
         if (note.Type != "UserNote" ) {
             note.Save(function (note) {
                 if (note == self.RootNote) {
@@ -828,7 +826,7 @@ Presentation.prototype.Save = function () {
     // Save the user notes.  They are not saved with the parent notes like
     // the children are.
     for (var i = 0; i < SA.Notes.length; ++i) {
-        note = SA.Notes[i];
+        var note = SA.Notes[i];
         if ( note.Type == "UserNote" ) {
             if (note.Id || note.Text != "") {
                 note.Save();

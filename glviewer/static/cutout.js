@@ -35,7 +35,7 @@
         var height =  data.height;
         var viewport = [0,0, width, height];
 
-        var view = new SA.View();
+        var view = new SA.TileView();
         view.InitializeViewport(viewport, 1, true);
         view.Canvas.attr("width", width);
         view.Canvas.attr("height", height);
@@ -59,7 +59,7 @@
         var height =  dimensions[1];
         var viewport = [0,0, width, height];
 
-        var view = new SA.View();
+        var view = new SA.TileView();
         CUTOUT_VIEW = view;
         view.SetCache(cache);
         view.SetViewport(viewport);
@@ -73,18 +73,19 @@
         // Load only the tiles we need.
         var tiles = cache.ChooseTiles(newCam, 0, []);
         for (var i = 0; i < tiles.length; ++i) {
-            LoadQueueAddTile(tiles[i]);
+            SA.LoadQueueAddTile(tiles[i]);
         }
 
         SA.AddFinishedLoadingCallback(
-            function () {GetCutoutImage2(view, fileName, returnCallback);}
+            function () {SA.GetCutoutImage2(view, fileName, returnCallback);}
         );
 
-        LoadQueueUpdate();
+        SA.LoadQueueUpdate();
 
         console.log("trigger " + SA.LoadQueue.length + " " + SA.LoadingCount);
     }
 
+    // This probably does not need to be exposed.
     SA.GetCutoutImage2 = function(view, fileName, returnCallback) {
         // All the tiles are loaded and waiting in the cache.
         view.DrawTiles();

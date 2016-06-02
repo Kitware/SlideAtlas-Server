@@ -2324,15 +2324,16 @@
     Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
         // hack
         if (this.Layers.length == 0) {return;}
-        var annotationWidget = this.Layer[0];
+        var layer = this.GetAnnotationLayer();
+        if ( ! layer ) { return;}
         if (vis) {
-            if ( ! this.AnnotationWidget) {
-                this.AnnotationWidget = new SA.AnnotationWidget(annotationLayer);
+            if ( ! layer.AnnotationWidget) {
+                layer.AnnotationWidget = new SA.AnnotationWidget(layer);
             }
-            this.AnnotationWidget.show();
+            layer.AnnotationWidget.show();
         } else {
-            if ( this.AnnotationWidget) {
-                this.AnnotationWidget.hide();
+            if ( layer.AnnotationWidget) {
+                layer.AnnotationWidget.hide();
             }
         }
     }

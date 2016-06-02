@@ -56,7 +56,7 @@
             .hide()
             .css({'height': '20px',
                   'position': 'absolute',
-                  'z-index': '5'})
+                  'z-index': '500'})
             .attr('src',SAM.ImagePathUrl+"deleteSmall.png")
             .click(function(){
                 self.DeleteActiveSection();
@@ -74,35 +74,48 @@
                 'border-radius': '5px',
                 'border-color': '#BBB',
                 'position': 'absolute',
-                'z-index': '4',
+                'z-index': '400',
                 'padding': '0px 2px'});
         $('<button>')
             .appendTo(this.Menu)
             .text("Horizontal Sort")
             .css({'margin':'2px 0px',
                   'width' : '100%'})
-            .mouseup(function(){self.Menu.hide(); self.Sort(0);});
+            .mouseup(function(){
+                self.Menu.hide(); 
+                self.Sort(0);
+            });
         $('<button>')
             .appendTo(this.Menu)
             .text("Vertical Sort")
             .css({'margin':'2px 0px',
                   'width' : '100%'})
-            .mouseup(function(){self.Menu.hide(); self.Sort(1);});
+            .mouseup(function(){
+                self.Menu.hide(); 
+                self.Sort(1);
+            });
+        $('<button>')
+            .appendTo(this.Menu)
+            .text("Delete")
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
+            .mouseup(function(){self.Menu.hide(); self.DeleteActiveSection();});
     }
 
 
     SectionsWidget.prototype.ComputeSections = function() {
         var data = this.Viewer.MainView.GetImageData();
         // slow: SmoothDataAlphaRGB(data, 2);
-        var histogram = ComputeIntensityHistogram(data, true);
-        var threshold = PickThreshold(histogram);
+        var histogram = SA.ComputeIntensityHistogram(data, true);
+        var threshold = SA.PickThreshold(histogram);
         console.log("Threshold; " + threshold);
         // TODO: Move the hagfish specific method in to this class.
-        var contours = GetHagFishContours(data, threshold, 0.0001, 0.5);
+        var contours = SA.GetHagFishContours(data, threshold, 0.0001, 0.5);
         console.log("num contours: " + contours.length);
 
         for (var i = 0; i < contours.length; ++i) {
-            this.Sections.push(contours[i].MakeStackSectionWidget());
+            this.Sections.push(contours[i].MakeStackSectionWidget(
+                               this.Layer.AnnotationView));
         }
 
         // Merge close contours int a single section.
@@ -139,7 +152,7 @@
         var direction1 = 1;
         if (this.ActiveSection) {
             var allBds = this.GetBounds();
-            var allCenter = this.Layer.ConvertPointWorldToViewer(
+            var allCenter = this.Layer.GetCamera().ConvertPointWorldToViewer(
                 (allBds[0]+allBds[1])*0.5, (allBds[0]+allBds[1])*0.5);
             var center = this.ActiveSection.GetViewCenter(this.Viewer.MainView);
             if (center[0] < allCenter[0]) {
@@ -173,8 +186,8 @@
         for (var i = 0; i < this.Sections.length; ++i) {
             var section = this.Sections[i];
             section.ViewBounds = section.GetViewBounds(this.Viewer.MainView);
-            PermuteBounds(section.ViewBounds, axis0, direction0);
-            PermuteBounds(section.ViewBounds, axis1, direction1);
+            SA.PermuteBounds(section.ViewBounds, axis0, direction0);
+            SA.PermuteBounds(section.ViewBounds, axis1, direction1);
         }
 
         // Use lessThan to sort (insertion).
@@ -318,7 +331,7 @@
     // Load a widget from a json object (origin MongoDB).
     SectionsWidget.prototype.Load = function(obj) {
         for(var n=0; n < obj.sections.length; n++){
-            var section = new SAM.StackSectionWidget();
+            var section = new SA.StackSectionWidget();
             section.Load(obj.sections[n]);
             if ( ! section.IsEmpty()) {
                 this.Sections.push(section);
@@ -400,9 +413,12 @@
             // Find the smallest section with pt in the bbox.
             var bestSection = null;
             var bestArea = -1;
+            // Delete button was turning off too fast.
+            var margin = 10 / this.Layer.GetPixelsPerUnit();
             for (var i = 0; i < this.Sections.length; ++i) {
                 var bds = this.Sections[i].GetBounds();
-                if (pt[0]>bds[0] && pt[0]<bds[1] && pt[1]>bds[2] && pt[1]<bds[3]) {
+                if (pt[0]>(bds[0]-margin) && pt[0]<(bds[1]+margin) &&
+                    pt[1]>(bds[2]-margin) && pt[1]<(bds[3]+margin)) {
                     var area = (bds[1]-bds[0])*(bds[3]-bds[2]);
                     if (bestSection == null || area < bestArea) {
                         bestSection = this.Sections[i];
@@ -484,23 +500,23 @@
             var scale = (bds[1]-bds[0]+bds[3]-bds[2]) / 600;
             if (scale < 1) { scale = 1; }
 
-            GetCutoutImage(this.Viewer.GetCache(),
+            SA.GetCutoutImage(this.Viewer.GetCache(),
                            [Math.round((bds[1]-bds[0])/scale), Math.round((bds[3]-bds[2])/scale)],
                            [0.5*(bds[0]+bds[1]), 0.5*(bds[2]+bds[3])],
                            scale, 0, null,
                            function (data) {
                                // slow: SmoothDataAlphaRGB(data, 2);
-                               var histogram = ComputeIntensityHistogram(data, true);
-                               var threshold = PickThreshold(histogram);
+                               var histogram = SA.ComputeIntensityHistogram(data, true);
+                               var threshold = SA.PickThreshold(histogram);
                                // TODO: Move the hagfish specific method in to this class.
                                var contours = self.GetBigContours(data, threshold);
                                if (contours.length == 0) { return; }
-                               var w = new SAM.StackSectionWidget();
+                               var w = new SA.StackSectionWidget();
                                for (var i = 0; i < contours.length; ++i) {
                                    w.Shapes.push(contours[i].MakePolyline([0,1,0]));
                                }
                                self.Sections.push(w);
-                               this.Layer.EventuallyDraw();
+                               self.Layer.EventuallyDraw();
                            });
         }
 
@@ -518,7 +534,7 @@
             if (partial.length == 0) {
                 var idx;
                 // Split it up.
-                var newSection = new SAM.StackSectionWidget();
+                var newSection = new SA.StackSectionWidget();
                 newSection.Shapes = full;
                 for (var i = 0; i < full.length; ++i) {
                     idx = section.Shapes.indexOf(full[i]);
@@ -543,7 +559,7 @@
         for (var x = 1; x < data.width; ++x) {
             for (var y = 1; y < data.height; ++y) {
                 // Look for contours crossing the xMax and yMax edges.
-                var xContour = SeedIsoContour(data, x,y, x-1,y, threshold);
+                var xContour = SA.SeedIsoContour(data, x,y, x-1,y, threshold);
                 if (xContour) {
                     var c = new SA.Contour();
                     c.Camera = data.Camera;
@@ -554,7 +570,7 @@
                     contours.push(c);
                 }
 
-                var yContour = SeedIsoContour(data, x,y, x,y-1, threshold);
+                var yContour = SA.SeedIsoContour(data, x,y, x,y-1, threshold);
                 if (yContour) {
                     c = new SA.Contour();
                     c.Camera = data.Camera;
@@ -597,7 +613,7 @@
     SectionsWidget.prototype.MergeCloseSections = function(dist) {
         for (var i = 0; i < this.Sections.length; ++i) {
             var section = this.Sections[i];
-            for (j = i+1; j < this.Sections.length; ++j) {
+            for (var j = i+1; j < this.Sections.length; ++j) {
                 var other = this.Sections[j];
                 var bds0 = section.GetBounds();
                 var bds1 = other.GetBounds();
@@ -605,13 +621,13 @@
                     bds0[3]+dist > bds1[2] && bds0[2]-dist < bds1[3]) {
                     section.Union(other);
                     this.Sections.splice(j,1);
-                    section
+                    // ??section
                     --j;
                 }
             }
         }
     }
 
-    SAM.SectionsWidget = SectionsWidget;
+    SA.SectionsWidget = SectionsWidget;
 
 })();

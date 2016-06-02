@@ -8,8 +8,6 @@ cat ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sam.
 cat annotationLayer.js >> sam.max.js 
 cat shape.js >> sam.max.js 
 cat shapeGroup.js >> sam.max.js 
-cat stackSectionWidget.js >> sam.max.js 
-cat sectionsWidget.js >> sam.max.js 
 cat cutoutWidget.js >> sam.max.js 
 cat text.js >> sam.max.js 
 cat textWidget.js >> sam.max.js 
@@ -80,5 +78,7 @@ cat section.js >> sa.max.js
 cat tileView.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
+cat stackSectionWidget.js >> sa.max.js 
+cat sectionsWidget.js >> sa.max.js 
 
 

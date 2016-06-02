@@ -1678,7 +1678,7 @@ jQuery.prototype.saTextEditor = function(args) {
             this[i].saTextEditor = textEditor;
             // TODO: Hide any dialog tabs?
         }
-        this[i].saTextEditor.ProcessArguments(args);
+        this[i].saTextEditor.ProcessArguments(arguments);
     }
 
     return this;
@@ -1890,7 +1890,8 @@ saTextEditor.prototype.EditingOff = function() {
     this.Div[0].saElement.Clickable = true;
     this.Div
         .attr('contenteditable', 'false')
-        .off('mouseleave.textEditor');
+        .off('mouseleave.textEditor')
+        .css('cursor','');
 
     SA.ContentEditableHasFocus = false;
 }
@@ -1922,6 +1923,13 @@ saTextEditor.prototype.AddButton = function(src, tooltip, callback, prepend) {
 saTextEditor.prototype.ProcessArguments = function(args) {
     args = args || {dialog : true};
     this.Div[0].saText.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saTextEditor.prototype.DialogInitialize = function() {
@@ -2227,12 +2235,12 @@ saLightBox.prototype.ProcessArguments = function(args) {
 
     // generic method call. Give jquery ui access to all this objects methods.
     if (typeof(this[args[0]]) == 'function') {
-        // first list item is the method name, 
+        // first list item is the method name,
         // the rest are arguments to the method.
         return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
     }
 
-    // Handle the legacy behavior. 
+    // Handle the legacy behavior.
     // One argument: an object (like jqueryUI).
     args = args[0];
 
@@ -2260,6 +2268,13 @@ saLightBox.prototype.ProcessArguments = function(args) {
     // Viewer interaction is only enabled when the element expands.
     if (args.onExpand) {
         this.ExpandCallback = args.onExpand;
+    }
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
     }
 }
 
@@ -2395,6 +2410,9 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     }
     if ( ! args.navigation) {
         args.navigation = false;
+    }
+    if ( ! args.drawWidget) {
+        args.drawWidget = false;
     }
     if ( args.interaction === undefined) {
         args.interaction = false;
@@ -3272,6 +3290,13 @@ saDraggable.prototype.ProcessArguments = function(args) {
         // The grid is not shared.
         this.XStops = new saStops(args.grid[0]);
         this.YStops = new saStops(args.grid[1]);
+    }
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
     }
 }
 

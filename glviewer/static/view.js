@@ -107,8 +107,9 @@
     }
 
     View.prototype.HasUnits = function() {
-        var units = this.GetCache().Image.units;
-        return units && units != "Units";
+        var cache = this.GetCache();
+        if (! cache || ! cache.Image || ! cache.Image.units) { return false; }
+        return cache.Image.units != "Units";
     }
 
     View.prototype.GetMetersPerUnit = function() {
