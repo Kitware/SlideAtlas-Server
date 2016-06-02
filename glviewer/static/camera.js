@@ -3,6 +3,9 @@
 // Set the viewport separately
 
 
+window.SAM = window.SAM || {};
+
+
 (function () {
     "use strict";
 

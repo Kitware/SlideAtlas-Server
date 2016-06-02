@@ -104,7 +104,7 @@
         var bds = [c[0],c[0],c[1],c[1]];
         for (var i = 0; i < this.Shapes.length; ++i) {
             var shape = this.Shapes[i];
-            for (j = 0; j < shape.Points.length; ++j) {
+            for (var j = 0; j < shape.Points.length; ++j) {
                 var pt = shape.Points[j];
                 pt = view.Camera.ConvertPointWorldToViewer(pt[0],pt[1]);
                 if (pt[0] < bds[0]) { bds[0] = pt[0]; }
@@ -207,7 +207,11 @@
                 for (var m = 0; m < points.length; ++m) {
                     shape.Points[m] = [points[m][0], points[m][1]];
                 }
-                shape.UpdateBuffers(this.Layer.AnnotationView);
+                // NewStack page uses this and does not have a "layer".
+                // Annotations do not need webgl anyway.
+                // TODO:Remove this uncessary argument altogether.
+                //shape.UpdateBuffers(this.Layer.AnnotationView);
+                shape.UpdateBuffers();
             }
         }
     }
@@ -372,12 +376,12 @@
         var tmpTrans = [0,0,0];
 
         // Try several rotations to see which is the best.
-        bestTrans = null;
-        bestDist = -1;
-        for (a = -180; a < 180; a += 30) {
+        var bestTrans = null;
+        var bestDist = -1;
+        for (var a = -180; a < 180; a += 30) {
             tmpTrans = [trans[0],trans[1],Math.PI*a/180];
             var dist;
-            for (i = 0; i < 5; ++i) {
+            for (var i = 0; i < 5; ++i) {
                 dist = this.RigidDecentStep(tmpTrans, center, distMap, 200000);
             }
             // For symetrical cases, give no rotation a slight advantage.
@@ -560,7 +564,7 @@
     }
 
 
-    SAM.StackSectionWidget = StackSectionWidget;
+    SA.StackSectionWidget = StackSectionWidget;
 
 })();
 

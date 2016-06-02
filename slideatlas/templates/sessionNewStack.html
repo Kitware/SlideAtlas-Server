@@ -30,6 +30,7 @@
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='sectionsWidget.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='align.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 
 
     <style>
@@ -142,8 +143,10 @@ function main() {
 
     //loadSessionFromId(SESSION_ID);
     // This loads the session eventually
+    SA.PushProgress();
     $.get("/sessions?json=true",
       function(data,status){
+          SA.PopProgress();
           if (status == "success") {
               loadCollectionList(data);
           } else {
@@ -196,8 +199,10 @@ function loadCollectionList(data) {
 
 
 function loadSessionFromId(sessionId) {
+    SA.PushProgress();
     $.get("/sessions?json=1&sessid="+sessionId,
           function(data,status){
+              SA.PopProgress();
               if (status == "success") {
                   loadSessionData(data);
               } else {
@@ -224,7 +229,7 @@ function loadSessionData(data) {
         // cache expects different variables.
         imageData._id = imageData.img;
         imageData.database = imageData.db;
-        var thumb = new CutoutThumb(imageData, 192)
+        var thumb = new SA.CutoutThumb(imageData, 192)
         thumb.AppendTo(listItem);
         thumb.ListItem = listItem; // To check for visibility.
         GALLERY_THUMBS.push(thumb);
@@ -234,13 +239,20 @@ function loadSessionData(data) {
                     });
         // Reqeuest the view information.
         (function () {
+            SA.PushProgress();
             var self = thumb;
             $.ajax({
                 type: "get",
                 url: "/webgl-viewer/getview",
                 data: {"viewid": data.session.views[i].id},
                 success: function(data,status) {
-                         self.ViewData = data;}
+                           SA.PopProgress();
+                           self.ViewData = data;
+                         },
+                error: function(data,status) {
+                         console.log("error loading view data");
+                         SA.PopProgress();
+                       }
             });
          })();
 
@@ -278,7 +290,7 @@ function addViewToStack(thumb) {
         }
         if (sectionsObj) {
             for (var i = 0; i < sectionsObj.sections.length; ++i) {
-                var widget = new StackSectionWidget();
+                var widget = new SA.StackSectionWidget();
                 widget.Load(sectionsObj.sections[i]);
                 addViewSectionToStack(widget, thumb.ImageData);
             }
@@ -287,7 +299,7 @@ function addViewToStack(thumb) {
     }
 
     // Go back to the simple "pick the center" selection behavior. 
-    var widget = new StackSectionWidget();
+    var widget = new SA.StackSectionWidget();
     widget.Thumb = thumb;
     widget.ThumbX = thumb.SlideX;
     widget.ThumbY = thumb.SlideY;
@@ -322,7 +334,7 @@ function addViewToStack(thumb) {
     dims[0] = Math.floor(dims[0]);
     dims[1] = Math.floor(dims[1]);
     // We do not have the view data to get roll.
-    GetCutoutImage(cache, dims, fp, scale, 0, null,
+    SA.GetCutoutImage(cache, dims, fp, scale, 0, null,
         function (data) {
             // Use has clicked on a section. Make sure the threshold
             // is above the pixel value.
@@ -418,7 +430,7 @@ function addSectionToStack(stackSectionWidget) {
         .click(function(){
                    deleteItem(item, stackSectionWidget);
                });
-    var section = new CutoutThumb(stackSectionWidget.ImageData, 100, bds)
+    var section = new SA.CutoutThumb(stackSectionWidget.ImageData, 100, bds)
         .AppendTo(item);
     STACK_END_X += item.width() + 10;
 }
@@ -461,8 +473,10 @@ function selectCollection(idx, defaultSessionLabel) {
 
 function selectSession(idx) {
     SELECTED_SESSION = SELECTED_COLLECTION.sessions[idx];
+    SA.PushProgress();
     $.get("/sessions?json=1&sessid="+SELECTED_SESSION.sessid,
           function(data,status){
+              SA.PopProgress();
               if (status == "success") {
                   loadSessionData(data);
               } else {
@@ -518,8 +532,6 @@ function save() {
     // Just save the roll too.
     // We could put the information in the widget
 
-    $('body').css({'cursor':'wait'});
-
     if (STACK_ITEMS.length == 0) { return; }
 
     var stackObj = [];
@@ -558,21 +570,22 @@ function save() {
                 label: $('#stackLabel').val(),
                 items: stackObj};
 
+    SA.PushProgress();
     $.ajax({type: "post",
             url: "{{ url_for('.session_save_stack') }}",
             data: {"input" :  JSON.stringify( args )},
             success:
                 function save_success (data, status) {
-                    $('body').css({'cursor':'auto'});
+                    SA.PopProgress();
                     // Redirect to stack: problem, getting back to session.
                     //window.location.href = "/webgl-viewer?edit=true&view="+data._id;
                     var d = new Date();
                     window.location.href = "/sessions?sessid="+SESSION_ID+"&reload="+d.getTime();
                     },
-            error: 
+            error:
                 function() {
-                    $('body').css({'cursor':'auto'});
-                    alert( "AJAX - error: sessios_save_stack" ); 
+                    SA.PopProgress();
+                    alert( "AJAX - error: sessios_save_stack" );
                 }
             });
 }

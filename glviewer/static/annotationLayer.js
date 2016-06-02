@@ -544,7 +544,9 @@
             widget = new SAM.StackSectionWidget(this);
             break;
         case "sections":
-            widget = new SAM.SectionsWidget(this);
+            if (window.SA) {
+                widget = new SA.SectionsWidget(this);
+            }
             break;
         case "rect":
             widget = new SAM.RectWidget(this, false);

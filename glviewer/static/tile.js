@@ -4,205 +4,180 @@
 // the image to load.  The callback only gives a single reference.
 
 
+window.SA = window.SA || {};
+
 (function () {
     "use strict";
 
 
 
-function LoadTileCallback(tile,cache) {
-    this.Tile = tile;
-    this.Cache = cache;
-}
-
-// Cache is now saved in tile ivar.
-LoadTileCallback.prototype.HandleLoadedImage = function () {
-    /* experimetation with trasparent tiles for layer
-    if ( ! SA.FilterCanvas) {
-        SA.FilterCanvas = new Canvas();
+    function LoadTileCallback(tile,cache) {
+        this.Tile = tile;
+        this.Cache = cache;
     }
-    var canvas = SA.FilterCanvas;
-    var image = this.Tile.Image;
-    if (image.width != canvas.width)
-        canvas.width = image.width;
-    if (image.height != canvas.height)
-        canvas.height = image.height;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    // Make white transparent.
-    var d = imageData.data;
-    for (var i = 0; i < d.length; i += 4) {
-        var r = d[i];
-        var g = d[i + 1];
-        var b = d[i + 2];
-        if (r == 255 && g == 255 && b == 255) {
-            d[i+3] = 0;
+
+    // Cache is now saved in tile ivar.
+    LoadTileCallback.prototype.HandleLoadedImage = function () {
+        var curtime = new Date().getTime();
+        TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
+        SA.LoadQueueLoaded(this.Tile);
+    }
+
+    // If we cannot load a tile, we need to inform the cache so it can start
+    // loading another tile.
+    LoadTileCallback.prototype.HandleErrorImage = function () {
+        console.log("LoadTile error " + this.Tile.Name);
+
+        SA.LoadQueueError(this.Tile);
+    }
+
+    function TileStats() {
+        this.tiles = [];
+    }
+
+    TileStats.prototype.add = function(atile) {
+        this.tiles.push(atile)
+    }
+
+    TileStats.prototype.report = function() {
+        var total = 0;
+
+        for(var i = 0; i < this.tiles.length; i ++) {
+            total = total + this.tiles[i].loadtime;
+        }
+
+        var report = {};
+        report.count = this.tiles.length;
+        report.average = total / this.tiles.length;
+        report.total = total;
+        console.log(report);
+    }
+
+    function GetLoadImageFunction (callback) {
+        return function () {callback.HandleLoadedImage();}
+    }
+    function GetErrorImageFunction (callback) {
+        return function () {callback.HandleErrorImage();}
+    }
+
+    var TILESTATS = new TileStats();
+
+
+    // Three stages to loading a tile: (texture map is created when the tile is rendered.
+    // 1: Create a tile object.
+    // 2: Initialize the texture.
+    // 3: onload is called indicating the image has been loaded.
+    function Tile(x, y, z, level, name, cache) {
+        // This should be implicit.
+        //this is just for debugging
+        //this.Id = x + (y<<level)
+        //
+        this.Cache = cache;
+        this.X = x;
+        this.Y = y;
+        this.Z = z;
+        this.Level = level;
+        this.Children = [];
+        this.Parent = null;
+        this.LoadState = 0;
+
+        this.Name = name;
+        this.Texture = null;
+        this.TimeStamp = SA.TimeStamp;
+        this.BranchTimeStamp = SA.TimeStamp;
+
+        this.Matrix = mat4.create();
+        mat4.identity(this.Matrix);
+        this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
+
+        // TODO: Warping depends on a global GL (which I am getting rid of) Fix
+        // on demand :)
+        // Default path is to shared geometry and move/scale it with the matrix.
+        // The shared polygon is a square [(0,0),(1,0),(1,1),(0,1)]
+        // The matrix transforms it into world coordinates.
+        if ( ! cache.Warp) {
+            // TODO: We should have a simple version of warp that creates this matrix for us.
+            // Use shared buffers and place them with the matrix transformation.
+            var xScale = cache.TileDimensions[0] * cache.RootSpacing[0] / (1 << this.Level);
+            var yScale = cache.TileDimensions[1] * cache.RootSpacing[1] / (1 << this.Level);
+            this.Matrix[0] = xScale;
+            this.Matrix[5] = -yScale;
+            this.Matrix[12] = this.X * xScale;
+            this.Matrix[13] = (this.Y+1) * yScale;
+            this.Matrix[15] = 1.0;
+
+            // Note:  I am breaking the warping to test multiple gl Contexts.
+            // We do not have the view at this spot to build buffers.
+            /*
+              if (view && view.gl) {
+              // These tiles share the same buffers.  Do not crop when there
+              // is no warp. Actually, we should crop.
+              this.VertexPositionBuffer = view.tileVertexPositionBuffer;
+              this.VertexTextureCoordBuffer = view.tileVertexTextureCoordBuffer;
+              this.CellBuffer = view.tileCellBuffer;
+              }
+            */
+        } else {
+            // Warp model.
+            // In draw now.
+            //this.CreateWarpBuffer(cache.Warp);
+        }
+
+        ++SA.NumberOfTiles;
+    }
+
+    Tile.prototype.delete=function(gl)
+    {
+        --SA.NumberOfTiles;
+        this.DeleteTexture(gl);
+        delete this.Matrix;
+        this.Matrix = null;
+        if (this.Image) {
+            delete this.Image;
+            this.Image = 0;
+        }
+        for (var i = 0; i < 4; ++i) {
+            if (this.Children[i] != null) {
+                this.Children[i].delete(gl);
+                this.Children[i] = null;
+            }
         }
     }
-    context.putImageData(imageData, 0, 0);
-    image.src = canvas.toDataURL();
-    */
-
-    var curtime = new Date().getTime();
-    TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
-    SA.LoadQueueLoaded(this.Tile);
-}
-
-// If we cannot load a tile, we need to inform the cache so it can start
-// loading another tile.
-LoadTileCallback.prototype.HandleErrorImage = function () {
-    console.log("LoadTile error " + this.Tile.Name);
-
-    SA.LoadQueueError(this.Tile);
-}
-
-function TileStats() {
-  this.tiles = [];
-}
-
-TileStats.prototype.add = function(atile) {
-  this.tiles.push(atile)
-}
-
-TileStats.prototype.report = function() {
-    var total = 0;
-
-    for(var i = 0; i < this.tiles.length; i ++) {
-        total = total + this.tiles[i].loadtime;
-    }
-
-    var report = {};
-    report.count = this.tiles.length;
-    report.average = total / this.tiles.length;
-    report.total = total;
-    console.log(report);
-}
-
-function GetLoadImageFunction (callback) {
-    return function () {callback.HandleLoadedImage();}
-}
-function GetErrorImageFunction (callback) {
-    return function () {callback.HandleErrorImage();}
-}
-
-var TILESTATS = new TileStats();
 
 
-// Three stages to loading a tile: (texture map is created when the tile is rendered.
-// 1: Create a tile object.
-// 2: Initialize the texture.
-// 3: onload is called indicating the image has been loaded.
-function Tile(x, y, z, level, name, cache) {
-    // This should be implicit.
-    //this is just for debugging
-    //this.Id = x + (y<<level)
-    //
-    this.Cache = cache;
-    this.X = x;
-    this.Y = y;
-    this.Z = z;
-    this.Level = level;
-    this.Children = [];
-    this.Parent = null;
-    this.LoadState = 0;
-
-    this.Name = name;
-    this.Texture = null;
-    this.TimeStamp = SA.TimeStamp;
-    this.BranchTimeStamp = SA.TimeStamp;
-
-    this.Matrix = mat4.create();
-    mat4.identity(this.Matrix);
-    this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
-
-    // TODO: Warping depends on a global GL (which I am getting rid of) Fix
-    // on demand :)
-    // Default path is to shared geometry and move/scale it with the matrix.
-    // The shared polygon is a square [(0,0),(1,0),(1,1),(0,1)]
-    // The matrix transforms it into world coordinates.
-    if ( ! cache.Warp) {
-        // TODO: We should have a simple version of warp that creates this matrix for us.
-        // Use shared buffers and place them with the matrix transformation.
-        var xScale = cache.TileDimensions[0] * cache.RootSpacing[0] / (1 << this.Level);
-        var yScale = cache.TileDimensions[1] * cache.RootSpacing[1] / (1 << this.Level);
-        this.Matrix[0] = xScale;
-        this.Matrix[5] = -yScale;
-        this.Matrix[12] = this.X * xScale;
-        this.Matrix[13] = (this.Y+1) * yScale;
-        this.Matrix[15] = 1.0;
-
-        // Note:  I am breaking the warping to test multiple gl Contexts.
-        // We do not have the view at this spot to build buffers.
-        /*
-        if (view && view.gl) {
-            // These tiles share the same buffers.  Do not crop when there
-            // is no warp. Actually, we should crop.
-            this.VertexPositionBuffer = view.tileVertexPositionBuffer;
-            this.VertexTextureCoordBuffer = view.tileVertexTextureCoordBuffer;
-            this.CellBuffer = view.tileCellBuffer;
+    // Youy have to call LoadQueueUpdate after adding tiles.
+    // Add the first unloaded ancestor to the load queue.
+    Tile.prototype.LoadQueueAdd = function() {
+        // Record that the tile is used (for prioritizing loading and pruning).
+        // Mark all lower res tiles so they will be loaded inthe correct order.
+        var tmp = this;
+        while (tmp && tmp.TimeStamp != SA.TimeStamp) {
+            tmp.TimeStamp = SA.TimeStamp;
+            tmp = tmp.Parent;
         }
-        */
-    } else {
-        // Warp model.
-        // In draw now.
-        //this.CreateWarpBuffer(cache.Warp);
-    }
 
-    ++SA.NumberOfTiles;
-}
-
-Tile.prototype.delete=function(gl)
-{
-    --SA.NumberOfTiles;
-    this.DeleteTexture(gl);
-    delete this.Matrix;
-    this.Matrix = null;
-    if (this.Image) {
-        delete this.Image;
-        this.Image = 0;
-    }
-    for (var i = 0; i < 4; ++i) {
-        if (this.Children[i] != null) {
-            this.Children[i].delete(gl);
-            this.Children[i] = null;
+        if (this.LoadState != 0) { // == 2
+            // This tiles is already in the load queue or loaded.
+            return;
         }
+
+        // Now I want progressive loading so I will not add tiles to the queue if their parents are not completely loaded.
+        // I could add all parent and children to the que at the same time, but I have seen children rendered before parents
+        // (levels are skipped in progresive updata).  So, lets try this.
+        // Now that I am prioritizing the queue on the tiles time stamp and level,  the previous issues should be resolved.
+        if (this.Parent) {
+            if (this.Parent.LoadState == 0) {
+                // Not loaded and not in the queue.
+                return this.Parent.LoadQueueAdd();
+            } else if (this.Parent.LoadState == 1) {
+                // Not loaded but in the queue
+                return;
+            }
+        }
+
+        // The tile's parent is loaded.  Add the tile to the load queue.
+        SA.LoadQueueAddTile(this);
     }
-}
-
-
-// Youy have to call LoadQueueUpdate after adding tiles.
-// Add the first unloaded ancestor to the load queue.
-Tile.prototype.LoadQueueAdd = function() {
-  // Record that the tile is used (for prioritizing loading and pruning).
-  // Mark all lower res tiles so they will be loaded inthe correct order.
-  var tmp = this;
-  while (tmp && tmp.TimeStamp != SA.TimeStamp) {
-    tmp.TimeStamp = SA.TimeStamp;
-    tmp = tmp.Parent;
-  }
-
-  if (this.LoadState != 0) { // == 2
-    // This tiles is already in the load queue or loaded.
-    return;
-  }
-
-  // Now I want progressive loading so I will not add tiles to the queue if their parents are not completely loaded.
-  // I could add all parent and children to the que at the same time, but I have seen children rendered before parents
-  // (levels are skipped in progresive updata).  So, lets try this.
-  // Now that I am prioritizing the queue on the tiles time stamp and level,  the previous issues should be resolved.
-  if (this.Parent) {
-    if (this.Parent.LoadState == 0) {
-      // Not loaded and not in the queue.
-      return this.Parent.LoadQueueAdd();
-    } else if (this.Parent.LoadState == 1) {
-      // Not loaded but in the queue
-      return;
-    }
-  }
-
-  // The tile's parent is loaded.  Add the tile to the load queue.
-  SA.LoadQueueAddTile(this);
-}
 
 
 
@@ -247,80 +222,79 @@ Tile.prototype.LoadQueueAdd = function() {
 
 
 
-// This starts the loading of the tile.
-// Loading is asynchronous, so the tile will not
-// immediately change its state.
-Tile.prototype.StartLoad = function (cache) {
-    if (this.LoadState >= 2) {
-        return;
+    // This starts the loading of the tile.
+    // Loading is asynchronous, so the tile will not
+    // immediately change its state.
+    Tile.prototype.StartLoad = function (cache) {
+        if (this.LoadState >= 2) {
+            return;
+        }
+
+        // Reusing the image caused problems.
+        //if (this.Image == null) {
+        this.Image = new Image();
+
+        this.starttime = new Date().getTime();
+        // Setup callbacks
+        var callback = new LoadTileCallback(this, cache);
+        this.Image.onload = GetLoadImageFunction(callback);
+        this.Image.onerror = GetErrorImageFunction(callback);
+        // This starts the loading.
+
+        if (SA.TileLoader == "websocket") {
+            this.LoadWebSocket(cache);
+        } else {
+            // "http"
+            this.LoadHttp(cache);
+        }
     }
 
-    // Reusing the image caused problems.
-    //if (this.Image == null) {
-    this.Image = new Image();
+    Tile.prototype.LoadHttp = function (cache) {
+        // For http simply set the data url and wait 
+        if (cache.TileSource) {
+            // This should eventually displace all other methods
+            // of getting the tile source.
 
-    this.starttime = new Date().getTime();
-    // Setup callbacks
-    var callback = new LoadTileCallback(this, cache);
-    this.Image.onload = GetLoadImageFunction(callback);
-    this.Image.onerror = GetErrorImageFunction(callback);
-    // This starts the loading.
-
-    if (SA.TileLoader == "websocket") {
-        this.LoadWebSocket(cache);
-    } else {
-        // "http"
-        this.LoadHttp(cache);
-    }
-}
-
-Tile.prototype.LoadHttp = function (cache) {
-    // For http simply set the data url and wait 
-    if (cache.TileSource) {
-        // This should eventually displace all other methods
-        // of getting the tile source.
-
-        this.Name  = cache.TileSource.getTileUrl(this.Level,
+            this.Name  = cache.TileSource.getTileUrl(this.Level,
                                                  this.X, this.Y, this.Z);
-        // Name is just for debugging.
-        this.Image.src = this.Name;
+            // Name is just for debugging.
+            this.Image.src = this.Name;
 
-        return;
+            return;
+        }
 
+        // Legacy
+        var imageSrc;
+        if (cache.Image.type && cache.Image.type == "stack") {
+            imageSrc = cache.GetSource() + this.Name + ".png";
+        } else {
+            imageSrc = cache.GetSource() + this.Name + ".jpg";
+        }
+
+        if (cache.UseIIP) {
+            var level = this.Level + 2;
+            var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
+            var idx = this.Y * xDim + this.X;
+            imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx;
+        }
+
+        this.Image.src = imageSrc;
     }
 
-    // Legacy
-    var imageSrc;
-    if (cache.Image.type && cache.Image.type == "stack") {
-        imageSrc = cache.GetSource() + this.Name + ".png";
-    } else {
-        imageSrc = cache.GetSource() + this.Name + ".jpg";
+
+    Tile.prototype.LoadWebSocket = function (cache) {
+        // Right now doing exact same thing
+        var name = '';
+        if (cache.Image.type && cache.Image.type == "stack") {
+            name = this.Name + ".png";
+        } else {
+            name = this.Name + ".jpg";
+        }
+
+        var image = cache.Image._id;
+
+        ws.FetchTile(name, image, cache, this.Image);
     }
-
-    if (cache.UseIIP) {
-        var level = this.Level + 2;
-        var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
-        var idx = this.Y * xDim + this.X;
-        imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx;
-    }
-
-    this.Image.src = imageSrc;
-}
-
-
-Tile.prototype.LoadWebSocket = function (cache) {
-    // Right now doing exact same thing
-    var name = '';
-    if (cache.Image.type && cache.Image.type == "stack") {
-        name = this.Name + ".png";
-    } else {
-        name = this.Name + ".jpg";
-    }
-
-    var image = cache.Image._id;
-
-    ws.FetchTile(name, image, cache, this.Image);
-}
 
 
 
@@ -406,38 +380,38 @@ Tile.prototype.LoadWebSocket = function (cache) {
         }
     }
 
-Tile.prototype.CreateTexture = function (gl) {
-    if (! gl) { 
-        alert("Textures need a gl instance");
-        return;
-    }
-    if (this.Texture != null) { return;}
+    Tile.prototype.CreateTexture = function (gl) {
+        if (! gl) {
+            alert("Textures need a gl instance");
+            return;
+        }
+        if (this.Texture != null) { return;}
 
-    ++SA.NumberOfTextures; // To determine when to prune textures.
-    this.Texture = gl.createTexture();
-    var texture = this.Texture;
-    //alert(tile);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.Image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.bindTexture(gl.TEXTURE_2D, null);
-}
+        ++SA.NumberOfTextures; // To determine when to prune textures.
+        this.Texture = gl.createTexture();
+        var texture = this.Texture;
+        //alert(tile);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.Image);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
 
-Tile.prototype.DeleteTexture = function (gl) {
-    if (! gl) { 
-        alert("Textures need a gl instance");
-        return;
+    Tile.prototype.DeleteTexture = function (gl) {
+        if (! gl) {
+            alert("Textures need a gl instance");
+            return;
+        }
+        if (this.Texture) {
+            --SA.NumberOfTextures; // To determine when to prune textures.
+            gl.deleteTexture(this.Texture);
+            this.Texture = null;
+        }
     }
-    if (this.Texture) {
-        --SA.NumberOfTextures; // To determine when to prune textures.
-        gl.deleteTexture(this.Texture);
-        this.Texture = null;
-    }
-}
 
     SA.Tile = Tile;
 

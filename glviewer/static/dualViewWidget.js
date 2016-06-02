@@ -28,6 +28,7 @@ window.SA = window.SA || {};
     SA.VIEWER2;
 
 
+
     function DualViewWidget(parent) {
         var self = this;
         this.Viewers = []; // It would be nice to get rid of this.
@@ -108,6 +109,12 @@ window.SA = window.SA || {};
             // It is not exactly related to dual viewer. It is sort of a child
             // of the dual viewer.
             this.NavigationWidget = new SA.NavigationWidget(parent,this);
+        }
+    }
+
+    DualViewWidget.prototype.EventuallyRender = function () {
+        for ( var i = 0; i < this.Viewers.length; ++i) {
+            this.GetViewer(i).EventuallyRender(false);
         }
     }
 
@@ -576,7 +583,7 @@ window.SA = window.SA || {};
             for (var i = 0; i < tiles.length; ++i) {
                 tiles[i].LoadQueueAdd();
             }
-            LoadQueueUpdate();
+            SA.LoadQueueUpdate();
         }
         if (cameras[3]) {
             var cache = SA.FindCache(note.ViewerRecords[note.StartIndex+2].Image);
@@ -585,7 +592,7 @@ window.SA = window.SA || {};
             for (var i = 0; i < tiles.length; ++i) {
                 tiles[i].LoadQueueAdd();
             }
-            LoadQueueUpdate();
+            SA.LoadQueueUpdate();
         }
 
         // OverView cameras need to be updated.
@@ -597,7 +604,7 @@ window.SA = window.SA || {};
             this.GetViewer(0).EventuallyRender(false);
         }
 
-        // Synchronize annitation visibility.
+        // Synchronize annotation visibility.
         var refViewer = this.GetViewer(refViewerIdx);
         for (var i = 0; i < 2; ++i) {
             if (i != refViewerIdx) {

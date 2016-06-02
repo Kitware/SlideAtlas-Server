@@ -8,8 +8,6 @@ echo "// auto generated: slide atlas" > css/sa.css
 ~/bin/uglifyjs -nc annotationLayer.js >> sam.min.js 
 ~/bin/uglifyjs -nc shape.js >> sam.min.js 
 ~/bin/uglifyjs -nc shapeGroup.js >> sam.min.js 
-~/bin/uglifyjs -nc stackSectionWidget.js >> sam.min.js 
-~/bin/uglifyjs -nc sectionsWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc cutoutWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc text.js >> sam.min.js 
 ~/bin/uglifyjs -nc textWidget.js >> sam.min.js 
@@ -75,5 +73,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc tileView.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewer.js >> sa.min.js 
 ~/bin/uglifyjs -nc pairTransformation.js >> sa.min.js 
+~/bin/uglifyjs -nc stackSectionWidget.js >> sa.min.js 
+~/bin/uglifyjs -nc sectionsWidget.js >> sa.min.js 
 
 

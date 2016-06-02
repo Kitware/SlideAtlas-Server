@@ -174,11 +174,11 @@ window.SA = window.SA || {};
         // Handle undo and redo (cntrl-z, cntrl-y)
         if (SA.ControlKeyPressed && event.keyCode == 90) {
             // Function in recordWidget.
-            UndoState();
+            SA.recorderWidget.UndoState();
             return false;
         } else if (SA.ControlKeyPressed && event.keyCode == 89) {
             // Function in recordWidget.
-            RedoState();
+            SA.recorderWidget.RedoState();
             return false;
         }
 
@@ -196,7 +196,7 @@ window.SA = window.SA || {};
         // For debugging deformable alignment in stacks.
         if (event.keyCode == 90) { // z = 90
             if (event.shiftKey) {
-                DeformableAlignViewers();
+                SA.DeformableAlignViewers();
                 return true;
             }
         }
@@ -204,17 +204,18 @@ window.SA = window.SA || {};
         // It is sort of a hack to check for the cursor mode here, but it
         // affects both viewers.
         if (event.keyCode == 88) { // x = 88
-            // I am using the 'c' key to display to focal point cursor
+            // I am using the 'x' key to display to focal point cursor
             //SA.StackCursorFlag = false;
             // what a pain.  Holding x down sometimes blocks mouse events.
             // Have to change to toggle.
             SA.StackCursorFlag =  ! SA.StackCursorFlag;
             if (event.shiftKey && SA.StackCursorFlag) {
-                testAlignTranslation();
+                SA.testAlignTranslation();
                 var self = SA;
                 window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
             }
 
+            SA.dualDisplay.EventuallyRender();
             return false;
         }
 
@@ -981,7 +982,7 @@ window.SA = window.SA || {};
             SA.dualDisplay.NavigationWidget.SetInteractionEnabled(true);
         }
 
-        new SA.RecorderWidget(SA.dualDisplay);
+        SA.recorderWidget = new SA.RecorderWidget(SA.dualDisplay);
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.

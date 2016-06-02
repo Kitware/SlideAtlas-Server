@@ -109,7 +109,7 @@ function AnnotationWidget (layer, viewer) {
         .attr('src',SA.ImagePathUrl+"select_lasso.png")
         .prop('title', "Lasso")
         .click(function(){self.NewLasso();});
-    if (this.Viewer) {
+    if (window.SA && this.Viewer) {
         this.SectionsButton = $('<img>')
             .appendTo(this.Tab.Panel)
             .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -302,6 +302,8 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetFunction) {
 
 
 AnnotationWidget.prototype.DetectSections = function() {
+    if ( ! window.SA) {return;}
+
     var widget = this.Layer.GetActiveWidget();
     var button = this.SectionsButton;
     if ( widget ) {
@@ -328,7 +330,7 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SAM.SectionsWidget(this.Viewer, false);
+        widget = new SA.SectionsWidget(this.Viewer, false);
         widget.ComputeSections();
         if (widget.IsEmpty()) {
             this.Layer.RemoveWidget(widget);
