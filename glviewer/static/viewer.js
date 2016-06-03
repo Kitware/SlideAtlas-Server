@@ -218,6 +218,17 @@
                       'width'   : '128px',
                       'z-index' : '4'});
         }
+        if (SA.Session && SA.Session.sessid == "57504ba7a7a1411310dd2637") {
+            this.Icon = $('<img>')
+                .appendTo(this.MainView.CanvasDiv)
+                .attr('src',"https://slide-atlas.org/api/v2/sessions/53d9230fdd98b54fd71e8ed7/attachments/57518ce4a7a14113156b8166")
+                .prop('title', "Philips")
+                .css({'position': 'absolute',
+                      'bottom'  : '90px',
+                      'left'    : '7px',
+                      'width'   : '100px',
+                      'z-index' : '4'});
+        }
 
         // Create an annotation layer by default.
         var annotationLayer1 = new SAM.AnnotationLayer(this.Div);
