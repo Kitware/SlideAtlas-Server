@@ -9222,7 +9222,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.ShowSlideInformation();});
 
-        if (typeof(TIME_LINE) != "undefined") {
+        if (SA.recorderWidget.TimeLine) {
             // Test for showing coverage of view histor.
             this.HistoryMenuItem = $('<button>')
                 .appendTo(this.Tab.Panel)
@@ -9310,7 +9310,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
     } else {
         this.HistoryMenuItem.text("History On")
     }
-    eventuallyRender();
+    SA.dualDisplay.EventuallyRender();
 }
 
 
@@ -13228,15 +13228,19 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     // Process containers for diagnosis ....
     SA.AddHtmlTags(this.TextEditor.TextEntry);
 
+
+    // Removed: This led to the unexpected behavior.  A link was changed
+    // when there was no good way to know it would be.  It is not
+    // highlighted ....
     // Lets try saving the camera for the current note.
     // This is a good comprise.  Do not record the camera
     // every time it moves, but do record it when the samve button
     // is pressed.
     // Camer links in text can display a note without selecting the note. (current).
-    var note = this.DisplayedNote;
-    if (note) {
-        note.RecordView(this.Display);
-    }
+    //var note = this.DisplayedNote;
+    //if (note) {
+    //    note.RecordView(this.Display);
+    //}
     note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
     note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
@@ -28530,6 +28534,17 @@ Cache.prototype.RecursivePruneTiles = function(node)
                       'bottom'  : '80px',
                       'left'    : '7px',
                       'width'   : '128px',
+                      'z-index' : '4'});
+        }
+        if (SA.Session && SA.Session.sessid == "57504ba7a7a1411310dd2637") {
+            this.Icon = $('<img>')
+                .appendTo(this.MainView.CanvasDiv)
+                .attr('src',"https://slide-atlas.org/api/v2/sessions/53d9230fdd98b54fd71e8ed7/attachments/57518ce4a7a14113156b8166")
+                .prop('title', "Philips")
+                .css({'position': 'absolute',
+                      'bottom'  : '90px',
+                      'left'    : '7px',
+                      'width'   : '100px',
                       'z-index' : '4'});
         }
 

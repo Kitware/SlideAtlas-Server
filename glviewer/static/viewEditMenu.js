@@ -71,7 +71,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.ShowSlideInformation();});
 
-        if (typeof(TIME_LINE) != "undefined") {
+        if (SA.recorderWidget.TimeLine) {
             // Test for showing coverage of view histor.
             this.HistoryMenuItem = $('<button>')
                 .appendTo(this.Tab.Panel)
@@ -159,7 +159,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
     } else {
         this.HistoryMenuItem.text("History On")
     }
-    eventuallyRender();
+    SA.dualDisplay.EventuallyRender();
 }
 
 

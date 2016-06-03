@@ -258,10 +258,11 @@
                           cam.Matrix[4]*h, cam.Matrix[5]*h,
                           cam.Matrix[12]*h, cam.Matrix[13]*h);
 
-            for (var i = 0; i < TIME_LINE.length; ++i) {
-                var cam = TIME_LINE[i].ViewerRecords[0].Camera;
-                var height = cam.GetHeight();
-                var width = cam.GetWidth();
+            var timeLine = SA.recorderWidget.TimeLine;
+            for (var i = 0; i < timeLine.length; ++i) {
+                var cam = timeLine[i].ViewerRecords[0].Camera;
+                var height = cam.Height;
+                var width = cam.Width;
                 // camer roll is already in radians.
                 var c = Math.cos(cam.Roll);
                 var s = Math.sin(cam.Roll);
