@@ -50,7 +50,7 @@ ViewerRecord.prototype.DeepCopy = function(source) {
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
     if ( ! obj.Image.units && obj.Image.filename) {
-        var tmp = obj.Image.filename.split();
+        var tmp = obj.Image.filename.split('.');
         var ext = tmp[tmp.length-1];
         if (ext == "ptif") {
             obj.Image.spacing = [0.25, 0.25, 1.0];
