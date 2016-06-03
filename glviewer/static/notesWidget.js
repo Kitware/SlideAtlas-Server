@@ -1143,15 +1143,19 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     // Process containers for diagnosis ....
     SA.AddHtmlTags(this.TextEditor.TextEntry);
 
+
+    // Removed: This led to the unexpected behavior.  A link was changed
+    // when there was no good way to know it would be.  It is not
+    // highlighted ....
     // Lets try saving the camera for the current note.
     // This is a good comprise.  Do not record the camera
     // every time it moves, but do record it when the samve button
     // is pressed.
     // Camer links in text can display a note without selecting the note. (current).
-    var note = this.DisplayedNote;
-    if (note) {
-        note.RecordView(this.Display);
-    }
+    //var note = this.DisplayedNote;
+    //if (note) {
+    //    note.RecordView(this.Display);
+    //}
     note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
     note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
