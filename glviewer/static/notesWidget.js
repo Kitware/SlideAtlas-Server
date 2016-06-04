@@ -1156,7 +1156,7 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     //if (note) {
     //    note.RecordView(this.Display);
     //}
-    note = this.GetCurrentNote();
+    var note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
     note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
 
