@@ -59,6 +59,198 @@
 
 //==============================================================================
 
+
+(function () {
+    "use strict";
+
+    // TODO: put this class in its own file.
+    // Links that open a separate window use this.
+    // It has a gui to choose the window location and will reposition other
+    // windows so they do not overlap.  Modeling after MS Windows snap
+    // assist.
+
+    function WindowManager() {
+        var self = this;
+
+        this.Windows = new Array(3);
+        this.Windows[0] = new Array(3);
+        this.Windows[1] = new Array(3);
+        this.Windows[2] = new Array(3);
+
+        this.ScreenRectangle = $('<div>')
+            .appendTo('body')
+            .css({'position':'absolute',
+                  'background':'#06F',
+                  'opacity':'0.5',
+                  'z-index':'100'})
+            .hide();
+        this.WindowRectangle = $('<div>')
+            .appendTo(this.ScreenRectangle)
+            .css({'position':'absolute',
+                  'background':'#FFF',
+                  'opacity':'0.5'});
+
+        // Does hiding does not get rid of the bound events.
+        this.ScreenRectangle
+            .bind('mousemove',
+                  function (e) {self.HandleMouseMove(e);});
+        this.ScreenRectangle
+            .bind('mouseup',
+                  function (e) {self.HandleMouseUp(e);});
+        this.ScreenRectangle
+            .bind('mouseleave',
+                  function (e) {self.HandleMouseLeave(e);});
+
+
+        $(window).bind('beforeunload', function(){
+            for ( var x = 0; x < 3; ++x) {
+                for (var y = 0; y < 3; ++y) {
+                    var w = self.Windows[x][y];
+                    if (w && ! w.closed) {
+                        w.close();
+                    }
+                }
+            }
+        });
+    }
+
+    // mX,my is the mouse location.  The center of the GUI object will be
+    // placed there.
+    WindowManager.prototype.Show = function(mx,my,url,title) {
+        this.Title = title || "SlideAtlas";
+        this.Url = url;
+
+        this.AvailableLeft = screen.availLeft || 0;
+        this.AvailableTop  = screen.availTop || 0;
+        this.AvailableWidth = screen.availWidth || screen.width || 1000;
+        this.AvailableHeight = screen.availHeight || screen.height || 800;
+
+        var w = this.AvailableWidth / 10;
+        var h = this.AvailableHeight / 10;
+        var x = mx - (w/2);
+        var y = my - (h/2);
+        if (x < 0) {x = 0;}
+        if (y < 0) {y = 0;}
+
+        this.Partition = [1,1];
+        this.WindowRectangle
+            .css({'left':'0%',
+                  'top':'0%',
+                  'width':'100%',
+                  'height':'100%'});
+
+        this.ScreenRectangle
+            .css({'left' : x+'px',
+                  'top'  : y+'px',
+                  'width': w+'px',
+                  'height':h+'px'})
+            .show();
+    }
+
+    WindowManager.prototype.HandleMouseLeave = function(event) {
+        this.ScreenRectangle.hide();
+    }
+
+    WindowManager.prototype.HandleMouseUp = function(event) {
+        var xIdx = this.Partition[0];
+        var yIdx = this.Partition[1];
+        var w = this.Windows[xIdx][yIdx]; 
+        if (w && ! w.closed) {
+            w.location.href = this.Url;
+            // change the title
+            w.document.title = this.Title;
+            return;
+        }
+
+        var x = this.AvailableLeft;
+        var y = this.AvailableTop
+        var w = this.AvailableWidth;
+        var h = this.AvailableHeight;
+
+        if (xIdx != 1) {
+            w = w / 2;
+        }
+        if (yIdx != 1) {
+            h = h / 2;
+        }
+        if (xIdx ==2) {
+            x = x + w;
+        }
+        if (yIdx ==2) {
+            y = y + h;
+        }
+        // inner vs outer?
+        w = w - 27;
+        h = h - 100;
+        // Two windows cannot have the same title.
+        var title = this.Title + " " + xIdx + " " + yIdx;
+        this.Windows[this.Partition[0]][this.Partition[1]] =
+            window.open(this.Url, title,
+                        "titlebar=no,menubar=no,toolbar=no,dependent=yes,left="+x+",top="+y+",width="+w+",height="+h);
+        this.ScreenRectangle.hide();
+    }
+
+    WindowManager.prototype.HandleMouseMove = function(event) {
+        var w = this.ScreenRectangle.width();
+        var h = this.ScreenRectangle.height();
+        var x = event.offsetX;
+        var y = event.offsetY;
+
+        // offsetX is relative to the source div which can be the
+        // WindowRectangle. Change it to be relative to the
+        // ScreenRectangle.
+        var src = $(event.originalEvent.srcElement);
+        while (src[0] != this.ScreenRectangle[0]) {
+            var pos = src.position();
+            x += pos.left;
+            y += pos.top;
+            src = src.parent();
+            if ( ! src) {
+                return;
+            }
+        }
+
+        if (x < w/3) {
+            this.Partition[0] = 0;
+            this.WindowRectangle
+                .css({'left':'0%',
+                      'width':'50%'});
+        } else if (x > 2*w/3) {
+            this.Partition[0] = 2;
+            this.WindowRectangle
+                .css({'left':'50%',
+                      'width':'50%'});
+        } else {
+            this.Partition[0] = 1;
+            this.WindowRectangle
+                .css({'left':'0px',
+                      'width':'100%'});
+        }
+        if (y < h/3) {
+            this.Partition[1] = 0;
+            this.WindowRectangle
+                .css({'top':'0%',
+                      'height':'50%'});
+        } else if (y > 2*h/3) {
+            this.Partition[1] = 2;
+            this.WindowRectangle
+                .css({'top':'50%',
+                      'height':'50%'});
+        } else {
+            this.Partition[1] = 1;
+            this.WindowRectangle
+                .css({'top':'0px',
+                      'height':'100%'});
+        }
+    }
+
+    SA.WindowManager = WindowManager;
+
+})();
+
+
+
+
 (function () {
     "use strict";
 
@@ -133,6 +325,8 @@
                   'overflow': 'auto',
                   'resize': 'none',
                   'border-style': 'inset',
+                  'font-size': '10pt',
+                  'font-family': 'Century Gothic',
                   'background': '#f5f8ff'})
             .bind('input', function () {
                 // Leave events are not triggering.
@@ -255,7 +449,18 @@
             $(link).contextmenu( function() { return false; });
             $(link).mousedown(function(e){
                 if( e.button == 0 ) {
-                    linkNote.DisplayView(self.Display);
+                    // Start a timer.
+                    self.LinkWindowLocation = 0;
+                    setTimeout(function () {
+                        if ( ! SA.windowManager) {
+                            SA.windowManager = new SA.WindowManager();
+                        }
+                        SA.windowManager.Show(e.pageX, e.pageY,
+                                              "/webgl-viewer?view="+linkNote.Id,
+                                              linkNote.Title);
+                        // Hack to keep mouse up from loading the note.
+                        self.LinkWindowLocation = 1;
+                    }, 1000);
                     return false;
                 }
                 if( e.button == 2 ) {
@@ -269,6 +474,15 @@
                               'top' :(pos.top)+'px'})
                         .show();
                     return false;
+                }
+                return true;
+            });
+            $(link).mouseup(function(e){
+                if( e.button == 0 ) {
+                    if ( self.LinkWindowLocation == 0) {
+                        linkNote.DisplayView(self.Display);
+                        return false;
+                    }
                 }
                 return true;
             });
@@ -673,6 +887,8 @@
         this.Note = note;
         this.TextEntry.html(note.Text);
 
+        this.UpdateMode(note.mode);
+
         // TODO: Hide this.  Maybe use saHtml.
         if (SA.Edit) {
             var items = this.TextEntry.find('.sa-question');
@@ -689,6 +905,15 @@
         this.MakeLinksClickable();
         if (SA.Edit) {
             this.EditOn();
+        }
+    }
+
+    // This gets called when the note's mode changes.
+    TextEditor.prototype.UpdateMode = function(mode) {
+        if (mode == 'answer-show' && this.Note && this.Note.Title) {
+            this.HomeButton.text(this.Note.Title);
+        } else {
+            this.HomeButton.text("Home");
         }
     }
 
@@ -739,613 +964,609 @@
     "use strict";
 
 
-function NotesWidget(parent, display) {
-    this.ModifiedCallback = null;
-    this.LinkDiv;
-    // This is a hack.  I do not know when to save the camera.
-    // The save button will save the camera for the last note displayed.
-    // This may be different that the selected note because of camera links
-    // in text that do not change the text.
-    this.DisplayedNote = null;
+    function NotesWidget(parent, display) {
+        this.ModifiedCallback = null;
+        this.LinkDiv;
+        // This is a hack.  I do not know when to save the camera.
+        // The save button will save the camera for the last note displayed.
+        // This may be different that the selected note because of camera links
+        // in text that do not change the text.
+        this.DisplayedNote = null;
 
-    // Popup div to display permalink.
-    SA.LinkDiv =
-        $("<div>")
-        .appendTo('body')
-        .css({'top':'30px',
-              'left': '10%',
-              'position': 'absolute',
-              'width':'80%',
-              'height': '50px',
-              'z-index':'3',
-              'background-color':'#FFF',
-              'border':'1px solid #777',
-              'border-radius': '8px',
-              'text-align': 'center',
-              'padding-top': '26px'})
-        .hide()
-        .mouseleave(function() { SA.LinkDiv.fadeOut(); });
+        // Popup div to display permalink.
+        SA.LinkDiv =
+            $("<div>")
+            .appendTo('body')
+            .css({'top':'30px',
+                  'left': '10%',
+                  'position': 'absolute',
+                  'width':'80%',
+                  'height': '50px',
+                  'z-index':'3',
+                  'background-color':'#FFF',
+                  'border':'1px solid #777',
+                  'border-radius': '8px',
+                  'text-align': 'center',
+                  'padding-top': '26px'})
+            .hide()
+            .mouseleave(function() { SA.LinkDiv.fadeOut(); });
 
-    // There is not option to show the link when SA.Edit is not on,
-    // so this really does nothing.  Editable is probably necessary
-    // for selection to copy.
-    if (SA.Edit) {
-        SA.LinkDiv.attr('contenteditable', "true");
-    }
+        // There is not option to show the link when SA.Edit is not on,
+        // so this really does nothing.  Editable is probably necessary
+        // for selection to copy.
+        if (SA.Edit) {
+            SA.LinkDiv.attr('contenteditable', "true");
+        }
 
-    var self = this;
-    this.Display = display;
+        var self = this;
+        this.Display = display;
 
-    this.Modified = false;
-    this.Window = $('<div>')
-        .appendTo(parent)
-        .css({
-            'background-color': 'white',
-            'position': 'absolute',
-            'top'    : '0%',
-            'left'   : '0%',
-            'height' : '100%',
-            'width'  : '100%',
-            'z-index': '2'})
-        .attr('draggable','false')
-        .on("dragstart", function() {return false;})
-        .attr('id', 'NoteWindow');
+        this.Modified = false;
+        this.Window = $('<div>')
+            .appendTo(parent)
+            .css({
+                'background-color': 'white',
+                'position': 'absolute',
+                'top'    : '0%',
+                'left'   : '0%',
+                'height' : '100%',
+                'width'  : '100%',
+                'z-index': '2'})
+            .attr('draggable','false')
+            .on("dragstart", function() {return false;})
+            .attr('id', 'NoteWindow');
 
-    //--------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
+        
+        // Keeps track of the current note.
+        this.NavigationWidget;
 
-    // Keeps track of the current note.
-    this.NavigationWidget;
+        // For clearing selected GUI setting.
+        this.SelectedNote;
 
-    // For clearing selected GUI setting.
-    this.SelectedNote;
+        // GUI elements
+        this.TabbedWindow = new SA.TabbedDiv(this.Window);
 
-    // GUI elements
-    this.TabbedWindow = new SA.TabbedDiv(this.Window);
+        this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
+        this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
+        this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
+        this.LinksRoot = $('<ul>')
+            .addClass('sa-ul')
+            .css({'padding-left':'0px'})
+            .appendTo(this.LinksDiv);
 
-    this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
-    this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
-    this.LinksRoot = $('<ul>')
-        .addClass('sa-ul')
-        .css({'padding-left':'0px'})
-        .appendTo(this.LinksDiv);
+        for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+            this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
+        }
 
+        this.LinksDiv
+            .css({'overflow': 'auto',
+                  'text-align': 'left',
+                  'color': '#303030',
+                  'font-size': '18px'})
+            .attr('id', 'NoteTree');
 
+        // no longer needed, but interesting: 'box-sizing': 'border-box'
 
-    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-        this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
-    }
+        // This is the button for the links tab div.
+        if (SA.Edit) {
+            this.AddViewButton = $('<button>')
+                .appendTo(this.LinksDiv)
+                .css({'border-radius': '4px',
+                      'margin': '1em'})
+                .text("+ New View")
+        }
 
-
-    this.LinksDiv
-        .css({'overflow': 'auto',
-              'text-align': 'left',
-              'color': '#303030',
-              'font-size': '18px'})
-        .attr('id', 'NoteTree');
-
-    // no longer needed, but interesting: 'box-sizing': 'border-box'
-
-    // This is the button for the links tab div.
-    if (SA.Edit) {
-        this.AddViewButton = $('<button>')
-            .appendTo(this.LinksDiv)
-            .css({'border-radius': '4px',
-                  'margin': '1em'})
-            .text("+ New View")
-    }
-
-    // Show hidden content to non administrator.
-    // Do not show this unless not is interactive.
-    this.QuizButton = $('<div>')
-        .appendTo(this.TextDiv)
-        .addClass('editButton')
-        .css({'float':'right',
-              'font-size':'small',
-              'margin-top':'4px',
-              'padding-left':'2px',
-              'padding-right':'2px',
-              'border':'1px solid #AAA',
-              'border-radius':'2px'})
-        .text("show")
-        .hide();
-
-    // Now for the text tab:
-    if (SA.Edit) {
-        // TODO: Encapsulate this menu (used more than once)
-        this.QuizDiv = $('<div>')
+        // Show hidden content to non administrator.
+        // Do not show this unless not is interactive.
+        this.QuizButton = $('<div>')
             .appendTo(this.TextDiv)
-        this.QuizMenu = $('<select name="quiz" id="quiz">')
-            .appendTo(this.QuizDiv)
-            .css({'float':'right',
-                  'margin':'3px'})
-            .change(function () {
-                if ( ! self.RootNote) { return; }
-                if (this.value == "review") {
-                    self.RootNote.Mode = "answer-show";
-                } else if (this.value == "hidden") {
-                    self.RootNote.Mode = "answer-hide";
-                } else if (this.value == "interactive") {
-                    self.RootNote.Mode = "answer-interactive";
-                }
-                self.UpdateQuestionMode();
-            });
-        this.QuizLabel = $('<div>')
-            .appendTo(this.TextDiv)
+            .addClass('editButton')
             .css({'float':'right',
                   'font-size':'small',
-                  'margin-top':'4px'})
-            .text("quiz");
-        $('<option>')
-            .appendTo(this.QuizMenu)
-            .text('review');
-        $('<option>')
-            .appendTo(this.QuizMenu)
-            .text('hidden');
-        $('<option>')
-            .appendTo(this.QuizMenu)
-            .text('interactive');
-        // Set the question mode
-        this.QuizMenu.val("review");
-    }
+                  'margin-top':'4px',
+                  'padding-left':'2px',
+                  'padding-right':'2px',
+                  'border':'1px solid #AAA',
+                  'border-radius':'2px'})
+            .text("show")
+            .hide();
 
-    this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
-    if ( ! SA.Edit) {
-        this.TextEditor.EditableOff();
-    } else {
-        this.TextEditor.Change(
-            function () {
-                self.MarkAsModified();
-            });
-    }
-    // Private notes.
-    this.UserTextEditor = new SA.TextEditor(this.UserTextDiv, this.Display);
-    this.UserTextEditor.Change(
-        function () {
-            self.UserTextEditor.Note.Save();
-        });
-}
-
-NotesWidget.prototype.UpdateQuestionMode = function() {
-    // Set the question mode
-    if ( ! this.RootNote) {
-        return;
-    }
-
-    if ( ! this.RootNote.Mode) {
-        this.RootNote.Mode = 'answer-show';
-    }
-
-    if (this.QuizMenu) {
-        if (this.RootNote.Mode == 'answer-hide') {
-            this.QuizMenu.val("hidden");
-        } else if (this.RootNote.Mode == 'answer-interactive') {
-            this.QuizMenu.val("interactive");
-        } else {
-            //this.RootNote.Mode = 'answer-show';
+        // Now for the text tab:
+        if (SA.Edit) {
+            // TODO: Encapsulate this menu (used more than once)
+            this.QuizDiv = $('<div>')
+                .appendTo(this.TextDiv)
+            this.QuizMenu = $('<select name="quiz" id="quiz">')
+                .appendTo(this.QuizDiv)
+                .css({'float':'right',
+                      'margin':'3px'})
+                .change(function () {
+                    if ( ! self.RootNote) { return; }
+                    if (this.value == "review") {
+                        self.RootNote.Mode = "answer-show";
+                    } else if (this.value == "hidden") {
+                        self.RootNote.Mode = "answer-hide";
+                    } else if (this.value == "interactive") {
+                        self.RootNote.Mode = "answer-interactive";
+                    }
+                    self.UpdateQuestionMode();
+                });
+            this.QuizLabel = $('<div>')
+                .appendTo(this.TextDiv)
+                .css({'float':'right',
+                      'font-size':'small',
+                      'margin-top':'4px'})
+                .text("quiz");
+            $('<option>')
+                .appendTo(this.QuizMenu)
+                .text('review');
+            $('<option>')
+                .appendTo(this.QuizMenu)
+                .text('hidden');
+            $('<option>')
+                .appendTo(this.QuizMenu)
+                .text('interactive');
+            // Set the question mode
             this.QuizMenu.val("review");
         }
-    }
-    if (this.RootNote.Mode == 'answer-interactive') {
-        var self = this;
-        this.QuizButton
-            .show()
-            .css('background-color','')
-            .click(function () {
-                self.SetAnswerVisibility('answer-show');
-                self.QuizButton.css({'background-color':'#AAAAAA'});
-            })
-    } else {
-        this.QuizButton.hide();
-    }
 
-    this.SetAnswerVisibility(this.RootNote.Mode);
-}
-
-
-NotesWidget.prototype.SetAnswerVisibility = function(mode) {
-    // make sure tags have been decoded.
-    SA.AddHtmlTags(this.TextEditor.TextEntry);
-
-    if (mode == 'answer-show') {
-        $('.sa-note').show();
-        $('.sa-notes').show();
-        $('.sa-diagnosis').show();
-        $('.sa-differential-diagnosis').show();
-        $('.sa-teaching-points').show();
-        $('.sa-compare').show();
-    } else {
-        $('.sa-note').hide();
-        $('.sa-notes').hide();
-        $('.sa-diagnosis').hide();
-        $('.sa-differential-diagnosis').hide();
-        $('.sa-teaching-points').hide();
-        $('.sa-compare').hide();
-    }
-    $('.sa-question').saQuestion('SetMode', mode);
-}
-
-
-NotesWidget.prototype.SetNavigationWidget = function(nav) {
-    this.NavigationWidget = nav;
-}
-
-NotesWidget.prototype.SetModifiedCallback = function(callback) {
-    this.ModifiedCallback = callback;
-}
-
-NotesWidget.prototype.SetModifiedClearCallback = function(callback) {
-    this.ModifiedClearCallback = callback;
-}
-
-// Two types of select.  This one is from the views tab.
-// It sets the text from the note.
-// There has to be another from text links.  That does not set the
-// text.
-NotesWidget.prototype.SelectNote = function(note) {
-    if (note == this.SelectedNote) {
-        // Just reset the camera.
-        //note.DisplayView(this.Display);
-        return;
-    }
-    // Flush the timers before moving to another view.
-    // GUI cannot call this object.
-    if (this.RecordViewTimer) {
-        clearTimeout(this.RecordViewTimer);
-        this.RecordViewTimer = null;
-        this.RecordView2();
-    }
-
-    // This should method should be split between Note and NotesWidget
-    if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
-
-    this.TextEditor.LoadNote(note);
-
-    // Handle the note that is being unselected.
-    // Clear the selected background of the deselected note.
-    if (this.SelectedNote) {
-        this.SelectedNote.TitleEntry.css({'background':'white'});
-        // Make the old hyper link normal color.
-        $('#'+this.SelectedNote.Id).css({'background':'white'});
-    }
-
-    this.SelectedNote = note;
-
-    // Indicate which note is selected.
-    note.TitleEntry.css({'background':'#f0f0f0'});
-    // This highlighting can be confused with the selection highlighting.
-    // Indicate hyperlink current note.
-    //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
-    // Select the current hyper link
-    note.SelectHyperlink();
-
-    //if (SA.dualDisplay &&
-    //    SA.dualDisplay.NavigationWidget) {
-    //    SA.dualDisplay.NavigationWidget.Update();
-    //}
-
-    //if (this.Display.GetNumberOfViewers() > 1) {
-    //    this.Display.GetViewer(1).Reset();
-    //    // TODO:
-    //    // It would be nice to store the viewer configuration
-    //    // as a separate state variable.  We might want a stack
-    //    // that defaults to a single viewer.
-    //    this.Display.SetNumberOfViewers(note.ViewerRecords.length);
-    //}
-
-    // Clear the sync callback.
-    //var self = this;
-    //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-    //    this.Display.GetViewer(i).OnInteraction();
-    //    if (SA.Edit) {
-    //        // These record changes in the viewers to the notes.
-    //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
-    //    }
-    //}
-}
-
-NotesWidget.prototype.RecordView = function() {
-    if ( ! SA.Edit) { return; }
-
-    if (this.RecordViewTimer) {
-        clearTimeout(this.RecordViewTimer);
-    }
-    var self = this;
-    this.RecordViewTimer = setTimeout(
-        function () { self.RecordView2() },
-        1000);
-}
-
-NotesWidget.prototype.RecordView2 = function() {
-    this.RecordViewTimer = null;
-    var note = this.GetCurrentNote();
-    //note.RecordView(this.Display);
-    // Hack to keep root from getting view annotations.
-    // TODO: CLean up the two parallel paths Notes ad views.
-    if (this.DisplayedNote && note == this.DisplayedNote) {
-        note.RecordAnnotations(this.Display);
-    }
-}
-
-
-NotesWidget.prototype.MarkAsModified = function() {
-    if (this.ModifiedCallback) {
-        this.ModifiedCallback();
-    }
-    this.Modified = true;
-}
-
-
-NotesWidget.prototype.MarkAsNotModified = function() {
-    if (this.ModifiedClearCallback) {
-        this.ModifiedClearCallback();
-    }
-    this.Modified = false;
-}
-
-NotesWidget.prototype.SetRootNote = function(rootNote) {
-    if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer);
-        this.Update();
-    }
-    //this.Display.SetNote();
-
-    this.RootNote = rootNote;
-    this.DisplayRootNote();
-
-    // Only show user notes for the first image of the root note.
-    // I can rethink this later.
-    if (rootNote.ViewerRecords.length > 0) {
-        this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
-    }
-
-    // Set the state of the notes widget.
-    // Should we ever turn it off?
-    if (SA.resizePanel) {
-        SA.resizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
-    }
-
-    this.UpdateQuestionMode();
-}
-
-
-// TODO:
-// Hmmmm.  I do not think this is used yet.
-// SA.SaveButton setup should not be here though.
-NotesWidget.prototype.EditOn = function() {
-    SA.SaveButton
-        .prop('title', "save to database")
-        .attr('src',SA.ImagePathUrl+"save22.png")
-        .click(function(){self.SaveCallback();});
-    this.AddViewButton.show();
-    this.TextEditor.EditOn();
-}
-
-NotesWidget.prototype.EditOff = function() {
-    SA.SaveButton
-        .prop('title', "edit view")
-        .attr('src',SA.ImagePathUrl+"text_edit.png")
-        .click(function(){self.EditOn();});
-    this.AddViewButton.hide();
-    this.TextEditor.EditOff();
-
-    /*
-    .. note camera buttons....
-        .. note title entry (content editable.) ....
-        .. note remove button ...
-        .. link and delete button ...
-        .. Stack stuff ...
-    */
-
-}
-
-NotesWidget.prototype.SaveCallback = function(finishedCallback) {
-    // Process containers for diagnosis ....
-    SA.AddHtmlTags(this.TextEditor.TextEntry);
-
-
-    // Removed: This led to the unexpected behavior.  A link was changed
-    // when there was no good way to know it would be.  It is not
-    // highlighted ....
-    // Lets try saving the camera for the current note.
-    // This is a good comprise.  Do not record the camera
-    // every time it moves, but do record it when the samve button
-    // is pressed.
-    // Camer links in text can display a note without selecting the note. (current).
-    //var note = this.DisplayedNote;
-    //if (note) {
-    //    note.RecordView(this.Display);
-    //}
-    var note = this.GetCurrentNote();
-    // Lets save the state of the notes widget.
-    note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
-
-    var rootNote = this.Display.GetRootNote();
-    if (rootNote.Type == "Stack") {
-        // Copy viewer annotation to the viewer record.
-        rootNote.RecordAnnotations(this.Display);
-    }
-
-    var self = this;
-    rootNote.Save(function () {
-        self.Modified = false;
-        if (finishedCallback) {
-            finishedCallback();
+        this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
+        if ( ! SA.Edit) {
+            this.TextEditor.EditableOff();
+        } else {
+            this.TextEditor.Change(
+                function () {
+                    self.MarkAsModified();
+                });
         }
-    });
-}
-
-//------------------------------------------------------------------------------
-
-NotesWidget.prototype.GetCurrentNote = function() {
-    return this.Display.GetNote();
-}
-
-
-NotesWidget.prototype.SaveBrownNote = function() {
-    // Create a new note.
-    var note = new SA.Note();
-    note.RecordView(this.Display);
-
-    // This is not used and will probably be taken out of the scheme,
-    note.SetParent(this.GetCurrentNote());
-
-    // Make a thumbnail image to represent the favorite.
-    // Bug: canvas.getDataUrl() not supported in Safari on iPad.
-    // Fix: If on mobile, use the thumbnail for the entire slide.
-    var src;
-    if(SAM.detectMobile()){
-        var image = this.Display.GetViewer(0).GetCache().Image;
-        src = "/thumb?db=" + image.database + "&img=" + image._id + "";
-    } else {
-        var thumb = SA.dualDisplay.CreateThumbnailImage(110);
-        src = thumb.src;
-    }
-
-    // Save the favorite (note) in the admin database for this specific user.
-    $.ajax({
-        type: "post",
-        url: "/webgl-viewer/saveusernote",
-        data: {"note": JSON.stringify(note.Serialize(true)),
-               "thumb": src,
-               "col" : "views",
-               "type": "Favorite"},//"favorites"
-        success: function(data,status) {
-            FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
-        },
-        error: function() {
-            SA.Debug( "AJAX - error() : saveusernote 2" );
-        },
-    });
-}
-
-// Randomize the order of the children
-NotesWidget.prototype.RandomCallback = function() {
-  var note = this.GetCurrentNote();
-  note.Children.sort(function(a,b){return Math.random() - 0.5;});
-  note.UpdateChildrenGUI();
-}
-
-// Called when a new slide/view is loaded.
-NotesWidget.prototype.DisplayRootNote = function() {
-    this.TextEditor.LoadNote(this.RootNote);
-    this.LinksRoot.empty();
-    this.RootNote.DisplayGUI(this.LinksRoot);
-    this.SelectNote(this.RootNote);
-
-    // Add an obvious way to add a link / view to the root note.
-    if (SA.Edit) {
-        var self = this;
-        this.AddViewButton
-            .appendTo(this.LinksDiv)
-            .click(function () {
-                var parentNote = SA.notesWidget.RootNote;
-                var childIdx = parentNote.Children.length;
-                var childNote = parentNote.NewChild(childIdx, "New View");
-                // Setup and save
-                childNote.RecordView(self.Display);
-                // We need to save the note to get its Id (for the link div).
-                childNote.Save();
-                parentNote.UpdateChildrenGUI();
-                this.Display.SetNote(childNote);
-                //self.SelectNote(childNote);
+        // Private notes.
+        this.UserTextEditor = new SA.TextEditor(this.UserTextDiv, this.Display);
+        this.UserTextEditor.Change(
+            function () {
+                self.UserTextEditor.Note.Save();
             });
     }
-    // Default to old style when no text exists (for backward compatability).
-    if (this.RootNote.Text == "") {
-        this.TabbedWindow.ShowTabDiv(this.LinksDiv);
-    } else {
-        this.TabbedWindow.ShowTabDiv(this.TextDiv);
-    }
-}
 
-// Add a user note to the currently selected notes children.
-NotesWidget.prototype.NewCallback = function() {
-    var note = this.GetCurrentNote();
-    var childIdx = 0;
-    if (note.Parent) {
-        var idx = note.Children.indexOf(note);
-        if (idx >= 0) {
-            childIdx = idx+1;
-            note = note.Parent;
+    NotesWidget.prototype.UpdateQuestionMode = function() {
+        // Set the question mode
+        if ( ! this.RootNote) {
+            return;
         }
-    }
-    // Create a new note.
-    var childNote = note.NewChild(childIdx, "New View");
-    // Setup and save
-    childNote.RecordView(this.Display);
-    //childNote.Save();
-    note.UpdateChildrenGUI();
 
-    note.Save();
-    //this.SelectNote(childNote);
-    this.Display.SetNote(childNote);
-}
-
-// UserNotes used to be attached to a parent note.  Now I am indexing them
-// from the image id.  They will not get lost, but this causes a could
-// issues.  I do not support multiple user notes per image.  I have to be
-// careful about infinte recursion when loading. I am only going to display
-// the note for the first image in the root note. (I can rethink this last
-// decision later.)
-// Maybe we should store the image id directly in the user not instead of
-// the viewerRecord.
-NotesWidget.prototype.RequestUserNote = function(imageId) {
-    var self = this;
-    $.ajax({
-        type: "get",
-        url: "/webgl-viewer/getusernotes",
-        data: {"imageid": imageId},
-        success: function(data,status) { self.LoadUserNote(data, imageId);},
-        error: function() { SA.Debug( "AJAX - error() : getusernotes" ); },
-    });
-}
-
-
-// Note will not be active until it has a note.
-// Edit to a previous note are saved before it is replaced.
-NotesWidget.prototype.LoadUserNote = function(data, imageId) {
-    if (this.UserNote) {
-        // Save the previous note incase the user is in mid edit????
-        if (this.UserNote.Text != "" || this.UserNote.Children.length > 0) {
-            this.UserNote.Save();
+        if ( ! this.RootNote.Mode) {
+            this.RootNote.Mode = 'answer-show';
         }
-    }
-    this.UserNote = new SA.Note();
 
-    if (data.Notes.length > 0) {
-        if (data.Notes.length > 1) {
-            SA.Debug("Warning: Only showing the first user note.");
+        if (this.QuizMenu) {
+            if (this.RootNote.Mode == 'answer-hide') {
+                this.QuizMenu.val("hidden");
+            } else if (this.RootNote.Mode == 'answer-interactive') {
+                this.QuizMenu.val("interactive");
+            } else {
+                //this.RootNote.Mode = 'answer-show';
+                this.QuizMenu.val("review");
+            }
         }
-        var noteData = data.Notes[0];
-        this.UserNote.Load(noteData);
-    } else {
-        // start with a copy of the current note.
-        // The server searches viewer records for the image.
-        // Only copoy the first viewer records.  More could be problematic.
+        if (this.RootNote.Mode == 'answer-interactive') {
+            var self = this;
+            this.QuizButton
+                .show()
+                .css('background-color','')
+                .click(function () {
+                    self.SetAnswerVisibility('answer-show');
+                    self.QuizButton.css({'background-color':'#AAAAAA'});
+                })
+        } else {
+            this.QuizButton.hide();
+        }
+
+        this.SetAnswerVisibility(this.RootNote.Mode);
+    }
+
+
+    NotesWidget.prototype.SetAnswerVisibility = function(mode) {
+        // make sure tags have been decoded.
+        SA.AddHtmlTags(this.TextEditor.TextEntry);
+
+        if (mode == 'answer-show') {
+            $('.sa-note').show();
+            $('.sa-notes').show();
+            $('.sa-diagnosis').show();
+            $('.sa-differential-diagnosis').show();
+            $('.sa-teaching-points').show();
+            $('.sa-compare').show();
+        } else {
+            $('.sa-note').hide();
+            $('.sa-notes').hide();
+            $('.sa-diagnosis').hide();
+            $('.sa-differential-diagnosis').hide();
+            $('.sa-teaching-points').hide();
+            $('.sa-compare').hide();
+        }
+        $('.sa-question').saQuestion('SetMode', mode);
+
+        this.TextEditor.UpdateMode(mode);
+    }
+
+
+    NotesWidget.prototype.SetNavigationWidget = function(nav) {
+        this.NavigationWidget = nav;
+    }
+
+    NotesWidget.prototype.SetModifiedCallback = function(callback) {
+        this.ModifiedCallback = callback;
+    }
+
+    NotesWidget.prototype.SetModifiedClearCallback = function(callback) {
+        this.ModifiedClearCallback = callback;
+    }
+
+    // Two types of select.  This one is from the views tab.
+    // It sets the text from the note.
+    // There has to be another from text links.  That does not set the
+    // text.
+    NotesWidget.prototype.SelectNote = function(note) {
+        if (note == this.SelectedNote) {
+            // Just reset the camera.
+            //note.DisplayView(this.Display);
+            return;
+        }
+        // Flush the timers before moving to another view.
+        // GUI cannot call this object.
+        if (this.RecordViewTimer) {
+            clearTimeout(this.RecordViewTimer);
+            this.RecordViewTimer = null;
+            this.RecordView2();
+        }
+
+        // This should method should be split between Note and NotesWidget
+        if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
+
+        this.TextEditor.LoadNote(note);
+
+        // Handle the note that is being unselected.
+        // Clear the selected background of the deselected note.
+        if (this.SelectedNote) {
+            this.SelectedNote.TitleEntry.css({'background':'white'});
+            // Make the old hyper link normal color.
+            $('#'+this.SelectedNote.Id).css({'background':'white'});
+        }
+
+        this.SelectedNote = note;
+
+        // Indicate which note is selected.
+        note.TitleEntry.css({'background':'#f0f0f0'});
+        // This highlighting can be confused with the selection highlighting.
+        // Indicate hyperlink current note.
+        //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
+        // Select the current hyper link
+        note.SelectHyperlink();
+
+        //if (SA.dualDisplay &&
+        //    SA.dualDisplay.NavigationWidget) {
+        //    SA.dualDisplay.NavigationWidget.Update();
+        //}
+
+        //if (this.Display.GetNumberOfViewers() > 1) {
+        //    this.Display.GetViewer(1).Reset();
+        //    // TODO:
+        //    // It would be nice to store the viewer configuration
+        //    // as a separate state variable.  We might want a stack
+        //    // that defaults to a single viewer.
+        //    this.Display.SetNumberOfViewers(note.ViewerRecords.length);
+        //}
+
+        // Clear the sync callback.
+        //var self = this;
+        //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+        //    this.Display.GetViewer(i).OnInteraction();
+        //    if (SA.Edit) {
+        //        // These record changes in the viewers to the notes.
+        //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
+        //    }
+        //}
+    }
+
+    NotesWidget.prototype.RecordView = function() {
+        if ( ! SA.Edit) { return; }
+
+        if (this.RecordViewTimer) {
+            clearTimeout(this.RecordViewTimer);
+        }
+        var self = this;
+        this.RecordViewTimer = setTimeout(
+            function () { self.RecordView2() },
+            1000);
+    }
+
+    NotesWidget.prototype.RecordView2 = function() {
+        this.RecordViewTimer = null;
         var note = this.GetCurrentNote();
-        if (note && note.ViewerRecords.length > 0) {
-            var record = new SA.ViewerRecord();
-            record.DeepCopy(note.ViewerRecords[0]);
-            this.UserNote.ViewerRecords.push(record);
+        //note.RecordView(this.Display);
+        // Hack to keep root from getting view annotations.
+        // TODO: CLean up the two parallel paths Notes ad views.
+        if (this.DisplayedNote && note == this.DisplayedNote) {
+            note.RecordAnnotations(this.Display);
         }
     }
 
-    // This is new, Parent was always a note before this.
-    // Although this is more robust (user notes are constent when notes are
-    // copied...), the GUI looks like user notes are associated with notes
-    // not viewerRecords/images.
-    this.UserNote.Parent = imageId;
-    this.UserNote.Type = "UserNote";
 
-    // Must display the text.
-    this.UserTextEditor.LoadNote(this.UserNote);
-    // User notes are always editable. Unless it tis the demo account.
-    if (SA.User != "") {
-        this.UserTextEditor.EditOn();
+    NotesWidget.prototype.MarkAsModified = function() {
+        if (this.ModifiedCallback) {
+            this.ModifiedCallback();
+        }
+        this.Modified = true;
     }
-}
 
+
+    NotesWidget.prototype.MarkAsNotModified = function() {
+        if (this.ModifiedClearCallback) {
+            this.ModifiedClearCallback();
+        }
+        this.Modified = false;
+    }
+
+    NotesWidget.prototype.SetRootNote = function(rootNote) {
+        if (this.UpdateTimer) {
+            clearTimeout(this.UpdateTimer);
+            this.Update();
+        }
+        //this.Display.SetNote();
+
+        this.RootNote = rootNote;
+        this.DisplayRootNote();
+
+        // Only show user notes for the first image of the root note.
+        // I can rethink this later.
+        if (rootNote.ViewerRecords.length > 0) {
+            this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
+        }
+
+        // Set the state of the notes widget.
+        // Should we ever turn it off?
+        if (SA.resizePanel) {
+            SA.resizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
+        }
+
+        this.UpdateQuestionMode();
+    }
+
+
+    // TODO:
+    // Hmmmm.  I do not think this is used yet.
+    // SA.SaveButton setup should not be here though.
+    NotesWidget.prototype.EditOn = function() {
+        SA.SaveButton
+            .prop('title', "save to database")
+            .attr('src',SA.ImagePathUrl+"save22.png")
+            .click(function(){self.SaveCallback();});
+        this.AddViewButton.show();
+        this.TextEditor.EditOn();
+    }
+
+    NotesWidget.prototype.EditOff = function() {
+        SA.SaveButton
+            .prop('title', "edit view")
+            .attr('src',SA.ImagePathUrl+"text_edit.png")
+            .click(function(){self.EditOn();});
+        this.AddViewButton.hide();
+        this.TextEditor.EditOff();
+
+        /*
+          .. note camera buttons....
+          .. note title entry (content editable.) ....
+          .. note remove button ...
+          .. link and delete button ...
+          .. Stack stuff ...
+        */
+    }
+
+    NotesWidget.prototype.SaveCallback = function(finishedCallback) {
+        // Process containers for diagnosis ....
+        SA.AddHtmlTags(this.TextEditor.TextEntry);
+
+        // Removed: This led to the unexpected behavior.  A link was changed
+        // when there was no good way to know it would be.  It is not
+        // highlighted ....
+        // Lets try saving the camera for the current note.
+        // This is a good comprise.  Do not record the camera
+        // every time it moves, but do record it when the samve button
+        // is pressed.
+        // Camer links in text can display a note without selecting the note. (current).
+        //var note = this.DisplayedNote;
+        //if (note) {
+        //    note.RecordView(this.Display);
+        //}
+        var note = this.GetCurrentNote();
+        // Lets save the state of the notes widget.
+        note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
+
+        var rootNote = this.Display.GetRootNote();
+        if (rootNote.Type == "Stack") {
+            // Copy viewer annotation to the viewer record.
+            rootNote.RecordAnnotations(this.Display);
+        }
+
+        var self = this;
+        rootNote.Save(function () {
+            self.Modified = false;
+            if (finishedCallback) {
+                finishedCallback();
+            }
+        });
+    }
+
+    //------------------------------------------------------------------------------
+
+    NotesWidget.prototype.GetCurrentNote = function() {
+        return this.Display.GetNote();
+    }
+
+
+    NotesWidget.prototype.SaveBrownNote = function() {
+        // Create a new note.
+        var note = new SA.Note();
+        note.RecordView(this.Display);
+
+        // This is not used and will probably be taken out of the scheme,
+        note.SetParent(this.GetCurrentNote());
+
+        // Make a thumbnail image to represent the favorite.
+        // Bug: canvas.getDataUrl() not supported in Safari on iPad.
+        // Fix: If on mobile, use the thumbnail for the entire slide.
+        var src;
+        if(SAM.detectMobile()){
+            var image = this.Display.GetViewer(0).GetCache().Image;
+            src = "/thumb?db=" + image.database + "&img=" + image._id + "";
+        } else {
+        var thumb = SA.dualDisplay.CreateThumbnailImage(110);
+            src = thumb.src;
+        }
+
+        // Save the favorite (note) in the admin database for this specific user.
+        $.ajax({
+            type: "post",
+            url: "/webgl-viewer/saveusernote",
+            data: {"note": JSON.stringify(note.Serialize(true)),
+                   "thumb": src,
+                   "col" : "views",
+                   "type": "Favorite"},//"favorites"
+            success: function(data,status) {
+                FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
+            },
+            error: function() {
+                SA.Debug( "AJAX - error() : saveusernote 2" );
+            },
+        });
+    }
+
+    // Randomize the order of the children
+    NotesWidget.prototype.RandomCallback = function() {
+        var note = this.GetCurrentNote();
+        note.Children.sort(function(a,b){return Math.random() - 0.5;});
+        note.UpdateChildrenGUI();
+    }
+
+    // Called when a new slide/view is loaded.
+    NotesWidget.prototype.DisplayRootNote = function() {
+        this.TextEditor.LoadNote(this.RootNote);
+        this.LinksRoot.empty();
+        this.RootNote.DisplayGUI(this.LinksRoot);
+        this.SelectNote(this.RootNote);
+
+        // Add an obvious way to add a link / view to the root note.
+        if (SA.Edit) {
+            var self = this;
+            this.AddViewButton
+                .appendTo(this.LinksDiv)
+                .click(function () {
+                    var parentNote = SA.notesWidget.RootNote;
+                    var childIdx = parentNote.Children.length;
+                    var childNote = parentNote.NewChild(childIdx, "New View");
+                    // Setup and save
+                    childNote.RecordView(self.Display);
+                    // We need to save the note to get its Id (for the link div).
+                    childNote.Save();
+                    parentNote.UpdateChildrenGUI();
+                    this.Display.SetNote(childNote);
+                    //self.SelectNote(childNote);
+                });
+        }
+        // Default to old style when no text exists (for backward compatability).
+        if (this.RootNote.Text == "") {
+            this.TabbedWindow.ShowTabDiv(this.LinksDiv);
+        } else {
+            this.TabbedWindow.ShowTabDiv(this.TextDiv);
+        }
+    }
+
+    // Add a user note to the currently selected notes children.
+    NotesWidget.prototype.NewCallback = function() {
+        var note = this.GetCurrentNote();
+        var childIdx = 0;
+        if (note.Parent) {
+            var idx = note.Children.indexOf(note);
+            if (idx >= 0) {
+                childIdx = idx+1;
+                note = note.Parent;
+            }
+        }
+        // Create a new note.
+        var childNote = note.NewChild(childIdx, "New View");
+        // Setup and save
+        childNote.RecordView(this.Display);
+        //childNote.Save();
+        note.UpdateChildrenGUI();
+
+        note.Save();
+        //this.SelectNote(childNote);
+        this.Display.SetNote(childNote);
+    }
+
+    // UserNotes used to be attached to a parent note.  Now I am indexing them
+    // from the image id.  They will not get lost, but this causes a could
+    // issues.  I do not support multiple user notes per image.  I have to be
+    // careful about infinte recursion when loading. I am only going to display
+    // the note for the first image in the root note. (I can rethink this last
+    // decision later.)
+    // Maybe we should store the image id directly in the user not instead of
+    // the viewerRecord.
+    NotesWidget.prototype.RequestUserNote = function(imageId) {
+        var self = this;
+        $.ajax({
+            type: "get",
+            url: "/webgl-viewer/getusernotes",
+            data: {"imageid": imageId},
+            success: function(data,status) { self.LoadUserNote(data, imageId);},
+            error: function() { SA.Debug( "AJAX - error() : getusernotes" ); },
+        });
+    }
+
+
+    // Note will not be active until it has a note.
+    // Edit to a previous note are saved before it is replaced.
+    NotesWidget.prototype.LoadUserNote = function(data, imageId) {
+        if (this.UserNote) {
+            // Save the previous note incase the user is in mid edit????
+            if (this.UserNote.Text != "" || this.UserNote.Children.length > 0) {
+                this.UserNote.Save();
+            }
+        }
+        this.UserNote = new SA.Note();
+
+        if (data.Notes.length > 0) {
+            if (data.Notes.length > 1) {
+                SA.Debug("Warning: Only showing the first user note.");
+            }
+            var noteData = data.Notes[0];
+            this.UserNote.Load(noteData);
+        } else {
+            // start with a copy of the current note.
+            // The server searches viewer records for the image.
+            // Only copoy the first viewer records.  More could be problematic.
+            var note = this.GetCurrentNote();
+            if (note && note.ViewerRecords.length > 0) {
+                var record = new SA.ViewerRecord();
+                record.DeepCopy(note.ViewerRecords[0]);
+                this.UserNote.ViewerRecords.push(record);
+            }
+        }
+
+        // This is new, Parent was always a note before this.
+        // Although this is more robust (user notes are constent when notes are
+        // copied...), the GUI looks like user notes are associated with notes
+        // not viewerRecords/images.
+        this.UserNote.Parent = imageId;
+        this.UserNote.Type = "UserNote";
+
+        // Must display the text.
+        this.UserTextEditor.LoadNote(this.UserNote);
+        // User notes are always editable. Unless it tis the demo account.
+        if (SA.User != "") {
+            this.UserTextEditor.EditOn();
+        }
+    }
 
 
 
