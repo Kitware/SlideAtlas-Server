@@ -77,6 +77,7 @@
         this.Windows[1] = new Array(3);
         this.Windows[2] = new Array(3);
 
+        // A model of the screen
         this.ScreenRectangle = $('<div>')
             .appendTo('body')
             .css({'position':'absolute',
@@ -84,13 +85,35 @@
                   'opacity':'0.5',
                   'z-index':'100'})
             .hide();
+        // hack to get dotted lines
+        this.HorizontalLine = $('<div>')
+            .appendTo(this.ScreenRectangle)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'width':'100%',
+                  'top':'50%',
+                  'height':'1px',
+                  'background':'#FFF',
+                  'opacity':'0.4'});
+        this.VerticalLine = $('<div>')
+            .appendTo(this.ScreenRectangle)
+            .css({'position':'absolute',
+                  'top':'0px',
+                  'height':'100%',
+                  'left':'50%',
+                  'width':'1px',
+                  'background':'#FFF',
+                  'opacity':'0.4'});
+        // Feedback of where the window will be created
         this.WindowRectangle = $('<div>')
             .appendTo(this.ScreenRectangle)
             .css({'position':'absolute',
-                  'background':'#FFF',
-                  'opacity':'0.5'});
+                  'box-sizing':'border-box',
+                  'background':'#AAA',
+                  'border':'1px solid #FFF',
+                  'opacity':'0.7'});
 
-        // Does hiding does not get rid of the bound events.
+        // Hiding does not get rid of the bound events.
         this.ScreenRectangle
             .bind('mousemove',
                   function (e) {self.HandleMouseMove(e);});
@@ -134,10 +157,10 @@
 
         this.Partition = [1,1];
         this.WindowRectangle
-            .css({'left':'0%',
-                  'top':'0%',
-                  'width':'100%',
-                  'height':'100%'});
+            .css({'left':'3%',
+                  'top':'3%',
+                  'width':'94%',
+                  'height':'94%'});
 
         this.ScreenRectangle
             .css({'left' : x+'px',
@@ -154,7 +177,7 @@
     WindowManager.prototype.HandleMouseUp = function(event) {
         var xIdx = this.Partition[0];
         var yIdx = this.Partition[1];
-        var w = this.Windows[xIdx][yIdx]; 
+        var w = this.Windows[xIdx][yIdx];
         if (w && ! w.closed) {
             w.location.href = this.Url;
             // change the title
@@ -186,7 +209,7 @@
         var title = this.Title + " " + xIdx + " " + yIdx;
         this.Windows[this.Partition[0]][this.Partition[1]] =
             window.open(this.Url, title,
-                        "titlebar=no,menubar=no,toolbar=no,dependent=yes,left="+x+",top="+y+",width="+w+",height="+h);
+                        "alwaysRaised=yes,titlebar=no,menubar=no,toolbar=no,dependent=yes,left="+x+",top="+y+",width="+w+",height="+h);
         this.ScreenRectangle.hide();
     }
 
@@ -213,34 +236,34 @@
         if (x < w/3) {
             this.Partition[0] = 0;
             this.WindowRectangle
-                .css({'left':'0%',
-                      'width':'50%'});
+                .css({'left':'3%',
+                      'width':'44%'});
         } else if (x > 2*w/3) {
             this.Partition[0] = 2;
             this.WindowRectangle
-                .css({'left':'50%',
-                      'width':'50%'});
+                .css({'left':'53%',
+                      'width':'44%'});
         } else {
             this.Partition[0] = 1;
             this.WindowRectangle
-                .css({'left':'0px',
-                      'width':'100%'});
+                .css({'left':'3%',
+                      'width':'94%'});
         }
         if (y < h/3) {
             this.Partition[1] = 0;
             this.WindowRectangle
-                .css({'top':'0%',
-                      'height':'50%'});
+                .css({'top':'3%',
+                      'height':'44%'});
         } else if (y > 2*h/3) {
             this.Partition[1] = 2;
             this.WindowRectangle
-                .css({'top':'50%',
-                      'height':'50%'});
+                .css({'top':'53%',
+                      'height':'44%'});
         } else {
             this.Partition[1] = 1;
             this.WindowRectangle
-                .css({'top':'0px',
-                      'height':'100%'});
+                .css({'top':'3%',
+                      'height':'94%'});
         }
     }
 
@@ -368,6 +391,7 @@
             .css({'text-align':'center',
                   'border':'1px solid #666666',
                   'border-radius': '10px',
+                  'margin':'2px',
                   'color': '#29C',
                   'background':'white'})
             .hover(function(){ $(this).css("color", "blue");},
