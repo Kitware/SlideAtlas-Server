@@ -12536,7 +12536,8 @@ function TabPanel(tabbedDiv, title) {
                 if( e.button == 0 ) {
                     // Start a timer.
                     self.LinkWindowLocation = 0;
-                    setTimeout(function () {
+                    self.WindowManagerTimer = setTimeout(function () {
+                        self.WindowManagerTimer = undefined;
                         if ( ! SA.windowManager) {
                             SA.windowManager = new SA.WindowManager();
                         }
@@ -12564,6 +12565,10 @@ function TabPanel(tabbedDiv, title) {
             });
             $(link).mouseup(function(e){
                 if( e.button == 0 ) {
+                    if (self.WindowManagerTimer) {
+                        clearTimeout(self.WindowManagerTimer);
+                        self.WindowManagerTimer = undefined;
+                    }
                     if ( self.LinkWindowLocation == 0) {
                         linkNote.DisplayView(self.Display);
                         return false;
