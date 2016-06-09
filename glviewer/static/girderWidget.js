@@ -161,58 +161,65 @@
                        'height': cam.GetHeight(),
                        'width' : cam.GetWidth(),
                        "rotation": cam.Roll};
-        element.center.push(0);
+        element.center[2] = 0;
         returnElements.push(element);
+        element = undefined;
 
         for (var i = 0; i < this.AnnotationLayer.GetNumberOfWidgets(); ++i) {
             var widget = this.AnnotationLayer.GetWidget(i).Serialize();
             if (widget.type == "circle") {
-                widget.origin.push(0); // z coordinate
-                var element = {"type": "circle",
-                               "center":   widget.origin,
-                               "radius":   widget.radius};
+                widget.origin[2] = 0; // z coordinate
+                element = {"type": "circle",
+                           "center":   widget.origin,
+                           "radius":   widget.radius};
             }
             if (widget.type == "text") {
                 // Will not keep scale feature..
                 var points = [widget.position, widget.offset];
                 points[1][0] += widget.position[0];
                 points[1][1] += widget.position[1];
-                points[0].push(0);
-                points[1].push(0);
-                var element = {'type'     : 'arrow',
-                               'lineWidth': 10,
-                               'fillColor': SAM.ConvertColorToHex(widget.color),
-                               "points"   : points};
+                points[0][2] = 0;
+                points[1][2] = 0;
+                element = {'type'     : 'arrow',
+                           'lineWidth': 10,
+                           'fillColor': SAM.ConvertColorToHex(widget.color),
+                           "points"   : points};
                 element.label = {'value'   : widget.string,
                                  'fontSize': widget.size,
                                  'color'   : SAM.ConvertColorToHex(widget.color)};
             }
-            if (widget.type == "grid") {
-                //widget.origin.push(0); // z coordinate.
-                var element = {"type": "rectanglegrid",
-                               "center": widget.origin,
-                               "width":  widget.bin_width * widget.dimensions[0],
-                               "height":  widget.bin_height * widget.dimensions[1],
-                               "rotation": widget.orientation,
-                               "normal": [0, 0, 1.0],
-                               "widthSubdivisions": widget.dimensions[0],
-                               "heightSubdivisions": widget.dimensions[1]};
+            if (widget.type == 'grid') {
+                element = {'type'              : 'rectanglegrid',
+                           'center'            : widget.origin,
+                           'width'             : widget.bin_width * widget.dimensions[0],
+                           'height'            : widget.bin_height * widget.dimensions[1],
+                           'rotation'          : widget.orientation,
+                           'normal'            : [0, 0, 1.0],
+                           'widthSubdivisions' : widget.dimensions[0],
+                           'heightSubdivisions': widget.dimensions[1]};
+            }
+            if (widget.type == "rect") {
+                element = {'type'     : 'rectangle',
+                           'center'   : widget.origin,
+                           'height'   : widget.height,
+                           'width'    : widget.width,
+                           'rotation' : widget.orientation};
             }
             if (widget.type == "polyline") {
                 // add the z coordinate
                 for (var j = 0; j < widget.points.length; ++j) {
-                    widget.points[j].push(0);
+                    widget.points[j][2] = 0;
                 }
-                var element = {"type": "polyline",
-                               "closed":widget.closedloop,
-                               "points": widget.points};
+                element = {"type": "polyline",
+                           "closed":widget.closedloop,
+                           "points": widget.points};
             }
             if (widget.type == "lasso") {
                 // add the z coordinate
                 for (var j = 0; j < widget.points.length; ++j) {
-                    widget.points[j].push(0);
+                    widget.points[j][2] = 0;
                 }
-                var element = {"type": "polyline",
+                element = {"type": "polyline",
                                "closed": true,
                                "points": widget.points};
             }
@@ -222,11 +229,11 @@
                     var points = widget.shapes[i];
                     // add the z coordinate
                     for (var j = 0; j < points.length; ++j) {
-                        points[j].push(0);
+                        points[j][2] = 0;
                     }
-                    var element = {"type": "polyline",
-                                   "closed":false,
-                                   "points": points};
+                    element = {"type": "polyline",
+                               "closed":false,
+                               "points": points};
                     // Hackish way to deal with multiple lines.
                     if (widget.outlinecolor) {
                         element.lineColor = SAM.ConvertColorToHex(widget.outlinecolor);
@@ -235,8 +242,9 @@
                         element.lineWidth = Math.round(widget.linewidth);
                     }
                     returnElements.push(element);
+                    element = undefined;
                 }
-            } else {
+            } else if (element) {
                 if (widget.outlinecolor) {
                     element.lineColor = SAM.ConvertColorToHex(widget.outlinecolor);
                 }
@@ -244,6 +252,7 @@
                     element.lineWidth = Math.round(widget.linewidth);
                 }
                 returnElements.push(element);
+                element = undefined;
             }
         }
         return returnElements;
@@ -429,6 +438,16 @@
                 obj.bin_height = element.height / element.heightSubdivisions;
                 obj.orientation = element.rotation;
                 obj.dimensions = [element.widthSubdivisions, element.heightSubdivisions];
+                this.AnnotationLayer.LoadWidget(obj);
+            }
+            if (element.type == "rectangle") {
+                obj.type = "rect",
+                obj.outlinecolor = SAM.ConvertColor(element.lineColor);
+                obj.linewidth = element.lineWidth;
+                obj.origin = element.center;
+                obj.width = element.width;
+                obj.length = element.height;
+                obj.orientation = element.rotation;
                 this.AnnotationLayer.LoadWidget(obj);
             }
             if (element.type == "polyline") {

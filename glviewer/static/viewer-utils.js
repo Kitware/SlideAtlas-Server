@@ -2808,8 +2808,10 @@ jQuery.prototype.saResizable = function(args) {
 jQuery.prototype.saViewer = function(args) {
     // default
     args = args || {};
-    // This is ignored if there is not viewId or note.
-    args.viewerIndex = args.viewerIndex || 0;
+    if (typeof(args) == 'object') {
+        // This is ignored if there is not viewId or note.
+        args.viewerIndex = args.viewerIndex || 0;
+    }
     // get the note object if an id is specified.
     if (args.viewId) {
         args.note = SA.GetNoteFromId(args.viewId);
@@ -2825,6 +2827,7 @@ jQuery.prototype.saViewer = function(args) {
             return this;
         }
     }
+
     saViewerSetup(this, args);
     return this;
 }

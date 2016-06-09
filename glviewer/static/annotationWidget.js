@@ -67,7 +67,6 @@ function AnnotationWidget (layer, viewer) {
         .attr('src',SA.ImagePathUrl+"Circle.gif")
         .prop('title', "Circle")
         .click(function(){self.NewCircle();});
-    /*
     this.RectButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -76,7 +75,6 @@ function AnnotationWidget (layer, viewer) {
         .attr('src',SA.ImagePathUrl+"rectangle.gif")
         .prop('title', "Rectangle")
         .click(function(){self.NewRect();});
-    */
     this.GridButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -232,20 +230,11 @@ AnnotationWidget.prototype.NewPolyline = function() {
 AnnotationWidget.prototype.NewCircle = function() {
     var button = this.CircleButton;
     var widget = this.ActivateButton(button, SAM.CircleWidget);
-    // Use the mouse position to place the circle.
-    // Mouse in under button.  Should we put the cirlce in the middle?
-    widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
-        this.Layer.LastMouseX,
-        this.Layer.LastMouseY);
 }
 
 AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
     var widget = this.ActivateButton(button, SAM.RectWidget);
-    // DJ: Make sure the rect is around the circle
-    widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
-        this.Layer.LastMouseX,
-        this.Layer.LastMouseY);
 };
 
 AnnotationWidget.prototype.NewGrid = function() {
