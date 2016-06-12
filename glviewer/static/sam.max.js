@@ -52,7 +52,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     window.SAM.ImagePathUrl = "/webgl-viewer/static/";
     window.SAM.MOBILE_DEVICE = false;
 
-
     SAM.detectMobile = function() {
         if ( SAM.MOBILE_DEVICE) {
             return SAM.MOBILE_DEVICE;
@@ -647,18 +646,74 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return this.MouseWorld;
     }
 
+
+    // TODO: share this code with viewer.
+    // I think MouseX,Y and, offestX,Y are both
+    // Save the previous touches and record the new
+    // touch locations in viewport coordinates.
+    AnnotationLayer.prototype.HandleTouch = function(e, startFlag) {
+        var date = new Date();
+        var t = date.getTime();
+        // I have had trouble on the iPad with 0 delta times.
+        // Lets see how it behaves with fewer events.
+        // It was a bug in iPad4 Javascript.
+        // This throttle is not necessary.
+        if (t-this.Time < 20 && ! startFlag) { return false; }
+
+        this.LastTime = this.Time;
+        this.Time = t;
+
+        if (!e) {
+            var e = event;
+        }
+
+        // Still used on mobile devices?
+        var viewport = this.GetViewport();
+        this.LastTouches = this.Touches;
+        this.Touches = [];
+        for (var i = 0; i < e.targetTouches.length; ++i) {
+            var offset = this.AnnotationView.Canvas.offset();
+            var x = e.targetTouches[i].pageX - offset.left;
+            var y = e.targetTouches[i].pageY - offset.top;
+            this.Touches.push([x,y]);
+        }
+
+        this.LastMouseX = this.MouseX;
+        this.LastMouseY = this.MouseY;
+
+        // Compute the touch average.
+        var numTouches = this.Touches.length;
+        this.MouseX = this.MouseY = 0.0;
+        for (var i = 0; i < numTouches; ++i) {
+            this.MouseX += this.Touches[i][0];
+            this.MouseY += this.Touches[i][1];
+        }
+        this.MouseX = this.MouseX / numTouches;
+        this.MouseY = this.MouseY / numTouches;
+
+        // Hack because we are moving away from using the event manager
+        // Mouse interaction are already independant...
+        this.offsetX = this.MouseX;
+        this.offsetY = this.MouseY;
+
+        return true;
+    }
+
+
     // TODO: Try to get rid of the viewer argument.
     AnnotationLayer.prototype.HandleTouchStart = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
+        this.HandleTouch(event, true);
+
         // Code from a conflict
         // Touch was not activating widgets on the ipad.
         // Show text on hover.
         if (this.Visibility) {
             for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
-                this.MouseX = this.Touches[touchIdx][0];
-                this.MouseY = this.Touches[touchIdx][1];
+                event.offsetX = this.Touches[touchIdx][0];
+                event.offsetY = this.Touches[touchIdx][1];
                 this.ComputeMouseWorld(event);
                 for (var i = 0; i < this.WidgetList.length; ++i) {
                     if ( ! this.WidgetList[i].GetActive() &&
@@ -669,18 +724,24 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 }
             }
         }
-        // end conflict
-
-        for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            for (var i = 0; i < this.WidgetList.length; ++i) {
-                if ( ! this.WidgetList[i].GetActive() &&
-                     this.WidgetList[i].CheckActive(event)) {
-                    this.ActivateWidget(this.WidgetList[i]);
-                    return true;
-                }
-            }
-        }
     }
+
+    AnnotationLayer.prototype.HandleTouchMove = function(e) {
+        // Put a throttle on events
+        if ( ! this.HandleTouch(e, false)) { return; }
+
+        if (this.Touches.length == 1) {
+            return this.HandleTouchPan(this);
+        }
+        if (this.Touches.length == 2) {
+            return this.HandleTouchPinch(this);
+        }
+        //if (this.Touches.length == 3) {
+        //    this.HandleTouchRotate(this);
+        //    return
+        //}
+    }
+
 
     AnnotationLayer.prototype.HandleTouchPan = function(event) {
         if ( ! this.GetVisibility() ) {
