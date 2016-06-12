@@ -671,12 +671,15 @@
         view.SetCache(cache);
         view.Canvas.attr("width", width);
         view.Canvas.attr("height", height);
+        view.SetViewport([0,0,width,height]);
         var newCam = view.Camera;
 
         newCam.SetFocalPoint( cam.FocalPoint );
         newCam.Roll = cam.Roll;
         newCam.Height = cam.GetHeight();
         newCam.Width = cam.GetWidth();
+        newCam.ViewportWidth = width;
+        newCam.ViewportHeight = height;
         newCam.ComputeMatrix();
 
         // Load only the tiles we need.
@@ -1510,8 +1513,8 @@
             this.MomentumTimerId = 0;
         }
 
-        w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
-        w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+        var w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+        var w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
         var dt = event.Time - this.LastTime;
 
         // Compute rotation.
@@ -1578,8 +1581,8 @@
             this.MomentumTimerId = 0;
         }
 
-        w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
-        w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+        var w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+        var w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
         var dt = event.Time - this.LastTime;
         // iPad / iPhone must have low precision time
         if (dt == 0) {
