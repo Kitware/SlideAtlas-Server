@@ -779,6 +779,10 @@
 
     // Set the state of the WebGL viewer from this notes ViewerRecords.
     Note.prototype.DisplayView = function(display) {
+        // I think this is the same as the display.
+        //SA.dualDisplay.SetNote(note);
+        display.SetNote(this);
+
         if (display.NavigationWidget) {
             display.NavigationWidget.SetNote(this);
         }

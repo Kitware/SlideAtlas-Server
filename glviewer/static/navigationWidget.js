@@ -354,13 +354,16 @@ NavigationWidget.prototype.NextNote = function() {
     current.RecordAnnotations(this.Display);
 
     var note = this.NoteIterator.Next();
+
+    // Changing the behavior.  Text window uses parent's text.
+
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
-    if (SA.dualDisplay) {
-        SA.dualDisplay.SetNote(note);
-    } else {
-        note.DisplayView(this.Display);
-    }
+    //if (SA.dualDisplay) {
+    //    SA.dualDisplay.SetNote(note);
+    //} else {
+    note.DisplayView(this.Display);
+    //}
 }
 
 

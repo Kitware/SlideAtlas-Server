@@ -839,7 +839,7 @@
         // Block subnotes and separate text.
         childNote.Type = 'View';
 
-        // We need to save the note to get its Id.
+        // TODO: I think an icon as a default view link would look nicer.
         var text = "(view)";
         var range = SA.GetSelectionRange(this.TextEntry);
         if ( ! range) {
@@ -1252,7 +1252,13 @@
         // This should method should be split between Note and NotesWidget
         if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
 
-        this.TextEditor.LoadNote(note);
+
+        // If the note is a view link, use the text of the parent.
+        var textNote = note;
+        while (textNote && textNote.Type == 'View') {
+            textNote = textNote.Parent;
+        }
+        this.TextEditor.LoadNote(textNote);
 
         // Handle the note that is being unselected.
         // Clear the selected background of the deselected note.
@@ -1264,37 +1270,13 @@
 
         this.SelectedNote = note;
 
-        // Indicate which note is selected.
+        // Indicate which note is selected in the Views tab
         note.TitleEntry.css({'background':'#f0f0f0'});
-        // This highlighting can be confused with the selection highlighting.
-        // Indicate hyperlink current note.
-        //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
-        // Select the current hyper link
+        // Probably legacy and does nothing.
         note.SelectHyperlink();
 
-        //if (SA.dualDisplay &&
-        //    SA.dualDisplay.NavigationWidget) {
-        //    SA.dualDisplay.NavigationWidget.Update();
-        //}
-
-        //if (this.Display.GetNumberOfViewers() > 1) {
-        //    this.Display.GetViewer(1).Reset();
-        //    // TODO:
-        //    // It would be nice to store the viewer configuration
-        //    // as a separate state variable.  We might want a stack
-        //    // that defaults to a single viewer.
-        //    this.Display.SetNumberOfViewers(note.ViewerRecords.length);
-        //}
-
-        // Clear the sync callback.
-        //var self = this;
-        //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-        //    this.Display.GetViewer(i).OnInteraction();
-        //    if (SA.Edit) {
-        //        // These record changes in the viewers to the notes.
-        //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
-        //    }
-        //}
+        // Indicate which note / view link is selected in the text.
+        $('#'+note.Id).css({'background':'#f0f0f0'});
     }
 
     NotesWidget.prototype.RecordView = function() {
@@ -1410,6 +1392,10 @@
         var note = this.GetCurrentNote();
         // Lets save the state of the notes widget.
         note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
+
+        // If the current note is really a note and not a view link, then
+        // save its state.
+        //if (note.
 
         var rootNote = this.Display.GetRootNote();
         if (rootNote.Type == "Stack") {

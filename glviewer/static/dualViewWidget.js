@@ -222,9 +222,15 @@ window.SA = window.SA || {};
         }
     }
 
+    // TODO: Some actions call display.SetNote, while others call
+    // note.DisplayView. This used to differential between view links and
+    // note children (view tab notes).  Not anymore.  Clean this up.
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
     // will  win.
     DualViewWidget.prototype.SetNote = function(note, viewIdx) {
+        if (this.saNote == note) {
+            return;
+        }
         var self = this;
         // If the note is not loaded, request the note, and call this method
         // when the note is finally loaded.

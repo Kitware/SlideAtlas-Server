@@ -425,7 +425,7 @@ window.SA = window.SA || {};
 
         div[0].focus();
         var br = $('<br>').appendTo(div);
-        range = document.createRange();
+        var range = document.createRange();
         range.selectNode(br[0]);
         sel.removeAllRanges();
         sel.addRange(range);
