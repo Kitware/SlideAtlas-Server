@@ -296,19 +296,16 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
+    // True, but it should not be done here because there are multiple ways
+    // the note can change.
     // This is such a good idea I am doing it with children notes too.
     // Before everytime a new child was selected, we lost new annotations.
     // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations(this.Display);
+    //current.RecordAnnotations(this.Display);
 
     var note = this.NoteIterator.Previous();
-    // change this so the NotesWidget dows not display the note in the
-    // view. Trigger an update the notes widget.
-    // TODO: Clean this up. Is a call to display SetNote enough?
-    if (SA.dualDisplay) {
-        SA.dualDisplay.SetNote(note);
-    } else {
-        note.DisplayView(this.Display);
+    if (this.Display) { // this check is not really necessary
+        this.Display.SetNote(note);
     }
 }
 
@@ -351,19 +348,12 @@ NavigationWidget.prototype.NextNote = function() {
     // This is such a good idea I am doing it with children notes too.
     // Before everytime a new child was selected, we lost new annotations.
     // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations(this.Display);
+    //current.RecordAnnotations(this.Display);
 
     var note = this.NoteIterator.Next();
-
-    // Changing the behavior.  Text window uses parent's text.
-
-    // change this so the NotesWidget dows not display the note in the
-    // view. Trigger an update the notes widget.
-    //if (SA.dualDisplay) {
-    //    SA.dualDisplay.SetNote(note);
-    //} else {
-    note.DisplayView(this.Display);
-    //}
+    if (this.Display) { // this check is not really necessary
+        this.Display.SetNote(note);
+    }
 }
 
 

@@ -27,6 +27,16 @@ window.SA = window.SA || {};
         window.webkitRequestAnimationFrame ||
         window.msRequestAnimationFrame;
 
+
+    // So many optional items have a SetNote(note) method, I decided to
+    // have a global method to check each.
+    SA.SetNote = function (note) {
+        if (SA.navigationWidget) {
+            SA.navigationWidget.SetNote(note);
+        }
+    }
+
+
     // Firefox does not set which for mouse move events.
     SA.FirefoxWhich = function(event) {
         event.which = event.buttons;

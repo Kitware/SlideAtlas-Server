@@ -457,6 +457,35 @@
                 });
     }
 
+    TextEditor.prototype.StartWindowManagerTimer = function(linkNote, x, y) {
+        // I think motion is a better trigger for the window manager.
+        this.WindowManagerX = x;
+        this.WindowManagerY = y; 
+        // hint for mouse up (text editor handles the event).
+        this.LinkWindowLocation = 0;
+        // Start a timer.
+        var self = this;
+        this.WindowManagerTimer = setTimeout(function () {
+            self.WindowManagerTimer = undefined;
+            self.ShowWindowManager(linkNote, x, y);
+        }, 1000);
+    }
+
+    TextEditor.prototype.ShowWindowManager = function(linkNote, x, y) {
+        if (this.WindowMangerTimer) {
+            clearTimeout(this.WindowManagerTimer);
+            this.WindowManagerTimer = undefined;
+        }
+        if ( ! SA.windowManager) {
+            SA.windowManager = new SA.WindowManager();
+        }
+        SA.windowManager.Show(x, y,
+                              "/webgl-viewer?view="+linkNote.Id,
+                              linkNote.Title);
+        // Hack to keep mouse up from loading the note.
+        this.LinkWindowLocation = 1;
+    }
+
     // Every time the "Text" is loaded, they hyper links have to be setup.
     // TODO: Do we need to turn off editable?
     TextEditor.prototype.FormatLink = function(linkNote) {
@@ -473,19 +502,7 @@
             $(link).contextmenu( function() { return false; });
             $(link).mousedown(function(e){
                 if( e.button == 0 ) {
-                    // Start a timer.
-                    self.LinkWindowLocation = 0;
-                    self.WindowManagerTimer = setTimeout(function () {
-                        self.WindowManagerTimer = undefined;
-                        if ( ! SA.windowManager) {
-                            SA.windowManager = new SA.WindowManager();
-                        }
-                        SA.windowManager.Show(e.pageX, e.pageY,
-                                              "/webgl-viewer?view="+linkNote.Id,
-                                              linkNote.Title);
-                        // Hack to keep mouse up from loading the note.
-                        self.LinkWindowLocation = 1;
-                    }, 1000);
+                    self.StartWindowManagerTimer(linkNote, e.pageX, e.pageY);
                     return false;
                 }
                 if( e.button == 2 ) {
@@ -502,6 +519,14 @@
                 }
                 return true;
             });
+            $(link).mousemove(function(e){
+                var dx = e.pageX - this.WindowManagerX;
+                var dy = e.pageY - this.WindowManagerY;
+                if (Math.abs(dx) + Math.abs(dy) > 5) {
+                    self.ShowWindowManager(linkNote, e.pageX, e.pageY);
+                }
+            }   
+
             $(link).mouseup(function(e){
                 if( e.button == 0 ) {
                     if (self.WindowManagerTimer) {
@@ -916,7 +941,7 @@
         this.Note = note;
         this.TextEntry.html(note.Text);
 
-        this.UpdateMode(note.mode);
+        this.UpdateMode(note.Mode);
 
         // TODO: Hide this.  Maybe use saHtml.
         if (SA.Edit) {
@@ -1266,6 +1291,10 @@
             this.SelectedNote.TitleEntry.css({'background':'white'});
             // Make the old hyper link normal color.
             $('#'+this.SelectedNote.Id).css({'background':'white'});
+            // Record any annotations
+            if (this.SelectedNote.Type != "View") {
+                this.SelectedNote.RecordAnnotations(this.Display);
+            }
         }
 
         this.SelectedNote = note;
@@ -1390,13 +1419,26 @@
         //    note.RecordView(this.Display);
         //}
         var note = this.GetCurrentNote();
-        // Lets save the state of the notes widget.
-        note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
 
         // If the current note is really a note and not a view link, then
         // save its state.
-        //if (note.
+        if (note.Type == "Note") {
+            // Lets save the state of the notes widget so the panel opens automatically
+            note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
+            note.RecordView(this.Display);
+            var self = this;
+            note.Save(function () {
+                self.Modified = false;
+                if (finishedCallback) {
+                    finishedCallback();
+                }
+            });
+            return;
+        }
 
+        // TODO: I think this root note stuff is obsolete.
+        // (for view links)
+       
         var rootNote = this.Display.GetRootNote();
         if (rootNote.Type == "Stack") {
             // Copy viewer annotation to the viewer record.
@@ -1410,6 +1452,7 @@
                 finishedCallback();
             }
         });
+       
     }
 
     //------------------------------------------------------------------------------
