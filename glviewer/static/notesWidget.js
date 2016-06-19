@@ -1407,19 +1407,16 @@
         // Process containers for diagnosis ....
         SA.AddHtmlTags(this.TextEditor.TextEntry);
 
-        // Removed: This led to the unexpected behavior.  A link was changed
-        // when there was no good way to know it would be.  It is not
-        // highlighted ....
-        // Lets try saving the camera for the current note.
-        // This is a good comprise.  Do not record the camera
-        // every time it moves, but do record it when the samve button
-        // is pressed.
-        // Camer links in text can display a note without selecting the note. (current).
-        //var note = this.DisplayedNote;
-        //if (note) {
-        //    note.RecordView(this.Display);
-        //}
+
         var note = this.GetCurrentNote();
+        if (note) {
+            // Lets try saving the camera for the current note.
+            // This is a good comprise.  Do not record the camera
+            // every time it moves, but do record it when the samve button
+            // is pressed.  This is ok, now that view links are visibly
+            // selected. However, It is still not really obvious what will happen. 
+            note.RecordView(this.Display);
+        }
         if (note.Type != "View") {
             note.RecordView(this.Display);
         } else {
