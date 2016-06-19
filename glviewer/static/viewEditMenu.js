@@ -159,7 +159,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
     } else {
         this.HistoryMenuItem.text("History On")
     }
-    SA.dualDisplay.EventuallyRender();
+    SA.display.EventuallyRender();
 }
 
 
@@ -181,7 +181,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
-    var note = SA.dualDisplay.GetNote();
+    var note = SA.display.GetNote();
     // Which view record?
     var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
 
@@ -308,7 +308,7 @@ var DownloadImage = (function () {
         d.AspectRatio = viewport[2] / viewport[3];
 
         // Hide or show the stack option.
-        if (SA.dualDisplay.GetNote().Type == "Stack") {
+        if (SA.display.GetNote().Type == "Stack") {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
         } else {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();

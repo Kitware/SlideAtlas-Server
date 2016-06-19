@@ -156,7 +156,12 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 }
 
 NavigationWidget.prototype.SetNote = function(note) {
+    if (this.NoteIterator.GetNote() == note) {
+        return;
+    }
+
     var self = this;
+    // Initialize the session neede to get the next slide.
     if ( ! this.SessionId) {
         if (SA.Session) {
             this.Session = SA.Session.session.views;
@@ -258,7 +263,6 @@ NavigationWidget.prototype.Update = function() {
         this.PreviousSlideButton.removeClass("sa-active");
         this.NextSlideButton.removeClass("sa-active");
     }
-
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
@@ -267,8 +271,6 @@ NavigationWidget.prototype.PreviousNote = function() {
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
-        // Copy viewer annotation to the viewer record.
-        current.RecordAnnotations(this.Display);
 
         // Move camera
         // Hardcoded for dual display
@@ -296,20 +298,11 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
-    // This is such a good idea I am doing it with children notes too.
-    // Before everytime a new child was selected, we lost new annotations.
-    // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations(this.Display);
-
     var note = this.NoteIterator.Previous();
-    // change this so the NotesWidget dows not display the note in the
-    // view. Trigger an update the notes widget.
-    // TODO: Clean this up. Is a call to display SetNote enough?
-    if (SA.dualDisplay) {
-        SA.dualDisplay.SetNote(note);
-    } else {
-        note.DisplayView(this.Display);
-    }
+    this.SetNote(note);
+    this.Update();
+    // TODO: Check to make sure the call to this.SetNote(note) does nothing.
+    SA.SetNote(note); 
 }
 
 NavigationWidget.prototype.NextNote = function() {
@@ -320,8 +313,6 @@ NavigationWidget.prototype.NextNote = function() {
         if (current.StartIndex >= current.ViewerRecords.length - 1) {
             return;
         }
-        // Copy viewer annotation to the viewer record.
-        current.RecordAnnotations(this.Display);
         // Move camera
         // Hard coded for dual display.
         var viewer0 = this.Display.GetViewer(0);
@@ -348,19 +339,10 @@ NavigationWidget.prototype.NextNote = function() {
         return;
     }
 
-    // This is such a good idea I am doing it with children notes too.
-    // Before everytime a new child was selected, we lost new annotations.
-    // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations(this.Display);
-
     var note = this.NoteIterator.Next();
-    // change this so the NotesWidget dows not display the note in the
-    // view. Trigger an update the notes widget.
-    if (SA.dualDisplay) {
-        SA.dualDisplay.SetNote(note);
-    } else {
-        note.DisplayView(this.Display);
-    }
+    this.Update();
+    // TODO: Check to make sure the call to this.SetNote(note) does nothing.
+    SA.SetNote(note);
 }
 
 
@@ -382,7 +364,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
         // TODO: Improve the API here.  Get rid of global access.
         if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex = prevSlideIdx;
-        this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
+        SA.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
@@ -406,7 +388,7 @@ NavigationWidget.prototype.NextSlide = function() {
     if (check) {
         if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex = nextSlideIdx;
-        this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
+        SA.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
@@ -597,9 +579,9 @@ NoteIterator.prototype.SetNote = function(note) {
             this.Note = note;
             // BIG Hack here.
             // I got rid of a special SetRootNote call too soon.
-            if (SA.notesWidget) {
-                SA.notesWidget.SetRootNote(note);
-            }
+            //if (SA.notesWidget) {
+            //    SA.notesWidget.SetRootNote(note);
+            //}
             return;
         }
         this.Next();

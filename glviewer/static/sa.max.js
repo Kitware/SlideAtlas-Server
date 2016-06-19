@@ -8038,6 +8038,36 @@ window.SA = window.SA || {};
         window.webkitRequestAnimationFrame ||
         window.msRequestAnimationFrame;
 
+
+    // So many optional items have a SetNote(note) method, I decided to
+    // have a global method to check each.
+    SA.SetNote = function (note) {
+        if (SA.navigationWidget) {
+            SA.navigationWidget.SetNote(note);
+        }
+        if (SA.display) {
+            SA.display.SetNote(note);
+        }
+        if (SA.notesWidget) {
+            SA.notesWidget.SelectNote(note);
+        }
+    }
+
+    SA.SetNoteFromId = function(noteId) {
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new SA.Note();
+            note.LoadViewId(
+                noteId,
+                function () {
+                    SA.SetNote(note);
+                });
+            return note;
+        }
+        SA.SetNote(note);
+        return note;
+    }
+
     // Firefox does not set which for mouse move events.
     SA.FirefoxWhich = function(event) {
         event.which = event.buttons;
@@ -8054,10 +8084,10 @@ window.SA = window.SA || {};
 
     // for debugging
     function MOVE_TO(x,y) {
-        if (SA.dualDisplay) {
-            SA.dualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-            SA.dualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-            SA.dualDisplay.Draw();
+        if (SA.display) {
+            SA.display.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+            SA.display.Viewers[0].MainView.Camera.ComputeMatrix();
+            SA.display.Draw();
         }
     }
 
@@ -8226,7 +8256,7 @@ window.SA = window.SA || {};
                 window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
             }
 
-            SA.dualDisplay.EventuallyRender();
+            SA.display.EventuallyRender();
             return false;
         }
 
@@ -8436,7 +8466,7 @@ window.SA = window.SA || {};
 
         div[0].focus();
         var br = $('<br>').appendTo(div);
-        range = document.createRange();
+        var range = document.createRange();
         range.selectNode(br[0]);
         sel.removeAllRanges();
         sel.addRange(range);
@@ -8976,24 +9006,24 @@ window.SA = window.SA || {};
 
         // Left panel for notes.
         SA.resizePanel = new SA.ResizePanel(SA.MainDiv);
-        SA.dualDisplay = new SA.DualViewWidget(SA.resizePanel.MainDiv);
+        SA.display = new SA.DualViewWidget(SA.resizePanel.MainDiv);
         SA.notesWidget = new SA.NotesWidget(SA.resizePanel.PanelDiv,
-                                            SA.dualDisplay);
+                                            SA.display);
 
         if (rootNote.Type == "Stack") {
-            SA.dualDisplay.SetNumberOfViewers(2);
+            SA.display.SetNumberOfViewers(2);
         }
 
         SA.notesWidget.SetModifiedCallback(NotesModified);
         SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
         // Navigation widget keeps track of which note is current.
         // Notes widget needs to access and change this.
-        SA.notesWidget.SetNavigationWidget(SA.dualDisplay.NavigationWidget);
-        if (SA.dualDisplay.NavigationWidget) {
-            SA.dualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        SA.notesWidget.SetNavigationWidget(SA.display.NavigationWidget);
+        if (SA.display.NavigationWidget) {
+            SA.display.NavigationWidget.SetInteractionEnabled(true);
         }
 
-        SA.recorderWidget = new SA.RecorderWidget(SA.dualDisplay);
+        SA.recorderWidget = new SA.RecorderWidget(SA.display);
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
@@ -9011,13 +9041,12 @@ window.SA = window.SA || {};
                     .addClass('editButton')
                     .attr('src',SA.ImagePathUrl+"save22.png")
                     .click(SaveCallback);
-                for (var i = 0; i < SA.dualDisplay.Viewers.length; ++i) {
-                SA.dualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.notesWidget.RecordView();});
-                }
+                //for (var i = 0; i < SA.display.Viewers.length; ++i) {
+                //SA.display.Viewers[i].OnInteraction(function () {});
+                //}
             } else {
                 // Favorites when not editing.
-                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.dualDisplay);
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.display);
                 //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
             }
         }
@@ -9048,14 +9077,14 @@ window.SA = window.SA || {};
             // TODO: See if we can get rid of this, or combine it with
             // the view browser.
             SA.InitSlideSelector(SA.MainDiv); // What is this?
-            var viewMenu1 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[0],
-                                                SA.dualDisplay.Viewers[1]);
-            var viewMenu2 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[1],
-                                                SA.dualDisplay.Viewers[0]);
-            var viewer1 = SA.dualDisplay.Viewers[0];
-            var viewer2 = SA.dualDisplay.Viewers[1];
+            var viewMenu1 = new SA.ViewEditMenu(SA.display.Viewers[0],
+                                                SA.display.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.display.Viewers[1],
+                                                SA.display.Viewers[0]);
+            var viewer1 = SA.display.Viewers[0];
+            var viewer2 = SA.display.Viewers[1];
 
-            SA.dualDisplay.UpdateGui();
+            SA.display.UpdateGui();
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
@@ -9096,7 +9125,7 @@ window.SA = window.SA || {};
             */
         }
 
-        SA.dualDisplay.SetNote(rootNote);
+        SA.SetNote(rootNote);
 
         $(window).bind('orientationchange', function(event) {
             handleResize();
@@ -9106,15 +9135,15 @@ window.SA = window.SA || {};
             handleResize();
         }).trigger('resize');
 
-        if (SA.dualDisplay) {
-            SA.dualDisplay.Draw();
+        if (SA.display) {
+            SA.display.Draw();
         }
     }
 
 
     // I had to prune all the annotations (lassos) that were not visible.
     function keepVisible(){
-        var n = SA.dualDisplay.GetNote();
+        var n = SA.display.GetNote();
         var r = n.ViewerRecords[n.StartIndex];
         var w = SA.VIEWER1.WidgetList;
         var c = SA.VIEWER1.GetCamera();
@@ -9310,7 +9339,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
     } else {
         this.HistoryMenuItem.text("History On")
     }
-    SA.dualDisplay.EventuallyRender();
+    SA.display.EventuallyRender();
 }
 
 
@@ -9332,7 +9361,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
-    var note = SA.dualDisplay.GetNote();
+    var note = SA.display.GetNote();
     // Which view record?
     var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
 
@@ -9459,7 +9488,7 @@ var DownloadImage = (function () {
         d.AspectRatio = viewport[2] / viewport[3];
 
         // Hide or show the stack option.
-        if (SA.dualDisplay.GetNote().Type == "Stack") {
+        if (SA.display.GetNote().Type == "Stack") {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
         } else {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();
@@ -10595,7 +10624,6 @@ window.SA = window.SA || {};
         if (args.note) {
             // TODO: DO we need both?
             this.saNote = args.note;
-            //args.note.DisplayView(this);
             this.SetNote(args.note,args.viewIndex);
             // NOTE: TempId is legacy
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
@@ -10665,9 +10693,20 @@ window.SA = window.SA || {};
         }
     }
 
-    // Which is better calling Note.Apply, or viewer.SetNote?  I think this
-    // will  win.
+
     DualViewWidget.prototype.SetNote = function(note, viewIdx) {
+        if (this.saNote == note) {
+            return;
+        }
+        // Agressively record annotations.  User still needs to hit the
+        // save button.
+        if (SA.Edit && this.saNote) {
+            this.saNote.RecordAnnotations(this);
+        }
+
+        this.saNote = note;
+        viewIdx = viewIdx || 0;
+
         var self = this;
         // If the note is not loaded, request the note, and call this method
         // when the note is finally loaded.
@@ -10686,7 +10725,6 @@ window.SA = window.SA || {};
         if (viewIdx !== undefined) {
             note.StartIndex = viewIdx;
         }
-        this.saNote = note;
         this.saViewerIndex = viewIdx;
         if (this.NavigationWidget) {
             this.NavigationWidget.SetNote(note);
@@ -10706,16 +10744,49 @@ window.SA = window.SA || {};
             // Second is set relative to the first.
             this.SynchronizeViews(0, note);
         } else {
-            note.DisplayView(this);
-        }
-
-        if (SA.notesWidget) {
-            SA.notesWidget.SelectNote(note);
+            this.DisplayNote(note);
         }
     }
+
+
+    // Display Note
+    // Set the state of the WebGL viewer from this notes ViewerRecords.
+    DualViewWidget.prototype.DisplayNote = function(note) {
+        var numViewers = this.GetNumberOfViewers();
+        if (numViewers == 0) { return; }
+        if (note.Type == 'Stack') {
+            // Stack display needs to keep both viewers up to date.
+            numViewers = 2;
+        }
+
+        // Remove Annotations from the previous note.
+        for (var i = 0; i < numViewers; ++i) {
+            this.GetViewer(i).Reset();
+        }
+
+        // We could have more than two in the future.
+        if (note.Type != 'Stack') {
+            // I want the single view (when set by the user) to persist for rthe stack.
+            numViewers = note.ViewerRecords.length;
+            this.SetNumberOfViewers(numViewers);
+        }
+
+        var idx = note.StartIndex;
+        for (var i = 0; i < numViewers; ++i) {
+            var viewer = this.GetViewer(i);
+
+            if (i + idx < note.ViewerRecords.length) {
+                note.ViewerRecords[idx + i].Apply(viewer);
+                // This is for synchroninzing changes in the viewer back to the note.
+                viewer.RecordIndex = i;
+            }
+        }
+    }
+
     DualViewWidget.prototype.GetNote = function () {
         return this.saNote;
     }
+
     DualViewWidget.prototype.GetRootNote = function () {
         var note = this.saNote;
         while (note.Parent) {
@@ -10723,23 +10794,7 @@ window.SA = window.SA || {};
         }
         return note;
     }
-    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
-        var note = SA.GetNoteFromId(noteId);
-        if ( ! note) {
-            note = new SA.Note();
-            var self = this;
-            note.LoadViewId(
-                noteId,
-                function () {
-                    self.SetNote(note, viewIdx);
-                });
-            return note;
-        }
-        this.SetNote(note,viewIdx);
-        return note;
-    }
 
-    
     // API for ViewerSet
     DualViewWidget.prototype.GetNumberOfViewers = function() {
         if (this.DualView) {
@@ -11497,9 +11552,7 @@ function TabPanel(tabbedDiv, title) {
     Note.prototype.TitleFocusInCallback = function() {
         // Keep the viewer from processing arrow keys.
         SA.ContentEditableHasFocus = true;
-        if (SA.dualDisplay) {
-            SA.dualDisplay.SetNote(this);
-        }
+        SA.SetNote(this);
     }
 
 
@@ -11556,11 +11609,11 @@ function TabPanel(tabbedDiv, title) {
         this.ClearHyperlink();
 
         if (this.Type != 'view') {
-            if (SA.dualDisplay && SA.dualDisplay.NavigationWidget &&
-                SA.dualDisplay.NavigationWidget.GetNote() == this) {
+            if (SA.display && SA.display.NavigationWidget &&
+                SA.display.NavigationWidget.GetNote() == this) {
                 // Move the current note off this note.
                 // There is always a previous.
-                SA.dualDisplay.NavigationWidget.PreviousNote();
+                SA.display.NavigationWidget.PreviousNote();
             }
         }
 
@@ -11762,7 +11815,7 @@ function TabPanel(tabbedDiv, title) {
 
         this.TitleEntry
             .click(function() {
-                if (SA.dualDisplay) { SA.dualDisplay.SetNote(self); }
+                SA.SetNote(self);
                 self.ButtonsDiv.show();
             })
             .bind('input', function () {
@@ -11987,21 +12040,21 @@ function TabPanel(tabbedDiv, title) {
         if (this.Contains(SA.notesWidget.SelectedNote)) {
             // Selected note should not be in collapsed branch.
             // Make the visible ancestor active.
-            SA.dualDisplay.SetNote(this);
+            SA.SetNote(this);
         }
         this.UpdateChildrenGUI();
-        SA.dualDisplay.NavigationWidget.Update();
+        SA.display.NavigationWidget.Update();
     }
 
     Note.prototype.Expand = function() {
         this.ChildrenVisibility = true;
         this.UpdateChildrenGUI();
-        SA.dualDisplay.NavigationWidget.Update();
+        SA.display.NavigationWidget.Update();
     }
 
     // Extra stuff for stack.
     Note.prototype.DisplayStack = function(display) {
-        this.DisplayView(display);
+        SA.SetNote(this);
         // For editing correlations
         if (SA.Edit && this.StartIndex+1 < this.ViewerRecords.length) {
             var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
@@ -12016,49 +12069,6 @@ function TabPanel(tabbedDiv, title) {
                 this.StackDivs[i].css({'background-color':'#BBB'});
             } else {
                 this.StackDivs[i].css({'background-color':'#FFF'});
-            }
-        }
-    }
-
-    // Set the state of the WebGL viewer from this notes ViewerRecords.
-    Note.prototype.DisplayView = function(display) {
-        if (display.NavigationWidget) {
-            display.NavigationWidget.SetNote(this);
-        }
-
-        // To determine which notes camera to save.
-        // For when the user creates a camera link.
-        if (SA.notesWidget) {
-            SA.notesWidget.DisplayedNote = this;
-        }
-
-        var numViewers = display.GetNumberOfViewers();
-        if (numViewers == 0) { return; }
-        if (this.Type == 'Stack') {
-            // Stack display needs to keep both viewers up to date.
-            numViewers = 2;
-        }
-
-        // Remove Annotations from the previous note.
-        for (var i = 0; i < numViewers; ++i) {
-            display.GetViewer(i).Reset();
-        }
-
-        // We could have more than two in the future.
-        if (this.Type != 'Stack') {
-            // I want the single view (when set by the user) to persist for rthe stack.
-            numViewers = this.ViewerRecords.length;
-            display.SetNumberOfViewers(numViewers);
-        }
-
-        var idx = this.StartIndex;
-        for (var i = 0; i < numViewers; ++i) {
-            var viewer = display.GetViewer(i);
-
-            if (i + idx < this.ViewerRecords.length) {
-                this.ViewerRecords[idx + i].Apply(viewer);
-                // This is for synchroninzing changes in the viewer back to the note.
-                viewer.RecordIndex = i;
             }
         }
     }
@@ -12453,7 +12463,7 @@ function TabPanel(tabbedDiv, title) {
             });
 
         this.UpdateTimer = null;
-        this.RecordViewTimer = null;
+        //this.RecordViewTimer = null;
 
         // Do not enable editing until the Note is set.
         this.EditOff();
@@ -12464,7 +12474,7 @@ function TabPanel(tabbedDiv, title) {
         if ( ! this.Note) {
             return;
         }
-        this.Note.DisplayView(this.Display);
+        SA.SetNote(this.Note);
     }
 
     // Home button is a link.  The link menu is used for other links too.
@@ -12542,6 +12552,35 @@ function TabPanel(tabbedDiv, title) {
                 });
     }
 
+    TextEditor.prototype.StartWindowManagerTimer = function(linkNote, x, y) {
+        // I think motion is a better trigger for the window manager.
+        this.WindowManagerX = x;
+        this.WindowManagerY = y; 
+        // hint for mouse up (text editor handles the event).
+        this.LinkWindowLocation = 0;
+        // Start a timer.
+        var self = this;
+        this.WindowManagerTimer = setTimeout(function () {
+            self.WindowManagerTimer = undefined;
+            self.ShowWindowManager(linkNote, x, y);
+        }, 1000);
+    }
+
+    TextEditor.prototype.ShowWindowManager = function(linkNote, x, y) {
+        if (this.WindowMangerTimer) {
+            clearTimeout(this.WindowManagerTimer);
+            this.WindowManagerTimer = undefined;
+        }
+        if ( ! SA.windowManager) {
+            SA.windowManager = new SA.WindowManager();
+        }
+        SA.windowManager.Show(x, y,
+                              "/webgl-viewer?view="+linkNote.Id,
+                              linkNote.Title);
+        // Hack to keep mouse up from loading the note.
+        this.LinkWindowLocation = 1;
+    }
+
     // Every time the "Text" is loaded, they hyper links have to be setup.
     // TODO: Do we need to turn off editable?
     TextEditor.prototype.FormatLink = function(linkNote) {
@@ -12558,19 +12597,7 @@ function TabPanel(tabbedDiv, title) {
             $(link).contextmenu( function() { return false; });
             $(link).mousedown(function(e){
                 if( e.button == 0 ) {
-                    // Start a timer.
-                    self.LinkWindowLocation = 0;
-                    self.WindowManagerTimer = setTimeout(function () {
-                        self.WindowManagerTimer = undefined;
-                        if ( ! SA.windowManager) {
-                            SA.windowManager = new SA.WindowManager();
-                        }
-                        SA.windowManager.Show(e.pageX, e.pageY,
-                                              "/webgl-viewer?view="+linkNote.Id,
-                                              linkNote.Title);
-                        // Hack to keep mouse up from loading the note.
-                        self.LinkWindowLocation = 1;
-                    }, 1000);
+                    self.StartWindowManagerTimer(linkNote, e.pageX, e.pageY);
                     return false;
                 }
                 if( e.button == 2 ) {
@@ -12587,6 +12614,16 @@ function TabPanel(tabbedDiv, title) {
                 }
                 return true;
             });
+            $(link).mousemove(function(e){
+                if (e.which == 1) {
+                    var dx = e.pageX - self.WindowManagerX;
+                    var dy = e.pageY - self.WindowManagerY;
+                    if (Math.abs(dx) + Math.abs(dy) > 5) {
+                        self.ShowWindowManager(linkNote, e.pageX, e.pageY);
+                    }
+                }
+            });   
+
             $(link).mouseup(function(e){
                 if( e.button == 0 ) {
                     if (self.WindowManagerTimer) {
@@ -12594,7 +12631,7 @@ function TabPanel(tabbedDiv, title) {
                         self.WindowManagerTimer = undefined;
                     }
                     if ( self.LinkWindowLocation == 0) {
-                        linkNote.DisplayView(self.Display);
+                        SA.SetNote(linkNote);
                         return false;
                     }
                 }
@@ -12911,7 +12948,7 @@ function TabPanel(tabbedDiv, title) {
         // Create a child note.
         var parentNote = this.Note;
         if ( ! parentNote) {
-            parentNote = SA.dualDisplay.GetRootNote();
+            parentNote = SA.display.GetRootNote();
         }
 
         // Create a new note to hold the view.
@@ -12924,7 +12961,7 @@ function TabPanel(tabbedDiv, title) {
         // Block subnotes and separate text.
         childNote.Type = 'View';
 
-        // We need to save the note to get its Id.
+        // TODO: I think an icon as a default view link would look nicer.
         var text = "(view)";
         var range = SA.GetSelectionRange(this.TextEntry);
         if ( ! range) {
@@ -12999,9 +13036,14 @@ function TabPanel(tabbedDiv, title) {
             this.Update();
         }
         this.Note = note;
+
+        // Make the home button highlight like the view links.
+        this.HomeButton[0].id = note.Id;
+        //.....$('#'+note.Id).css({'background':'#e0e0ff'});
+
         this.TextEntry.html(note.Text);
 
-        this.UpdateMode(note.mode);
+        this.UpdateMode(note.Mode);
 
         // TODO: Hide this.  Maybe use saHtml.
         if (SA.Edit) {
@@ -13131,7 +13173,7 @@ function TabPanel(tabbedDiv, title) {
             .attr('id', 'NoteWindow');
 
         //--------------------------------------------------------------------------
-        
+
         // Keeps track of the current note.
         this.NavigationWidget;
 
@@ -13149,9 +13191,9 @@ function TabPanel(tabbedDiv, title) {
             .css({'padding-left':'0px'})
             .appendTo(this.LinksDiv);
 
-        for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-            this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
-        }
+        //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+        //    this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
+        //}
 
         this.LinksDiv
             .css({'overflow': 'auto',
@@ -13316,28 +13358,42 @@ function TabPanel(tabbedDiv, title) {
         this.ModifiedClearCallback = callback;
     }
 
+
     // Two types of select.  This one is from the views tab.
     // It sets the text from the note.
     // There has to be another from text links.  That does not set the
     // text.
     NotesWidget.prototype.SelectNote = function(note) {
-        if (note == this.SelectedNote) {
-            // Just reset the camera.
-            //note.DisplayView(this.Display);
-            return;
+        // Check to see if we have to set a new root note.
+        // If note is not in the root note's family, set a new root.
+        if (! this.RootNote) {
+            this.SetRootNote(note);
+        } else {
+            var ancestor = note;
+            while (ancestor != this.RootNote && ancestor.Parent) {
+                ancestor = ancestor.Parent;
+            }
+            if (ancestor != this.RootNote) {
+                this.SetRootNote( ancestor);
+            }
         }
-        // Flush the timers before moving to another view.
-        // GUI cannot call this object.
-        if (this.RecordViewTimer) {
-            clearTimeout(this.RecordViewTimer);
-            this.RecordViewTimer = null;
-            this.RecordView2();
+
+
+        if (note == this.SelectedNote) {
+            return;
         }
 
         // This should method should be split between Note and NotesWidget
         if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
 
-        this.TextEditor.LoadNote(note);
+        // If the note is a view link, use the text of the parent.
+        var textNote = note;
+        while (textNote && textNote.Type == 'View') {
+            textNote = textNote.Parent;
+        }
+        if (textNote) {
+            this.TextEditor.LoadNote(textNote);
+        }
 
         // Handle the note that is being unselected.
         // Clear the selected background of the deselected note.
@@ -13349,39 +13405,16 @@ function TabPanel(tabbedDiv, title) {
 
         this.SelectedNote = note;
 
-        // Indicate which note is selected.
+        // Indicate which note is selected in the Views tab
         note.TitleEntry.css({'background':'#f0f0f0'});
-        // This highlighting can be confused with the selection highlighting.
-        // Indicate hyperlink current note.
-        //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
-        // Select the current hyper link
-        note.SelectHyperlink();
+        // Probably does nothing.
+        //note.SelectHyperlink();
 
-        //if (SA.dualDisplay &&
-        //    SA.dualDisplay.NavigationWidget) {
-        //    SA.dualDisplay.NavigationWidget.Update();
-        //}
-
-        //if (this.Display.GetNumberOfViewers() > 1) {
-        //    this.Display.GetViewer(1).Reset();
-        //    // TODO:
-        //    // It would be nice to store the viewer configuration
-        //    // as a separate state variable.  We might want a stack
-        //    // that defaults to a single viewer.
-        //    this.Display.SetNumberOfViewers(note.ViewerRecords.length);
-        //}
-
-        // Clear the sync callback.
-        //var self = this;
-        //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-        //    this.Display.GetViewer(i).OnInteraction();
-        //    if (SA.Edit) {
-        //        // These record changes in the viewers to the notes.
-        //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
-        //    }
-        //}
+        // Indicate which note / view link is selected in the text.
+        $('#'+note.Id).css({'background':'#e0e0ff'});
     }
 
+    /*
     NotesWidget.prototype.RecordView = function() {
         if ( ! SA.Edit) { return; }
 
@@ -13394,16 +13427,11 @@ function TabPanel(tabbedDiv, title) {
             1000);
     }
 
+    
     NotesWidget.prototype.RecordView2 = function() {
         this.RecordViewTimer = null;
         var note = this.GetCurrentNote();
-        //note.RecordView(this.Display);
-        // Hack to keep root from getting view annotations.
-        // TODO: CLean up the two parallel paths Notes ad views.
-        if (this.DisplayedNote && note == this.DisplayedNote) {
-            note.RecordAnnotations(this.Display);
-        }
-    }
+    }*/
 
 
     NotesWidget.prototype.MarkAsModified = function() {
@@ -13435,12 +13463,6 @@ function TabPanel(tabbedDiv, title) {
         // I can rethink this later.
         if (rootNote.ViewerRecords.length > 0) {
             this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
-        }
-
-        // Set the state of the notes widget.
-        // Should we ever turn it off?
-        if (SA.resizePanel) {
-            SA.resizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
         }
 
         this.UpdateQuestionMode();
@@ -13493,17 +13515,20 @@ function TabPanel(tabbedDiv, title) {
         //    note.RecordView(this.Display);
         //}
         var note = this.GetCurrentNote();
-        // Lets save the state of the notes widget.
-        note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
-
-        var rootNote = this.Display.GetRootNote();
-        if (rootNote.Type == "Stack") {
-            // Copy viewer annotation to the viewer record.
-            rootNote.RecordAnnotations(this.Display);
+        if (note.Type != "View") {
+            note.RecordView(this.Display);
+        } else {
+            note.RecordAnnotations(this.Display);
         }
 
+        // Root saves all the children with it.
+        // There is always a root note.  Being over cautious.
+        if (this.RootNote) {
+            note = this.RootNote;
+        }            
+        note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
         var self = this;
-        rootNote.Save(function () {
+        note.Save(function () {
             self.Modified = false;
             if (finishedCallback) {
                 finishedCallback();
@@ -13534,7 +13559,7 @@ function TabPanel(tabbedDiv, title) {
             var image = this.Display.GetViewer(0).GetCache().Image;
             src = "/thumb?db=" + image.database + "&img=" + image._id + "";
         } else {
-        var thumb = SA.dualDisplay.CreateThumbnailImage(110);
+        var thumb = SA.display.CreateThumbnailImage(110);
             src = thumb.src;
         }
 
@@ -13564,6 +13589,14 @@ function TabPanel(tabbedDiv, title) {
 
     // Called when a new slide/view is loaded.
     NotesWidget.prototype.DisplayRootNote = function() {
+        if ( ! this.RootNote) { return;}
+
+        // Set the state of the notes widget.
+        // Should we ever turn it off?
+        if (SA.resizePanel) {
+            SA.resizePanel.SetVisibility(this.RootNote.NotesPanelOpen, 0.0);
+        }
+
         this.TextEditor.LoadNote(this.RootNote);
         this.LinksRoot.empty();
         this.RootNote.DisplayGUI(this.LinksRoot);
@@ -14515,8 +14548,8 @@ RecorderWidget.prototype.RecordStateCallback = function() {
 
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
-    if (SA.dualDisplay) {
-        var parentNote = SA.dualDisplay.GetNote();
+    if (SA.display) {
+        var parentNote = SA.display.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -14605,7 +14638,7 @@ RecorderWidget.prototype.UndoState = function () {
         // Get the new end state
         recordNote = this.TimeLine[this.TimeLine.length-1];
         // Now change the page to the state at the end of the timeline.
-        recordNote.DisplayView();
+        SA.SetNote(recordNote);
     }
 }
 
@@ -14785,7 +14818,12 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 }
 
 NavigationWidget.prototype.SetNote = function(note) {
+    if (this.NoteIterator.GetNote() == note) {
+        return;
+    }
+
     var self = this;
+    // Initialize the session neede to get the next slide.
     if ( ! this.SessionId) {
         if (SA.Session) {
             this.Session = SA.Session.session.views;
@@ -14887,7 +14925,6 @@ NavigationWidget.prototype.Update = function() {
         this.PreviousSlideButton.removeClass("sa-active");
         this.NextSlideButton.removeClass("sa-active");
     }
-
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
@@ -14896,8 +14933,6 @@ NavigationWidget.prototype.PreviousNote = function() {
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
-        // Copy viewer annotation to the viewer record.
-        current.RecordAnnotations(this.Display);
 
         // Move camera
         // Hardcoded for dual display
@@ -14925,20 +14960,11 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
-    // This is such a good idea I am doing it with children notes too.
-    // Before everytime a new child was selected, we lost new annotations.
-    // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations(this.Display);
-
     var note = this.NoteIterator.Previous();
-    // change this so the NotesWidget dows not display the note in the
-    // view. Trigger an update the notes widget.
-    // TODO: Clean this up. Is a call to display SetNote enough?
-    if (SA.dualDisplay) {
-        SA.dualDisplay.SetNote(note);
-    } else {
-        note.DisplayView(this.Display);
-    }
+    this.SetNote(note);
+    this.Update();
+    // TODO: Check to make sure the call to this.SetNote(note) does nothing.
+    SA.SetNote(note); 
 }
 
 NavigationWidget.prototype.NextNote = function() {
@@ -14949,8 +14975,6 @@ NavigationWidget.prototype.NextNote = function() {
         if (current.StartIndex >= current.ViewerRecords.length - 1) {
             return;
         }
-        // Copy viewer annotation to the viewer record.
-        current.RecordAnnotations(this.Display);
         // Move camera
         // Hard coded for dual display.
         var viewer0 = this.Display.GetViewer(0);
@@ -14977,19 +15001,10 @@ NavigationWidget.prototype.NextNote = function() {
         return;
     }
 
-    // This is such a good idea I am doing it with children notes too.
-    // Before everytime a new child was selected, we lost new annotations.
-    // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations(this.Display);
-
     var note = this.NoteIterator.Next();
-    // change this so the NotesWidget dows not display the note in the
-    // view. Trigger an update the notes widget.
-    if (SA.dualDisplay) {
-        SA.dualDisplay.SetNote(note);
-    } else {
-        note.DisplayView(this.Display);
-    }
+    this.Update();
+    // TODO: Check to make sure the call to this.SetNote(note) does nothing.
+    SA.SetNote(note);
 }
 
 
@@ -15011,7 +15026,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
         // TODO: Improve the API here.  Get rid of global access.
         if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex = prevSlideIdx;
-        this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
+        SA.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
@@ -15035,7 +15050,7 @@ NavigationWidget.prototype.NextSlide = function() {
     if (check) {
         if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex = nextSlideIdx;
-        this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
+        SA.SetNoteFromId(this.Session[this.SlideIndex].id);
 
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
@@ -15226,9 +15241,9 @@ NoteIterator.prototype.SetNote = function(note) {
             this.Note = note;
             // BIG Hack here.
             // I got rid of a special SetRootNote call too soon.
-            if (SA.notesWidget) {
-                SA.notesWidget.SetRootNote(note);
-            }
+            //if (SA.notesWidget) {
+            //    SA.notesWidget.SetRootNote(note);
+            //}
             return;
         }
         this.Next();
@@ -15412,7 +15427,7 @@ NoteIterator.prototype.GetNote = function() {
         var index = $(img).attr('index');
         note.Load(this.Favorites[index]);
 
-        note.DisplayView(SA.dualDisplay);
+        SA.SetNote(note);
     }
 
     FavoritesBar.prototype.DeleteFavorite = function(img){
@@ -18272,12 +18287,12 @@ jQuery.prototype.saHtml = function(string) {
         for (var i = 0; i < viewDivs.length; ++i) {
             var display = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
-            var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
-            viewerIdx = parseInt(viewerIdx);
+            //var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
+            //viewerIdx = parseInt(viewerIdx);
             // TODO: This should not be here.
             // The saViewer should handle this internally.
             if (noteId) {
-                display.SetNoteFromId(noteId, viewerIdx);
+                SA.SetNoteFromId(noteId);
             }
         }
 
@@ -25796,7 +25811,7 @@ function GenerateContourFromViewer(viewer, threshold) {
     var WAITING;
 
     SA.DeformableAlignViewers = function() {
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! trans) {
             return;
@@ -25887,7 +25902,7 @@ function GenerateContourFromViewer(viewer, threshold) {
 
                 console.log("Finished alignment");
                 // Syncronize views
-                SA.dualDisplay.SynchronizeViews(0, note);
+                SA.display.SynchronizeViews(0, note);
 
                 WAITING.hide();
 
@@ -25978,7 +25993,7 @@ function GenerateContourFromViewer(viewer, threshold) {
         }
 
         // Do the note too.
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         // Display has no get root.
         while (note.Parent) {
             note = note.Parent;
@@ -26093,7 +26108,7 @@ function GenerateContourFromViewer(viewer, threshold) {
 
 
     function AlignPolylines2(pLine1, pLine2, replace) {
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! trans) {
             return;
@@ -26173,7 +26188,7 @@ function GenerateContourFromViewer(viewer, threshold) {
 
         console.log("Finished alignment");
         // Syncronize views
-        SA.dualDisplay.SynchronizeViews(0, note);
+        SA.display.SynchronizeViews(0, note);
 
         eventuallyRender();
     }
@@ -28921,23 +28936,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.saNote = note;
         this.saViewerIndex = viewIdx;
     }
-    Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
-        var self = this;
-        var note = SA.GetNoteFromId(noteId);
-        if ( ! note) {
-            note = new SA.Note();
-            var self = this;
-            note.LoadViewId(
-                noteId,
-                function () {
-                    self.SetNote(note, viewIdx);
-                });
-            return note;
-        }
-        this.SetNote(note,viewIdx);
-        return note;
-    }
-
 
     Viewer.prototype.SetOverViewVisibility = function(visible) {
         this.OverViewVisibility = visible;
@@ -29263,7 +29261,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
                                                 finishedCallback) {
         var sectionFileName = fileName;
         if (stack) {
-            var note = SA.dualDisplay.GetNote();
+            var note = SA.display.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
                 sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -29286,9 +29284,9 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
-            var note = SA.dualDisplay.GetNote();
+            var note = SA.display.GetNote();
             if (note.StartIndex < note.ViewerRecords.length-1) {
-                SA.dualDisplay.NavigationWidget.NextNote();
+                SA.display.NavigationWidget.NextNote();
                 var self = this;
                 setTimeout(function () {
                     self.SaveLargeImage(fileName, width, height, stack,
@@ -29331,11 +29329,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
-            SA.dualDisplay.NavigationWidget.NextNote();
+            SA.display.NavigationWidget.NextNote();
             SA.AddFinishedLoadingCallback(
                 function () {
                     self.SaveStackImage(fileNameRoot);
@@ -29986,11 +29984,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
-        if (SA.dualDisplay.NavigationWidget &&
-            SA.dualDisplay.NavigationWidget.Visibility) {
+        if (SA.display.NavigationWidget &&
+            SA.display.NavigationWidget.Visibility) {
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
-            SA.dualDisplay.NavigationWidget.ToggleVisibility();
+            SA.display.NavigationWidget.ToggleVisibility();
         }
 
         if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" &&
@@ -30216,8 +30214,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
             if (t < 90) {
                 // We should not have a navigation widget on mobile
                 // devices. (maybe iPad?).
-                if (SA.dualDisplay && SA.dualDisplay.NavigationWidget) {
-                    SA.dualDisplay.NavigationWidget.ToggleVisibility();
+                if (SA.display && SA.display.NavigationWidget) {
+                    SA.display.NavigationWidget.ToggleVisibility();
                 }
                 if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
                     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();

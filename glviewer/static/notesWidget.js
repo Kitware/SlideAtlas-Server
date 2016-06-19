@@ -368,7 +368,7 @@
             });
 
         this.UpdateTimer = null;
-        this.RecordViewTimer = null;
+        //this.RecordViewTimer = null;
 
         // Do not enable editing until the Note is set.
         this.EditOff();
@@ -379,7 +379,7 @@
         if ( ! this.Note) {
             return;
         }
-        this.Note.DisplayView(this.Display);
+        SA.SetNote(this.Note);
     }
 
     // Home button is a link.  The link menu is used for other links too.
@@ -457,6 +457,35 @@
                 });
     }
 
+    TextEditor.prototype.StartWindowManagerTimer = function(linkNote, x, y) {
+        // I think motion is a better trigger for the window manager.
+        this.WindowManagerX = x;
+        this.WindowManagerY = y; 
+        // hint for mouse up (text editor handles the event).
+        this.LinkWindowLocation = 0;
+        // Start a timer.
+        var self = this;
+        this.WindowManagerTimer = setTimeout(function () {
+            self.WindowManagerTimer = undefined;
+            self.ShowWindowManager(linkNote, x, y);
+        }, 1000);
+    }
+
+    TextEditor.prototype.ShowWindowManager = function(linkNote, x, y) {
+        if (this.WindowMangerTimer) {
+            clearTimeout(this.WindowManagerTimer);
+            this.WindowManagerTimer = undefined;
+        }
+        if ( ! SA.windowManager) {
+            SA.windowManager = new SA.WindowManager();
+        }
+        SA.windowManager.Show(x, y,
+                              "/webgl-viewer?view="+linkNote.Id,
+                              linkNote.Title);
+        // Hack to keep mouse up from loading the note.
+        this.LinkWindowLocation = 1;
+    }
+
     // Every time the "Text" is loaded, they hyper links have to be setup.
     // TODO: Do we need to turn off editable?
     TextEditor.prototype.FormatLink = function(linkNote) {
@@ -473,19 +502,7 @@
             $(link).contextmenu( function() { return false; });
             $(link).mousedown(function(e){
                 if( e.button == 0 ) {
-                    // Start a timer.
-                    self.LinkWindowLocation = 0;
-                    self.WindowManagerTimer = setTimeout(function () {
-                        self.WindowManagerTimer = undefined;
-                        if ( ! SA.windowManager) {
-                            SA.windowManager = new SA.WindowManager();
-                        }
-                        SA.windowManager.Show(e.pageX, e.pageY,
-                                              "/webgl-viewer?view="+linkNote.Id,
-                                              linkNote.Title);
-                        // Hack to keep mouse up from loading the note.
-                        self.LinkWindowLocation = 1;
-                    }, 1000);
+                    self.StartWindowManagerTimer(linkNote, e.pageX, e.pageY);
                     return false;
                 }
                 if( e.button == 2 ) {
@@ -502,6 +519,16 @@
                 }
                 return true;
             });
+            $(link).mousemove(function(e){
+                if (e.which == 1) {
+                    var dx = e.pageX - self.WindowManagerX;
+                    var dy = e.pageY - self.WindowManagerY;
+                    if (Math.abs(dx) + Math.abs(dy) > 5) {
+                        self.ShowWindowManager(linkNote, e.pageX, e.pageY);
+                    }
+                }
+            });   
+
             $(link).mouseup(function(e){
                 if( e.button == 0 ) {
                     if (self.WindowManagerTimer) {
@@ -509,7 +536,7 @@
                         self.WindowManagerTimer = undefined;
                     }
                     if ( self.LinkWindowLocation == 0) {
-                        linkNote.DisplayView(self.Display);
+                        SA.SetNote(linkNote);
                         return false;
                     }
                 }
@@ -826,7 +853,7 @@
         // Create a child note.
         var parentNote = this.Note;
         if ( ! parentNote) {
-            parentNote = SA.dualDisplay.GetRootNote();
+            parentNote = SA.display.GetRootNote();
         }
 
         // Create a new note to hold the view.
@@ -839,7 +866,7 @@
         // Block subnotes and separate text.
         childNote.Type = 'View';
 
-        // We need to save the note to get its Id.
+        // TODO: I think an icon as a default view link would look nicer.
         var text = "(view)";
         var range = SA.GetSelectionRange(this.TextEntry);
         if ( ! range) {
@@ -914,9 +941,14 @@
             this.Update();
         }
         this.Note = note;
+
+        // Make the home button highlight like the view links.
+        this.HomeButton[0].id = note.Id;
+        //.....$('#'+note.Id).css({'background':'#e0e0ff'});
+
         this.TextEntry.html(note.Text);
 
-        this.UpdateMode(note.mode);
+        this.UpdateMode(note.Mode);
 
         // TODO: Hide this.  Maybe use saHtml.
         if (SA.Edit) {
@@ -1046,7 +1078,7 @@
             .attr('id', 'NoteWindow');
 
         //--------------------------------------------------------------------------
-        
+
         // Keeps track of the current note.
         this.NavigationWidget;
 
@@ -1064,9 +1096,9 @@
             .css({'padding-left':'0px'})
             .appendTo(this.LinksDiv);
 
-        for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-            this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
-        }
+        //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+        //    this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
+        //}
 
         this.LinksDiv
             .css({'overflow': 'auto',
@@ -1231,28 +1263,42 @@
         this.ModifiedClearCallback = callback;
     }
 
+
     // Two types of select.  This one is from the views tab.
     // It sets the text from the note.
     // There has to be another from text links.  That does not set the
     // text.
     NotesWidget.prototype.SelectNote = function(note) {
-        if (note == this.SelectedNote) {
-            // Just reset the camera.
-            //note.DisplayView(this.Display);
-            return;
+        // Check to see if we have to set a new root note.
+        // If note is not in the root note's family, set a new root.
+        if (! this.RootNote) {
+            this.SetRootNote(note);
+        } else {
+            var ancestor = note;
+            while (ancestor != this.RootNote && ancestor.Parent) {
+                ancestor = ancestor.Parent;
+            }
+            if (ancestor != this.RootNote) {
+                this.SetRootNote( ancestor);
+            }
         }
-        // Flush the timers before moving to another view.
-        // GUI cannot call this object.
-        if (this.RecordViewTimer) {
-            clearTimeout(this.RecordViewTimer);
-            this.RecordViewTimer = null;
-            this.RecordView2();
+
+
+        if (note == this.SelectedNote) {
+            return;
         }
 
         // This should method should be split between Note and NotesWidget
         if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
 
-        this.TextEditor.LoadNote(note);
+        // If the note is a view link, use the text of the parent.
+        var textNote = note;
+        while (textNote && textNote.Type == 'View') {
+            textNote = textNote.Parent;
+        }
+        if (textNote) {
+            this.TextEditor.LoadNote(textNote);
+        }
 
         // Handle the note that is being unselected.
         // Clear the selected background of the deselected note.
@@ -1264,39 +1310,16 @@
 
         this.SelectedNote = note;
 
-        // Indicate which note is selected.
+        // Indicate which note is selected in the Views tab
         note.TitleEntry.css({'background':'#f0f0f0'});
-        // This highlighting can be confused with the selection highlighting.
-        // Indicate hyperlink current note.
-        //$('#'+SA.notesWidget.SelectedNote.Id).css({'background':'#CCC'});
-        // Select the current hyper link
-        note.SelectHyperlink();
+        // Probably does nothing.
+        //note.SelectHyperlink();
 
-        //if (SA.dualDisplay &&
-        //    SA.dualDisplay.NavigationWidget) {
-        //    SA.dualDisplay.NavigationWidget.Update();
-        //}
-
-        //if (this.Display.GetNumberOfViewers() > 1) {
-        //    this.Display.GetViewer(1).Reset();
-        //    // TODO:
-        //    // It would be nice to store the viewer configuration
-        //    // as a separate state variable.  We might want a stack
-        //    // that defaults to a single viewer.
-        //    this.Display.SetNumberOfViewers(note.ViewerRecords.length);
-        //}
-
-        // Clear the sync callback.
-        //var self = this;
-        //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-        //    this.Display.GetViewer(i).OnInteraction();
-        //    if (SA.Edit) {
-        //        // These record changes in the viewers to the notes.
-        //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
-        //    }
-        //}
+        // Indicate which note / view link is selected in the text.
+        $('#'+note.Id).css({'background':'#e0e0ff'});
     }
 
+    /*
     NotesWidget.prototype.RecordView = function() {
         if ( ! SA.Edit) { return; }
 
@@ -1309,16 +1332,11 @@
             1000);
     }
 
+    
     NotesWidget.prototype.RecordView2 = function() {
         this.RecordViewTimer = null;
         var note = this.GetCurrentNote();
-        //note.RecordView(this.Display);
-        // Hack to keep root from getting view annotations.
-        // TODO: CLean up the two parallel paths Notes ad views.
-        if (this.DisplayedNote && note == this.DisplayedNote) {
-            note.RecordAnnotations(this.Display);
-        }
-    }
+    }*/
 
 
     NotesWidget.prototype.MarkAsModified = function() {
@@ -1350,12 +1368,6 @@
         // I can rethink this later.
         if (rootNote.ViewerRecords.length > 0) {
             this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
-        }
-
-        // Set the state of the notes widget.
-        // Should we ever turn it off?
-        if (SA.resizePanel) {
-            SA.resizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
         }
 
         this.UpdateQuestionMode();
@@ -1395,30 +1407,30 @@
         // Process containers for diagnosis ....
         SA.AddHtmlTags(this.TextEditor.TextEntry);
 
-        // Removed: This led to the unexpected behavior.  A link was changed
-        // when there was no good way to know it would be.  It is not
-        // highlighted ....
-        // Lets try saving the camera for the current note.
-        // This is a good comprise.  Do not record the camera
-        // every time it moves, but do record it when the samve button
-        // is pressed.
-        // Camer links in text can display a note without selecting the note. (current).
-        //var note = this.DisplayedNote;
-        //if (note) {
-        //    note.RecordView(this.Display);
-        //}
-        var note = this.GetCurrentNote();
-        // Lets save the state of the notes widget.
-        note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
 
-        var rootNote = this.Display.GetRootNote();
-        if (rootNote.Type == "Stack") {
-            // Copy viewer annotation to the viewer record.
-            rootNote.RecordAnnotations(this.Display);
+        var note = this.GetCurrentNote();
+        if (note) {
+            // Lets try saving the camera for the current note.
+            // This is a good comprise.  Do not record the camera
+            // every time it moves, but do record it when the samve button
+            // is pressed.  This is ok, now that view links are visibly
+            // selected. However, It is still not really obvious what will happen. 
+            note.RecordView(this.Display);
+        }
+        if (note.Type != "View") {
+            note.RecordView(this.Display);
+        } else {
+            note.RecordAnnotations(this.Display);
         }
 
+        // Root saves all the children with it.
+        // There is always a root note.  Being over cautious.
+        if (this.RootNote) {
+            note = this.RootNote;
+        }            
+        note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
         var self = this;
-        rootNote.Save(function () {
+        note.Save(function () {
             self.Modified = false;
             if (finishedCallback) {
                 finishedCallback();
@@ -1449,7 +1461,7 @@
             var image = this.Display.GetViewer(0).GetCache().Image;
             src = "/thumb?db=" + image.database + "&img=" + image._id + "";
         } else {
-        var thumb = SA.dualDisplay.CreateThumbnailImage(110);
+        var thumb = SA.display.CreateThumbnailImage(110);
             src = thumb.src;
         }
 
@@ -1479,6 +1491,14 @@
 
     // Called when a new slide/view is loaded.
     NotesWidget.prototype.DisplayRootNote = function() {
+        if ( ! this.RootNote) { return;}
+
+        // Set the state of the notes widget.
+        // Should we ever turn it off?
+        if (SA.resizePanel) {
+            SA.resizePanel.SetVisibility(this.RootNote.NotesPanelOpen, 0.0);
+        }
+
         this.TextEditor.LoadNote(this.RootNote);
         this.LinksRoot.empty();
         this.RootNote.DisplayGUI(this.LinksRoot);
