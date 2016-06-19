@@ -115,7 +115,7 @@
         var index = $(img).attr('index');
         note.Load(this.Favorites[index]);
 
-        note.DisplayView(SA.dualDisplay);
+        SA.SetNote(note);
     }
 
     FavoritesBar.prototype.DeleteFavorite = function(img){

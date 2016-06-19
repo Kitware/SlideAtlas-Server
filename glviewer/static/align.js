@@ -2423,7 +2423,7 @@
     var WAITING;
 
     SA.DeformableAlignViewers = function() {
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! trans) {
             return;
@@ -2514,7 +2514,7 @@
 
                 console.log("Finished alignment");
                 // Syncronize views
-                SA.dualDisplay.SynchronizeViews(0, note);
+                SA.display.SynchronizeViews(0, note);
 
                 WAITING.hide();
 
@@ -2605,7 +2605,7 @@
         }
 
         // Do the note too.
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         // Display has no get root.
         while (note.Parent) {
             note = note.Parent;
@@ -2720,7 +2720,7 @@
 
 
     function AlignPolylines2(pLine1, pLine2, replace) {
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! trans) {
             return;
@@ -2800,7 +2800,7 @@
 
         console.log("Finished alignment");
         // Syncronize views
-        SA.dualDisplay.SynchronizeViews(0, note);
+        SA.display.SynchronizeViews(0, note);
 
         eventuallyRender();
     }

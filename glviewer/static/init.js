@@ -34,8 +34,28 @@ window.SA = window.SA || {};
         if (SA.navigationWidget) {
             SA.navigationWidget.SetNote(note);
         }
+        if (SA.display) {
+            SA.display.SetNote(note);
+        }
+        if (SA.notesWidget) {
+            SA.notesWidget.SelectNote(note);
+        }
     }
 
+    SA.SetNoteFromId = function(noteId) {
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new SA.Note();
+            note.LoadViewId(
+                noteId,
+                function () {
+                    SA.SetNote(note);
+                });
+            return note;
+        }
+        SA.SetNote(note);
+        return note;
+    }
 
     // Firefox does not set which for mouse move events.
     SA.FirefoxWhich = function(event) {
@@ -53,10 +73,10 @@ window.SA = window.SA || {};
 
     // for debugging
     function MOVE_TO(x,y) {
-        if (SA.dualDisplay) {
-            SA.dualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-            SA.dualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-            SA.dualDisplay.Draw();
+        if (SA.display) {
+            SA.display.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+            SA.display.Viewers[0].MainView.Camera.ComputeMatrix();
+            SA.display.Draw();
         }
     }
 
@@ -225,7 +245,7 @@ window.SA = window.SA || {};
                 window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
             }
 
-            SA.dualDisplay.EventuallyRender();
+            SA.display.EventuallyRender();
             return false;
         }
 
@@ -975,24 +995,24 @@ window.SA = window.SA || {};
 
         // Left panel for notes.
         SA.resizePanel = new SA.ResizePanel(SA.MainDiv);
-        SA.dualDisplay = new SA.DualViewWidget(SA.resizePanel.MainDiv);
+        SA.display = new SA.DualViewWidget(SA.resizePanel.MainDiv);
         SA.notesWidget = new SA.NotesWidget(SA.resizePanel.PanelDiv,
-                                            SA.dualDisplay);
+                                            SA.display);
 
         if (rootNote.Type == "Stack") {
-            SA.dualDisplay.SetNumberOfViewers(2);
+            SA.display.SetNumberOfViewers(2);
         }
 
         SA.notesWidget.SetModifiedCallback(NotesModified);
         SA.notesWidget.SetModifiedClearCallback(NotesNotModified);
         // Navigation widget keeps track of which note is current.
         // Notes widget needs to access and change this.
-        SA.notesWidget.SetNavigationWidget(SA.dualDisplay.NavigationWidget);
-        if (SA.dualDisplay.NavigationWidget) {
-            SA.dualDisplay.NavigationWidget.SetInteractionEnabled(true);
+        SA.notesWidget.SetNavigationWidget(SA.display.NavigationWidget);
+        if (SA.display.NavigationWidget) {
+            SA.display.NavigationWidget.SetInteractionEnabled(true);
         }
 
-        SA.recorderWidget = new SA.RecorderWidget(SA.dualDisplay);
+        SA.recorderWidget = new SA.RecorderWidget(SA.display);
 
         // Do not let guests create favorites.
         // TODO: Rework how favorites behave on mobile devices.
@@ -1010,13 +1030,12 @@ window.SA = window.SA || {};
                     .addClass('editButton')
                     .attr('src',SA.ImagePathUrl+"save22.png")
                     .click(SaveCallback);
-                for (var i = 0; i < SA.dualDisplay.Viewers.length; ++i) {
-                SA.dualDisplay.Viewers[i].OnInteraction(
-                    function () {SA.notesWidget.RecordView();});
-                }
+                //for (var i = 0; i < SA.display.Viewers.length; ++i) {
+                //SA.display.Viewers[i].OnInteraction(function () {});
+                //}
             } else {
                 // Favorites when not editing.
-                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.dualDisplay);
+                SA.FAVORITES_WIDGET = new SA.FavoritesWidget(SA.MainDiv, SA.display);
                 //SA.FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
             }
         }
@@ -1047,14 +1066,14 @@ window.SA = window.SA || {};
             // TODO: See if we can get rid of this, or combine it with
             // the view browser.
             SA.InitSlideSelector(SA.MainDiv); // What is this?
-            var viewMenu1 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[0],
-                                                SA.dualDisplay.Viewers[1]);
-            var viewMenu2 = new SA.ViewEditMenu(SA.dualDisplay.Viewers[1],
-                                                SA.dualDisplay.Viewers[0]);
-            var viewer1 = SA.dualDisplay.Viewers[0];
-            var viewer2 = SA.dualDisplay.Viewers[1];
+            var viewMenu1 = new SA.ViewEditMenu(SA.display.Viewers[0],
+                                                SA.display.Viewers[1]);
+            var viewMenu2 = new SA.ViewEditMenu(SA.display.Viewers[1],
+                                                SA.display.Viewers[0]);
+            var viewer1 = SA.display.Viewers[0];
+            var viewer2 = SA.display.Viewers[1];
 
-            SA.dualDisplay.UpdateGui();
+            SA.display.UpdateGui();
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
@@ -1095,7 +1114,7 @@ window.SA = window.SA || {};
             */
         }
 
-        SA.dualDisplay.SetNote(rootNote);
+        SA.SetNote(rootNote);
 
         $(window).bind('orientationchange', function(event) {
             handleResize();
@@ -1105,15 +1124,15 @@ window.SA = window.SA || {};
             handleResize();
         }).trigger('resize');
 
-        if (SA.dualDisplay) {
-            SA.dualDisplay.Draw();
+        if (SA.display) {
+            SA.display.Draw();
         }
     }
 
 
     // I had to prune all the annotations (lassos) that were not visible.
     function keepVisible(){
-        var n = SA.dualDisplay.GetNote();
+        var n = SA.display.GetNote();
         var r = n.ViewerRecords[n.StartIndex];
         var w = SA.VIEWER1.WidgetList;
         var c = SA.VIEWER1.GetCamera();

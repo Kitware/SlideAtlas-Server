@@ -378,8 +378,8 @@ RecorderWidget.prototype.RecordStateCallback = function() {
 
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
-    if (SA.dualDisplay) {
-        var parentNote = SA.dualDisplay.GetNote();
+    if (SA.display) {
+        var parentNote = SA.display.GetNote();
         if ( ! parentNote || ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more
@@ -468,7 +468,7 @@ RecorderWidget.prototype.UndoState = function () {
         // Get the new end state
         recordNote = this.TimeLine[this.TimeLine.length-1];
         // Now change the page to the state at the end of the timeline.
-        recordNote.DisplayView();
+        SA.SetNote(recordNote);
     }
 }
 

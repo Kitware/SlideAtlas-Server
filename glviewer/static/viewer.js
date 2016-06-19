@@ -361,23 +361,6 @@
         this.saNote = note;
         this.saViewerIndex = viewIdx;
     }
-    Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
-        var self = this;
-        var note = SA.GetNoteFromId(noteId);
-        if ( ! note) {
-            note = new SA.Note();
-            var self = this;
-            note.LoadViewId(
-                noteId,
-                function () {
-                    self.SetNote(note, viewIdx);
-                });
-            return note;
-        }
-        this.SetNote(note,viewIdx);
-        return note;
-    }
-
 
     Viewer.prototype.SetOverViewVisibility = function(visible) {
         this.OverViewVisibility = visible;
@@ -703,7 +686,7 @@
                                                 finishedCallback) {
         var sectionFileName = fileName;
         if (stack) {
-            var note = SA.dualDisplay.GetNote();
+            var note = SA.display.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
                 sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -726,9 +709,9 @@
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
-            var note = SA.dualDisplay.GetNote();
+            var note = SA.display.GetNote();
             if (note.StartIndex < note.ViewerRecords.length-1) {
-                SA.dualDisplay.NavigationWidget.NextNote();
+                SA.display.NavigationWidget.NextNote();
                 var self = this;
                 setTimeout(function () {
                     self.SaveLargeImage(fileName, width, height, stack,
@@ -771,11 +754,11 @@
 
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
-        var note = SA.dualDisplay.GetNote();
+        var note = SA.display.GetNote();
         var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
-            SA.dualDisplay.NavigationWidget.NextNote();
+            SA.display.NavigationWidget.NextNote();
             SA.AddFinishedLoadingCallback(
                 function () {
                     self.SaveStackImage(fileNameRoot);
@@ -1426,11 +1409,11 @@
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
-        if (SA.dualDisplay.NavigationWidget &&
-            SA.dualDisplay.NavigationWidget.Visibility) {
+        if (SA.display.NavigationWidget &&
+            SA.display.NavigationWidget.Visibility) {
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
-            SA.dualDisplay.NavigationWidget.ToggleVisibility();
+            SA.display.NavigationWidget.ToggleVisibility();
         }
 
         if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" &&
@@ -1656,8 +1639,8 @@
             if (t < 90) {
                 // We should not have a navigation widget on mobile
                 // devices. (maybe iPad?).
-                if (SA.dualDisplay && SA.dualDisplay.NavigationWidget) {
-                    SA.dualDisplay.NavigationWidget.ToggleVisibility();
+                if (SA.display && SA.display.NavigationWidget) {
+                    SA.display.NavigationWidget.ToggleVisibility();
                 }
                 if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
                     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();

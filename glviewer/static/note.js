@@ -254,9 +254,7 @@
     Note.prototype.TitleFocusInCallback = function() {
         // Keep the viewer from processing arrow keys.
         SA.ContentEditableHasFocus = true;
-        if (SA.dualDisplay) {
-            SA.dualDisplay.SetNote(this);
-        }
+        SA.SetNote(this);
     }
 
 
@@ -313,11 +311,11 @@
         this.ClearHyperlink();
 
         if (this.Type != 'view') {
-            if (SA.dualDisplay && SA.dualDisplay.NavigationWidget &&
-                SA.dualDisplay.NavigationWidget.GetNote() == this) {
+            if (SA.display && SA.display.NavigationWidget &&
+                SA.display.NavigationWidget.GetNote() == this) {
                 // Move the current note off this note.
                 // There is always a previous.
-                SA.dualDisplay.NavigationWidget.PreviousNote();
+                SA.display.NavigationWidget.PreviousNote();
             }
         }
 
@@ -519,7 +517,7 @@
 
         this.TitleEntry
             .click(function() {
-                if (SA.dualDisplay) { SA.dualDisplay.SetNote(self); }
+                SA.SetNote(self);
                 self.ButtonsDiv.show();
             })
             .bind('input', function () {
@@ -744,21 +742,21 @@
         if (this.Contains(SA.notesWidget.SelectedNote)) {
             // Selected note should not be in collapsed branch.
             // Make the visible ancestor active.
-            SA.dualDisplay.SetNote(this);
+            SA.SetNote(this);
         }
         this.UpdateChildrenGUI();
-        SA.dualDisplay.NavigationWidget.Update();
+        SA.display.NavigationWidget.Update();
     }
 
     Note.prototype.Expand = function() {
         this.ChildrenVisibility = true;
         this.UpdateChildrenGUI();
-        SA.dualDisplay.NavigationWidget.Update();
+        SA.display.NavigationWidget.Update();
     }
 
     // Extra stuff for stack.
     Note.prototype.DisplayStack = function(display) {
-        this.DisplayView(display);
+        SA.SetNote(this);
         // For editing correlations
         if (SA.Edit && this.StartIndex+1 < this.ViewerRecords.length) {
             var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
@@ -773,53 +771,6 @@
                 this.StackDivs[i].css({'background-color':'#BBB'});
             } else {
                 this.StackDivs[i].css({'background-color':'#FFF'});
-            }
-        }
-    }
-
-    // Set the state of the WebGL viewer from this notes ViewerRecords.
-    Note.prototype.DisplayView = function(display) {
-        // I think this is the same as the display.
-        //SA.dualDisplay.SetNote(note);
-        display.SetNote(this);
-
-        if (display.NavigationWidget) {
-            display.NavigationWidget.SetNote(this);
-        }
-
-        // To determine which notes camera to save.
-        // For when the user creates a camera link.
-        if (SA.notesWidget) {
-            SA.notesWidget.DisplayedNote = this;
-        }
-
-        var numViewers = display.GetNumberOfViewers();
-        if (numViewers == 0) { return; }
-        if (this.Type == 'Stack') {
-            // Stack display needs to keep both viewers up to date.
-            numViewers = 2;
-        }
-
-        // Remove Annotations from the previous note.
-        for (var i = 0; i < numViewers; ++i) {
-            display.GetViewer(i).Reset();
-        }
-
-        // We could have more than two in the future.
-        if (this.Type != 'Stack') {
-            // I want the single view (when set by the user) to persist for rthe stack.
-            numViewers = this.ViewerRecords.length;
-            display.SetNumberOfViewers(numViewers);
-        }
-
-        var idx = this.StartIndex;
-        for (var i = 0; i < numViewers; ++i) {
-            var viewer = display.GetViewer(i);
-
-            if (i + idx < this.ViewerRecords.length) {
-                this.ViewerRecords[idx + i].Apply(viewer);
-                // This is for synchroninzing changes in the viewer back to the note.
-                viewer.RecordIndex = i;
             }
         }
     }

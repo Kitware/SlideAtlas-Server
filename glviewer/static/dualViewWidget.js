@@ -152,7 +152,6 @@ window.SA = window.SA || {};
         if (args.note) {
             // TODO: DO we need both?
             this.saNote = args.note;
-            //args.note.DisplayView(this);
             this.SetNote(args.note,args.viewIndex);
             // NOTE: TempId is legacy
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
@@ -222,15 +221,20 @@ window.SA = window.SA || {};
         }
     }
 
-    // TODO: Some actions call display.SetNote, while others call
-    // note.DisplayView. This used to differential between view links and
-    // note children (view tab notes).  Not anymore.  Clean this up.
-    // Which is better calling Note.Apply, or viewer.SetNote?  I think this
-    // will  win.
+
     DualViewWidget.prototype.SetNote = function(note, viewIdx) {
         if (this.saNote == note) {
             return;
         }
+        // Agressively record annotations.  User still needs to hit the
+        // save button.
+        if (SA.Edit && this.saNote) {
+            this.saNote.RecordAnnotations(this);
+        }
+
+        this.saNote = note;
+        viewIdx = viewIdx || 0;
+
         var self = this;
         // If the note is not loaded, request the note, and call this method
         // when the note is finally loaded.
@@ -249,7 +253,6 @@ window.SA = window.SA || {};
         if (viewIdx !== undefined) {
             note.StartIndex = viewIdx;
         }
-        this.saNote = note;
         this.saViewerIndex = viewIdx;
         if (this.NavigationWidget) {
             this.NavigationWidget.SetNote(note);
@@ -269,16 +272,49 @@ window.SA = window.SA || {};
             // Second is set relative to the first.
             this.SynchronizeViews(0, note);
         } else {
-            note.DisplayView(this);
-        }
-
-        if (SA.notesWidget) {
-            SA.notesWidget.SelectNote(note);
+            this.DisplayNote(note);
         }
     }
+
+
+    // Display Note
+    // Set the state of the WebGL viewer from this notes ViewerRecords.
+    DualViewWidget.prototype.DisplayNote = function(note) {
+        var numViewers = this.GetNumberOfViewers();
+        if (numViewers == 0) { return; }
+        if (note.Type == 'Stack') {
+            // Stack display needs to keep both viewers up to date.
+            numViewers = 2;
+        }
+
+        // Remove Annotations from the previous note.
+        for (var i = 0; i < numViewers; ++i) {
+            this.GetViewer(i).Reset();
+        }
+
+        // We could have more than two in the future.
+        if (note.Type != 'Stack') {
+            // I want the single view (when set by the user) to persist for rthe stack.
+            numViewers = note.ViewerRecords.length;
+            this.SetNumberOfViewers(numViewers);
+        }
+
+        var idx = note.StartIndex;
+        for (var i = 0; i < numViewers; ++i) {
+            var viewer = this.GetViewer(i);
+
+            if (i + idx < note.ViewerRecords.length) {
+                note.ViewerRecords[idx + i].Apply(viewer);
+                // This is for synchroninzing changes in the viewer back to the note.
+                viewer.RecordIndex = i;
+            }
+        }
+    }
+
     DualViewWidget.prototype.GetNote = function () {
         return this.saNote;
     }
+
     DualViewWidget.prototype.GetRootNote = function () {
         var note = this.saNote;
         while (note.Parent) {
@@ -286,23 +322,7 @@ window.SA = window.SA || {};
         }
         return note;
     }
-    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
-        var note = SA.GetNoteFromId(noteId);
-        if ( ! note) {
-            note = new SA.Note();
-            var self = this;
-            note.LoadViewId(
-                noteId,
-                function () {
-                    self.SetNote(note, viewIdx);
-                });
-            return note;
-        }
-        this.SetNote(note,viewIdx);
-        return note;
-    }
 
-    
     // API for ViewerSet
     DualViewWidget.prototype.GetNumberOfViewers = function() {
         if (this.DualView) {
