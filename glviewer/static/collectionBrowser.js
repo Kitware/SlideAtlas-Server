@@ -754,13 +754,36 @@ CollectionBrowser = (function (){
         this.ViewData = viewObject;
         this.Session = session;
 
+        var self = this;
+
         // Make a draggable list item
         this.Item = $('<li>')
             .appendTo(session.ViewList)
-            .addClass("sa-view-browser-view-item")
+            .addClass("sa-view-browser-view-item");
+        this.Deletebutton = $('<img>')
+            .appendTo(this.Item)
+            .attr("src", "/webgl-viewer/static/"+"deleteSmall.png")
+            .css({'height':'14px',
+                  'position':'absolute',
+                  'top':'0px',
+                  'right':'0px'})
+            .hide()
+            .click(function () {
+                ClearSelected();
+                AddSelected(self); //(self.View);
+                TRASH_SESSION.DropSelected(0, false, false);
+            });
+        
+        this.Item
             .hover(
-                function () {$(this).addClass("sa-active")},
-                function () {$(this).removeClass("sa-active")})
+                function () {
+                    $(this).addClass("sa-active");
+                    this.Deletebutton.show();
+                },
+                function () {
+                    $(this).removeClass("sa-active");
+                    this.Deletebutton.hide();
+                })
             .mousedown(
                 function(event){
                     if (PROGRESS_COUNT) { return true;}
@@ -1001,6 +1024,7 @@ CollectionBrowser = (function (){
                         if (event.which == 0) {
                             // Show larger image after about 1 second.
                             ScheduleImagePopup($(this));
+                            
                         }
                     })
                 .mouseleave(
