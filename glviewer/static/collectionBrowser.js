@@ -44,11 +44,11 @@ CollectionBrowser = (function (){
     }
 
 
-//==============================================================================
-// History for undo
-// Note: I can only support a single undo because copy will orphan views.
-// Copy created views in trash so undo will work once, but a second undo
-// will not have the copied view and it will be orphaned.
+    //==============================================================================
+    // History for undo
+    // Note: I can only support a single undo because copy will orphan views.
+    // Copy created views in trash so undo will work once, but a second undo
+    // will not have the copied view and it will be orphaned.
 
     // History
     // TODO: Add hooks to record history
@@ -56,6 +56,7 @@ CollectionBrowser = (function (){
     // TODO: Add undo button.
     // TODO: Handle deleting new items.
     var HISTORY = [];
+    var UNDO_BUTTON;
 
     function HistoryNewRecord() {
         HISTORY = [];
@@ -70,6 +71,22 @@ CollectionBrowser = (function (){
             sessionItem.viewObjects.push(viewObj);
         }
         HISTORY.push(sessionItem);
+        if (  ! UNDO_BUTTON) {
+            UNDO_BUTTON = $('<div>')
+                .appendTo(GALLERY1.OptionBar)
+                .css({'position':'absolute',
+                      'left':'20px',
+                      'top' :'0px',
+                      'height':'20x',
+                      'color':'#FFF',
+                      'background-color':'#7AF',
+                      'border-radius':'8px',
+                      'padding-left':'10px',
+                      'padding-right':'10px'})
+                .text("Undo (control-z)")
+                .click(HistoryUndo);
+        }
+        UNDO_BUTTON.show();
     }
 
     function HistoryUndo() {
@@ -84,10 +101,12 @@ CollectionBrowser = (function (){
         }
         LIBRARY_OBJ.Save();
         UpdateGUI();
+        UNDO_BUTTON.hide();
+        HISTORY = [];
     }
 
-//==============================================================================
-// Global functions
+    //==============================================================================
+    // Global functions
 
     // For syncronizing data objects and GUI.
     var TIME_COUNT = 1;
@@ -140,7 +159,7 @@ CollectionBrowser = (function (){
 
 
 
-//==============================================================================
+    //==============================================================================
     function LibraryObject() {
         this.LoadCallbacks = [];
         this.Loaded = false;
@@ -181,7 +200,7 @@ CollectionBrowser = (function (){
 
 
 
-//==============================================================================
+    //==============================================================================
     // Collection data object
     function CollectionObject(data) {
         this.Label = data.rule;
@@ -201,7 +220,7 @@ CollectionBrowser = (function (){
 
 
 
-//==============================================================================
+    //==============================================================================
     INITIALIZED = 0;
     WAITING = 1;
     LOADED = 2;
