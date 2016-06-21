@@ -759,8 +759,9 @@ CollectionBrowser = (function (){
         // Make a draggable list item
         this.Item = $('<li>')
             .appendTo(session.ViewList)
+            .css({'position':'relative'})
             .addClass("sa-view-browser-view-item");
-        this.Deletebutton = $('<img>')
+        this.DeleteButton = $('<img>')
             .appendTo(this.Item)
             .attr("src", "/webgl-viewer/static/"+"deleteSmall.png")
             .css({'height':'14px',
@@ -768,6 +769,8 @@ CollectionBrowser = (function (){
                   'top':'0px',
                   'right':'0px'})
             .hide()
+            .hover(function () {$(this).addClass("sa-active");},
+                   function () {$(this).removeClass("sa-active");})
             .click(function () {
                 ClearSelected();
                 AddSelected(self); //(self.View);
@@ -778,11 +781,11 @@ CollectionBrowser = (function (){
             .hover(
                 function () {
                     $(this).addClass("sa-active");
-                    this.Deletebutton.show();
+                    self.DeleteButton.show();
                 },
                 function () {
                     $(this).removeClass("sa-active");
-                    this.Deletebutton.hide();
+                    self.DeleteButton.hide();
                 })
             .mousedown(
                 function(event){
@@ -1503,6 +1506,7 @@ CollectionBrowser = (function (){
             .appendTo(img.parent())
             .hide()
             .css({
+                'z-index':'500',
                 'position':'fixed',
                 'height': img[0].naturalHeight,
                 'left' : pos.left,
