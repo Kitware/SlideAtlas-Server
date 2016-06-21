@@ -1503,7 +1503,7 @@ CollectionBrowser = (function (){
         var pos = img.offset();
         POPUP_IMAGE = img.clone(false);
         POPUP_IMAGE
-            .appendTo(img.parent())
+            .appendTo('body')
             .hide()
             .css({
                 'z-index':'500',
