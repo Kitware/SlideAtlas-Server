@@ -14141,8 +14141,8 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SA.SectionsWidget(this.Viewer, false);
-        widget.ComputeSections();
+        widget = new SA.SectionsWidget(this.Layer, false);
+        widget.ComputeSections(this.Viewer);
         if (widget.IsEmpty()) {
             this.Layer.RemoveWidget(widget);
             button.removeClass('sa-active');
@@ -31854,16 +31854,16 @@ Cache.prototype.RecursivePruneTiles = function(node)
     // Depends on the CIRCLE widget
     "use strict";
 
-    function SectionsWidget (viewer, newFlag) {
-        if (viewer == null) {
+    function SectionsWidget (layer, newFlag) {
+        if (layer == null) {
             return;
         }
 
-        var parent = viewer.MainView.CanvasDiv;
+        var parent = layer.AnnotationView.CanvasDiv;
 
         this.Type = "sections";
-        this.Viewer = viewer;
-        this.Layer = viewer.GetAnnotationLayer();
+        this.Viewer = null;
+        this.Layer = layer;
         this.Layer.AddWidget(this);
 
         var self = this;
@@ -31871,7 +31871,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.Sections = [];
         this.Active = false;
         this.Layer.EventuallyDraw();
-        this.Viewer.EventuallyRender();
 
         this.ActiveSection = null;
         this.DragBounds = null;
@@ -31931,7 +31930,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
     }
 
 
-    SectionsWidget.prototype.ComputeSections = function() {
+    SectionsWidget.prototype.ComputeSections = function(viewer) {
+        this.Viewer = viewer;
         var data = this.Viewer.MainView.GetImageData();
         // slow: SmoothDataAlphaRGB(data, 2);
         var histogram = SA.ComputeIntensityHistogram(data, true);
@@ -31982,7 +31982,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var allBds = this.GetBounds();
             var allCenter = this.Layer.GetCamera().ConvertPointWorldToViewer(
                 (allBds[0]+allBds[1])*0.5, (allBds[0]+allBds[1])*0.5);
-            var center = this.ActiveSection.GetViewCenter(this.Viewer.MainView);
+            var center = this.ActiveSection.GetViewCenter(this.Layer.AnnotationView);
             if (center[0] < allCenter[0]) {
                 direction0 = -1;
             }
@@ -32013,7 +32013,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         // Compute and save view bounds for each section.
         for (var i = 0; i < this.Sections.length; ++i) {
             var section = this.Sections[i];
-            section.ViewBounds = section.GetViewBounds(this.Viewer.MainView);
+            section.ViewBounds = section.GetViewBounds(this.Layer.AnnotationView);
             SA.PermuteBounds(section.ViewBounds, axis0, direction0);
             SA.PermuteBounds(section.ViewBounds, axis1, direction1);
         }
@@ -32044,7 +32044,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.SetActiveSection(null);
         this.RemoveSection(section);
         if (this.IsEmpty()) {
-            this.RemoveFromViewer();
+            this.RemoveFromLayer();
             this.Layer.EventuallyDraw();
             if (window.SA) {SA.RecordState();}
         }
@@ -32167,7 +32167,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         }
         this.CreationCamera = obj.creation_camera;
         if (this.IsEmpty()) {
-            this.RemoveFromViewer();
+            this.RemoveFromLayer();
         }
     }
 
@@ -32229,15 +32229,15 @@ Cache.prototype.RecursivePruneTiles = function(node)
         if (event.which == 1) {
             // Drag out a bounding box.
             // Keep the bounding box in slide coordinates for now.
-            var pt0 = this.Viewer.ConvertPointViewerToWorld(this.StartX, this.StartY);
-            var pt1 = this.Viewer.ConvertPointViewerToWorld(x, y);
+            var pt0 = this.Layer.GetCamera().ConvertPointViewerToWorld(this.StartX, this.StartY);
+            var pt1 = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
             this.DragBounds = [pt0[0],pt1[0], pt0[1],pt1[1]];
             this.Layer.EventuallyDraw();
             return false;
         }
 
         if (event.which == 0) {
-            var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
+            var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             // Find the smallest section with pt in the bbox.
             var bestSection = null;
             var bestArea = -1;
@@ -32289,6 +32289,9 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
     // The multiple actions of bounds might be confusing to the user.
     SectionsWidget.prototype.ProcessBounds = function(bds) {
+        if ( ! this.Viewer) {
+            alert("missing VIewer");
+        }
         if (bds[0] > bds[1]) {
             var tmp = bds[0];
             bds[0] = bds[1];
