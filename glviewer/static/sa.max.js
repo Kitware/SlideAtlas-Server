@@ -12774,13 +12774,18 @@ function TabPanel(tabbedDiv, title) {
             if (clone.childElementCount > 1) {
                 //var answers = clone.querySelectorAll('li');
                 var answers = [];
+                var first = 0;
                 var li = clone.querySelector('li');
                 if (li) {
+                    // Answers are in a list.
                     answers = li.parentElement;
+                } else if (clone.childElementCount > 2) {
+                    answers = clone;
+                    first = 1;
                 } else {
                     answers = clone.children[1];
                 }
-                for (var i = 0; i < answers.childElementCount; ++i) {
+                for (var i = first; i < answers.childElementCount; ++i) {
                     var answer = answers.children[i];
                     var bold = (answer.style.fontWeight == "bold") ||
                         ($(answer).find('b').length > 0);
@@ -14141,7 +14146,7 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SA.SectionsWidget(this.Layer, false);
+        widget = new SA.SectionsWidget(this.Layer, this.Viewer, false);
         widget.ComputeSections(this.Viewer);
         if (widget.IsEmpty()) {
             this.Layer.RemoveWidget(widget);
@@ -31854,7 +31859,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
     // Depends on the CIRCLE widget
     "use strict";
 
-    function SectionsWidget (layer, newFlag) {
+    // We need the viewer to get the image to process.
+    function SectionsWidget (layer, viewer, newFlag) {
         if (layer == null) {
             return;
         }
@@ -31862,7 +31868,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         var parent = layer.AnnotationView.CanvasDiv;
 
         this.Type = "sections";
-        this.Viewer = null;
+        this.Viewer = viewer;
         this.Layer = layer;
         this.Layer.AddWidget(this);
 
@@ -32289,9 +32295,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
     // The multiple actions of bounds might be confusing to the user.
     SectionsWidget.prototype.ProcessBounds = function(bds) {
-        if ( ! this.Viewer) {
-            alert("missing VIewer");
-        }
         if (bds[0] > bds[1]) {
             var tmp = bds[0];
             bds[0] = bds[1];

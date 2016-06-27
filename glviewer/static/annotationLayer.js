@@ -544,7 +544,8 @@
             break;
         case "sections":
             if (window.SA) {
-                widget = new SA.SectionsWidget(this);
+                // HACK.....
+                widget = new SA.SectionsWidget(this, SA.VIEWER1);
             }
             break;
         case "rect":

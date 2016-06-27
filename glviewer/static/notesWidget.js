@@ -679,13 +679,18 @@
             if (clone.childElementCount > 1) {
                 //var answers = clone.querySelectorAll('li');
                 var answers = [];
+                var first = 0;
                 var li = clone.querySelector('li');
                 if (li) {
+                    // Answers are in a list.
                     answers = li.parentElement;
+                } else if (clone.childElementCount > 2) {
+                    answers = clone;
+                    first = 1;
                 } else {
                     answers = clone.children[1];
                 }
-                for (var i = 0; i < answers.childElementCount; ++i) {
+                for (var i = first; i < answers.childElementCount; ++i) {
                     var answer = answers.children[i];
                     var bold = (answer.style.fontWeight == "bold") ||
                         ($(answer).find('b').length > 0);

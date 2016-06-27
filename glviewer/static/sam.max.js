@@ -576,7 +576,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             break;
         case "sections":
             if (window.SA) {
-                widget = new SA.SectionsWidget(this);
+                // HACK.....
+                widget = new SA.SectionsWidget(this, SA.VIEWER1);
             }
             break;
         case "rect":

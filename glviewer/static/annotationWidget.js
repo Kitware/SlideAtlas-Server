@@ -319,7 +319,7 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SA.SectionsWidget(this.Layer, false);
+        widget = new SA.SectionsWidget(this.Layer, this.Viewer, false);
         widget.ComputeSections(this.Viewer);
         if (widget.IsEmpty()) {
             this.Layer.RemoveWidget(widget);

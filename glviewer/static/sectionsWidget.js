@@ -26,7 +26,8 @@
     // Depends on the CIRCLE widget
     "use strict";
 
-    function SectionsWidget (layer, newFlag) {
+    // We need the viewer to get the image to process.
+    function SectionsWidget (layer, viewer, newFlag) {
         if (layer == null) {
             return;
         }
@@ -34,7 +35,7 @@
         var parent = layer.AnnotationView.CanvasDiv;
 
         this.Type = "sections";
-        this.Viewer = null;
+        this.Viewer = viewer;
         this.Layer = layer;
         this.Layer.AddWidget(this);
 
@@ -461,9 +462,6 @@
 
     // The multiple actions of bounds might be confusing to the user.
     SectionsWidget.prototype.ProcessBounds = function(bds) {
-        if ( ! this.Viewer) {
-            alert("missing VIewer");
-        }
         if (bds[0] > bds[1]) {
             var tmp = bds[0];
             bds[0] = bds[1];
