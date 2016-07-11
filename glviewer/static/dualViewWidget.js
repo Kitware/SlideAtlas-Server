@@ -151,7 +151,6 @@ window.SA = window.SA || {};
     DualViewWidget.prototype.ProcessArguments = function (args) {
         if (args.note) {
             // TODO: DO we need both?
-            this.saNote = args.note;
             this.SetNote(args.note,args.viewIndex);
             // NOTE: TempId is legacy
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
@@ -221,11 +220,11 @@ window.SA = window.SA || {};
         }
     }
 
-
     DualViewWidget.prototype.SetNote = function(note, viewIdx) {
         if (this.saNote == note) {
             return;
         }
+
         // Agressively record annotations.  User still needs to hit the
         // save button.
         if (SA.Edit && this.saNote) {
@@ -320,6 +319,22 @@ window.SA = window.SA || {};
         while (note.Parent) {
             note = note.Parent;
         }
+        return note;
+    }
+
+    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new Note();
+            var self = this;
+            note.LoadViewId(
+                noteId,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+            return note;
+        }
+        this.SetNote(note,viewIdx);
         return note;
     }
 
@@ -492,7 +507,9 @@ window.SA = window.SA || {};
             this.Viewers[1].Show();
         }
 
-        $(window).trigger('resize');
+        // This looks problematic.
+        // TODO: Try to get rid of it.
+        //$(window).trigger('resize');
     }
 
 

@@ -2691,12 +2691,14 @@ jQuery.prototype.saHtml = function(string) {
         for (var i = 0; i < viewDivs.length; ++i) {
             var display = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
+            var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
+            viewerIdx = parseInt(viewerIdx);
             //var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
             //viewerIdx = parseInt(viewerIdx);
             // TODO: This should not be here.
             // The saViewer should handle this internally.
             if (noteId) {
-                SA.SetNoteFromId(noteId);
+                display.SetNoteFromId(noteId, viewerIdx);
             }
         }
 

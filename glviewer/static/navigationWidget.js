@@ -302,7 +302,9 @@ NavigationWidget.prototype.PreviousNote = function() {
     this.SetNote(note);
     this.Update();
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
-    SA.SetNote(note); 
+    // Hack for presentaitons. Global not set.
+    SA.display = this.Display;
+    SA.SetNote(note);
 }
 
 NavigationWidget.prototype.NextNote = function() {
@@ -342,6 +344,8 @@ NavigationWidget.prototype.NextNote = function() {
     var note = this.NoteIterator.Next();
     this.Update();
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
+    // Hack for presentaitons. Global not set.
+    SA.display = this.Display;
     SA.SetNote(note);
 }
 

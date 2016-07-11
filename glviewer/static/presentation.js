@@ -794,41 +794,14 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
-    // NOTE:  It should not be necessary to differentiate user notes from
-    // normal notes anymore because we are generating ids on the client.
-
-    for (var i = 0; i < SA.Notes.length; ++i) {
-        var note = SA.Notes[i];
-        if (note.Type != "UserNote" ) {
-            note.Save(function (note) {
-                if (note == self.RootNote) {
-                    // if this is the first time we are saving the root note, then
-                    // add it to the session.
-                    $.ajax({
-                        type: "post",
-                        data: {"sess" : SA.SessionId,
-                               "view" : note.Id},
-                        url: "webgl-viewer/session-add-view",
-                        success: function(data,status){
-                            if (status != "success") {
-                                SA.Debug("ajax failed - session-add-view");
-                            }
-                        },
-                        error: function() {
-                            SA.Debug( "AJAX - error() : session-add-view" );
-                        },
-                    });
-                }
-            }, true);
-        }
-    }
-
+    // NOTE: light boxes are saved as viewerRecords. (but not always?)
+    // Insert viewer record versus note?
     // Save the user notes.  They are not saved with the parent notes like
     // the children are.
     for (var i = 0; i < SA.Notes.length; ++i) {
         var note = SA.Notes[i];
         if ( note.Type == "UserNote" ) {
-            if (note.Id || note.Text != "") {
+            if (note.LoadState || note.Text != "") {
                 note.Save();
             }
         }
@@ -868,6 +841,33 @@ Presentation.prototype.Save = function () {
     //this.SaveButton.css({'color':'#F00'});
     // And finally, we can save the presentation.
     this.RootNote.Save();
+
+    // Check to see if the root is in the session. If not, add it.
+    var noteInSession = false;
+    var session = SA.Session.session.views;
+    for (var i = 0; i < session.length && ! noteInSession; ++i) {
+        if (session[i] == this.RootNote.Id) {
+            noteInSession = true;
+        }
+    }
+    if ( ! noteInSession) {
+        // if this is the first time we are saving the root note, then
+        // add it to the session.
+        $.ajax({
+            type: "post",
+            data: {"sess" : SA.SessionId,
+                   "view" : this.RootNote.Id},
+            url: "webgl-viewer/session-add-view",
+            success: function(data,status){
+                if (status != "success") {
+                    SA.Debug("ajax failed - session-add-view");
+                }
+            },
+            error: function() {
+                SA.Debug( "AJAX - error() : session-add-view" );
+            },
+        });
+    }
 }
 
 

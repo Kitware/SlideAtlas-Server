@@ -361,6 +361,22 @@
         this.saNote = note;
         this.saViewerIndex = viewIdx;
     }
+    Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
+        var self = this;
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new Note();
+            var self = this;
+            note.LoadViewId(
+                noteId,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+            return note;
+        }
+        this.SetNote(note,viewIdx);
+        return note;
+    }
 
     Viewer.prototype.SetOverViewVisibility = function(visible) {
         this.OverViewVisibility = visible;
@@ -469,6 +485,11 @@
 
         if (this.MainView.UpdateCanvasSize() ) {
             this.EventuallyRender();
+        }
+
+        var annotLayer = this.GetAnnotationLayer();
+        if (annotLayer) {
+            annotLayer.UpdateSize();
         }
 
         // I do not know the way the viewport is used to place
@@ -858,8 +879,7 @@
             }
         }
         // Change the overview to fit the new image dimensions.
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
+        this.UpdateSize();
     }
 
     Viewer.prototype.GetCache = function() {
@@ -2289,8 +2309,7 @@
             this.RotateIcon.show();
         }
 
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
+        this.UpdateSize();
 
         return false;
     }
@@ -2310,8 +2329,7 @@
             this.OverViewScale /= 1.2;
         }
 
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
+        this.UpdateSize();
 
         return true;
     }

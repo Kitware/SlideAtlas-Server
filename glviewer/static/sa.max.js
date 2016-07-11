@@ -10623,7 +10623,6 @@ window.SA = window.SA || {};
     DualViewWidget.prototype.ProcessArguments = function (args) {
         if (args.note) {
             // TODO: DO we need both?
-            this.saNote = args.note;
             this.SetNote(args.note,args.viewIndex);
             // NOTE: TempId is legacy
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
@@ -10693,11 +10692,11 @@ window.SA = window.SA || {};
         }
     }
 
-
     DualViewWidget.prototype.SetNote = function(note, viewIdx) {
         if (this.saNote == note) {
             return;
         }
+
         // Agressively record annotations.  User still needs to hit the
         // save button.
         if (SA.Edit && this.saNote) {
@@ -10792,6 +10791,22 @@ window.SA = window.SA || {};
         while (note.Parent) {
             note = note.Parent;
         }
+        return note;
+    }
+
+    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new Note();
+            var self = this;
+            note.LoadViewId(
+                noteId,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+            return note;
+        }
+        this.SetNote(note,viewIdx);
         return note;
     }
 
@@ -10964,7 +10979,9 @@ window.SA = window.SA || {};
             this.Viewers[1].Show();
         }
 
-        $(window).trigger('resize');
+        // This looks problematic.
+        // TODO: Try to get rid of it.
+        //$(window).trigger('resize');
     }
 
 
@@ -11347,7 +11364,6 @@ function TabPanel(tabbedDiv, title) {
 
         this.Title = "";
         this.Text = "";
-        //this.UserText = "";
         this.Modified = false;
 
         // Upto two for dual view.
@@ -11791,6 +11807,7 @@ function TabPanel(tabbedDiv, title) {
                 if (callback) {
                     (callback)(self);
                 }
+                self.LoadState = 2;
             },
             error: function() {
                 SA.PopProgress();
@@ -14966,7 +14983,9 @@ NavigationWidget.prototype.PreviousNote = function() {
     this.SetNote(note);
     this.Update();
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
-    SA.SetNote(note); 
+    // Hack for presentaitons. Global not set.
+    SA.display = this.Display;
+    SA.SetNote(note);
 }
 
 NavigationWidget.prototype.NextNote = function() {
@@ -15006,6 +15025,8 @@ NavigationWidget.prototype.NextNote = function() {
     var note = this.NoteIterator.Next();
     this.Update();
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
+    // Hack for presentaitons. Global not set.
+    SA.display = this.Display;
     SA.SetNote(note);
 }
 
@@ -18289,12 +18310,14 @@ jQuery.prototype.saHtml = function(string) {
         for (var i = 0; i < viewDivs.length; ++i) {
             var display = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
+            var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
+            viewerIdx = parseInt(viewerIdx);
             //var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
             //viewerIdx = parseInt(viewerIdx);
             // TODO: This should not be here.
             // The saViewer should handle this internally.
             if (noteId) {
-                SA.SetNoteFromId(noteId);
+                display.SetNoteFromId(noteId, viewerIdx);
             }
         }
 
@@ -20404,41 +20427,14 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
-    // NOTE:  It should not be necessary to differentiate user notes from
-    // normal notes anymore because we are generating ids on the client.
-
-    for (var i = 0; i < SA.Notes.length; ++i) {
-        var note = SA.Notes[i];
-        if (note.Type != "UserNote" ) {
-            note.Save(function (note) {
-                if (note == self.RootNote) {
-                    // if this is the first time we are saving the root note, then
-                    // add it to the session.
-                    $.ajax({
-                        type: "post",
-                        data: {"sess" : SA.SessionId,
-                               "view" : note.Id},
-                        url: "webgl-viewer/session-add-view",
-                        success: function(data,status){
-                            if (status != "success") {
-                                SA.Debug("ajax failed - session-add-view");
-                            }
-                        },
-                        error: function() {
-                            SA.Debug( "AJAX - error() : session-add-view" );
-                        },
-                    });
-                }
-            }, true);
-        }
-    }
-
+    // NOTE: light boxes are saved as viewerRecords. (but not always?)
+    // Insert viewer record versus note?
     // Save the user notes.  They are not saved with the parent notes like
     // the children are.
     for (var i = 0; i < SA.Notes.length; ++i) {
         var note = SA.Notes[i];
         if ( note.Type == "UserNote" ) {
-            if (note.Id || note.Text != "") {
+            if (note.LoadState || note.Text != "") {
                 note.Save();
             }
         }
@@ -20478,6 +20474,33 @@ Presentation.prototype.Save = function () {
     //this.SaveButton.css({'color':'#F00'});
     // And finally, we can save the presentation.
     this.RootNote.Save();
+
+    // Check to see if the root is in the session. If not, add it.
+    var noteInSession = false;
+    var session = SA.Session.session.views;
+    for (var i = 0; i < session.length && ! noteInSession; ++i) {
+        if (session[i] == this.RootNote.Id) {
+            noteInSession = true;
+        }
+    }
+    if ( ! noteInSession) {
+        // if this is the first time we are saving the root note, then
+        // add it to the session.
+        $.ajax({
+            type: "post",
+            data: {"sess" : SA.SessionId,
+                   "view" : this.RootNote.Id},
+            url: "webgl-viewer/session-add-view",
+            success: function(data,status){
+                if (status != "success") {
+                    SA.Debug("ajax failed - session-add-view");
+                }
+            },
+            error: function() {
+                SA.Debug( "AJAX - error() : session-add-view" );
+            },
+        });
+    }
 }
 
 
@@ -28938,6 +28961,22 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.saNote = note;
         this.saViewerIndex = viewIdx;
     }
+    Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
+        var self = this;
+        var note = SA.GetNoteFromId(noteId);
+        if ( ! note) {
+            note = new Note();
+            var self = this;
+            note.LoadViewId(
+                noteId,
+                function () {
+                    self.SetNote(note, viewIdx);
+                });
+            return note;
+        }
+        this.SetNote(note,viewIdx);
+        return note;
+    }
 
     Viewer.prototype.SetOverViewVisibility = function(visible) {
         this.OverViewVisibility = visible;
@@ -29046,6 +29085,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         if (this.MainView.UpdateCanvasSize() ) {
             this.EventuallyRender();
+        }
+
+        var annotLayer = this.GetAnnotationLayer();
+        if (annotLayer) {
+            annotLayer.UpdateSize();
         }
 
         // I do not know the way the viewport is used to place
@@ -29435,8 +29479,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             }
         }
         // Change the overview to fit the new image dimensions.
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
+        this.UpdateSize();
     }
 
     Viewer.prototype.GetCache = function() {
@@ -30866,8 +30909,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.RotateIcon.show();
         }
 
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
+        this.UpdateSize();
 
         return false;
     }
@@ -30887,8 +30929,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.OverViewScale /= 1.2;
         }
 
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
+        this.UpdateSize();
 
         return true;
     }

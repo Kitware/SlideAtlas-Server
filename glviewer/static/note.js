@@ -49,7 +49,6 @@
 
         this.Title = "";
         this.Text = "";
-        //this.UserText = "";
         this.Modified = false;
 
         // Upto two for dual view.
@@ -493,6 +492,7 @@
                 if (callback) {
                     (callback)(self);
                 }
+                self.LoadState = 2;
             },
             error: function() {
                 SA.PopProgress();
