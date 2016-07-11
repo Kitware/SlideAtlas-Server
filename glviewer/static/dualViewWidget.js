@@ -257,6 +257,7 @@ window.SA = window.SA || {};
             this.NavigationWidget.SetNote(note);
             //this.NavigationWidget.Update(); // not sure if this is necessary
         }
+        this.DisplayNote(note);
         if (note.Type == "Stack") {
             // TODO: Can I move this logic into the display? SetNote maybe?
             // Possibly nagivationWidget (we need to know which viewer is referecne.
@@ -270,8 +271,6 @@ window.SA = window.SA || {};
             // First view is set by viewer record camera.
             // Second is set relative to the first.
             this.SynchronizeViews(0, note);
-        } else {
-            this.DisplayNote(note);
         }
     }
 
@@ -325,7 +324,7 @@ window.SA = window.SA || {};
     DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
-            note = new Note();
+            note = new SA.Note();
             var self = this;
             note.LoadViewId(
                 noteId,

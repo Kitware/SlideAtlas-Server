@@ -115,8 +115,12 @@ def view_a_session(session):
             database = models.ImageStore.objects.get_or_404(id=view_son['image_store_id'])
             imgdb = database.to_pymongo()
             imgObj = imgdb["images"].find_one({ "_id" : view_son['image_id']})
-            if  not "dimensions" in imgObj :
-                pdb.set_trace()
+
+            # these should not happen but to be safe.
+            if not "dimensions" in imgObj :
+                imgObj['dimensions'] = [0,0,0]
+            if not "levels" in imgObj :
+                imgObj['levels'] = 0
 
             bounds = [0,imgObj['dimensions'][0], 0, imgObj['dimensions'][1]]
             if 'bounds' in imgObj:

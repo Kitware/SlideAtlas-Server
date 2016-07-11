@@ -680,7 +680,7 @@
 
         for (var i = 0; i < this.Children.length; ++i) {
             var child = this.Children[i];
-            var childNote = new Note();
+            var childNote = new SA.Note();
             childNote.SetParent(this);
             if (typeof(child) == "string") {
                 // Asynchronous.  This may cause problems (race condition)
@@ -698,7 +698,7 @@
         if (this.UserNote) {
             // Make the user not into a real object.
             var obj = this.UserNote;
-            this.UserNote = new Note();
+            this.UserNote = new SA.Note();
             this.UserNote.Load(obj);
         }
 
@@ -756,7 +756,7 @@
 
     // Extra stuff for stack.
     Note.prototype.DisplayStack = function(display) {
-        SA.SetNote(this);
+        //SA.SetNote(this);
         // For editing correlations
         if (SA.Edit && this.StartIndex+1 < this.ViewerRecords.length) {
             var trans = this.ViewerRecords[this.StartIndex + 1].Transform;

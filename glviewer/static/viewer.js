@@ -365,7 +365,7 @@
         var self = this;
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
-            note = new Note();
+            note = new SA.Note();
             var self = this;
             note.LoadViewId(
                 noteId,
