@@ -581,6 +581,9 @@
         obj.Mode = this.Mode;
         obj.User = this.User;
         obj.Date = this.Date;
+        if (this.WaterMark) {
+            obj.WaterMark = this.WaterMark;
+        }
 
         // user data to customize note types
         // I needed this for background color and apsect ratio of presentations.

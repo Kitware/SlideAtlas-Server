@@ -475,6 +475,12 @@ window.SA = window.SA || {};
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         }
 
+        if (this.saNote && this.saNote.WaterMark) {
+            SA.WaterMark = true;
+        } else {
+            SA.WaterMark = false;
+        }   
+
         // This just changes the camera based on the current time.
         if (this.Viewers[0]) {
             this.Viewers[0].Animate();

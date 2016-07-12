@@ -540,7 +540,9 @@
             widget = new SAM.PolylineWidget(this, false);
             break;
         case "stack_section":
-            widget = new SAM.StackSectionWidget(this);
+            if (window.SA) {
+                widget = new SA.StackSectionWidget(this);
+            }
             break;
         case "sections":
             if (window.SA) {

@@ -2422,7 +2422,7 @@
 
     var WAITING;
 
-    SA.DeformableAlignViewers = function() {
+    SA.DeformableAlignViewers = function(keepExistingFiducials) {
         var note = SA.display.GetNote();
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! trans) {
@@ -2482,16 +2482,18 @@
                 // Remove all correlations.
                 //trans.Correlations = [];
                 // Remove all correlations visible in the window.
-                var cam = SA.VIEWERS[0].GetCamera();
-                var bds = cam.GetBounds();
-                var idx = 0;
-                while (idx < trans.Correlations.length) {
-                    var cor = trans.Correlations[idx];
-                    if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
-                        cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
-                        trans.Correlations.splice(idx,1);
-                    } else {
-                        ++idx;
+                if ( ! keepExistingFiducials) {
+                    var cam = SA.VIEWERS[0].GetCamera();
+                    var bds = cam.GetBounds();
+                    var idx = 0;
+                    while (idx < trans.Correlations.length) {
+                        var cor = trans.Correlations[idx];
+                        if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
+                            cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                            trans.Correlations.splice(idx,1);
+                        } else {
+                            ++idx;
+                        }
                     }
                 }
                 DEBUG_TRANS = trans;

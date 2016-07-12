@@ -375,6 +375,19 @@ window.SA = window.SA || {};
             view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
             view.Context2d.drawImage(this.Image,0,0);
 
+
+            if (SA.WaterMark) {
+                var angle = (this.X+1)*(this.Y+1)*4.0
+                view.Context2d.translate(128,128);
+                view.Context2d.rotate(angle);
+                view.Context2d.translate(-128,-128);
+                view.Context2d.fillStyle = 'rgba(100, 100, 100, 0.05)';
+                view.Context2d.strokeStyle = 'rgba(50,50,50, 0.05)';
+                view.Context2d.font = "30px Comic Sans MS";
+                //view.Context2d.strokeText("SlideAtlas",10,100);
+                view.Context2d.fillText("SlideAtlas",10,10);
+            }
+
             //  Transform to map (0->1, 0->1)
             view.Context2d.restore();
         }

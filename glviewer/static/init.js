@@ -226,7 +226,13 @@ window.SA = window.SA || {};
         // For debugging deformable alignment in stacks.
         if (event.keyCode == 90) { // z = 90
             if (event.shiftKey) {
-                SA.DeformableAlignViewers();
+                SA.DeformableAlignViewers(false);
+                return true;
+            }
+        }
+        if (event.keyCode == 89) { // y = 89
+            if (event.shiftKey) {
+                SA.DeformableAlignViewers(true);
                 return true;
             }
         }

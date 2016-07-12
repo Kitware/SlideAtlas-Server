@@ -8237,7 +8237,13 @@ window.SA = window.SA || {};
         // For debugging deformable alignment in stacks.
         if (event.keyCode == 90) { // z = 90
             if (event.shiftKey) {
-                SA.DeformableAlignViewers();
+                SA.DeformableAlignViewers(false);
+                return true;
+            }
+        }
+        if (event.keyCode == 89) { // y = 89
+            if (event.shiftKey) {
+                SA.DeformableAlignViewers(true);
                 return true;
             }
         }
@@ -10729,6 +10735,7 @@ window.SA = window.SA || {};
             this.NavigationWidget.SetNote(note);
             //this.NavigationWidget.Update(); // not sure if this is necessary
         }
+        this.DisplayNote(note);
         if (note.Type == "Stack") {
             // TODO: Can I move this logic into the display? SetNote maybe?
             // Possibly nagivationWidget (we need to know which viewer is referecne.
@@ -10742,8 +10749,6 @@ window.SA = window.SA || {};
             // First view is set by viewer record camera.
             // Second is set relative to the first.
             this.SynchronizeViews(0, note);
-        } else {
-            this.DisplayNote(note);
         }
     }
 
@@ -10797,7 +10802,7 @@ window.SA = window.SA || {};
     DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
-            note = new Note();
+            note = new SA.Note();
             var self = this;
             note.LoadViewId(
                 noteId,
@@ -10947,6 +10952,12 @@ window.SA = window.SA || {};
         if (gl) {
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         }
+
+        if (this.saNote && this.saNote.WaterMark) {
+            SA.WaterMark = true;
+        } else {
+            SA.WaterMark = false;
+        }   
 
         // This just changes the camera based on the current time.
         if (this.Viewers[0]) {
@@ -11896,6 +11907,9 @@ function TabPanel(tabbedDiv, title) {
         obj.Mode = this.Mode;
         obj.User = this.User;
         obj.Date = this.Date;
+        if (this.WaterMark) {
+            obj.WaterMark = this.WaterMark;
+        }
 
         // user data to customize note types
         // I needed this for background color and apsect ratio of presentations.
@@ -11995,7 +12009,7 @@ function TabPanel(tabbedDiv, title) {
 
         for (var i = 0; i < this.Children.length; ++i) {
             var child = this.Children[i];
-            var childNote = new Note();
+            var childNote = new SA.Note();
             childNote.SetParent(this);
             if (typeof(child) == "string") {
                 // Asynchronous.  This may cause problems (race condition)
@@ -12013,7 +12027,7 @@ function TabPanel(tabbedDiv, title) {
         if (this.UserNote) {
             // Make the user not into a real object.
             var obj = this.UserNote;
-            this.UserNote = new Note();
+            this.UserNote = new SA.Note();
             this.UserNote.Load(obj);
         }
 
@@ -12071,7 +12085,7 @@ function TabPanel(tabbedDiv, title) {
 
     // Extra stuff for stack.
     Note.prototype.DisplayStack = function(display) {
-        SA.SetNote(this);
+        //SA.SetNote(this);
         // For editing correlations
         if (SA.Edit && this.StartIndex+1 < this.ViewerRecords.length) {
             var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
@@ -25835,7 +25849,7 @@ function GenerateContourFromViewer(viewer, threshold) {
 
     var WAITING;
 
-    SA.DeformableAlignViewers = function() {
+    SA.DeformableAlignViewers = function(keepExistingFiducials) {
         var note = SA.display.GetNote();
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! trans) {
@@ -25895,16 +25909,18 @@ function GenerateContourFromViewer(viewer, threshold) {
                 // Remove all correlations.
                 //trans.Correlations = [];
                 // Remove all correlations visible in the window.
-                var cam = SA.VIEWERS[0].GetCamera();
-                var bds = cam.GetBounds();
-                var idx = 0;
-                while (idx < trans.Correlations.length) {
-                    var cor = trans.Correlations[idx];
-                    if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
-                        cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
-                        trans.Correlations.splice(idx,1);
-                    } else {
-                        ++idx;
+                if ( ! keepExistingFiducials) {
+                    var cam = SA.VIEWERS[0].GetCamera();
+                    var bds = cam.GetBounds();
+                    var idx = 0;
+                    while (idx < trans.Correlations.length) {
+                        var cor = trans.Correlations[idx];
+                        if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
+                            cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                            trans.Correlations.splice(idx,1);
+                        } else {
+                            ++idx;
+                        }
                     }
                 }
                 DEBUG_TRANS = trans;
@@ -27408,6 +27424,19 @@ window.SA = window.SA || {};
             }
             view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
             view.Context2d.drawImage(this.Image,0,0);
+
+
+            if (SA.WaterMark) {
+                var angle = (this.X+1)*(this.Y+1)*4.0
+                view.Context2d.translate(128,128);
+                view.Context2d.rotate(angle);
+                view.Context2d.translate(-128,-128);
+                view.Context2d.fillStyle = 'rgba(100, 100, 100, 0.05)';
+                view.Context2d.strokeStyle = 'rgba(50,50,50, 0.05)';
+                view.Context2d.font = "30px Comic Sans MS";
+                //view.Context2d.strokeText("SlideAtlas",10,100);
+                view.Context2d.fillText("SlideAtlas",10,10);
+            }
 
             //  Transform to map (0->1, 0->1)
             view.Context2d.restore();
@@ -28965,7 +28994,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         var self = this;
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
-            note = new Note();
+            note = new SA.Note();
             var self = this;
             note.LoadViewId(
                 noteId,
