@@ -1087,6 +1087,12 @@
     }
 
     Viewer.prototype.Draw = function() {
+        if (SA && SA.RootNote && SA.RootNote.WaterMark) {
+            SA.WaterMark = true;
+        } else {
+            SA.WaterMark = false;
+        }
+
         // I do not think this is actaully necessary.
         // I was worried about threads, but javascript does not work that way.
         if (this.Drawing) { return; }
