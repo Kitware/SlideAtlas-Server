@@ -13716,11 +13716,18 @@ function TabPanel(tabbedDiv, title) {
         this.UserNote = new SA.Note();
 
         if (data.Notes.length > 0) {
-            if (data.Notes.length > 1) {
-                SA.Debug("Warning: Only showing the first user note.");
-            }
             var noteData = data.Notes[0];
             this.UserNote.Load(noteData);
+            if (data.Notes.length > 1) {
+                SA.Debug("Warning: More than one user note for the smae image..");
+                // This should not happen, but it did.
+                // Merge all the notes into the one.
+                for (var i = 1; i < data.Notes.length; ++i) {
+                    // TODO: line break.
+                    // TODO: Remove the duplicate note in the database.
+                    this.UserNote.Text += data.Notes[i].Text;
+                }
+            }
         } else {
             // start with a copy of the current note.
             // The server searches viewer records for the image.
@@ -27425,13 +27432,12 @@ window.SA = window.SA || {};
             view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
             view.Context2d.drawImage(this.Image,0,0);
 
-
             if (SA.WaterMark) {
                 var angle = (this.X+1)*(this.Y+1)*4.0
                 view.Context2d.translate(128,128);
                 view.Context2d.rotate(angle);
                 view.Context2d.translate(-128,-128);
-                view.Context2d.fillStyle = 'rgba(100, 100, 100, 0.05)';
+                view.Context2d.fillStyle = 'rgba(0, 0, 0, 0.016)';
                 view.Context2d.strokeStyle = 'rgba(50,50,50, 0.05)';
                 view.Context2d.font = "30px Comic Sans MS";
                 //view.Context2d.strokeText("SlideAtlas",10,100);
@@ -29716,6 +29722,12 @@ Cache.prototype.RecursivePruneTiles = function(node)
     }
 
     Viewer.prototype.Draw = function() {
+        if (SA && SA.RootNote && SA.RootNote.WaterMark) {
+            SA.WaterMark = true;
+        } else {
+            SA.WaterMark = false;
+        }
+
         // I do not think this is actaully necessary.
         // I was worried about threads, but javascript does not work that way.
         if (this.Drawing) { return; }
