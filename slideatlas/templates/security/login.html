@@ -17,7 +17,7 @@
 
         <br/>
         <div class="row">
-          <h3>Sign up or login with:
+          <h3>Sign in with:
             {% for provider in login_providers %}
               {% if provider.is_enabled() %}
                 <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
@@ -26,6 +26,16 @@
           </h3>
         </div>
 
+        <br/>
+        <div class="row">
+          <h3>Sign up with:
+            {% for provider in login_providers %}
+              {% if provider.is_enabled() %}
+                <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
+              {% endif %}
+            {% endfor %}
+          </h3>
+        </div>
 
         <br/>
         <br/>
