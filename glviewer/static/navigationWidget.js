@@ -282,6 +282,7 @@ NavigationWidget.prototype.PreviousNote = function() {
                           cam.Height);
 
         --current.StartIndex;
+        SA.SetNote(current);
         current.DisplayStack(this.Display);
         this.Display.SynchronizeViews(1, current);
         // activate or deactivate buttons.
@@ -325,6 +326,7 @@ NavigationWidget.prototype.NextNote = function() {
                           cam.Height);
 
         ++current.StartIndex;
+        SA.SetNote(current);
         current.DisplayStack(this.Display);
         this.Display.SynchronizeViews(0, current);
         // activate or deactivate buttons.

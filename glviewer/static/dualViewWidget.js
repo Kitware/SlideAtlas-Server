@@ -38,6 +38,7 @@ window.SA = window.SA || {};
         // reference here.  SlideShow can have multiple "displays".
         // We might consider keep a reference in the dua
         this.saNote = null;
+        this.saNoteStartIndex = 0;
 
         this.Parent = parent;
         parent.addClass('sa-dual-viewer');
@@ -220,8 +221,8 @@ window.SA = window.SA || {};
         }
     }
 
-    DualViewWidget.prototype.SetNote = function(note, viewIdx) {
-        if (this.saNote == note) {
+    DualViewWidget.prototype.SetNote = function(note) {
+        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
             return;
         }
 
@@ -232,7 +233,8 @@ window.SA = window.SA || {};
         }
 
         this.saNote = note;
-        viewIdx = viewIdx || 0;
+        this.saNoteStartIdx = note.StartIndex;
+        var viewIdx = note.StartIndex || 0;
 
         var self = this;
         // If the note is not loaded, request the note, and call this method
@@ -241,16 +243,13 @@ window.SA = window.SA || {};
             note.LoadViewId(
                 note.Id,
                 function () {
-                    self.SetNote(note, viewIdx);
+                    self.SetNote(note);
                 });
         }
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");
             return;
-        }
-        if (viewIdx !== undefined) {
-            note.StartIndex = viewIdx;
         }
         this.saViewerIndex = viewIdx;
         if (this.NavigationWidget) {
@@ -321,7 +320,7 @@ window.SA = window.SA || {};
         return note;
     }
 
-    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
+    DualViewWidget.prototype.SetNoteFromId = function(noteId) {
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
             note = new SA.Note();
@@ -329,11 +328,11 @@ window.SA = window.SA || {};
             note.LoadViewId(
                 noteId,
                 function () {
-                    self.SetNote(note, viewIdx);
+                    self.SetNote(note);
                 });
             return note;
         }
-        this.SetNote(note,viewIdx);
+        this.SetNote(note);
         return note;
     }
 
