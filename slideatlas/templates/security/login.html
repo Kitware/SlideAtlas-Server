@@ -17,18 +17,7 @@
 
         <br/>
         <div class="row">
-          <h3>Sign in with:
-            {% for provider in login_providers %}
-              {% if provider.is_enabled() %}
-                <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
-              {% endif %}
-            {% endfor %}
-          </h3>
-        </div>
-
-        <br/>
-        <div class="row">
-          <h3>Sign up with:
+          <h3>Register with:
             {% for provider in login_providers %}
               {% if provider.is_enabled() %}
                 <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
@@ -86,7 +75,7 @@
         <br/>
         <div class="row">
           <h4>
-           Or create a password account (discouraged):
+           Or create a password account:
            <a class="btn btn-primary" href="{{ url_for_security('register') }}">Create</a>
           </h4>
         </div>
