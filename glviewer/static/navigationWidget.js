@@ -277,12 +277,17 @@ NavigationWidget.prototype.PreviousNote = function() {
         var viewer1 = this.Display.GetViewer(1);
         var viewer0 = this.Display.GetViewer(0);
         var cam = viewer0.GetCamera();
-        viewer1.SetCamera(cam.GetFocalPoint(),
-                          cam.GetRotation(),
-                          cam.Height);
+        var fp = cam.FocalPoint.slice();
+        var rot = cam.GetRotation();
+        var height = cam.GetHeight();
 
         --current.StartIndex;
+
+        // We need to skip setting the camera.
         SA.SetNote(current);
+        // Set the camera after the note has been applied.
+        viewer1.SetCamera(fp, rot, height);
+
         current.DisplayStack(this.Display);
         this.Display.SynchronizeViews(1, current);
         // activate or deactivate buttons.
@@ -321,12 +326,15 @@ NavigationWidget.prototype.NextNote = function() {
         var viewer0 = this.Display.GetViewer(0);
         var viewer1 = this.Display.GetViewer(1);
         var cam = viewer1.GetCamera();
-        viewer0.SetCamera(cam.GetFocalPoint(),
-                          cam.GetRotation(),
-                          cam.Height);
+        var fp = cam.FocalPoint.slice();
+        var rot = cam.GetRotation();
+        var height = cam.GetHeight();
 
         ++current.StartIndex;
+        // We need to skip setting the camera.
         SA.SetNote(current);
+        // Set the camera after the note has been applied.
+        viewer0.SetCamera(fp, rot, height);
         current.DisplayStack(this.Display);
         this.Display.SynchronizeViews(0, current);
         // activate or deactivate buttons.

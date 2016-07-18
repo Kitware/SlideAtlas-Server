@@ -10516,6 +10516,7 @@ window.SA = window.SA || {};
         // reference here.  SlideShow can have multiple "displays".
         // We might consider keep a reference in the dua
         this.saNote = null;
+        this.saNoteStartIndex = 0;
 
         this.Parent = parent;
         parent.addClass('sa-dual-viewer');
@@ -10698,8 +10699,8 @@ window.SA = window.SA || {};
         }
     }
 
-    DualViewWidget.prototype.SetNote = function(note, viewIdx) {
-        if (this.saNote == note) {
+    DualViewWidget.prototype.SetNote = function(note) {
+        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
             return;
         }
 
@@ -10710,7 +10711,8 @@ window.SA = window.SA || {};
         }
 
         this.saNote = note;
-        viewIdx = viewIdx || 0;
+        this.saNoteStartIdx = note.StartIndex;
+        var viewIdx = note.StartIndex || 0;
 
         var self = this;
         // If the note is not loaded, request the note, and call this method
@@ -10719,16 +10721,13 @@ window.SA = window.SA || {};
             note.LoadViewId(
                 note.Id,
                 function () {
-                    self.SetNote(note, viewIdx);
+                    self.SetNote(note);
                 });
         }
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");
             return;
-        }
-        if (viewIdx !== undefined) {
-            note.StartIndex = viewIdx;
         }
         this.saViewerIndex = viewIdx;
         if (this.NavigationWidget) {
@@ -10799,7 +10798,7 @@ window.SA = window.SA || {};
         return note;
     }
 
-    DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
+    DualViewWidget.prototype.SetNoteFromId = function(noteId) {
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
             note = new SA.Note();
@@ -10807,11 +10806,11 @@ window.SA = window.SA || {};
             note.LoadViewId(
                 noteId,
                 function () {
-                    self.SetNote(note, viewIdx);
+                    self.SetNote(note);
                 });
             return note;
         }
-        this.SetNote(note,viewIdx);
+        this.SetNote(note);
         return note;
     }
 
@@ -13538,14 +13537,14 @@ function TabPanel(tabbedDiv, title) {
         // Process containers for diagnosis ....
         SA.AddHtmlTags(this.TextEditor.TextEntry);
 
-
         var note = this.GetCurrentNote();
+        /* This confused users (and me)
         if (note) {
             // Lets try saving the camera for the current note.
             // This is a good comprise.  Do not record the camera
             // every time it moves, but do record it when the samve button
             // is pressed.  This is ok, now that view links are visibly
-            // selected. However, It is still not really obvious what will happen. 
+            // selected. However, It is still not really obvious what will happen.
             note.RecordView(this.Display);
         }
         if (note.Type != "View") {
@@ -13553,6 +13552,11 @@ function TabPanel(tabbedDiv, title) {
         } else {
             note.RecordAnnotations(this.Display);
         }
+        */
+        if (note) {
+            note.RecordAnnotations(this.Display);
+        }
+        
 
         // Root saves all the children with it.
         // There is always a root note.  Being over cautious.
@@ -14979,11 +14983,17 @@ NavigationWidget.prototype.PreviousNote = function() {
         var viewer1 = this.Display.GetViewer(1);
         var viewer0 = this.Display.GetViewer(0);
         var cam = viewer0.GetCamera();
-        viewer1.SetCamera(cam.GetFocalPoint(),
-                          cam.GetRotation(),
-                          cam.Height);
+        var fp = cam.FocalPoint.slice();
+        var rot = cam.GetRotation();
+        var height = cam.GetHeight();
 
         --current.StartIndex;
+
+        // We need to skip setting the camera.
+        SA.SetNote(current);
+        // Set the camera after the note has been applied.
+        viewer1.SetCamera(fp, rot, height);
+
         current.DisplayStack(this.Display);
         this.Display.SynchronizeViews(1, current);
         // activate or deactivate buttons.
@@ -15022,11 +15032,15 @@ NavigationWidget.prototype.NextNote = function() {
         var viewer0 = this.Display.GetViewer(0);
         var viewer1 = this.Display.GetViewer(1);
         var cam = viewer1.GetCamera();
-        viewer0.SetCamera(cam.GetFocalPoint(),
-                          cam.GetRotation(),
-                          cam.Height);
+        var fp = cam.FocalPoint.slice();
+        var rot = cam.GetRotation();
+        var height = cam.GetHeight();
 
         ++current.StartIndex;
+        // We need to skip setting the camera.
+        SA.SetNote(current);
+        // Set the camera after the note has been applied.
+        viewer0.SetCamera(fp, rot, height);
         current.DisplayStack(this.Display);
         this.Display.SynchronizeViews(0, current);
         // activate or deactivate buttons.
