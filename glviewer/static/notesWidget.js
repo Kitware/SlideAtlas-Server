@@ -63,6 +63,7 @@
 (function () {
     "use strict";
 
+
     // TODO: put this class in its own file.
     // Links that open a separate window use this.
     // It has a gui to choose the window location and will reposition other
@@ -1030,6 +1031,20 @@
     "use strict";
 
 
+    // I have struggled with the issue of making a second div fill
+    // available space when the first div fits its contents with any size.
+    // Here is a programatic solution.
+
+    function FillDiv(div) {
+        div .saOnResize(
+            function () {
+                var height = div.parent().height() - div.position().top;
+                div.height(height);
+            });
+    }
+
+
+
     function NotesWidget(parent, display) {
         this.ModifiedCallback = null;
         this.LinkDiv;
@@ -1092,8 +1107,8 @@
 
         // GUI elements
         this.TabbedWindow = new SA.TabbedDiv(this.Window);
-
         this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
+
         this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
         this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
         this.LinksRoot = $('<ul>')
@@ -1142,7 +1157,8 @@
         if (SA.Edit) {
             // TODO: Encapsulate this menu (used more than once)
             this.QuizDiv = $('<div>')
-                .appendTo(this.TextDiv)
+                .appendTo(this.TextDiv
+)
             this.QuizMenu = $('<select name="quiz" id="quiz">')
                 .appendTo(this.QuizDiv)
                 .css({'float':'right',
@@ -1178,6 +1194,7 @@
         }
 
         this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
+        FillDiv(this.TextEditor.TextEntry);
         if ( ! SA.Edit) {
             this.TextEditor.EditableOff();
         } else {

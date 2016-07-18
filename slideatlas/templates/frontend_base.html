@@ -100,7 +100,7 @@
     {% set show_admin = security.AdminRequirement().can() %}
     {% set navigation_bar = [
         ('home', '/', 'Home', True),
-        ('sessions', '/sessions', 'Sessions', True),
+        ('sessions', '/sessions', 'Collections', True),
         ('search', '/search', 'Search', True),
         ('admin', '/apiv1/admin#/', 'Admin', show_admin),
         ('admin', url_for('admin.index'), 'Admin 2', show_admin),
@@ -133,7 +133,7 @@
                 <ul class="nav navbar-nav navbar-right">
                     {% if not current_user.is_authenticated() %}
                     <li class="login-link{% if 'login' == active_page %} active{% endif %}">
-                        <a class="login-link" href="{{ url_for_security('login') }}">Login</a>
+                        <a class="login-link" href="{{url_for_security('login') }}">Log in</a>
                     </li>
                     {% else %}
                     <li>
