@@ -1030,21 +1030,6 @@
 (function () {
     "use strict";
 
-
-    // I have struggled with the issue of making a second div fill
-    // available space when the first div fits its contents with any size.
-    // Here is a programatic solution.
-
-    function FillDiv(div) {
-        div .saOnResize(
-            function () {
-                var height = div.parent().height() - div.position().top;
-                div.height(height);
-            });
-    }
-
-
-
     function NotesWidget(parent, display) {
         this.ModifiedCallback = null;
         this.LinkDiv;
@@ -1157,8 +1142,7 @@
         if (SA.Edit) {
             // TODO: Encapsulate this menu (used more than once)
             this.QuizDiv = $('<div>')
-                .appendTo(this.TextDiv
-)
+                .appendTo(this.TextDiv);
             this.QuizMenu = $('<select name="quiz" id="quiz">')
                 .appendTo(this.QuizDiv)
                 .css({'float':'right',
@@ -1194,7 +1178,9 @@
         }
 
         this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
-        FillDiv(this.TextEditor.TextEntry);
+        // Add a call back to have the text editor fill available verticle space.
+        SA.FillDiv(this.TextEditor.TextEntry);
+
         if ( ! SA.Edit) {
             this.TextEditor.EditableOff();
         } else {
@@ -1205,6 +1191,8 @@
         }
         // Private notes.
         this.UserTextEditor = new SA.TextEditor(this.UserTextDiv, this.Display);
+        // Add a call back to have the text editor fill available verticle space.
+        SA.FillDiv(this.UserTextEditor.TextEntry);
         this.UserTextEditor.Change(
             function () {
                 self.UserTextEditor.Note.Save();

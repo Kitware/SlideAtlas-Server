@@ -66,6 +66,9 @@ TabbedDiv.prototype.OpenTabPanel = function (tabPanel) {
                       'z-index' : '6',
                       'border-color': '#BBB #BBB #FFF #BBB'});
     this.CurrentTabPanel = tabPanel;
+    // The FillDiv callback does not work when the editor is hidden.  
+    // Trigger onResize after the text tab is made visible.
+    $(window).trigger('resize');
 }
 
 // Internal helper method

@@ -11216,6 +11216,9 @@ TabbedDiv.prototype.OpenTabPanel = function (tabPanel) {
                       'z-index' : '6',
                       'border-color': '#BBB #BBB #FFF #BBB'});
     this.CurrentTabPanel = tabPanel;
+    // The FillDiv callback does not work when the editor is hidden.  
+    // Trigger onResize after the text tab is made visible.
+    $(window).trigger('resize');
 }
 
 // Internal helper method
@@ -12188,6 +12191,7 @@ function TabPanel(tabbedDiv, title) {
 (function () {
     "use strict";
 
+
     // TODO: put this class in its own file.
     // Links that open a separate window use this.
     // It has a gui to choose the window location and will reposition other
@@ -13154,7 +13158,6 @@ function TabPanel(tabbedDiv, title) {
 (function () {
     "use strict";
 
-
     function NotesWidget(parent, display) {
         this.ModifiedCallback = null;
         this.LinkDiv;
@@ -13217,8 +13220,8 @@ function TabPanel(tabbedDiv, title) {
 
         // GUI elements
         this.TabbedWindow = new SA.TabbedDiv(this.Window);
-
         this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
+
         this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
         this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
         this.LinksRoot = $('<ul>')
@@ -13267,7 +13270,7 @@ function TabPanel(tabbedDiv, title) {
         if (SA.Edit) {
             // TODO: Encapsulate this menu (used more than once)
             this.QuizDiv = $('<div>')
-                .appendTo(this.TextDiv)
+                .appendTo(this.TextDiv);
             this.QuizMenu = $('<select name="quiz" id="quiz">')
                 .appendTo(this.QuizDiv)
                 .css({'float':'right',
@@ -13303,6 +13306,9 @@ function TabPanel(tabbedDiv, title) {
         }
 
         this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
+        // Add a call back to have the text editor fill available verticle space.
+        SA.FillDiv(this.TextEditor.TextEntry);
+
         if ( ! SA.Edit) {
             this.TextEditor.EditableOff();
         } else {
@@ -13313,6 +13319,8 @@ function TabPanel(tabbedDiv, title) {
         }
         // Private notes.
         this.UserTextEditor = new SA.TextEditor(this.UserTextDiv, this.Display);
+        // Add a call back to have the text editor fill available verticle space.
+        SA.FillDiv(this.UserTextEditor.TextEntry);
         this.UserTextEditor.Change(
             function () {
                 self.UserTextEditor.Note.Save();
@@ -19660,6 +19668,20 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
         }, 500);
 }
 
+
+
+
+    // I have struggled with the issue of making a second div fill
+    // available space when the first div fits its contents with any size.
+    // Here is a programatic solution.
+
+    SA.FillDiv = function(div) {
+        div.saOnResize(
+            function () {
+                var height = div.parent().height() - div.position().top;
+                div.height(height);
+            });
+    }
 
 
     SA.ResizePanel = ResizePanel;

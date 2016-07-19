@@ -4008,6 +4008,20 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 
+
+    // I have struggled with the issue of making a second div fill
+    // available space when the first div fits its contents with any size.
+    // Here is a programatic solution.
+
+    SA.FillDiv = function(div) {
+        div.saOnResize(
+            function () {
+                var height = div.parent().height() - div.position().top;
+                div.height(height);
+            });
+    }
+
+
     SA.ResizePanel = ResizePanel;
 
 
