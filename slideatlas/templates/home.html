@@ -19,8 +19,9 @@
         <div class="row">
         <h2>Welcome to SlideAtlas</h2>
             {% if not current_user.is_authenticated() %}
-                <h4>Users: 
-                    <a class="btn btn-primary" href="{{ url_for_security('login') }}">Sign in</a> 
+                <h4>Users:
+                    <a class="btn btn-primary" href="{{ url_for_security('login') }}">Sign in</a>
+                    <a class="btn btn-primary" href="{{ url_for_security('register') }}">Register</a>
                     <a class="btn btn-info" href="/sessions">Guest</a>
                 </h4>
             {% endif %}
