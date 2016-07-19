@@ -9,12 +9,19 @@
         <div class="row">
             <div class="span8">
                 <h1>Welcome to SlideAtlas</h1>
-                <br/>
-                <br/>
             </div>
         </div>
 
-        <br/>
+        <div class="row">
+          <h3>Register with:
+            {% for provider in login_providers %}
+              {% if provider.is_enabled() %}
+                <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
+              {% endif %}
+            {% endfor %}
+          </h3>
+        </div>
+        <hr/>
         <div class="row">
             <div class="span8 offset1">
                 <h3>Signup with password:</h3>
@@ -31,7 +38,7 @@
                         {{ render_field_with_errors(register_user_form.email, required=True, title='Please enter a valid email here') }}
                     </div>
                     <p>After submitting this form, you will receive an email with instructions to confirm your account and create a password.</p>
-                    {{ render_field(register_user_form.submit, class='btn') }}
+                    {{ render_field(register_user_form.submit, class='btn btn-default') }}
                 </div>
             </form>
         </div>

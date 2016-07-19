@@ -38,6 +38,7 @@ def add_views(app, blueprint):
     # Add login providers to 'login' template context
     security = app.extensions['security']
     security.login_context_processor(lambda: dict(login_providers=login_providers))
+    security.register_context_processor(lambda: dict(login_providers=login_providers))
 
     # TODO: password change page
 

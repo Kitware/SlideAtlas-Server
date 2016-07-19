@@ -10,14 +10,10 @@
         <div class="row">
             <div class="span8 offset1">
                 <h1>Welcome to SlideAtlas</h1>
-                <br/>
-                <br/>
             </div>
         </div>
-
-        <br/>
         <div class="row">
-          <h3>Register automatically with:
+          <h3>Login with:
             {% for provider in login_providers %}
               {% if provider.is_enabled() %}
                 <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
@@ -25,11 +21,7 @@
             {% endfor %}
           </h3>
         </div>
-
-        <br/>
-        <br/>
-        <br/>
-        <br/>
+        <hr/>
         <div class="row">
             <div class="span8 offset1">
                 <h4>Password login:</h4>
@@ -70,13 +62,10 @@
                 </form>
             </div>
         </div>
-
-        <br/>
-        <br/>
         <div class="row">
           <h4>
-           Or create a password account:
-           <a class="btn btn-primary" href="{{ url_for_security('register') }}">Create</a>
+           Or create a new account:
+           <a class="btn btn-primary" href="{{ url_for_security('register') }}">Register</a>
           </h4>
         </div>
 
