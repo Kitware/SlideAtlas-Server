@@ -906,6 +906,9 @@
         this.UpdateNote();
 
         this.Note.Save();
+        // Need this because the save button was overwriting the root note
+        // view when a camera link was just inserted.
+        SA.SetNote(childNote);
     }
 
     TextEditor.prototype.Resize = function(width, height) {
@@ -1418,28 +1421,21 @@
         SA.AddHtmlTags(this.TextEditor.TextEntry);
 
         var note = this.GetCurrentNote();
-        /* This confused users (and me)
         if (note) {
             // Lets try saving the camera for the current note.
             // This is a good comprise.  Do not record the camera
-            // every time it moves, but do record it when the samve button
+            // every time it moves, but do record it when the save button
             // is pressed.  This is ok, now that view links are visibly
             // selected. However, It is still not really obvious what will happen.
             note.RecordView(this.Display);
+            // Record view does this too.
+            //note.RecordAnnotations(this.Display);
         }
-        if (note.Type != "View") {
-            note.RecordView(this.Display);
-        } else {
-            note.RecordAnnotations(this.Display);
-        }
-        */
-        if (note) {
-            note.RecordAnnotations(this.Display);
-        }
-        
 
         // Root saves all the children with it.
         // There is always a root note.  Being over cautious.
+        // May need to save text of the root note because it is displayed
+        // even when view/camera links are the current note.
         if (this.RootNote) {
             note = this.RootNote;
         }            
