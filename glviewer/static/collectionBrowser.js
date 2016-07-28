@@ -234,7 +234,7 @@ CollectionBrowser = (function (){
         this.State = INITIALIZED;
         this.ModifiedTime = this.SavedTime = TIME_COUNT;
 
-        if (this.Id == TRASH_SESSION_ID) {
+        if (this.Label == "Trash") {
             TRASH_SESSION = this;
             this.RequestViewData();
         }
@@ -621,6 +621,10 @@ CollectionBrowser = (function (){
     $('body')[0].oncontextmenu = function () {return false;};
 
     function CollectionBrowser () {
+        PushProgress();
+        // Load the trash session separately
+        //TRASH_SESSION = new SessionObject({sessid:TRASH_SESSION_ID, label:"Trash"});
+
         // I am keeping a tree down to the view "leaves".
         // I need to keep the view "tree index" so the view li knows its position.
         BROWSERS.push(this);
