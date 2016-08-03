@@ -17,10 +17,6 @@ window.SA = window.SA || {};
     SA.tileVertexTextureCoordBuffer;
     SA.tileCellBuffer;
 
-    // Hack to get rid of white lines.
-    var I_PAD_FLAG = false;
-
-
     window.requestAnimationFrame =
         window.requestAnimationFrame ||
         window.mozRequestAnimationFrame ||

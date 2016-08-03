@@ -68,7 +68,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
         if ( navigator.userAgent.match(/iPad/i)) {
             SAM.MOBILE_DEVICE = "iPad";
-            I_PAD_FLAG = true;
         }
         if ( navigator.userAgent.match(/iPod/i)) {
             SAM.MOBILE_DEVICE = "iPod";

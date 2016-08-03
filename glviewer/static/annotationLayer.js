@@ -36,7 +36,6 @@
         }
         if ( navigator.userAgent.match(/iPad/i)) {
             SAM.MOBILE_DEVICE = "iPad";
-            I_PAD_FLAG = true;
         }
         if ( navigator.userAgent.match(/iPod/i)) {
             SAM.MOBILE_DEVICE = "iPod";
