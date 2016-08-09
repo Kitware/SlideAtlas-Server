@@ -118,8 +118,8 @@
 
     GirderWidget.prototype.LoadGirderImageItem = function(itemId) {
         //var itemId = "564e42fe3f24e538e9a20eb9";
-        var data= {"itemId": itemId,
-                   "limit": 50,
+        // I think data is the wron place to pass these parameters.
+        var data= {"limit": 50,
                    "offset": 0,
                    "sort":"lowerName",
                    "sortdir":0};
@@ -127,7 +127,7 @@
         var self = this;
         // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
         girder.restRequest({
-            path:   "annotation",
+            path:   "annotation?itemId="+itemId,
             method: "GET",
             data:   JSON.stringify(data)
         }).done(function(data) {

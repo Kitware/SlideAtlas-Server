@@ -10576,7 +10576,8 @@ window.SA = window.SA || {};
                 .attr('draggable','false')
                 .on("dragstart", function() {
                     return false;});
-
+        }
+        if ( ! SAM.MOBILE_DEVICE) {
             // DualViewer is the navigation widgets temporary home.
             // SlideShow can have multiple nagivation widgets so it is no
             // longer a singlton.
@@ -10584,6 +10585,8 @@ window.SA = window.SA || {};
             // It is not exactly related to dual viewer. It is sort of a child
             // of the dual viewer.
             this.NavigationWidget = new SA.NavigationWidget(parent,this);
+        } else {
+            this.NavigationWidget = new SA.MobileNavigationWidget(parent,this);
         }
     }
 
