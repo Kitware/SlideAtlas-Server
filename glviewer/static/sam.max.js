@@ -9815,7 +9815,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                   'border':'1px solid #666666',
                   'border-radius':this.Radius+'px'})
             .prop('title', "Show Annotation")
-            .text(data.name)
+            .text(data.annotation.name)
             .hide() // hide until animation is finished.
             .hover(function(){$(this).css({'opacity':'1'});},
                    function(){$(this).css({'opacity':'0.6'});});
