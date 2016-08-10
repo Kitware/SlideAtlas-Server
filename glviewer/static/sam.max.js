@@ -9809,7 +9809,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                   'left':(3*this.Radius)+'px',
                   'top': y+'px',
                   'min-width': (2*this.Radius)+'px',
-                  'height': (2*this.Radius)+'px',
+                  'min-height': (2*this.Radius)+'px',
                   'background-color':'#55BBFF',
                   'opacity':'0.6',
                   'border':'1px solid #666666',
