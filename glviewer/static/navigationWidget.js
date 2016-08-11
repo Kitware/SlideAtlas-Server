@@ -80,7 +80,14 @@ function NavigationWidget(parent,display) {
         .addClass("sa-view-navigation-button")
         .attr('src',SA.ImagePathUrl+"nextSlide.png")
         .prop('title',"Next Slide. (page-down)")
+        .css({'z-index':'100'})
         .click(function(){self.NextSlide();});
+    this.NextSlideButton
+        .on('touchend', function(event){
+            self.NextSlide();
+            return false;
+        });
+
 
     // TODO: Fix the main css file for mobile.  Hack this until fixed.
     if (SAM.MOBILE_DEVICE) {
@@ -106,8 +113,7 @@ function NavigationWidget(parent,display) {
         this.NextSlideButton
             .css({'height': size,
                   'width' : size,
-                  'opacity':'0.8'})
-            .on('touchend', function(){self.NextSlide();});
+                  'opacity':'0.8'});
     }
 
     this.CopyrightWrapper =
@@ -583,9 +589,9 @@ NoteIterator.prototype.SetNote = function(note) {
     // See if the note is in the tree.
     this.ToStart();
     while (true) {
-        if (this.GetNote() == note) { 
+        if (this.GetNote() == note) {
             // Found the note in the tree.
-            return; 
+            return;
         }
         if (this.IsEnd()) {
             // not found.  New tree.

@@ -1169,6 +1169,18 @@
 
     // Makes the viewer clean to setup a new slide...
     Viewer.prototype.Reset = function() {
+        this.MomentumX = 0.0;
+        this.MomentumY = 0.0;
+        this.MomentumRoll = 0.0;
+        this.MomentumScale = 0.0;
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
+
+        // Keep further touch moves from having any impact.
+        this.StartTouchTime = 0;
+
         this.SetCache(null);
         this.MainView.ShapeList = [];
 
@@ -1399,9 +1411,7 @@
 
         // Stuff from event manager
         this.HandleTouch(event, true);
-        if (this.StartTouchTime == 0) {
-            this.StartTouchTime = this.Time;
-        }
+        this.StartTouchTime = this.Time;
 
         SA.TriggerStartInteraction();
 
@@ -1432,6 +1442,10 @@
 
 
     Viewer.prototype.HandleTouchMove = function(e) {
+        // Case where sweep caused nextNote.
+        // Short circuit interaction.
+        if (this.StartTouchTime == 0) {return false};
+
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
@@ -1447,6 +1461,22 @@
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
             MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+        }
+
+        // detect sweep
+        // Cross the screen in 1/2 second.
+        var viewerWidth = this.MainView.CanvasDiv.width();
+        var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
+        console.log(dxdt);
+        if (SA.display.NavigationWidget) {
+            if (dxdt > 4.0) {
+                SA.display.NavigationWidget.PreviousNote();
+                return false;
+            }
+            if (dxdt < -4.0) {
+                SA.display.NavigationWidget.NextNote();
+                return false;
+            }
         }
 
         if (this.Touches.length == 1) {
@@ -1660,7 +1690,7 @@
         this.MomentumScale = this.MomentumScale*(1-k);
 
         t = t - this.StartTouchTime;
-        if (event.targetTouches.length == 0 && SA.MOBILE_DEVICE) {
+        if (event.targetTouches.length == 0 && SAM.MOBILE_DEVICE) {
             this.StartTouchTime = 0;
             if (t < 90) {
                 // We should not have a navigation widget on mobile
@@ -1684,6 +1714,10 @@
 
         //this.UpdateZoomGui();
         this.HandleMomentum(event);
+
+        // Use this as a flag to indicate ongoing interation (sweep, next
+        // note .
+        this.StartTouchTime = 0;
     }
 
     Viewer.prototype.HandleMomentum = function() {

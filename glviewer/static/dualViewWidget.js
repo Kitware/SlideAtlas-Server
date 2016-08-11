@@ -74,7 +74,15 @@ window.SA = window.SA || {};
         this.AnimationDuration = 0;
         this.AnimationTarget = 0;
 
-        if ( ! SAM.MOBILE_DEVICE || SAM.MOBILE_DEVICE == 'iPad') {
+        // DualViewer is the navigation widgets temporary home.
+        // SlideShow can have multiple nagivation widgets so it is no
+        // longer a singlton.
+        // This is for moving through notes, session views and stacks.
+        // It is not exactly related to dual viewer. It is sort of a child
+        // of the dual viewer.
+        this.NavigationWidget = new SA.NavigationWidget(parent,this);
+
+        if ( ! SAM.MOBILE_DEVICE) { // || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
             $('<img>')
                 .appendTo(this.ViewerDivs[0])
@@ -102,14 +110,8 @@ window.SA = window.SA || {};
                 .attr('draggable','false')
                 .on("dragstart", function() {
                     return false;});
-
-            // DualViewer is the navigation widgets temporary home.
-            // SlideShow can have multiple nagivation widgets so it is no
-            // longer a singlton.
-            // This is for moving through notes, session views and stacks.
-            // It is not exactly related to dual viewer. It is sort of a child
-            // of the dual viewer.
-            this.NavigationWidget = new SA.NavigationWidget(parent,this);
+        } else {
+            this.NavigationWidget.SetVisibility(false);
         }
     }
 
