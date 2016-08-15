@@ -241,12 +241,13 @@ window.SA = window.SA || {};
         var self = this;
         // If the note is not loaded, request the note, and call this method
         // when the note is finally loaded.
-        if (note && note.LoadState == 0) {
+        if (note && note.LoadState != 2) {
             note.LoadViewId(
                 note.Id,
                 function () {
                     self.SetNote(note);
                 });
+            return;
         }
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
@@ -326,6 +327,8 @@ window.SA = window.SA || {};
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
             note = new SA.Note();
+        }
+        if (note.LoadState != 2) {
             var self = this;
             note.LoadViewId(
                 noteId,
@@ -334,6 +337,7 @@ window.SA = window.SA || {};
                 });
             return note;
         }
+
         this.SetNote(note);
         return note;
     }

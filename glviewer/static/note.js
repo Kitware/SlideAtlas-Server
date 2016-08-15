@@ -715,7 +715,22 @@
         }
     }
 
+    // Making this handle callbacks added after original load call.
+    // Will not reload. I am not really sure this feature is actually
+    // needed. I will keep it to be safe.
+    var HACK_LOAD_CALLBACKS = [];
     Note.prototype.LoadViewId = function(viewId, callback) {
+        if (this.LoadState == 2) {
+            // no realoading (could be done with an extra arg).
+            (callback)();
+            return;
+        }
+        if (this.LoadState == 1) {
+            // Waiting for an ajax call to return.
+            HACK+LOAD_CALLBACKS.push({note:this, callback:callback});
+            return;
+        }
+
         var self = this;
         // Received
         this.LoadState = 1;
@@ -732,6 +747,20 @@
                 if (callback) {
                     (callback)();
                 }
+                // Look for anycallbacks added after the ajax call.
+                // This feature may nt be used, but it is safe.
+                // I have been having problems with views note display in
+                // presentations.
+                var tmp = [];
+                for (var i = 0; i < HACK_LOAD_CALLBACKS.length; ++i) {
+                    tmp2 = HACK_LOAD_CALLBACKS[i];
+                    if (tmp2.note == self) {
+                        (tmp2.callback)();
+                    } else {
+                        tmp.push(tmp2);
+                    }
+                }
+                HACK_LOAD_CALLBACKS = tmp;
             },
             error: function() {
                 SA.PopProgress();

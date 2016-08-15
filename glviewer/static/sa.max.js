@@ -10548,7 +10548,15 @@ window.SA = window.SA || {};
         this.AnimationDuration = 0;
         this.AnimationTarget = 0;
 
-        if ( ! SAM.MOBILE_DEVICE || SAM.MOBILE_DEVICE == 'iPad') {
+        // DualViewer is the navigation widgets temporary home.
+        // SlideShow can have multiple nagivation widgets so it is no
+        // longer a singlton.
+        // This is for moving through notes, session views and stacks.
+        // It is not exactly related to dual viewer. It is sort of a child
+        // of the dual viewer.
+        this.NavigationWidget = new SA.NavigationWidget(parent,this);
+
+        if ( ! SAM.MOBILE_DEVICE) { // || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
             $('<img>')
                 .appendTo(this.ViewerDivs[0])
@@ -10576,17 +10584,8 @@ window.SA = window.SA || {};
                 .attr('draggable','false')
                 .on("dragstart", function() {
                     return false;});
-        }
-        if ( ! SAM.MOBILE_DEVICE) {
-            // DualViewer is the navigation widgets temporary home.
-            // SlideShow can have multiple nagivation widgets so it is no
-            // longer a singlton.
-            // This is for moving through notes, session views and stacks.
-            // It is not exactly related to dual viewer. It is sort of a child
-            // of the dual viewer.
-            this.NavigationWidget = new SA.NavigationWidget(parent,this);
         } else {
-            this.NavigationWidget = new SA.MobileNavigationWidget(parent,this);
+            this.NavigationWidget.SetVisibility(false);
         }
     }
 
@@ -10716,12 +10715,13 @@ window.SA = window.SA || {};
         var self = this;
         // If the note is not loaded, request the note, and call this method
         // when the note is finally loaded.
-        if (note && note.LoadState == 0) {
+        if (note && note.LoadState != 2) {
             note.LoadViewId(
                 note.Id,
                 function () {
                     self.SetNote(note);
                 });
+            return;
         }
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
@@ -10801,6 +10801,8 @@ window.SA = window.SA || {};
         var note = SA.GetNoteFromId(noteId);
         if ( ! note) {
             note = new SA.Note();
+        }
+        if (note.LoadState != 2) {
             var self = this;
             note.LoadViewId(
                 noteId,
@@ -10809,6 +10811,7 @@ window.SA = window.SA || {};
                 });
             return note;
         }
+
         this.SetNote(note);
         return note;
     }
@@ -12042,7 +12045,22 @@ function TabPanel(tabbedDiv, title) {
         }
     }
 
+    // Making this handle callbacks added after original load call.
+    // Will not reload. I am not really sure this feature is actually
+    // needed. I will keep it to be safe.
+    var HACK_LOAD_CALLBACKS = [];
     Note.prototype.LoadViewId = function(viewId, callback) {
+        if (this.LoadState == 2) {
+            // no realoading (could be done with an extra arg).
+            (callback)();
+            return;
+        }
+        if (this.LoadState == 1) {
+            // Waiting for an ajax call to return.
+            HACK+LOAD_CALLBACKS.push({note:this, callback:callback});
+            return;
+        }
+
         var self = this;
         // Received
         this.LoadState = 1;
@@ -12059,6 +12077,20 @@ function TabPanel(tabbedDiv, title) {
                 if (callback) {
                     (callback)();
                 }
+                // Look for anycallbacks added after the ajax call.
+                // This feature may nt be used, but it is safe.
+                // I have been having problems with views note display in
+                // presentations.
+                var tmp = [];
+                for (var i = 0; i < HACK_LOAD_CALLBACKS.length; ++i) {
+                    tmp2 = HACK_LOAD_CALLBACKS[i];
+                    if (tmp2.note == self) {
+                        (tmp2.callback)();
+                    } else {
+                        tmp.push(tmp2);
+                    }
+                }
+                HACK_LOAD_CALLBACKS = tmp;
             },
             error: function() {
                 SA.PopProgress();
@@ -14789,7 +14821,14 @@ function NavigationWidget(parent,display) {
         .addClass("sa-view-navigation-button")
         .attr('src',SA.ImagePathUrl+"nextSlide.png")
         .prop('title',"Next Slide. (page-down)")
+        .css({'z-index':'100'})
         .click(function(){self.NextSlide();});
+    this.NextSlideButton
+        .on('touchend', function(event){
+            self.NextSlide();
+            return false;
+        });
+
 
     // TODO: Fix the main css file for mobile.  Hack this until fixed.
     if (SAM.MOBILE_DEVICE) {
@@ -14815,8 +14854,7 @@ function NavigationWidget(parent,display) {
         this.NextSlideButton
             .css({'height': size,
                   'width' : size,
-                  'opacity':'0.8'})
-            .on('touchend', function(){self.NextSlide();});
+                  'opacity':'0.8'});
     }
 
     this.CopyrightWrapper =
@@ -15292,9 +15330,9 @@ NoteIterator.prototype.SetNote = function(note) {
     // See if the note is in the tree.
     this.ToStart();
     while (true) {
-        if (this.GetNote() == note) { 
+        if (this.GetNote() == note) {
             // Found the note in the tree.
-            return; 
+            return;
         }
         if (this.IsEnd()) {
             // not found.  New tree.
@@ -29835,6 +29873,18 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
     // Makes the viewer clean to setup a new slide...
     Viewer.prototype.Reset = function() {
+        this.MomentumX = 0.0;
+        this.MomentumY = 0.0;
+        this.MomentumRoll = 0.0;
+        this.MomentumScale = 0.0;
+        if (this.MomentumTimerId) {
+            window.cancelAnimationFrame(this.MomentumTimerId)
+            this.MomentumTimerId = 0;
+        }
+
+        // Keep further touch moves from having any impact.
+        this.StartTouchTime = 0;
+
         this.SetCache(null);
         this.MainView.ShapeList = [];
 
@@ -30065,9 +30115,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         // Stuff from event manager
         this.HandleTouch(event, true);
-        if (this.StartTouchTime == 0) {
-            this.StartTouchTime = this.Time;
-        }
+        this.StartTouchTime = this.Time;
 
         SA.TriggerStartInteraction();
 
@@ -30098,6 +30146,10 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
 
     Viewer.prototype.HandleTouchMove = function(e) {
+        // Case where sweep caused nextNote.
+        // Short circuit interaction.
+        if (this.StartTouchTime == 0) {return false};
+
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
@@ -30113,6 +30165,22 @@ Cache.prototype.RecursivePruneTiles = function(node)
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
             MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+        }
+
+        // detect sweep
+        // Cross the screen in 1/2 second.
+        var viewerWidth = this.MainView.CanvasDiv.width();
+        var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
+        console.log(dxdt);
+        if (SA.display.NavigationWidget) {
+            if (dxdt > 4.0) {
+                SA.display.NavigationWidget.PreviousNote();
+                return false;
+            }
+            if (dxdt < -4.0) {
+                SA.display.NavigationWidget.NextNote();
+                return false;
+            }
         }
 
         if (this.Touches.length == 1) {
@@ -30326,7 +30394,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.MomentumScale = this.MomentumScale*(1-k);
 
         t = t - this.StartTouchTime;
-        if (event.targetTouches.length == 0 && SA.MOBILE_DEVICE) {
+        if (event.targetTouches.length == 0 && SAM.MOBILE_DEVICE) {
             this.StartTouchTime = 0;
             if (t < 90) {
                 // We should not have a navigation widget on mobile
@@ -30350,6 +30418,10 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         //this.UpdateZoomGui();
         this.HandleMomentum(event);
+
+        // Use this as a flag to indicate ongoing interation (sweep, next
+        // note .
+        this.StartTouchTime = 0;
     }
 
     Viewer.prototype.HandleMomentum = function() {
