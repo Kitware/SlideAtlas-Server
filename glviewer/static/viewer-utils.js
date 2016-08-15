@@ -1401,7 +1401,7 @@ saQuestion.prototype.ProcessArguments = function(args) {
 
     // generic method call. Give jquery ui access to all this objects methods.
     if (typeof(this[args[0]]) == 'function') {
-        // first list item is the method name, 
+        // first list item is the method name,
         // the rest are arguments to the method.
         return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
     }
@@ -1413,9 +1413,14 @@ saQuestion.prototype.SetMode = function(mode) {
     if (mode == 'answer-show') {
         this.Div.find('.sa-quiz-hide').show();
         this.Div.find('.sa-true').css({'font-weight':'bold'});
+        this.Div.find('.sa-short-answer')
+            .css({'color':'#00C'})
+            .show();        
     } else {
         this.Div.find('.sa-quiz-hide').hide();
         this.Div.find('.sa-true').css({'font-weight':'normal'});
+        this.Div.find('.sa-short-answer')
+            .hide();        
     }
 
     if (mode == 'answer-interactive') {
@@ -1498,9 +1503,9 @@ saQuestion.prototype.DialogInitialize = function () {
     this.QuestionTypeMultipleChoice = $('<option>')
         .appendTo(this.QuestionTypeSelect)
         .text("Multiple Choice");
-    //this.QuestionTypeSortAnswer = $('<option>')
-    //    .appendTo(this.QuestionTypeSelect)
-    //    .text("Short Answer");
+    this.QuestionTypeSortAnswer = $('<option>')
+        .appendTo(this.QuestionTypeSelect)
+        .text("Short Answer");
     //this.QuestionTypeTrueFalse = $('<option>')
     //    .appendTo(this.QuestionTypeSelect)
     //    .text("True or False");
@@ -1574,6 +1579,11 @@ saQuestion.prototype.DialogInitialize = function () {
                                  this.MultipleChoiceAnswers,
                                  item.text(), checked);
             }
+        } else if (type == 'short-answer') {
+            this.ShortAnswerDiv.text($('.sa-short-answer').text());
+            this.QuestionTypeSelect.val("Short Answer");
+            this.ShortAnswerDiv.show();
+            this.MultipleChoiceDiv.hide();
         }
     }
 
@@ -1594,6 +1604,7 @@ saQuestion.prototype.AddBlankMultipleChoiceAnswer = function () {
 saQuestion.prototype.DialogApply = function () {
     this.Div.find('.sa-q').remove();
     this.Div.find('ol').remove();
+    this.Div.find('.sa-short-answer').remove();
 
     var tmp = $('<div>')
         .appendTo(this.Div)
@@ -1630,7 +1641,7 @@ saQuestion.prototype.DialogApply = function () {
             }
         }
     }
-    if (this.QuestionTypeSelect.val == "True or False") {
+    if (this.QuestionTypeSelect.val() == "True or False") {
         this.Div.attr('type','true-false');
         // TODO: Share code with multiple choice
         // TODO: Make true false be mutually exclusive (radio button).
@@ -1651,10 +1662,11 @@ saQuestion.prototype.DialogApply = function () {
             }
         }
     }
-    if (this.QuestionTypeSelect.val == "Short Answer") {
+    if (this.QuestionTypeSelect.val() == "Short Answer") {
         this.Div.attr('type','short-answer');
         var tmp = $('<div>')
             .appendTo(this.Div)
+            .css({'color':'#00C'})
             .addClass('sa-short-answer')
             .text(this.ShortAnswerDiv.text());
     }
