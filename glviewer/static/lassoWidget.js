@@ -17,6 +17,10 @@
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a lasso.
@@ -113,6 +117,7 @@
     LassoWidget.prototype.Serialize = function() {
         var obj = new Object();
         obj.type = "lasso";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.outlinecolor = this.Loop.OutlineColor;
         obj.linewidth = this.Loop.GetLineWidth();
         obj.points = [];
@@ -126,6 +131,7 @@
 
     // Load a widget from a json object (origin MongoDB).
     LassoWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         if (obj.outlinecolor != undefined) {
             this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
             this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);

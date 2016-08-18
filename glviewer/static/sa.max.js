@@ -10697,15 +10697,17 @@ window.SA = window.SA || {};
         }
     }
 
-    DualViewWidget.prototype.SetNote = function(note) {
-        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
-            return;
-        }
-
+    DualViewWidget.prototype.RecordAnnotations = function() {
         // Agressively record annotations.  User still needs to hit the
         // save button.
         if (SA.Edit && this.saNote) {
             this.saNote.RecordAnnotations(this);
+        }
+    }
+
+    DualViewWidget.prototype.SetNote = function(note) {
+        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
+            return;
         }
 
         this.saNote = note;
@@ -13450,7 +13452,7 @@ function TabPanel(tabbedDiv, title) {
             while (ancestor != this.RootNote && ancestor.Parent) {
                 ancestor = ancestor.Parent;
             }
-            if (ancestor != this.RootNote) {
+            if (ancestor != this.RootNote && ancestor.Type != "UserNote") {
                 this.SetRootNote( ancestor);
             }
         }
@@ -13578,6 +13580,8 @@ function TabPanel(tabbedDiv, title) {
     NotesWidget.prototype.SaveCallback = function(finishedCallback) {
         // Process containers for diagnosis ....
         SA.AddHtmlTags(this.TextEditor.TextEntry);
+
+        SA.display.RecordAnnotations();
 
         var note = this.GetCurrentNote();
         if (note) {
@@ -15028,6 +15032,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         var rot = cam.GetRotation();
         var height = cam.GetHeight();
 
+        SA.display.RecordAnnotations();
         --current.StartIndex;
 
         // We need to skip setting the camera.
@@ -15051,6 +15056,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
+    SA.display.RecordAnnotations();
     var note = this.NoteIterator.Previous();
     this.SetNote(note);
     this.Update();
@@ -15077,6 +15083,7 @@ NavigationWidget.prototype.NextNote = function() {
         var rot = cam.GetRotation();
         var height = cam.GetHeight();
 
+        SA.display.RecordAnnotations();
         ++current.StartIndex;
         // We need to skip setting the camera.
         SA.SetNote(current);
@@ -15103,6 +15110,7 @@ NavigationWidget.prototype.NextNote = function() {
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
     // Hack for presentaitons. Global not set.
     SA.display = this.Display;
+    SA.display.RecordAnnotations();
     SA.SetNote(note);
 }
 
@@ -32062,6 +32070,10 @@ Cache.prototype.RecursivePruneTiles = function(node)
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var parent = layer.AnnotationView.CanvasDiv;
 
         this.Type = "sections";
@@ -32355,6 +32367,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         }
         // Already serialized
         obj.creation_camera = this.CreationCamera;
+        obj.user_note_flag = this.UserNoteFlag;
 
         return obj;
     }
@@ -32369,6 +32382,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             }
         }
         this.CreationCamera = obj.creation_camera;
+        this.UserNoteFlag = obj.user_note_flag;
         if (this.IsEmpty()) {
             this.RemoveFromLayer();
         }

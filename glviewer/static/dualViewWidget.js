@@ -223,15 +223,17 @@ window.SA = window.SA || {};
         }
     }
 
-    DualViewWidget.prototype.SetNote = function(note) {
-        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
-            return;
-        }
-
+    DualViewWidget.prototype.RecordAnnotations = function() {
         // Agressively record annotations.  User still needs to hit the
         // save button.
         if (SA.Edit && this.saNote) {
             this.saNote.RecordAnnotations(this);
+        }
+    }
+
+    DualViewWidget.prototype.SetNote = function(note) {
+        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
+            return;
         }
 
         this.saNote = note;

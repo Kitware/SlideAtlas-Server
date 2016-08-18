@@ -29,6 +29,10 @@
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a pencil.
@@ -117,6 +121,7 @@
     PencilWidget.prototype.Serialize = function() {
         var obj = new Object();
         obj.type = "pencil";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.shapes = [];
         for (var i = 0; i < this.Shapes.GetNumberOfShapes(); ++i) {
             // NOTE: Assumes shape is a Polyline.
@@ -137,6 +142,7 @@
     // Load a widget from a json object (origin MongoDB).
     PencilWidget.prototype.Load = function(obj) {
         this.LineWidth = parseFloat(obj.linewidth);
+        this.UserNoteFlag = obj.user_note_flag;
         if (obj.linewidth) {
             this.LineWidth = parseFloat(obj.linewidth);
         }

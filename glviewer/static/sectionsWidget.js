@@ -32,6 +32,10 @@
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var parent = layer.AnnotationView.CanvasDiv;
 
         this.Type = "sections";
@@ -325,6 +329,7 @@
         }
         // Already serialized
         obj.creation_camera = this.CreationCamera;
+        obj.user_note_flag = this.UserNoteFlag;
 
         return obj;
     }
@@ -339,6 +344,7 @@
             }
         }
         this.CreationCamera = obj.creation_camera;
+        this.UserNoteFlag = obj.user_note_flag;
         if (this.IsEmpty()) {
             this.RemoveFromLayer();
         }

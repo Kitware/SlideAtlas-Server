@@ -101,6 +101,10 @@
 
 
     function GridWidget (layer, newFlag) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
@@ -349,6 +353,7 @@
         if(this.Grid === undefined){ return null; }
         var obj = {};
         obj.type = "grid";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.origin = this.Grid.Origin;
         obj.outlinecolor = this.Grid.OutlineColor;
         obj.bin_width = this.Grid.BinWidth;
@@ -362,6 +367,7 @@
 
     // Load a widget from a json object (origin MongoDB).
     GridWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         this.Grid.Origin[0] = parseFloat(obj.origin[0]);
         this.Grid.Origin[1] = parseFloat(obj.origin[1]);
         this.Grid.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);

@@ -33,6 +33,10 @@
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         // Circle is to show an active vertex.
         this.Circle = new SAM.Circle();
         this.Polyline = new SAM.Polyline();
@@ -240,6 +244,7 @@
         if(this.Polyline === undefined){ return null; }
         var obj = new Object();
         obj.type = "polyline";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.outlinecolor = this.Polyline.OutlineColor;
         obj.linewidth = this.LineWidth;
         // Copy the points to avoid array reference bug.
@@ -269,6 +274,7 @@
         }
         this.Polyline.Closed = obj.closedloop;
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
+        this.UserNoteFlag = obj.user_note_flag;
 
         // How zoomed in was the view when the annotation was created.
         if (obj.view_height !== undefined) {

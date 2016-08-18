@@ -2355,6 +2355,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     var PROPERTIES_DIALOG = 5;
 
     function TextWidget (layer, string) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         DEBUG = this;
         if (layer == null) {
             return null;
@@ -2560,6 +2564,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if(this.Text === undefined){ return null; }
         var obj = new Object();
         obj.type = "text";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.color = this.Text.Color;
         obj.size = this.Text.Size;
         obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
@@ -2574,6 +2579,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // Load a widget from a json object (origin MongoDB).
     TextWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         var string = obj.string;
         // Some empty strings got in my database.  I connot delete them from the gui.
         if (obj.string && obj.string == "") {
@@ -3530,6 +3536,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         // Circle is to show an active vertex.
         this.Circle = new SAM.Circle();
         this.Polyline = new SAM.Polyline();
@@ -3737,6 +3747,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if(this.Polyline === undefined){ return null; }
         var obj = new Object();
         obj.type = "polyline";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.outlinecolor = this.Polyline.OutlineColor;
         obj.linewidth = this.LineWidth;
         // Copy the points to avoid array reference bug.
@@ -3766,6 +3777,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
         this.Polyline.Closed = obj.closedloop;
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
+        this.UserNoteFlag = obj.user_note_flag;
 
         // How zoomed in was the view when the annotation was created.
         if (obj.view_height !== undefined) {
@@ -4494,6 +4506,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a pencil.
@@ -4582,6 +4598,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     PencilWidget.prototype.Serialize = function() {
         var obj = new Object();
         obj.type = "pencil";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.shapes = [];
         for (var i = 0; i < this.Shapes.GetNumberOfShapes(); ++i) {
             // NOTE: Assumes shape is a Polyline.
@@ -4602,6 +4619,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // Load a widget from a json object (origin MongoDB).
     PencilWidget.prototype.Load = function(obj) {
         this.LineWidth = parseFloat(obj.linewidth);
+        this.UserNoteFlag = obj.user_note_flag;
         if (obj.linewidth) {
             this.LineWidth = parseFloat(obj.linewidth);
         }
@@ -5287,6 +5305,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             return;
         }
 
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a lasso.
@@ -5383,6 +5405,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     LassoWidget.prototype.Serialize = function() {
         var obj = new Object();
         obj.type = "lasso";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.outlinecolor = this.Loop.OutlineColor;
         obj.linewidth = this.Loop.GetLineWidth();
         obj.points = [];
@@ -5396,6 +5419,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // Load a widget from a json object (origin MongoDB).
     LassoWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         if (obj.outlinecolor != undefined) {
             this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
             this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
@@ -6788,6 +6812,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     var PROPERTIES_DIALOG = 6; // Properties dialog is up
 
     function CircleWidget (layer, newFlag) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
@@ -6910,6 +6938,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if(this.Shape === undefined){ return null; }
         var obj = new Object();
         obj.type = "circle";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.origin = this.Shape.Origin;
         obj.outlinecolor = this.Shape.OutlineColor;
         obj.radius = this.Shape.Radius;
@@ -6929,6 +6958,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
+        this.UserNoteFlag = obj.user_note_flag;
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -7278,6 +7308,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function RectWidget (layer, newFlag) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         this.Dialog = new SAM.Dialog(this);
         // Customize dialog for a circle.
         this.Dialog.Title.text('Rect Annotation Editor');
@@ -7402,6 +7436,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if(this.Shape === undefined){ return null; }
         var obj = {};
         obj.type = "rect";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.origin = this.Shape.Origin;
         obj.origin[2] = 0.0;
         obj.outlinecolor = this.Shape.OutlineColor;
@@ -7415,6 +7450,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // Load a widget from a json object (origin MongoDB).
     RectWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         this.Shape.Origin[0] = parseFloat(obj.origin[0]);
         this.Shape.Origin[1] = parseFloat(obj.origin[1]);
         this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
@@ -7841,6 +7877,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function GridWidget (layer, newFlag) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
@@ -8089,6 +8129,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if(this.Grid === undefined){ return null; }
         var obj = {};
         obj.type = "grid";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.origin = this.Grid.Origin;
         obj.outlinecolor = this.Grid.OutlineColor;
         obj.bin_width = this.Grid.BinWidth;
@@ -8102,6 +8143,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // Load a widget from a json object (origin MongoDB).
     GridWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         this.Grid.Origin[0] = parseFloat(obj.origin[0]);
         this.Grid.Origin[1] = parseFloat(obj.origin[1]);
         this.Grid.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);

@@ -1291,7 +1291,7 @@
             while (ancestor != this.RootNote && ancestor.Parent) {
                 ancestor = ancestor.Parent;
             }
-            if (ancestor != this.RootNote) {
+            if (ancestor != this.RootNote && ancestor.Type != "UserNote") {
                 this.SetRootNote( ancestor);
             }
         }
@@ -1419,6 +1419,8 @@
     NotesWidget.prototype.SaveCallback = function(finishedCallback) {
         // Process containers for diagnosis ....
         SA.AddHtmlTags(this.TextEditor.TextEntry);
+
+        SA.display.RecordAnnotations();
 
         var note = this.GetCurrentNote();
         if (note) {

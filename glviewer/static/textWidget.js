@@ -28,6 +28,10 @@
     var PROPERTIES_DIALOG = 5;
 
     function TextWidget (layer, string) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         DEBUG = this;
         if (layer == null) {
             return null;
@@ -233,6 +237,7 @@
         if(this.Text === undefined){ return null; }
         var obj = new Object();
         obj.type = "text";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.color = this.Text.Color;
         obj.size = this.Text.Size;
         obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
@@ -247,6 +252,7 @@
 
     // Load a widget from a json object (origin MongoDB).
     TextWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         var string = obj.string;
         // Some empty strings got in my database.  I connot delete them from the gui.
         if (obj.string && obj.string == "") {

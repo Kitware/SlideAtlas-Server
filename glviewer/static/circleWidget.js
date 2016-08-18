@@ -18,6 +18,10 @@
     var PROPERTIES_DIALOG = 6; // Properties dialog is up
 
     function CircleWidget (layer, newFlag) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
@@ -140,6 +144,7 @@
         if(this.Shape === undefined){ return null; }
         var obj = new Object();
         obj.type = "circle";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.origin = this.Shape.Origin;
         obj.outlinecolor = this.Shape.OutlineColor;
         obj.radius = this.Shape.Radius;
@@ -159,6 +164,7 @@
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
+        this.UserNoteFlag = obj.user_note_flag;
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {

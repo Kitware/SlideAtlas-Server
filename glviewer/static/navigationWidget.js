@@ -287,6 +287,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         var rot = cam.GetRotation();
         var height = cam.GetHeight();
 
+        SA.display.RecordAnnotations();
         --current.StartIndex;
 
         // We need to skip setting the camera.
@@ -310,6 +311,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
+    SA.display.RecordAnnotations();
     var note = this.NoteIterator.Previous();
     this.SetNote(note);
     this.Update();
@@ -336,6 +338,7 @@ NavigationWidget.prototype.NextNote = function() {
         var rot = cam.GetRotation();
         var height = cam.GetHeight();
 
+        SA.display.RecordAnnotations();
         ++current.StartIndex;
         // We need to skip setting the camera.
         SA.SetNote(current);
@@ -362,6 +365,7 @@ NavigationWidget.prototype.NextNote = function() {
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
     // Hack for presentaitons. Global not set.
     SA.display = this.Display;
+    SA.display.RecordAnnotations();
     SA.SetNote(note);
 }
 

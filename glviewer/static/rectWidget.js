@@ -63,6 +63,10 @@
 
 
     function RectWidget (layer, newFlag) {
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
         this.Dialog = new SAM.Dialog(this);
         // Customize dialog for a circle.
         this.Dialog.Title.text('Rect Annotation Editor');
@@ -187,6 +191,7 @@
         if(this.Shape === undefined){ return null; }
         var obj = {};
         obj.type = "rect";
+        obj.user_note_flag = this.UserNoteFlag;
         obj.origin = this.Shape.Origin;
         obj.origin[2] = 0.0;
         obj.outlinecolor = this.Shape.OutlineColor;
@@ -200,6 +205,7 @@
 
     // Load a widget from a json object (origin MongoDB).
     RectWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
         this.Shape.Origin[0] = parseFloat(obj.origin[0]);
         this.Shape.Origin[1] = parseFloat(obj.origin[1]);
         this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
