@@ -232,6 +232,8 @@
         if ( this.State == DRAG ||
              this.State == DRAG_RADIUS) {
             this.SetActive(false);
+
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (window.SA) {SA.RecordState();}
         }
         return false;
@@ -303,6 +305,7 @@
 
     CircleWidget.prototype.HandleTouchEnd = function(event) {
         this.SetActive(false);
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         return false
     }
 
@@ -443,6 +446,7 @@
 
         localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
         if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
 

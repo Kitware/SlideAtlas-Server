@@ -280,12 +280,21 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetFunction) {
     this.Layer.ActivateWidget(widget);
 
     // Button remains "pressed" until the circle deactivates.
-    widget.DeactivateCallback = 
+    widget.DeactivateCallback =
         function () {
             button.removeClass("sa-active");
             widget.DeactivateCallback = undefined;
             button.Pressed = false;
         }
+    // Keep track of annotation created by students
+    // without edit
+    // permission.
+    if ( ! SA.Edit) {
+        this.UserNoteFlag = true;
+    }
+    if (SA.notesWidget && SA.notesWidget.IsUserTextTabOpen()) {
+        widget.UserNoteFlag = true;
+    }
     return widget;
 }
 

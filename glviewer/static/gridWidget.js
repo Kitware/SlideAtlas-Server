@@ -346,6 +346,7 @@
         this.Grid.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw();
     };
 
@@ -435,6 +436,7 @@
     GridWidget.prototype.HandleMouseUp = function(event) {
         this.SetActive(false);
         if (window.SA) {SA.RecordState();}
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
 
         return true;
     };
@@ -578,6 +580,7 @@
     };
 
     GridWidget.prototype.HandleTouchEnd = function(event) {
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.SetActive(false);
     };
 
@@ -724,6 +727,7 @@
         if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 

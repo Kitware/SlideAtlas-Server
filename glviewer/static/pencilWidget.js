@@ -146,7 +146,7 @@
         if (obj.linewidth) {
             this.LineWidth = parseFloat(obj.linewidth);
         }
-        var outlineColor = this.Dialog.ColorInput.val();
+        var outlineColor = SAM.ConvertColor(this.Dialog.ColorInput.val());
         if (obj.outlinecolor) {
             outlineColor[0] = parseFloat(obj.outlinecolor[0]);
             outlineColor[1] = parseFloat(obj.outlinecolor[1]);
@@ -286,6 +286,7 @@
             //this.Decimate(this.Shapes.GetShape(last), spacing);
             this.Shapes.GetShape(last).Decimate(spacing);
             if (window.SA) {SA.RecordState();}
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         }
         return false;
     }
@@ -431,6 +432,7 @@
 
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
                                                             LineWidth: this.LineWidth});
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
     }
 

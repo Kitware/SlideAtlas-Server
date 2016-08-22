@@ -230,6 +230,7 @@
         this.UpdateArrow();
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
 
@@ -424,9 +425,11 @@
             if (this.State == DRAG) {
                 this.State = ACTIVE;
                 if (window.SA) {SA.RecordState();}
+                if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             } else if (this.State == DRAG_TEXT) {
                 this.State = ACTIVE_TEXT;
                 if (window.SA) {SA.RecordState();}
+                if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             }
             return false;
         }
@@ -525,6 +528,7 @@
     TextWidget.prototype.HandleTouchEnd = function(event) {
         this.State = ACTIVE;
         this.SetActive(false);
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         return false;
     }
 
@@ -673,6 +677,7 @@
 
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
     //Function to apply line breaks to textarea text.

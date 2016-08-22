@@ -232,17 +232,12 @@ window.SA = window.SA || {};
     }
 
     DualViewWidget.prototype.SetNote = function(note) {
-        if (this.saNote == note && this.saNoteStartIdx == note.StartIndex) {
-            return;
-        }
+        // NOTE: Even when this.saNote == note, we still need to set the
+        // camera and annotations because the user might have changed these.
 
-        this.saNote = note;
-        this.saNoteStartIdx = note.StartIndex;
-        var viewIdx = note.StartIndex || 0;
-
-        var self = this;
         // If the note is not loaded, request the note, and call this method
         // when the note is finally loaded.
+        var self = this;
         if (note && note.LoadState != 2) {
             note.LoadViewId(
                 note.Id,
@@ -251,6 +246,10 @@ window.SA = window.SA || {};
                 });
             return;
         }
+
+        this.saNote = note;
+        this.saNoteStartIdx = note.StartIndex;
+        var viewIdx = note.StartIndex || 0;
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");

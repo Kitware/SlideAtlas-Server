@@ -185,6 +185,7 @@
         // This would be better as an argument.
         this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Layer.EventuallyDraw();
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     };
 
     RectWidget.prototype.Serialize = function() {
@@ -277,6 +278,7 @@
         if ( this.State == DRAG || this.State == NEW_DRAG_CORNER) {
             this.SetActive(false);
             if (window.SA) {SA.RecordState();}
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         }
     };
 
@@ -396,6 +398,7 @@
 
     RectWidget.prototype.HandleTouchEnd = function(event) {
         this.SetActive(false);
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     };
 
 
@@ -523,6 +526,7 @@
         if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 

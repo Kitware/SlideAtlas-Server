@@ -7,12 +7,13 @@
 (function () {
     "use strict";
 
-    // Global
+    // Globals
     SA.GetNoteFromId = function (id) {
-        if (id.substr(0,3) == 'tmp') {
-            var idx = parseInt(id.substr(3));
-            return SA.Notes[idx];
-        }
+        // Not necessary any more because the client creates real ids.
+        //if (id.substr(0,3) == 'tmp') {
+        //    var idx = parseInt(id.substr(3));
+        //    return SA.Notes[idx];
+        //}
         for (var i = 0; i < SA.Notes.length; ++i) {
             var note = SA.Notes[i];
             if (note.Id && note.Id == id) {
@@ -21,7 +22,23 @@
         }
         return null;
     }
-
+    SA.GetUserNoteFromImageId = function (id) {
+        for (var i = 0; i < SA.Notes.length; ++i) {
+            var note = SA.Notes[i];
+            if (note.Type == "UserNote" && note.Parent == id) {
+                return note;
+            }
+        }
+        return null;
+    }
+    // When a note fails to load, we need to remove it from the global list
+    // of notes.
+    SA.DeleteNote = function (note) {
+        var idx = SA.Notes.indexOf(note);
+        if (idx != -1) {
+            SA.Notes.splice(idx,1);
+        }
+    }
 
     function Note () {
         if ( ! SA.Notes) {
@@ -501,11 +518,33 @@
         });
     }
 
+    Note.prototype.HasAnnotations = function() {
+        for (var i = 0; i < this.ViewerRecords.length; ++i) {
+            if (this.ViewerRecords.Annotations.length > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     Note.prototype.RecordAnnotations = function(display) {
+        // This is ok, because user notes do not have user notes of their own.
+        if (this.UserNote) {
+            // UserNote annotations are kept separate from other annotations.
+            this.UserNote.RecordAnnotations(display);
+            // Save it to the database aggresively.
+            if (this.UserNote.HasAnnotations() ||
+                this.UserNote.LoadState != 0) {
+                this.UserNote.Save();
+            }
+        }
+
+        // A bit confusing.  This executes for both normal notes and user
+        // notes. Each saves a different subset of the annotations.
         for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
             if (this.ViewerRecords.length > this.StartIndex+i) {
                 this.ViewerRecords[this.StartIndex+i].CopyAnnotations(
-                    display.GetViewer(i));
+                    display.GetViewer(i), (this.Type=="UserNote"));
             }
         }
     }
@@ -670,7 +709,9 @@
             delete this._id;
         }
 
-        if (this.ParentId) {
+        // It would be better not to set the ParentId of user notes in the
+        // first place. userNote.Parent is set to the id of the image.
+        if (this.Type != "UserNote" && this.ParentId) {
             this.Parent = SA.GetNoteFromId(this.ParentId);
             delete this.ParentId
         }

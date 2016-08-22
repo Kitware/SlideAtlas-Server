@@ -215,6 +215,14 @@
         this.Layer.EventuallyDraw();
     }
 
+    // It would be nice to put this as a superclass method, or call the
+    // layer.RemoveWidget method instead.
+    SectionsWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.RemoveWidget(this);
+        }
+    }
+
     SectionsWidget.prototype.DeleteActiveSection = function() {
         if (this.ActiveSection == null) { return; }
         var section = this.ActiveSection;

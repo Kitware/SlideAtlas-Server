@@ -237,6 +237,7 @@
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw(true);
     }
 
@@ -388,6 +389,7 @@
             // TODO: Manage modidfied more consistently.
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
             if (window.SA) {SA.RecordState();}
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             return false;
         }
 
@@ -426,6 +428,7 @@
             this.Layer.EventuallyDraw(true);
             return false;
         }
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         return false;
     }
 
@@ -790,6 +793,7 @@
              ClosedLoop: this.Polyline.Closed,
              LineWidth: this.LineWidth});
         if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
     // Note, self intersection can cause unexpected areas.

@@ -52,9 +52,37 @@
         return SAM.MOBILE_DEVICE;
     }
 
+    // Debugging ... not called in normal operation.
+    // For manually moving annotations from individual slides to a stack.
+    // Remove all annotations that are not in the current view.
+    SAM.pruneAnnotations = function(){
+        var c=SA.VIEWER1.GetCamera().FocalPoint;
+        var w=SA.VIEWER1.GetCamera().GetWidth()/2;
+        var h=SA.VIEWER1.GetCamera().GetHeight()/2;
+        var v=[c[0]-w,c[0]+w,c[1]-h,c[1]+h];
+        var l=SA.VIEWER1.GetAnnotationLayer()
+        var w=l.WidgetList;
+        var n=[];
+        var r=[w.length,0]
+        for(var i=0;i<w.length;++i){
+            //console.log(i)
+            var p=w[i];
+            if(p.Polyline){
+                var b=p.Polyline.GetBounds();
+                var x=(b[0]+b[1])/2;
+                var y=(b[2]+b[3])/2;
+                if (x<v[1]&&x>v[0]&&y<v[3]&&y>v[2]){
+                    n.push(p);
+                }
+            }
+        }
+        r[1] = n.length;
+        l.WidgetList = n;
+        SA.display.NavigationWidget.NextNote();
+        return r;
+    }
 
-    // Not used at the moment.
-    // Make sure the color is an array of values 0->1
+    // Convert any color to an array [r,g,b] values 0->1
     SAM.ConvertColor = function(color) {
         // Deal with color names.
         if ( typeof(color)=='string' && color[0] != '#') {

@@ -127,7 +127,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
 }
 
 // For stacks.  A reduced version of copy view. 
-ViewerRecord.prototype.CopyAnnotations = function (viewer) {
+ViewerRecord.prototype.CopyAnnotations = function (viewer, userNoteFlag) {
     this.Annotations = [];
     // TODO: get rid of this hack somehow. Generalize layers?
     if (viewer.Layers.length == 0) { return;}
@@ -135,9 +135,13 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     if ( ! annotationLayer) { return;}
     var widgets = viewer.Layers[0].GetWidgets();
     for (var i = 0; i < widgets.length; ++i) {
-        var o = widgets[i].Serialize();
-        if (o) {
-            this.Annotations.push(o);
+        var widget = widgets[i];
+        // Keep user note annotations separate from other annotations
+        if (userNoteFlag == widget.UserNoteFlag) {
+            var o = widgets[i].Serialize();
+            if (o) {
+                this.Annotations.push(o);
+            }
         }
     }
 }
@@ -146,26 +150,26 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.
 ViewerRecord.prototype.Serialize = function () {
-  var rec = {};
-  rec.Image = this.Image._id;
-  rec.Database = this.Image.database;
-  rec.NumberOfLevels = this.Image.levels;
-  rec.Camera = this.Camera;
-  // deep copy
-  if ( this.Annotations) {
-    rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
-  }
-  rec.AnnotationVisibility = this.AnnotationVisibility;
+    var rec = {};
+    rec.Image = this.Image._id;
+    rec.Database = this.Image.database;
+    rec.NumberOfLevels = this.Image.levels;
+    rec.Camera = this.Camera;
+    // deep copy
+    if ( this.Annotations) {
+        rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
+    }
+    rec.AnnotationVisibility = this.AnnotationVisibility;
 
-  if (this.OverviewBounds) {
-     rec.OverviewBounds = this.OverviewBounds;
-  }
+    if (this.OverviewBounds) {
+        rec.OverviewBounds = this.OverviewBounds;
+    }
 
-  if (this.Transform) {
-      rec.Transform = this.Transform.Serialize();
-  }
+    if (this.Transform) {
+        rec.Transform = this.Transform.Serialize();
+    }
 
-  return rec;
+    return rec;
 }
 
 

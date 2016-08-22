@@ -84,9 +84,37 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return SAM.MOBILE_DEVICE;
     }
 
+    // Debugging ... not called in normal operation.
+    // For manually moving annotations from individual slides to a stack.
+    // Remove all annotations that are not in the current view.
+    SAM.pruneAnnotations = function(){
+        var c=SA.VIEWER1.GetCamera().FocalPoint;
+        var w=SA.VIEWER1.GetCamera().GetWidth()/2;
+        var h=SA.VIEWER1.GetCamera().GetHeight()/2;
+        var v=[c[0]-w,c[0]+w,c[1]-h,c[1]+h];
+        var l=SA.VIEWER1.GetAnnotationLayer()
+        var w=l.WidgetList;
+        var n=[];
+        var r=[w.length,0]
+        for(var i=0;i<w.length;++i){
+            //console.log(i)
+            var p=w[i];
+            if(p.Polyline){
+                var b=p.Polyline.GetBounds();
+                var x=(b[0]+b[1])/2;
+                var y=(b[2]+b[3])/2;
+                if (x<v[1]&&x>v[0]&&y<v[3]&&y>v[2]){
+                    n.push(p);
+                }
+            }
+        }
+        r[1] = n.length;
+        l.WidgetList = n;
+        SA.display.NavigationWidget.NextNote();
+        return r;
+    }
 
-    // Not used at the moment.
-    // Make sure the color is an array of values 0->1
+    // Convert any color to an array [r,g,b] values 0->1
     SAM.ConvertColor = function(color) {
         // Deal with color names.
         if ( typeof(color)=='string' && color[0] != '#') {
@@ -2557,6 +2585,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.UpdateArrow();
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
 
@@ -2751,9 +2780,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             if (this.State == DRAG) {
                 this.State = ACTIVE;
                 if (window.SA) {SA.RecordState();}
+                if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             } else if (this.State == DRAG_TEXT) {
                 this.State = ACTIVE_TEXT;
                 if (window.SA) {SA.RecordState();}
+                if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             }
             return false;
         }
@@ -2852,6 +2883,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     TextWidget.prototype.HandleTouchEnd = function(event) {
         this.State = ACTIVE;
         this.SetActive(false);
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         return false;
     }
 
@@ -3000,6 +3032,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         this.Layer.EventuallyDraw();
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
     //Function to apply line breaks to textarea text.
@@ -3740,6 +3773,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw(true);
     }
 
@@ -3891,6 +3925,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // TODO: Manage modidfied more consistently.
             if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
             if (window.SA) {SA.RecordState();}
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             return false;
         }
 
@@ -3929,6 +3964,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Layer.EventuallyDraw(true);
             return false;
         }
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         return false;
     }
 
@@ -4293,6 +4329,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
              ClosedLoop: this.Polyline.Closed,
              LineWidth: this.LineWidth});
         if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
     // Note, self intersection can cause unexpected areas.
@@ -4623,7 +4660,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (obj.linewidth) {
             this.LineWidth = parseFloat(obj.linewidth);
         }
-        var outlineColor = this.Dialog.ColorInput.val();
+        var outlineColor = SAM.ConvertColor(this.Dialog.ColorInput.val());
         if (obj.outlinecolor) {
             outlineColor[0] = parseFloat(obj.outlinecolor[0]);
             outlineColor[1] = parseFloat(obj.outlinecolor[1]);
@@ -4763,6 +4800,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             //this.Decimate(this.Shapes.GetShape(last), spacing);
             this.Shapes.GetShape(last).Decimate(spacing);
             if (window.SA) {SA.RecordState();}
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         }
         return false;
     }
@@ -4908,6 +4946,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
                                                             LineWidth: this.LineWidth});
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
     }
 
@@ -5554,6 +5593,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.ComputeActiveCenter();
             this.Layer.EventuallyDraw();
 
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (window.SA) {SA.RecordState();}
         }
         return false;
@@ -5710,6 +5750,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
         if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
     /*
@@ -6019,6 +6060,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
     WidgetPopup.prototype.DeleteCallback = function() {
+
+        if (this.Widget.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Widget.SetActive(false);
         this.Hide();
 
@@ -7026,6 +7069,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if ( this.State == DRAG ||
              this.State == DRAG_RADIUS) {
             this.SetActive(false);
+
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (window.SA) {SA.RecordState();}
         }
         return false;
@@ -7097,6 +7142,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     CircleWidget.prototype.HandleTouchEnd = function(event) {
         this.SetActive(false);
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         return false
     }
 
@@ -7237,6 +7283,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
         if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
 
@@ -7430,6 +7477,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // This would be better as an argument.
         this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Layer.EventuallyDraw();
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     };
 
     RectWidget.prototype.Serialize = function() {
@@ -7522,6 +7570,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if ( this.State == DRAG || this.State == NEW_DRAG_CORNER) {
             this.SetActive(false);
             if (window.SA) {SA.RecordState();}
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         }
     };
 
@@ -7641,6 +7690,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     RectWidget.prototype.HandleTouchEnd = function(event) {
         this.SetActive(false);
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     };
 
 
@@ -7768,6 +7818,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 
@@ -8122,6 +8173,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Grid.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw();
     };
 
@@ -8211,6 +8263,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     GridWidget.prototype.HandleMouseUp = function(event) {
         this.SetActive(false);
         if (window.SA) {SA.RecordState();}
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
 
         return true;
     };
@@ -8354,6 +8407,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     };
 
     GridWidget.prototype.HandleTouchEnd = function(event) {
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.SetActive(false);
     };
 
@@ -8500,6 +8554,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (window.SA) {SA.RecordState();}
         this.Layer.EventuallyDraw();
 
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 

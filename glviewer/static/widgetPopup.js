@@ -47,6 +47,8 @@
     }
 
     WidgetPopup.prototype.DeleteCallback = function() {
+
+        if (this.Widget.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Widget.SetActive(false);
         this.Hide();
 

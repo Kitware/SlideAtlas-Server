@@ -266,6 +266,7 @@
             this.ComputeActiveCenter();
             this.Layer.EventuallyDraw();
 
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (window.SA) {SA.RecordState();}
         }
         return false;
@@ -422,6 +423,7 @@
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
         if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
     /*

@@ -71,6 +71,13 @@ TabbedDiv.prototype.OpenTabPanel = function (tabPanel) {
     $(window).trigger('resize');
 }
 
+TabbedDiv.prototype.GetCurrentDiv = function () {
+    if ( ! this.CurrentTabPanel) {
+        return undefined;
+    }
+    return this.CurrentTabPanel.Div;
+}
+
 // Internal helper method
 TabbedDiv.prototype.GetTabPanelFromDiv = function (tabDiv) {
     for (var i = 0; i < this.TabPanels.length; ++i) {
