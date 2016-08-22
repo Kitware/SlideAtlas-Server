@@ -2466,7 +2466,6 @@ jQuery.prototype.saLightBoxViewer = function(args) {
             }
         };
     this.saLightBox(args);
-
     this.addClass('sa-lightbox-viewer');
 
     return this;
@@ -2910,6 +2909,7 @@ function saViewerSetup(self, args) {
             $(self[i]).addClass('sa-resize');
         }
         self[i].saViewer.ProcessArguments(args);
+        self[i].saViewer.EventuallyRender();
     }
 }
 

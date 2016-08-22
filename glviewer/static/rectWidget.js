@@ -213,7 +213,12 @@
         this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
         this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
         this.Shape.Width = parseFloat(obj.width);
-        this.Shape.Length = parseFloat(obj.length);
+        if (obj.length) {
+            this.Shape.Length = parseFloat(obj.length);
+        }
+        if (obj.height) {
+            this.Shape.Length = parseFloat(obj.height);
+        }
         this.Shape.Orientation = parseFloat(obj.orientation);
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;

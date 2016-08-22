@@ -287,10 +287,11 @@ NavigationWidget.prototype.PreviousNote = function() {
         var rot = cam.GetRotation();
         var height = cam.GetHeight();
 
-        SA.display.RecordAnnotations();
+        this.Display.RecordAnnotations();
         --current.StartIndex;
 
         // We need to skip setting the camera.
+        SA.display = this.Display;
         SA.SetNote(current);
         // Set the camera after the note has been applied.
         viewer1.SetCamera(fp, rot, height);
@@ -318,6 +319,7 @@ NavigationWidget.prototype.PreviousNote = function() {
     // TODO: Check to make sure the call to this.SetNote(note) does nothing.
     // Hack for presentaitons. Global not set.
     SA.display = this.Display;
+    SA.display.RecordAnnotations();
     SA.SetNote(note);
 }
 
@@ -338,9 +340,10 @@ NavigationWidget.prototype.NextNote = function() {
         var rot = cam.GetRotation();
         var height = cam.GetHeight();
 
-        SA.display.RecordAnnotations();
+        this.Display.RecordAnnotations();
         ++current.StartIndex;
         // We need to skip setting the camera.
+        SA.display = this.Display;
         SA.SetNote(current);
         // Set the camera after the note has been applied.
         viewer0.SetCamera(fp, rot, height);
