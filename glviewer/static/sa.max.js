@@ -11687,6 +11687,7 @@ function TabPanel(tabbedDiv, title) {
 
     Note.prototype.SetUserNote = function(userNote) {
         var parentNote = this;
+        console.log("I do not think UserNote is ever set 2.");
         parentNote.UserNote = userNote;
         userNote.Parent = parentNote;
         userNote.Type = "UserNote";
@@ -11868,6 +11869,7 @@ function TabPanel(tabbedDiv, title) {
     Note.prototype.RecordAnnotations = function(display) {
         // This is ok, because user notes do not have user notes of their own.
         if (this.UserNote) {
+            console.log("I do not think UserNote is ever set 3.");
             // UserNote annotations are kept separate from other annotations.
             this.UserNote.RecordAnnotations(display);
             // Save it to the database aggresively.
@@ -12078,6 +12080,7 @@ function TabPanel(tabbedDiv, title) {
 
         // I believe the server embeds the correct user note.
         if (this.UserNote) {
+            console.log("I do not think UserNote is ever set. 1");
             // Make the user not into a real object.
             var obj = this.UserNote;
             this.UserNote = new SA.Note();
@@ -14520,7 +14523,10 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer, userNoteFlag) {
     for (var i = 0; i < widgets.length; ++i) {
         var widget = widgets[i];
         // Keep user note annotations separate from other annotations
-        if (userNoteFlag == widget.UserNoteFlag) {
+        //if ((userNoteFlag && widget.UserNoteFlag)) ||
+        //    (!userNoteFlag && !widget.UserNoteFlag)){ // ! exclusive or.
+        widget.UserNoteFlag = widget.UserNoteFlag || false;
+        if (userNoteFlag == widget.UserNoteFlag) { // ! exclusive or.
             var o = widgets[i].Serialize();
             if (o) {
                 this.Annotations.push(o);

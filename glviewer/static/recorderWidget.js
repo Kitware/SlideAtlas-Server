@@ -137,7 +137,10 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer, userNoteFlag) {
     for (var i = 0; i < widgets.length; ++i) {
         var widget = widgets[i];
         // Keep user note annotations separate from other annotations
-        if (userNoteFlag == widget.UserNoteFlag) {
+        //if ((userNoteFlag && widget.UserNoteFlag)) ||
+        //    (!userNoteFlag && !widget.UserNoteFlag)){ // ! exclusive or.
+        widget.UserNoteFlag = widget.UserNoteFlag || false;
+        if (userNoteFlag == widget.UserNoteFlag) { // ! exclusive or.
             var o = widgets[i].Serialize();
             if (o) {
                 this.Annotations.push(o);
