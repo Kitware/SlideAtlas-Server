@@ -27,14 +27,14 @@ window.SA = window.SA || {};
     // So many optional items have a SetNote(note) method, I decided to
     // have a global method to check each.
     SA.SetNote = function (note) {
+        if (SA.notesWidget) {
+            SA.notesWidget.SelectNote(note);
+        }
         if (SA.navigationWidget) {
             SA.navigationWidget.SetNote(note);
         }
         if (SA.display) {
             SA.display.SetNote(note);
-        }
-        if (SA.notesWidget) {
-            SA.notesWidget.SelectNote(note);
         }
     }
 
