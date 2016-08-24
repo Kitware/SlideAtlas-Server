@@ -799,41 +799,7 @@
     // Note, self intersection can cause unexpected areas.
     // i.e looping around a point twice ...
     PolylineWidget.prototype.ComputeArea = function() {
-        if (this.Polyline.GetNumberOfPoints() == 0) {
-            return 0.0;
-        }
-
-        // Compute the center. It should be more numerically stable.
-        // I could just choose the first point as the origin.
-        var cx = 0;
-        var cy = 0;
-        for (var j = 0; j < this.Polyline.GetNumberOfPoints(); ++j) {
-            cx += this.Polyline.Points[j][0];
-            cy += this.Polyline.Points[j][1];
-        }
-        cx = cx / this.Polyline.GetNumberOfPoints();
-        cy = cy / this.Polyline.GetNumberOfPoints();
-
-        var area = 0.0;
-        // Iterate over triangles adding the area of each
-        var last = this.Polyline.GetNumberOfPoints()-1;
-        var vx1 = this.Polyline.Points[last][0] - cx;
-        var vy1 = this.Polyline.Points[last][1] - cy;
-        // First and last point form another triangle (they are not the same).
-        for (var j = 0; j < this.Polyline.GetNumberOfPoints(); ++j) {
-            // Area of triangle is 1/2 magnitude of cross product.
-            var vx2 = vx1;
-            var vy2 = vy1;
-            vx1 = this.Polyline.Points[j][0] - cx;
-            vy1 = this.Polyline.Points[j][1] - cy;
-            area += (vx1*vy2) - (vx2*vy1);
-        }
-
-        // Handle both left hand loops and right hand loops.
-        if (area < 0) {
-            area = -area;
-        }
-        return area;
+        return this.Polyline.ComputeArea();
     }
 
     // Note, self intersection can cause unexpected areas.

@@ -52,6 +52,26 @@
         return SAM.MOBILE_DEVICE;
     }
 
+
+    SAM.areaSequence = function(r, g, b) {
+        var pl = new SAM.Polyline();
+        var vr = SA.RootNote.ViewerRecords;
+        for (var i = 0; i < vr.length; ++i) {
+            as = vr[i].Annotations;
+            for (var j = 0; j < as.length; ++j) {
+                an = as[j];
+                if (an.type == "polyline" &&
+                    round(an.outlinecolor[0]*255) == r &&
+                    round(an.outlinecolor[1]*255) == g &&
+                    round(an.outlinecolor[2]*255) == b) {
+                    pl.Points = an.points;
+                    console.log("section " + i +", area " + pl.ComputeArea());
+                }
+            }
+        }
+    }
+
+
     // Debugging ... not called in normal operation.
     // For manually moving annotations from individual slides to a stack.
     // Remove all annotations that are not in the current view.
