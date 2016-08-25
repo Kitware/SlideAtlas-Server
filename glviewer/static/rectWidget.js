@@ -209,9 +209,11 @@
         this.UserNoteFlag = obj.user_note_flag;
         this.Shape.Origin[0] = parseFloat(obj.origin[0]);
         this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-        this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-        this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-        this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        if (obj.outlinecolor) {
+            this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+            this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+            this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        }
         this.Shape.Width = parseFloat(obj.width);
         if (obj.length) {
             this.Shape.Length = parseFloat(obj.length);
@@ -219,8 +221,12 @@
         if (obj.height) {
             this.Shape.Length = parseFloat(obj.height);
         }
-        this.Shape.Orientation = parseFloat(obj.orientation);
-        this.Shape.LineWidth = parseFloat(obj.linewidth);
+        if (obj.orientation) {
+            this.Shape.Orientation = parseFloat(obj.orientation);
+        }
+        if (obj.linewidth) {
+            this.Shape.LineWidth = parseFloat(obj.linewidth);
+        }
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
 

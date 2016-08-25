@@ -284,7 +284,25 @@
         note.ViewerRecords[viewIdx].CopyViewer(this);
     }
 
-    // TODO: MAke the annotation layer optional.
+    // Access methods for vigilant
+    Viewer.prototype.ClearAnnotations = function () {
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.Reset();
+            annotationLayer.EventuallyDraw();
+        }
+    }
+
+    // Access methods for vigilant
+    Viewer.prototype.AddAnnotation = function (obj) {
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.EventuallyDraw();
+            return annotationLayer.LoadWidget(obj);
+        }
+    }
+
+    // TODO: Make the annotation layer optional.
     // I am moving some of the saViewer code into this viewer object because
     // I am trying to abstract the single viewer used for the HTML presentation
     // note and the full dual view / stack note.

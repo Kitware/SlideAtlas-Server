@@ -2808,7 +2808,7 @@ jQuery.prototype.saResizable = function(args) {
 //        the note/view is being set.
 // args = {interaction:true,
 //         overview:true,
-//         menu:true, 
+//         menu:true,
 //         drawWidget:true,
 //         zoomWidget:true,
 //         viewId:"55f834dd3f24e56314a56b12", note: {...}
@@ -2835,13 +2835,13 @@ jQuery.prototype.saViewer = function(args) {
             args.note.LoadViewId(
                 args.viewId,
                 function () {
-                    saViewerSetup(self, args);
+                    saViewerSetup(self, arguments);
                 });
             return this;
         }
     }
 
-    saViewerSetup(this, args);
+    saViewerSetup(this, arguments);
     return this;
 }
 
@@ -2852,22 +2852,27 @@ jQuery.prototype.saViewer = function(args) {
 // - I consider hinging it on the existence of sa-viewer-index but that is
 // hidden and not obvious.
 // I choose to pass an argument flag "dual", but am sure how to store the
-// flag in html. I could have an attribute "dual", but I think I like to 
-// change the class from sa-viewer to sa-dual-viewer better. 
+// flag in html. I could have an attribute "dual", but I think I like to
+// change the class from sa-viewer to sa-dual-viewer better.
 // TODO: Make the argument calls not dependant on order.
 function saViewerSetup(self, args) {
     //TODO: Think about making this viewer specific rather than a global.
-    if (args.prefixUrl) {
-        SA.ImagePathUrl = args.prefixUrl;
-        SAM.ImagePathUrl = args.prefixUrl;
-    }
 
+    // legacy api: params encoded in first arguement object.
+    var params = undefined;
+    if (typeof(args[0]) == 'object') {
+        params = args[0];
+    }
+    if (params && params.prefixUrl) {
+        SA.ImagePathUrl = params.prefixUrl;
+        SAM.ImagePathUrl = params.prefixUrl;
+    }
     $(window)
         .off('resize.sa')
         .on('resize.sa', saResizeCallback);
 
     for (var i = 0; i < self.length; ++i) {
-        if (args == 'destroy') {
+        if (args[0] == 'destroy') {
             $(self[i]).removeClass('sa-resize');
             // This should not cause a problem.
             // Only one resize element should be using this element.
@@ -2881,21 +2886,20 @@ function saViewerSetup(self, args) {
         }
 
         if ( ! self[i].saViewer) {
-            if (args.dual == undefined) {
+            if (params && params.dual == undefined) {
                 // look for class name.
                 if (self.hasClass('sa-dual-viewer')) {
-                    args.dual = true;
+                    params.dual = true;
                 }
-            }
-
-            // Add the viewer as an instance variable to the dom object.
-            if (args.dual) {
-                // TODO: dual has to be set on the first call.  Make this
-                // order independant. Also get rid of args here. We should
-                // use process arguments to setup options.
-                self[i].saViewer = new SA.DualViewWidget($(self[i]));
-            } else {
-                self[i].saViewer = new SA.Viewer($(self[i]));
+                // Add the viewer as an instance variable to the dom object.
+                if (params.dual) {
+                    // TODO: dual has to be set on the first call.  Make this
+                    // order independant. Also get rid of args here. We should
+                    // use process arguments to setup options.
+                    self[i].saViewer = new SA.DualViewWidget($(self[i]));
+                } else {
+                    self[i].saViewer = new SA.Viewer($(self[i]));
+                }
             }
 
             // When the div resizes, we need to synch the camera and
@@ -2908,7 +2912,18 @@ function saViewerSetup(self, args) {
             // it explicitly (from the body onresize function).
             $(self[i]).addClass('sa-resize');
         }
-        self[i].saViewer.ProcessArguments(args);
+        // generic method call. Give jquery ui access to all this objects methods.
+        // jquery puts the query results as the first argument.
+        var viewer = self[i].saViewer;
+        if (typeof(viewer[args[0]]) == 'function') {
+            // first list item is the method name,
+            // the rest are arguments to the method.
+            return viewer[args[0]].apply(viewer, Array.prototype.slice.call(args,1));
+        }
+
+        if (params) {
+            self[i].saViewer.ProcessArguments(params);
+        }
         self[i].saViewer.EventuallyRender();
     }
 }
