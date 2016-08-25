@@ -84,6 +84,26 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return SAM.MOBILE_DEVICE;
     }
 
+
+    SAM.areaSequence = function(r, g, b) {
+        var pl = new SAM.Polyline();
+        var vr = SA.RootNote.ViewerRecords;
+        for (var i = 0; i < vr.length; ++i) {
+            as = vr[i].Annotations;
+            for (var j = 0; j < as.length; ++j) {
+                an = as[j];
+                if (an.type == "polyline" &&
+                    round(an.outlinecolor[0]*255) == r &&
+                    round(an.outlinecolor[1]*255) == g &&
+                    round(an.outlinecolor[2]*255) == b) {
+                    pl.Points = an.points;
+                    console.log("section " + i +", area " + pl.ComputeArea());
+                }
+            }
+        }
+    }
+
+
     // Debugging ... not called in normal operation.
     // For manually moving annotations from individual slides to a stack.
     // Remove all annotations that are not in the current view.
@@ -3236,6 +3256,47 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return bestPt;
     }
 
+    // Note, self intersection can cause unexpected areas.
+    // i.e looping around a point twice ...
+    Polyline.prototype.ComputeArea = function() {
+        if (this.Points.length < 3) {
+            return 0.0;
+        }
+
+        // Compute the center. It should be more numerically stable.
+        // I could just choose the first point as the origin.
+        var cx = 0;
+        var cy = 0;
+        for (var j = 0; j < this.Points.length; ++j) {
+            cx += this.Points[j][0];
+            cy += this.Points[j][1];
+        }
+        cx = cx / this.Points.length;
+        cy = cy / this.Points.length;
+
+        var area = 0.0;
+        // Iterate over triangles adding the area of each
+        var last = this.Points.length-1;
+        var vx1 = this.Points[last][0] - cx;
+        var vy1 = this.Points[last][1] - cy;
+        // First and last point form another triangle (they are not the same).
+        for (var j = 0; j < this.Points.length; ++j) {
+            // Area of triangle is 1/2 magnitude of cross product.
+            var vx2 = vx1;
+            var vy2 = vy1;
+            vx1 = this.Points[j][0] - cx;
+            vy1 = this.Points[j][1] - cy;
+            area += (vx1*vy2) - (vx2*vy1);
+        }
+
+        // Handle both left hand loops and right hand loops.
+        if (area < 0) {
+            area = -area;
+        }
+        return area;
+    }
+
+
     Polyline.prototype.MergePoints = function (thresh, view) {
         thresh = thresh * thresh;
         var modified = false;
@@ -4335,41 +4396,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // Note, self intersection can cause unexpected areas.
     // i.e looping around a point twice ...
     PolylineWidget.prototype.ComputeArea = function() {
-        if (this.Polyline.GetNumberOfPoints() == 0) {
-            return 0.0;
-        }
-
-        // Compute the center. It should be more numerically stable.
-        // I could just choose the first point as the origin.
-        var cx = 0;
-        var cy = 0;
-        for (var j = 0; j < this.Polyline.GetNumberOfPoints(); ++j) {
-            cx += this.Polyline.Points[j][0];
-            cy += this.Polyline.Points[j][1];
-        }
-        cx = cx / this.Polyline.GetNumberOfPoints();
-        cy = cy / this.Polyline.GetNumberOfPoints();
-
-        var area = 0.0;
-        // Iterate over triangles adding the area of each
-        var last = this.Polyline.GetNumberOfPoints()-1;
-        var vx1 = this.Polyline.Points[last][0] - cx;
-        var vy1 = this.Polyline.Points[last][1] - cy;
-        // First and last point form another triangle (they are not the same).
-        for (var j = 0; j < this.Polyline.GetNumberOfPoints(); ++j) {
-            // Area of triangle is 1/2 magnitude of cross product.
-            var vx2 = vx1;
-            var vy2 = vy1;
-            vx1 = this.Polyline.Points[j][0] - cx;
-            vy1 = this.Polyline.Points[j][1] - cy;
-            area += (vx1*vy2) - (vx2*vy1);
-        }
-
-        // Handle both left hand loops and right hand loops.
-        if (area < 0) {
-            area = -area;
-        }
-        return area;
+        return this.Polyline.ComputeArea();
     }
 
     // Note, self intersection can cause unexpected areas.
@@ -7501,13 +7528,24 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.UserNoteFlag = obj.user_note_flag;
         this.Shape.Origin[0] = parseFloat(obj.origin[0]);
         this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-        this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-        this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-        this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        if (obj.outlinecolor) {
+            this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+            this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+            this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        }
         this.Shape.Width = parseFloat(obj.width);
-        this.Shape.Length = parseFloat(obj.length);
-        this.Shape.Orientation = parseFloat(obj.orientation);
-        this.Shape.LineWidth = parseFloat(obj.linewidth);
+        if (obj.length) {
+            this.Shape.Length = parseFloat(obj.length);
+        }
+        if (obj.height) {
+            this.Shape.Length = parseFloat(obj.height);
+        }
+        if (obj.orientation) {
+            this.Shape.Orientation = parseFloat(obj.orientation);
+        }
+        if (obj.linewidth) {
+            this.Shape.LineWidth = parseFloat(obj.linewidth);
+        }
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
 
