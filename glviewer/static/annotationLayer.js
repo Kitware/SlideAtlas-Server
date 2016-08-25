@@ -493,6 +493,8 @@
                 //alert("keydown");
                 return self.HandleKeyDown(event);
             });
+
+        this.UpdateSize();
     }
 
     // Try to remove all global references to this viewer.

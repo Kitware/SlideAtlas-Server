@@ -230,14 +230,7 @@
                       'z-index' : '4'});
         }
 
-        // Create an annotation layer by default.
-        var annotationLayer1 = new SAM.AnnotationLayer(this.Div);
-        this.AddLayer(annotationLayer1);
-        // TODO: Get rid of this.  master view is passed to draw.
-        //Hack so the scale widget can get the spacing.
-        annotationLayer1.ScaleWidget.View = this.MainView;
-        // Hack only used for girder testing.
-        annotationLayer1.Viewer = this;
+        var annotationLayer1 = this.NewAnnotationLayer();
         var annotationWidget1 =
             new SA.AnnotationWidget(annotationLayer1, this);
     }
@@ -282,24 +275,6 @@
     Viewer.prototype.Record = function (note, viewIdx) {
         viewIdx = viewIdx || 0;
         note.ViewerRecords[viewIdx].CopyViewer(this);
-    }
-
-    // Access methods for vigilant
-    Viewer.prototype.ClearAnnotations = function () {
-        var annotationLayer = this.GetAnnotationLayer();
-        if (annotationLayer) {
-            annotationLayer.Reset();
-            annotationLayer.EventuallyDraw();
-        }
-    }
-
-    // Access methods for vigilant
-    Viewer.prototype.AddAnnotation = function (obj) {
-        var annotationLayer = this.GetAnnotationLayer();
-        if (annotationLayer) {
-            annotationLayer.EventuallyDraw();
-            return annotationLayer.LoadWidget(obj);
-        }
     }
 
     // TODO: Make the annotation layer optional.
@@ -2431,6 +2406,59 @@
             this.CopyrightWrapper.hide();
         }
     }
+
+
+
+
+    //------------------------------------------------------
+    // Access methods for vigilant
+
+
+    Viewer.prototype.GetNumberOfLayers = function () {
+        return this.Layers.length;
+    }
+    Viewer.prototype.GetLayer = function (idx) {
+        if (idx >= 0 && idx < this.Layers.length) {
+            return this.Layers[idx];
+        }
+        return null;
+    }
+
+    Viewer.prototype.NewAnnotationLayer = function() {
+        // Create an annotation layer by default.
+        var annotationLayer = new SAM.AnnotationLayer(this.Div);
+        this.AddLayer(annotationLayer);
+        // TODO: Get rid of this.  master view is passed to draw.
+        //Hack so the scale widget can get the spacing.
+        annotationLayer.ScaleWidget.View = this.MainView;
+        // Hack only used for girder testing.
+        annotationLayer.Viewer = this;
+
+        return annotationLayer;
+    }
+
+    // Get rid of this.
+    Viewer.prototype.ClearAnnotations = function () {
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.Reset();
+            annotationLayer.EventuallyDraw();
+        }
+    }
+
+    // Get rid of this.
+    // Access methods for vigilant
+    Viewer.prototype.AddAnnotation = function (obj) {
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.EventuallyDraw();
+            return annotationLayer.LoadWidget(obj);
+        }
+    }
+    //------------------------------------------------------
+
+
+
 
     SA.Viewer = Viewer;
 

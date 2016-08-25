@@ -224,7 +224,7 @@
         if (obj.orientation) {
             this.Shape.Orientation = parseFloat(obj.orientation);
         }
-        if (obj.linewidth) {
+        if (obj.linewidth !== undefined) {
             this.Shape.LineWidth = parseFloat(obj.linewidth);
         }
         this.Shape.FixedSize = false;

@@ -2841,8 +2841,9 @@ jQuery.prototype.saViewer = function(args) {
         }
     }
 
-    saViewerSetup(this, arguments);
-    return this;
+    // User can call a viewer method through thie jquery api.
+    // Pass on the return value if it has one.
+    return saViewerSetup(this, arguments) || this;
 }
 
 // I am struggling for an API to choose between single view and dual view.

@@ -525,6 +525,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 //alert("keydown");
                 return self.HandleKeyDown(event);
             });
+
+        this.UpdateSize();
     }
 
     // Try to remove all global references to this viewer.
@@ -7543,7 +7545,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (obj.orientation) {
             this.Shape.Orientation = parseFloat(obj.orientation);
         }
-        if (obj.linewidth) {
+        if (obj.linewidth !== undefined) {
             this.Shape.LineWidth = parseFloat(obj.linewidth);
         }
         this.Shape.FixedSize = false;
