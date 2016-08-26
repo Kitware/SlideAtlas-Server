@@ -7337,6 +7337,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function Rect() {
+        this.Visibility = true;
         SAM.Shape.call(this);
 
         this.Width = 20.0;
@@ -7495,7 +7496,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
     RectWidget.prototype.Draw = function(view) {
-        if ( this.State != NEW_HIDDEN) {
+        if ( this.State != NEW_HIDDEN && this.Visibility) {
             this.Shape.Draw(view);
         }
     };
@@ -7558,22 +7559,26 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     };
 
     RectWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-      // The dialog consumes all key events.
-      if (this.State == PROPERTIES_DIALOG) {
-          return false;
-      }
+        if (! this.Visibility) {
+            return true;
+        }
 
-      // Copy
-      if (event.keyCode == 67 && event.ctrlKey) {
-        // control-c for copy
-        // The extra identifier is not needed for widgets, but will be
-        // needed if we have some other object on the clipboard.
-        var clip = {Type:"RectWidget", Data: this.Serialize()};
-        localStorage.ClipBoard = JSON.stringify(clip);
-        return false;
-      }
+        // The dialog consumes all key events.
+        if (this.State == PROPERTIES_DIALOG) {
+            return false;
+        }
 
-      return true;
+        // Copy
+        if (event.keyCode == 67 && event.ctrlKey) {
+            // control-c for copy
+            // The extra identifier is not needed for widgets, but will be
+            // needed if we have some other object on the clipboard.
+            var clip = {Type:"RectWidget", Data: this.Serialize()};
+            localStorage.ClipBoard = JSON.stringify(clip);
+            return false;
+        }
+
+        return true;
     };
 
     RectWidget.prototype.HandleDoubleClick = function(event) {
@@ -7581,6 +7586,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     };
 
     RectWidget.prototype.HandleMouseDown = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         if (event.which != 1) {
             return false;
         }
@@ -7607,6 +7616,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // returns false when it is finished doing its work.
     RectWidget.prototype.HandleMouseUp = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         if ( this.State == DRAG || this.State == NEW_DRAG_CORNER) {
             this.SetActive(false);
             if (window.SA) {SA.RecordState();}
@@ -7615,6 +7628,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     };
 
     RectWidget.prototype.HandleMouseMove = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         var x = event.offsetX;
         var y = event.offsetY;
 
@@ -7679,6 +7696,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     RectWidget.prototype.HandleMouseWheel = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         var x = event.offsetX;
         var y = event.offsetY;
 
@@ -7709,6 +7730,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     RectWidget.prototype.HandleTouchPan = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         w0 = this.Layer.GetCamera().ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
                                                               EVENT_MANAGER.LastMouseY);
         w1 = this.Layer.GetCamera().ConvertPointViewerToWorld(event.offsetX,event.offsetY);
@@ -7724,17 +7749,29 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     RectWidget.prototype.HandleTouchPinch = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
         this.Layer.EventuallyDraw();
     };
 
     RectWidget.prototype.HandleTouchEnd = function(event) {
+        if (! this.Visibility) {
+            return true;
+        }
+
         this.SetActive(false);
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     };
 
 
     RectWidget.prototype.CheckActive = function(event) {
+        if (! this.Visibility) {
+            return false;
+        }
+
         var x = event.offsetX;
         var y = event.offsetY;
         var dx, dy;
@@ -7791,6 +7828,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // Setting to active always puts state into "active".
     // It can move to other states and stay active.
     RectWidget.prototype.SetActive = function(flag) {
+        if (! this.Visibility) {
+            this.Visibility = true;
+        }
+
         if (flag == this.GetActive()) {
             return;
         }
@@ -7811,6 +7852,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     //This also shows the popup if it is not visible already.
     RectWidget.prototype.PlacePopup = function () {
+        if (! this.Visibility) {
+            return;
+        }
         // Compute the location for the pop up and show it.
         var roll = this.Layer.GetCamera().Roll;
         var rad = this.Shape.Width * 0.5;
