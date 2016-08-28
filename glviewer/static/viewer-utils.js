@@ -2890,7 +2890,7 @@ function saViewerSetup(self, args) {
         }
 
         if ( ! self[i].saViewer) {
-            if (params && params.dual == undefined) {
+            if (params) {
                 // look for class name.
                 if (self.hasClass('sa-dual-viewer')) {
                     params.dual = true;
