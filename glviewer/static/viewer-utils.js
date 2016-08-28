@@ -2843,6 +2843,9 @@ jQuery.prototype.saViewer = function(args) {
 
     // User can call a viewer method through thie jquery api.
     // Pass on the return value if it has one.
+    if (arguments.length == 0) {
+        return saViewerSetup(this, [args]) || this;
+    }
     return saViewerSetup(this, arguments) || this;
 }
 
@@ -2916,7 +2919,7 @@ function saViewerSetup(self, args) {
         // generic method call. Give jquery ui access to all this objects methods.
         // jquery puts the query results as the first argument.
         var viewer = self[i].saViewer;
-        if (typeof(viewer[args[0]]) == 'function') {
+        if (viewer && typeof(viewer[args[0]]) == 'function') {
             // first list item is the method name,
             // the rest are arguments to the method.
             return viewer[args[0]].apply(viewer, Array.prototype.slice.call(args,1));
