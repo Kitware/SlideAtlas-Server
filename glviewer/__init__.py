@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import pdb
 import json
 from operator import itemgetter
 import urllib2
@@ -362,22 +361,33 @@ def moveView():
     # I could do a data base search to find thefromSession, but that might
     # be expensive. Default to inserting at 0. Default to moving to trash.
     viewId = request.form['view']  # for post
-    fromSessionId = request.form['from']  # for post
-    toSessionId = request.args.get('to', None)  # for post
-    toPosition = request.args.get('idx', 0)  # for post
-
     viewId = ObjectId(viewId)
-    fromSession = db['sessions'].find_one({'_id':ObjectId(fromSessionId)})
-    # check if session id is valid????
+    fromSessionId = None
+    if request.form.has_key("from"):
+        fromSessionId = request.form["from"]
+    toSessionId = None
+    if request.form.has_key("to"):
+        toSessionId = request.form["to"]
+    toPosition= 0
+    if request.form.has_key("idx"):
+        toPosition = int(request.form["idx"])
 
-    # get the toSession from te toSessionId
+
+    if fromSessionId == None:
+        fromSession = db["sessions"].find_one({'views':viewId});
+    else:
+        fromSession = db['sessions'].find_one({'_id':ObjectId(fromSessionId)})
+    # check if session id is valid
+    if fromSession == None:
+        return "Error: Could not find source session"
+
+    # get the toSession from the toSessionId
     if toSessionId == None:
         # find the trash session.
         collection = db["sessions"].find({'collection':fromSession["collection"]},{'label':1})
         for session in collection:
             if session['label'] == "Trash" or session['label'] == "Recycle bin":
                 toSessionId = session['_id']
-    pdb.set_trace()
     if toSessionId == None:
         # create a Trash session
         trashSession = {'attachments': [],
@@ -392,7 +402,16 @@ def moveView():
     else:
         toSession = db["sessions"].find_one({'_id':ObjectId(toSessionId)})
 
-    # check to make sure the fromSession actually has the view????
+    # check to make sure the fromSession actually has the view
+    found = False
+    for id in fromSession["views"]:
+        if id == viewId:
+            found = True
+    if not found:
+        return "Error: view is not in source session"
+    
+    # Should I change view["SessionId"] or get rid of this variable?
+
     fromSession["views"].remove(viewId)
     toSession["views"].insert(toPosition,viewId)
     db["sessions"].save(toSession)
