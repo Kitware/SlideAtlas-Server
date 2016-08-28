@@ -218,8 +218,47 @@
                       }, 2000);
               });
 
+            $(".sa-view-undo").click(function() {
+                var rowItem = $(this).parent().parent();
+                var viewItem = rowItem.find('.sa-view-get');
+                var viewId = viewItem.attr('sa-id');
+                // compute the index of this item
+                var items = $('#sa-view-table').children();
+                var idx = 0;
+                while (idx < items.length && items[idx] != rowItem[0]) {
+                    ++idx;
+                }
+                $.ajax({
+                    type: "post",
+                    url: "/webgl-viewer/move-view",
+                    data: {"view" : viewId,
+                           "to"   : "{{session_son.id}}",
+                           "idx"  : idx},
+                    success: function(data,status) {
+                        if (data != "Success") {
+                            window.alert(data);
+                            return;
+                        }
+                        rowItem.find(".sa-view-get")
+                            .attr("contenteditable", "true")
+                                .css({"color":"#66A"});
+                        // Show the thumb nail.
+                        rowItem.find(".sa-view-thumb").show();
+                        // Show the right side buttons.
+                        rowItem.find(".btn").show();
+                        // Hide the undo button.
+                        rowItem.find(".sa-view-undo").hide();
+                    },
+                    error: function() {
+                        alert("AJAX - error() : undo delete view" );
+                    }
+                });
+            });
+
+
             $(".sa-view-delete").click(function() {
-                var viewItem = $(this).parent().parent().find('.sa-view-get');
+                var rowItem = $(this).parent().parent();
+                var viewItem = rowItem.find('.sa-view-get');
                 var viewId = viewItem.attr('sa-id');
                 $.ajax({
                     type: "post",
@@ -227,8 +266,20 @@
                     data: {"view" : viewId,
                            "from" : "{{session_son.id}}"},
                     success: function(data,status) {
-                        // How should we give user feedback?
-                        console.log("deleted " + viewId);
+                        if (data != "Success") {
+                            window.alert(data);
+                            return;
+                        }
+                        // Replace the row with an undo button.
+                        viewItem
+                            .attr("contenteditable", "false")
+                            .css({"color":"#BBB"});
+                        // Hide the thumb nail.
+                        rowItem.find(".sa-view-thumb").hide();
+                        // Hide the right side buttons.
+                        rowItem.find(".btn").hide();
+                        // Show the undo button.
+                        rowItem.find(".sa-view-undo").show();
                     },
                     error: function() {
                         alert("AJAX - error() : delete view" );
@@ -592,14 +643,14 @@
             </tbody>
             {% endif %}
 
-            <tbody class="sa-sortable">
+            <tbody class="sa-sortable" id="sa-view-table">
               {% for view_son in session_son.views %}
                 {% set viewer_view_url = url_for('glviewer.glview', sess=session.id, view=view_son.id) %}
                 {% set viewer_edit_url = url_for('glviewer.glview', sess=session.id, view=view_son.id, edit='true') %}
                 {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
                     <tr view-id="{{ view_son.id }}">
                         <td height=52px class="sa-handle">
-                            <a href="{{ viewer_url }}">
+                            <a href="{{ viewer_url }}" class="sa-view-thumb">
                                 <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}"
                                      {% if view_son.Type == 'Stack' %}class="sa-view-stac"{% endif %}
                                      alt="Open" title="Open" width="100px">
@@ -616,7 +667,7 @@
                             </div>
                         </td>
                         {% if security.EditSessionRequirement(session).can() %}
-                        <td align="right">
+                        <td align="right" class="sa-button-column">
                             {# TODO: permalink should redirect to viewer_edit_url if another admin follows it #}
                             <button type="button"
                                     class="btn btn-info badge sa-view-permalink"
@@ -625,6 +676,17 @@
                                 <i class="glyphicon glyphicon-link"></i>
                                 <span> Permalink</span>
                             </button>
+                            {% if is_session_admin %}
+                            <button type="button"
+                                    class="btn btn-danger badge sa-view-delete">
+                              <i class="glyphicon glyphicon-remove"></i>
+                            </button>
+                            <button type="button" style="display: none;"
+                                    class="btn btn-info badge sa-view-undo">
+                              <i class="glyphicon glyphicon-arrow-left"></i>
+                              <span> Undo</span>
+                            </button>
+                            {% endif %}
                         </td>
                         {% endif %}
                     </tr>
