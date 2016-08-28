@@ -329,6 +329,9 @@
                                document.execCommand('fontSize',false,'2');
                                self.ChangeBulletSize('0.9em');
                            });
+
+        //this.AddEditButton(SA.ImagePathUrl+"parse.png", "parse",
+        //                   function() {self.ParseText();});
         // TODO: Get selected text to see if we can convert it into a question.
         this.AddEditButton(SA.ImagePathUrl+"question.png", "add question",
                            function() {
@@ -655,6 +658,14 @@
             .attr('src',src)
             .click(callback);
         this.EditButtons.push(button);
+    }
+
+    TextEditor.prototype.ParseText = function() {
+        var text = this.TextEntry.text();
+        // Remove empty lines.
+        // Not developing this further because .text() does not containe
+        // new lines.
+
     }
 
     TextEditor.prototype.AddQuestion = function() {

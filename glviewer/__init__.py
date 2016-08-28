@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import pdb
 import json
 from operator import itemgetter
 import urllib2
@@ -347,6 +348,55 @@ def glsavevieworder():
         session.views.append(ObjectId(viewIds[i]))
 
     session.save()
+
+    return "Success"
+
+
+# From the session page when views are delete will be used with the drag
+# and drop editor too.
+@mod.route('/move-view', methods=['POST'])
+def moveView():
+    db = models.ImageStore._get_db()
+
+    # view has a SessionId, but I am not sure I can count on it.
+    # I could do a data base search to find thefromSession, but that might
+    # be expensive. Default to inserting at 0. Default to moving to trash.
+    viewId = request.form['view']  # for post
+    fromSessionId = request.form['from']  # for post
+    toSessionId = request.args.get('to', None)  # for post
+    toPosition = request.args.get('idx', 0)  # for post
+
+    viewId = ObjectId(viewId)
+    fromSession = db['sessions'].find_one({'_id':ObjectId(fromSessionId)})
+    # check if session id is valid????
+
+    # get the toSession from te toSessionId
+    if toSessionId == None:
+        # find the trash session.
+        collection = db["sessions"].find({'collection':fromSession["collection"]},{'label':1})
+        for session in collection:
+            if session['label'] == "Trash" or session['label'] == "Recycle bin":
+                toSessionId = session['_id']
+    pdb.set_trace()
+    if toSessionId == None:
+        # create a Trash session
+        trashSession = {'attachments': [],
+                        'views'      : [],
+                        'collection' : fromSession["collection"],
+                        'label'      : 'Trash',
+                        'image_store': fromSession["image_store"],
+                        'type'       : "session"}
+        db["sessions"].save(trashSession)
+        # we need the id
+        toSession = db["sessions"].find_one(trashSession)
+    else:
+        toSession = db["sessions"].find_one({'_id':ObjectId(toSessionId)})
+
+    # check to make sure the fromSession actually has the view????
+    fromSession["views"].remove(viewId)
+    toSession["views"].insert(toPosition,viewId)
+    db["sessions"].save(toSession)
+    db["sessions"].save(fromSession)
 
     return "Success"
 
@@ -862,3 +912,6 @@ def getview():
         noteObj['SessionId'] = str(viewObj['SessionId'])
 
     return jsonify(noteObj)
+
+
+

@@ -54,6 +54,12 @@
                 var notes = $('.sa-view-get');
                 for (var i = 0; i < notes.length; ++i) {
                     var note = $(notes[i]);
+                    if (mode == "answer-show") {
+                        note.text($(note).attr('data-label'));
+                    } else {
+                        note.text(i.toString());
+                    }
+
                     var id = note.attr('sa-id');
                     var viewStr = JSON.stringify({_id:id, Mode:mode});
                     $('body').css({'cursor':'progress'});
@@ -132,7 +138,7 @@
             var saveTimer;
             var viewId;
             var viewLabel;
-            var saveView = 
+            var saveView =
                 function(id, label, div) {
                     var d = new Date();
                     var noteStr = JSON.stringify({_id:id, Title:label});
@@ -171,14 +177,14 @@
                       function () {
                           saveView(viewId, viewLabel,$(self));
                       }, 2000);
-              }); 
+              });
 
 
             // Stuff to save a session label when it is changed.
             var saveSessionTimer;
             var sessionId;
             var sessionLabel;
-            var saveSession = 
+            var saveSession =
                 function(id, label, div) {
                     var sessionStr = JSON.stringify({_id:id, label:label});
                     $.ajax({
@@ -210,8 +216,25 @@
                       function () {
                           saveSession(sessionId, sessionLabel,$(self));
                       }, 2000);
-              }); 
+              });
 
+            $(".sa-view-delete").click(function() {
+                var viewItem = $(this).parent().parent().find('.sa-view-get');
+                var viewId = viewItem.attr('sa-id');
+                $.ajax({
+                    type: "post",
+                    url: "/webgl-viewer/move-view",
+                    data: {"view" : viewId,
+                           "from" : "{{session_son.id}}"},
+                    success: function(data,status) {
+                        // How should we give user feedback?
+                        console.log("deleted " + viewId);
+                    },
+                    error: function() {
+                        alert("AJAX - error() : delete view" );
+                    },
+                });
+            });
 
             // By Djay
             $(".sa-upload-images").click(function() {
@@ -583,8 +606,13 @@
                             </a>
                         </td>
                         <td>
-                            <div sa-id="{{view_son.id}}" class="lead sa-view-get" contenteditable="true">
-                              {{ view_son.label }}
+                            <div sa-id="{{view_son.id}}" class="lead sa-view-get" contenteditable="true"
+                                 data-label="{{view_son.label}}">
+                              {% if view_son.mode == "answer-show" %}
+                                {{ view_son.label }}
+                              {% else %}
+                                {{ view_son.hidden_label }}
+                              {% endif %}
                             </div>
                         </td>
                         {% if security.EditSessionRequirement(session).can() %}

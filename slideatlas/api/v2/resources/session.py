@@ -23,7 +23,7 @@ class SessionListAPI(ListAPIResource):
     def get(self):
         # TODO: currently, session administrative access is all-or-nothing on
         #   the database level, but it should be made granular
-        only_fields=('label', 'type')
+        only_fields=('label', 'type', 'mode')
         sessions = models.Session.objects.only(*only_fields).order_by('label')
         return sessions.to_son(only_fields=only_fields)
 
@@ -103,7 +103,7 @@ class SessionItemAPI(ItemAPIResource):
 
         # build the actual list to be returned
         views_son = list()
-        for view_id in session.views:
+        for idx, view_id in enumerate(session.views):
             try:
                 view = views_by_id[view_id]
             except KeyError:
@@ -128,6 +128,11 @@ class SessionItemAPI(ItemAPIResource):
                 continue
 
             # get 'view_label' and 'view_hidden_label'
+            if 'Mode' in view:
+                view_mode = view['Mode']
+            else:
+                view_mode = "answer-show"
+
             if 'Title' in view:
                 view_label = view['Title']
             elif 'label' in view:
@@ -137,21 +142,18 @@ class SessionItemAPI(ItemAPIResource):
             else:
                 current_app.logger.warning('View %s has no label set or inherited', view_id)
                 view_label = ""
-            view_hidden_label = view.get('HiddenTitle', '')
+            view_hidden_label = str(idx)
 
             # set 'ajax_view_item' and 'ajax_view_items' for output
             view_son = {
                 'Type': view.get('Type'),
                 'id': view_id,
                 'label': view_label,
+                'hidden_label': view_hidden_label,
+                'mode': view_mode,
                 'image_id': image_id,
                 'image_store_id': image_store_id,
             }
-            if with_hidden_label:
-                view_son['label'] = view_label
-                view_son['hidden_label'] = view_hidden_label
-            else:
-                view_son['label'] = view_label if not session.hide_annotations else view_hidden_label
             views_son.append(view_son)
 
         session_son = session.to_son(exclude_fields=('views', 'attachments'))
