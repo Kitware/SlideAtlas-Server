@@ -11441,6 +11441,9 @@ function TabPanel(tabbedDiv, title) {
             .appendTo(this.TitleDiv)
             .text(this.Title)
             .addClass('sa-title');
+        if (this.Mode == 'answer-hide' || this.Mode == 'answer-interactive') {
+            this.TitleEntry.text('-');
+        }
 
         if (SA.Edit) {
             this.AddButton = $('<img>')
@@ -11473,15 +11476,18 @@ function TabPanel(tabbedDiv, title) {
                     'opacity':'0.5'});
         }
 
-        if (SA.HideAnnotations && this.HiddenTitle) {
-            this.TitleEntry.text(this.HiddenTitle);
+        if (SA.HideAnnotations || this.Mode == 'answer-hide' ||
+            this.Mode == 'answer-interactive') {
+            this.TitleEntry.text("-");
         }
 
 
         if (SA.Edit) {
             this.Modified = false;
-            this.TitleEntry
-                .attr('contenteditable', "true");
+            if (this.Mode == 'answer-hide' && this.Mode != 'answer-interactive') {
+                this.TitleEntry
+                    .attr('contenteditable', "true");
+            }
         }
 
         // The div should attached even if nothing is in it.
@@ -11616,23 +11622,23 @@ function TabPanel(tabbedDiv, title) {
         if (this.Modified) {
             // Move the Title from the GUI to the note.
             this.Modified = false;
-            this.Title = this.TitleEntry.text();
+            if (this.Mode != 'answer-hide' && this.Mode != 'answer-interactive') {
+                this.Title = this.TitleEntry.text();
+            }
             if (SA.notesWidget) {
-            SA.notesWidget.MarkAsModified();
+                SA.notesWidget.MarkAsModified();
             }
         }
         // Allow the viewer to process arrow keys.
         SA.ContentEditableHasFocus = false;
         if ( ! this.Modified) { return; }
         this.Modified = false;
-        var text = this.TitleEntry.text();
-        if (this.Title != text && ! SA.HideAnnotations) {
-            this.Title = text;
-            this.Save();
-        }
-        if (this.HiddenTitle != text && SA.HideAnnotations) {
-            this.HiddenTitle = text;
-            this.Save();
+        if (this.Mode != 'answer-hide' && this.Mode != 'answer-interactive') {
+            var text = this.TitleEntry.text();
+            if (this.Title != text && ! SA.HideAnnotations) {
+                this.Title = text;
+                this.Save();
+            }
         }
     }
 
@@ -11894,41 +11900,39 @@ function TabPanel(tabbedDiv, title) {
         var self = this;
         this.Div.appendTo(div);
 
-        this.TitleEntry
-            .click(function() {
-                SA.SetNote(self);
-                self.ButtonsDiv.show();
-            })
-            .bind('input', function () {
-                self.Modified = true;
-            })
-            .focusin(function() { self.TitleFocusInCallback(); })
-            .focusout(function() { self.TitleFocusOutCallback(); })
-            .mouseleave(function() {
-                if (self.Modified) {
-                    self.Modified = false;
-                    self.Title = self.TitleEntry.text();
-                    if (SA.notesWidget) {SA.notesWidget.MarkAsModified();}
-                }
-            });
-
-        this.TitleDiv
-            .hover(
-                function() {
-                    self.TitleEntry.css({'color':'#33D'});
-                    if (SA.notesWidget && SA.notesWidget.SelectedNote == self) {
-                        self.ButtonsDiv.show();
+        if (this.Mode != 'answer-hide' && this.Mode != 'answer-interactive') {
+            this.TitleEntry
+                .click(function() {
+                    SA.SetNote(self);
+                    self.ButtonsDiv.show();
+                })
+                .bind('input', function () {
+                    self.Modified = true;
+                })
+                .focusin(function() { self.TitleFocusInCallback(); })
+                .focusout(function() { self.TitleFocusOutCallback(); })
+                .mouseleave(function() {
+                    if (self.Modified) {
+                        self.Modified = false;
+                        self.Title = self.TitleEntry.text();
+                        if (SA.notesWidget) {SA.notesWidget.MarkAsModified();}
                     }
-                },
-                function() {
-                    self.TitleEntry.css({'color':'#3AF'});
-                    self.ButtonsDiv.hide();
                 });
-
-        if (SA.HideAnnotations && this.HiddenTitle) {
-            this.TitleEntry.text(this.HiddenTitle);
-        } else {
+            this.TitleDiv
+                .hover(
+                    function() {
+                        self.TitleEntry.css({'color':'#33D'});
+                        if (SA.notesWidget && SA.notesWidget.SelectedNote == self) {
+                            self.ButtonsDiv.show();
+                        }
+                    },
+                    function() {
+                        self.TitleEntry.css({'color':'#3AF'});
+                        self.ButtonsDiv.hide();
+                    });
             this.TitleEntry.text(this.Title);
+        } else {
+            this.TitleEntry.text("-");
         }
 
         // Changing a div "parent/appendTo" removes all event bindings like click.
@@ -12056,8 +12060,9 @@ function TabPanel(tabbedDiv, title) {
             delete this.ParentId
         }
 
-        if (SA.HideAnnotations && this.HiddenTitle) {
-            this.TitleEntry.text(this.HiddenTitle);
+        if (SA.HideAnnotations || this.Mode == 'answer-hide' || 
+            this.Model == 'answer-interactive') {
+            this.TitleEntry.text("-");
         } else {
             this.TitleEntry.text(this.Title);
         }
@@ -12540,6 +12545,9 @@ function TabPanel(tabbedDiv, title) {
                                document.execCommand('fontSize',false,'2');
                                self.ChangeBulletSize('0.9em');
                            });
+
+        //this.AddEditButton(SA.ImagePathUrl+"parse.png", "parse",
+        //                   function() {self.ParseText();});
         // TODO: Get selected text to see if we can convert it into a question.
         this.AddEditButton(SA.ImagePathUrl+"question.png", "add question",
                            function() {
@@ -12866,6 +12874,14 @@ function TabPanel(tabbedDiv, title) {
             .attr('src',src)
             .click(callback);
         this.EditButtons.push(button);
+    }
+
+    TextEditor.prototype.ParseText = function() {
+        var text = this.TextEntry.text();
+        // Remove empty lines.
+        // Not developing this further because .text() does not containe
+        // new lines.
+
     }
 
     TextEditor.prototype.AddQuestion = function() {
