@@ -13226,15 +13226,16 @@ function TabPanel(tabbedDiv, title) {
             $('.sa-differential-diagnosis').show();
             $('.sa-teaching-points').show();
             $('.sa-compare').show();
-        } else {
+            $('.sa-question').saQuestion('SetMode', mode);
+        } else if (mode == 'answer-hide' || mode == 'answer-interactive') {
             $('.sa-note').hide();
             $('.sa-notes').hide();
             $('.sa-diagnosis').hide();
             $('.sa-differential-diagnosis').hide();
             $('.sa-teaching-points').hide();
             $('.sa-compare').hide();
+            $('.sa-question').saQuestion('SetMode', mode);
         }
-        $('.sa-question').saQuestion('SetMode', mode);
     }
 
     // Copy the text entry text back into the note
