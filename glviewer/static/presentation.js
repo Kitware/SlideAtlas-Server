@@ -846,21 +846,24 @@ Presentation.prototype.Save = function () {
     var noteInSession = false;
     var session = SA.Session.session.views;
     for (var i = 0; i < session.length && ! noteInSession; ++i) {
-        if (session[i] == this.RootNote.Id) {
+        if (session[i].id == this.RootNote.Id) {
             noteInSession = true;
         }
     }
     if ( ! noteInSession) {
+        // Should we bother making a dummy view?
+        // move-view is now smart enough to avoid adding twice.
+        session.splice(0,0, {id:this.RootNote.Id});
         // if this is the first time we are saving the root note, then
         // add it to the session.
         $.ajax({
             type: "post",
-            data: {"sess" : SA.SessionId,
+            data: {"to" : SA.SessionId,
                    "view" : this.RootNote.Id},
-            url: "webgl-viewer/session-add-view",
+            url: "webgl-viewer/move-view",
             success: function(data,status){
-                if (status != "success") {
-                    SA.Debug("ajax failed - session-add-view");
+                if (status != "Success") {
+                    SA.Debug(data);
                 }
             },
             error: function() {

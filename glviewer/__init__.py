@@ -320,6 +320,7 @@ def glsetimagebounds():
     return "Success"
 
 
+# TODO: Get rid of this use move-view instead
 # Temp end point to add a view to a session.
 # views should belong to only a single session.
 @mod.route('/session-add-view', methods=['GET', 'POST'])
@@ -350,7 +351,6 @@ def glsavevieworder():
 
     return "Success"
 
-
 # From the session page when views are delete will be used with the drag
 # and drop editor too.
 @mod.route('/move-view', methods=['POST'])
@@ -372,14 +372,18 @@ def moveView():
     if request.form.has_key("idx"):
         toPosition = int(request.form["idx"])
 
+    if fromSessionId == None and toSessionId == None:
+        return "Error: Must have a destination session or source session."
 
+    fromSession = None
     if fromSessionId == None:
         fromSession = db["sessions"].find_one({'views':viewId});
     else:
         fromSession = db['sessions'].find_one({'_id':ObjectId(fromSessionId)})
     # check if session id is valid
-    if fromSession == None:
-        return "Error: Could not find source session"
+    #if fromSession == None:
+    #    return "Error: Could not find source session"
+    # if the view is not in a session, it was probably created by the client.
 
     # get the toSession from the toSessionId
     if toSessionId == None:
@@ -402,20 +406,28 @@ def moveView():
     else:
         toSession = db["sessions"].find_one({'_id':ObjectId(toSessionId)})
 
-    # check to make sure the fromSession actually has the view
-    found = False
-    for id in fromSession["views"]:
-        if id == viewId:
-            found = True
-    if not found:
-        return "Error: view is not in source session"
-    
-    # Should I change view["SessionId"] or get rid of this variable?
+    if toSession == None:
+        return "Error: Problem finding destination or creating a trash collection"
 
-    fromSession["views"].remove(viewId)
+    if fromSession != None:
+        # check to make sure the fromSession actually has the view
+        found = False
+        for id in fromSession["views"]:
+            if id == viewId:
+                found = True
+        if not found:
+            return "Error: view is not in source session"
+
+        fromSession["views"].remove(viewId)
+        db["sessions"].save(fromSession)
+
+    # if they are the same session then toSession is out of date now.
+    if toSession["_id"] == fromSession["_id"]:
+        toSession = fromSession
+
+    # Should I change view["SessionId"] or get rid of this variable?
     toSession["views"].insert(toPosition,viewId)
     db["sessions"].save(toSession)
-    db["sessions"].save(fromSession)
 
     return "Success"
 
