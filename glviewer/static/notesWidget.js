@@ -1003,6 +1003,7 @@
             this.HomeButton.text("Home");
         }
 
+        // TODO: change this to apply only to the textEntry window.
         if (mode == 'answer-show') {
             $('.sa-note').show();
             $('.sa-notes').show();

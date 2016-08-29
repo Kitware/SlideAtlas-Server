@@ -420,6 +420,32 @@ def moveView():
     return "Success"
 
 
+# Change the hide labels flag in a session
+@mod.route('/hide-labels', methods=['POST'])
+def hideLabels():
+    db = models.ImageStore._get_db()
+
+    # view has a SessionId, but I am not sure I can count on it.
+    # I could do a data base search to find thefromSession, but that might
+    # be expensive. Default to inserting at 0. Default to moving to trash.
+    sessId = request.form['sess']  # for post
+    sessId = ObjectId(sessId)
+    hide = request.form['hide']  # "true" or "false"
+
+    session = db['sessions'].find_one({'_id':ObjectId(sessId)})
+    if session == None:
+        return "Error: Could not findsession"
+
+    if (hide == "true"):
+        session["hide_labels"] = True
+    else:
+        session["hide_labels"] = False
+
+    db["sessions"].save(session)
+
+    return "Success"
+
+
 # This method saves transformations and/or annotations (whatever exists in data.
 @mod.route('/stack-save', methods=['GET', 'POST'])
 def glstacksave():

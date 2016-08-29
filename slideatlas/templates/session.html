@@ -38,6 +38,41 @@
     <script src="/static/thirdparty/flow/flow.min.js"></script>
     <script>
         $( function () {
+            $(".sa-label-mode").click(function() {
+                var label = $(this).children("span");
+                var hideLabels = (label.text().trim() == "Hide Labels");
+                $.ajax({
+                    type: "post",
+                    url: "/webgl-viewer/hide-labels",
+                    data: {"sess" : "{{session_son.id}}",
+                           "hide" : hideLabels?"true":"false"},
+                    success: function(data,status) {
+                        if (data != "Success") {
+                            window.alert(data);
+                            return;
+                        }
+                        console.log("hide labels " + hideLabels);
+                        if (hideLabels) {
+                           label.text("Show Labels");
+                        } else {
+                            label.text("Hide Labels");
+                        }
+
+                        var notes = $('.sa-view-get');
+                        for (var i = 0; i < notes.length; ++i) {
+                            var note = $(notes[i]);
+                            if (hideLabels) {
+                                note.text(i.toString());
+                            } else {
+                                note.text($(note).attr('data-label'));
+                            }
+                        }
+                    },
+                    error: function() {
+                        alert("AJAX - error() : hide labels" );
+                    },
+                });
+            });
             $(".sa-question-mode").click(function() {
                 var label = $(this).children("span");
                 var mode;
@@ -54,12 +89,6 @@
                 var notes = $('.sa-view-get');
                 for (var i = 0; i < notes.length; ++i) {
                     var note = $(notes[i]);
-                    if (mode == "answer-show") {
-                        note.text($(note).attr('data-label'));
-                    } else {
-                        note.text(i.toString());
-                    }
-
                     var id = note.attr('sa-id');
                     var viewStr = JSON.stringify({_id:id, Mode:mode});
                     $('body').css({'cursor':'progress'});
@@ -535,7 +564,19 @@
             <div class="pull-right">
             <button type="button"
                     class="btn btn-primary badge sa-question-mode">
-                <span title="Change all the slides' question modes at once">? Mode</span>
+                <span title="Change all the slides' question modes at once">Answers</span>
+            </button>
+            </div>
+            <div class="pull-right">
+            <button type="button"
+                    class="btn btn-primary badge sa-label-mode">
+                <span title="Hide or show the labels.">
+                {% if session_son.hide_labels == "true" %}
+                    Show Labels
+                {% else %}
+                    Hide Labels
+                {% endif %}
+                </span>
             </button>
             </div>
             {% endif %}
@@ -659,10 +700,10 @@
                         <td>
                             <div sa-id="{{view_son.id}}" class="lead sa-view-get" contenteditable="true"
                                  data-label="{{view_son.label}}">
-                              {% if view_son.mode == "answer-show" %}
-                                {{ view_son.label }}
-                              {% else %}
+                              {% if session_son.hide_labels == "true" %}
                                 {{ view_son.hidden_label }}
+                              {% else %}
+                                {{ view_son.label }}
                               {% endif %}
                             </div>
                         </td>

@@ -256,7 +256,6 @@ mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{2
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>/<regex("(users)"):listtype>', view_func=AdminDBItemsAPI.as_view("show_resource_list_or_post"), methods=["get", "post"])
 
 
-
 # The url valid for databases, rules and users with supported queries
 class DataSessionsAPI(MethodView):
     decorators = [security.login_required]

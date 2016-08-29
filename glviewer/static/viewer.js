@@ -230,6 +230,7 @@
                       'z-index' : '4'});
         }
 
+        // notice this is not new AnnotationLayer();
         var annotationLayer1 = this.NewAnnotationLayer();
         var annotationWidget1 =
             new SA.AnnotationWidget(annotationLayer1, this);
@@ -1112,15 +1113,13 @@
             this.EventuallyRender();
         }
 
-        // This is only necessary for webgl, Canvas2d just uses a border.
-        //Even for weggl, the overview will be a canvas
-        //this.MainView.DrawOutline(false);
-
         for (var i = 0; i < this.Layers.length; ++i) {
             this.Layers[i].Draw(this.MainView);
         }
 
         // This is not used anymore
+        // However, I am thinking of resurecting it.  With many widgets,
+        // drawing becomes slow.
         this.MainView.DrawShapes();
         if (this.OverView) {
             this.OverView.Draw();
@@ -2370,7 +2369,6 @@
     // TODO: Get rid of this function.
     // AnnotationWidget should not be here either.
     Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
-        // hack
         if (this.Layers.length == 0) {return;}
         var layer = this.GetAnnotationLayer();
         if ( ! layer ) { return;}

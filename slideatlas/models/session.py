@@ -218,7 +218,12 @@ class Session(ModelDocument):
     annotations = ListField(DictField(), required=False,
         verbose_name='', help_text='')
 
+    # git rid of this. Views manage hiding annotation individually.
+    # sessions now only hide labels.
     hide_annotations = BooleanField(required=False, db_field='hideAnnotations',
+        verbose_name='', help_text='')
+
+    hide_labels = BooleanField(required=False, db_field='hide_labels',
         verbose_name='', help_text='')
 
     # TODO: discuss this

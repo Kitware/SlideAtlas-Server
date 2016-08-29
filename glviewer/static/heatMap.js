@@ -1,4 +1,5 @@
 
+// A Renderer - layer tht uses webGL to show an intensity immage maped to color-transparency.
 (function () {
     "use strict";
 

@@ -64,7 +64,6 @@ class SessionListAPI(ListAPIResource):
                 201,  # Created
                 {'Location': new_location})
 
-
 ################################################################################
 class SessionItemAPI(ItemAPIResource):
     @staticmethod
@@ -156,9 +155,13 @@ class SessionItemAPI(ItemAPIResource):
             }
             views_son.append(view_son)
 
+        hide_labels = "false"
+        if "hide_labels" in session and session["hide_labels"]:
+            hide_labels = "true"
+
         session_son = session.to_son(exclude_fields=('views', 'attachments'))
         session_son['views'] = views_son
-
+        session_son['hide_labels'] = hide_labels
         session_son['attachments'] = SessionAttachmentListAPI._get(session, 'attachments')
         session_son['imagefiles'] = session.get_imagefiles()
 
