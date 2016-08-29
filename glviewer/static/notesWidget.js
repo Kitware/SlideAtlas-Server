@@ -927,6 +927,7 @@
         this.TextEntry.height(height - pos.top - 5);
     }
 
+    /* No one calls this.  Remove it.
     TextEditor.prototype.SetHtml = function(html) {
         if (this.UpdateTimer) {
             clearTimeout(this.UpdateTimer);
@@ -946,6 +947,7 @@
         // this looks for keywords in text and makes tags.
         SA.AddHtmlTags(this.TextEntry);
     }
+    */
 
     TextEditor.prototype.GetHtml = function() {
         return this.TextEntry.html();
@@ -995,6 +997,23 @@
         } else {
             this.HomeButton.text("Home");
         }
+
+        if (mode == 'answer-show') {
+            $('.sa-note').show();
+            $('.sa-notes').show();
+            $('.sa-diagnosis').show();
+            $('.sa-differential-diagnosis').show();
+            $('.sa-teaching-points').show();
+            $('.sa-compare').show();
+        } else {
+            $('.sa-note').hide();
+            $('.sa-notes').hide();
+            $('.sa-diagnosis').hide();
+            $('.sa-differential-diagnosis').hide();
+            $('.sa-teaching-points').hide();
+            $('.sa-compare').hide();
+        }
+        $('.sa-question').saQuestion('SetMode', mode);
     }
 
     // Copy the text entry text back into the note
@@ -1282,23 +1301,6 @@
     NotesWidget.prototype.SetAnswerVisibility = function(mode) {
         // make sure tags have been decoded.
         SA.AddHtmlTags(this.TextEditor.TextEntry);
-
-        if (mode == 'answer-show') {
-            $('.sa-note').show();
-            $('.sa-notes').show();
-            $('.sa-diagnosis').show();
-            $('.sa-differential-diagnosis').show();
-            $('.sa-teaching-points').show();
-            $('.sa-compare').show();
-        } else {
-            $('.sa-note').hide();
-            $('.sa-notes').hide();
-            $('.sa-diagnosis').hide();
-            $('.sa-differential-diagnosis').hide();
-            $('.sa-teaching-points').hide();
-            $('.sa-compare').hide();
-        }
-        $('.sa-question').saQuestion('SetMode', mode);
 
         this.TextEditor.UpdateMode(mode);
     }

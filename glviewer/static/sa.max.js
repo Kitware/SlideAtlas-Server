@@ -13143,6 +13143,7 @@ function TabPanel(tabbedDiv, title) {
         this.TextEntry.height(height - pos.top - 5);
     }
 
+    /* No one calls this.  Remove it.
     TextEditor.prototype.SetHtml = function(html) {
         if (this.UpdateTimer) {
             clearTimeout(this.UpdateTimer);
@@ -13162,6 +13163,7 @@ function TabPanel(tabbedDiv, title) {
         // this looks for keywords in text and makes tags.
         SA.AddHtmlTags(this.TextEntry);
     }
+    */
 
     TextEditor.prototype.GetHtml = function() {
         return this.TextEntry.html();
@@ -13211,6 +13213,23 @@ function TabPanel(tabbedDiv, title) {
         } else {
             this.HomeButton.text("Home");
         }
+
+        if (mode == 'answer-show') {
+            $('.sa-note').show();
+            $('.sa-notes').show();
+            $('.sa-diagnosis').show();
+            $('.sa-differential-diagnosis').show();
+            $('.sa-teaching-points').show();
+            $('.sa-compare').show();
+        } else {
+            $('.sa-note').hide();
+            $('.sa-notes').hide();
+            $('.sa-diagnosis').hide();
+            $('.sa-differential-diagnosis').hide();
+            $('.sa-teaching-points').hide();
+            $('.sa-compare').hide();
+        }
+        $('.sa-question').saQuestion('SetMode', mode);
     }
 
     // Copy the text entry text back into the note
@@ -13498,23 +13517,6 @@ function TabPanel(tabbedDiv, title) {
     NotesWidget.prototype.SetAnswerVisibility = function(mode) {
         // make sure tags have been decoded.
         SA.AddHtmlTags(this.TextEditor.TextEntry);
-
-        if (mode == 'answer-show') {
-            $('.sa-note').show();
-            $('.sa-notes').show();
-            $('.sa-diagnosis').show();
-            $('.sa-differential-diagnosis').show();
-            $('.sa-teaching-points').show();
-            $('.sa-compare').show();
-        } else {
-            $('.sa-note').hide();
-            $('.sa-notes').hide();
-            $('.sa-diagnosis').hide();
-            $('.sa-differential-diagnosis').hide();
-            $('.sa-teaching-points').hide();
-            $('.sa-compare').hide();
-        }
-        $('.sa-question').saQuestion('SetMode', mode);
 
         this.TextEditor.UpdateMode(mode);
     }
@@ -18705,6 +18707,9 @@ jQuery.prototype.saViewer = function(args) {
 
     // User can call a viewer method through thie jquery api.
     // Pass on the return value if it has one.
+    if (arguments.length == 0) {
+        return saViewerSetup(this, [args]) || this;
+    }
     return saViewerSetup(this, arguments) || this;
 }
 
@@ -18749,7 +18754,7 @@ function saViewerSetup(self, args) {
         }
 
         if ( ! self[i].saViewer) {
-            if (params && params.dual == undefined) {
+            if (params) {
                 // look for class name.
                 if (self.hasClass('sa-dual-viewer')) {
                     params.dual = true;
@@ -18778,7 +18783,7 @@ function saViewerSetup(self, args) {
         // generic method call. Give jquery ui access to all this objects methods.
         // jquery puts the query results as the first argument.
         var viewer = self[i].saViewer;
-        if (typeof(viewer[args[0]]) == 'function') {
+        if (viewer && typeof(viewer[args[0]]) == 'function') {
             // first list item is the method name,
             // the rest are arguments to the method.
             return viewer[args[0]].apply(viewer, Array.prototype.slice.call(args,1));
