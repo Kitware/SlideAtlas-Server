@@ -13143,8 +13143,10 @@ function TabPanel(tabbedDiv, title) {
         this.TextEntry.height(height - pos.top - 5);
     }
 
-    /* No one calls this.  Remove it.
+
+    // No one seems to call this.
     TextEditor.prototype.SetHtml = function(html) {
+        console.log("Something called 'TextEditor::SetHtml'");
         if (this.UpdateTimer) {
             clearTimeout(this.UpdateTimer);
             this.Update();
@@ -13163,7 +13165,7 @@ function TabPanel(tabbedDiv, title) {
         // this looks for keywords in text and makes tags.
         SA.AddHtmlTags(this.TextEntry);
     }
-    */
+    
 
     TextEditor.prototype.GetHtml = function() {
         return this.TextEntry.html();
@@ -13184,6 +13186,9 @@ function TabPanel(tabbedDiv, title) {
         //.....$('#'+note.Id).css({'background':'#e0e0ff'});
 
         this.TextEntry.html(note.Text);
+        // Note needed here long term.
+        // this looks for keywords in text and makes tags.
+        SA.AddHtmlTags(this.TextEntry);
 
         this.UpdateMode(note.Mode);
 
