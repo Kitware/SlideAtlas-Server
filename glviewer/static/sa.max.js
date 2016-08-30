@@ -13209,6 +13209,7 @@ function TabPanel(tabbedDiv, title) {
         if (SA.Edit) {
             this.EditOn();
         }
+        this.TextEntry.trigger('resize');
     }
 
     // This gets called when the note's mode changes.
