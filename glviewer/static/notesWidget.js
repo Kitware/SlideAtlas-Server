@@ -305,7 +305,11 @@
         this.Header.saOnResize(
             function () {
                 var top = self.Header.height();
-                if (top < 90) { top = 90;}
+                if (top == 0) {
+                    // Hack because height not set yet.
+                    setTimeout(function () {self.Header[0].onresize();},250);
+                    return;
+                }
                 self.Body.css({'top':top+'px'});
             });
 
