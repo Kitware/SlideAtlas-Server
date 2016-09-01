@@ -305,6 +305,7 @@
         this.Header.saOnResize(
             function () {
                 var top = self.Header.height();
+                if (top < 90) { top = 90;}
                 self.Body.css({'top':top+'px'});
             });
 
