@@ -229,7 +229,7 @@
         this.Text.Position[1] = mouseWorldPt[1];
         this.UpdateArrow();
         this.Layer.EventuallyDraw();
-        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
@@ -466,10 +466,6 @@
 
     TextWidget.prototype.HandleMouseMove = function(event) {
         if (this.State == DRAG) {
-            if (SAM.NotesWidget) {
-                // Hack.
-                SAM.NotesWidget.MarkAsModified();
-            }
             var cam = this.Layer.GetCamera();
             var w0 = cam.ConvertPointViewerToWorld(this.LastMouse[0], this.LastMouse[1]);
             var w1 = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
@@ -480,15 +476,12 @@
             this.Text.Position[1] += wdy;
             this.Arrow.Origin = this.Text.Position;
             this.PlacePopup();
-            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.Layer.EventuallyDraw();
             return false;
         }
         if (this.State == DRAG_TEXT) { // Just the text not the anchor glyph
-            if (SAM.NotesWidget) {
-                // Hack.
-                SAM.NotesWidget.MarkAsModified();
-            }
             var dx = event.offsetX - this.LastMouse[0];
             var dy = event.offsetY - this.LastMouse[1];
             this.LastMouse = [event.offsetX, event.offsetY];
@@ -499,7 +492,8 @@
             this.UpdateArrow();
             this.PlacePopup();
             this.Layer.EventuallyDraw();
-            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             return false;
         }
         // We do not want to deactivate the widget while the properties dialog is showing.
@@ -676,7 +670,7 @@
         if (window.SA) {SA.RecordState();}
 
         this.Layer.EventuallyDraw();
-        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 

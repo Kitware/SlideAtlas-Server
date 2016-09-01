@@ -274,6 +274,9 @@ NavigationWidget.prototype.Update = function() {
 NavigationWidget.prototype.PreviousNote = function() {
     SA.StackCursorFlag = false;
 
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
+
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
@@ -293,6 +296,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         // We need to skip setting the camera.
         SA.display = this.Display;
         SA.SetNote(current);
+        SA.UpdateUserNotes();
         // Set the camera after the note has been applied.
         viewer1.SetCamera(fp, rot, height);
 
@@ -321,10 +325,14 @@ NavigationWidget.prototype.PreviousNote = function() {
     SA.display = this.Display;
     SA.display.RecordAnnotations();
     SA.SetNote(note);
+    SA.UpdateUserNotes();
 }
 
 NavigationWidget.prototype.NextNote = function() {
     SA.StackCursorFlag = false;
+
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -345,6 +353,7 @@ NavigationWidget.prototype.NextNote = function() {
         // We need to skip setting the camera.
         SA.display = this.Display;
         SA.SetNote(current);
+        SA.UpdateUserNotes();
         // Set the camera after the note has been applied.
         viewer0.SetCamera(fp, rot, height);
         current.DisplayStack(this.Display);
@@ -370,10 +379,14 @@ NavigationWidget.prototype.NextNote = function() {
     SA.display = this.Display;
     SA.display.RecordAnnotations();
     SA.SetNote(note);
+    SA.UpdateUserNotes();
 }
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
+
     SA.StackCursorFlag = false;
     // Find the previous slide ( skip presentations)
     var prevSlideIdx = this.SlideIndex - 1;
@@ -384,7 +397,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
     if (prevSlideIdx < 0) { return; }
 
     var check = true;
-    if (SA.notesWidget && SA.notesWidget.Modified) {
+    if (SA.notesWidget && SA.notesWidget.Modified && SA.Edit) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
@@ -400,6 +413,9 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
+
     SA.StackCursorFlag = false;
     // Find the next slide ( skip presentations)
     var nextSlideIdx = this.SlideIndex + 1;

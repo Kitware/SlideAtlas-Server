@@ -235,8 +235,7 @@
             this.Polyline.Points[i][1] += yOffset;
         }
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
-        if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
-
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw(true);
     }
@@ -303,7 +302,8 @@
             // Last resort.  ESC key always deactivates the widget.
             // Deactivate.
             this.Layer.DeactivateWidget(this);
-            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (window.SA) {SA.RecordState();}
             return false;
         }
@@ -387,7 +387,7 @@
             // Handle merging points when user drags a vertex onto another.
             this.Polyline.MergePoints(this.Circle.Radius);
             // TODO: Manage modidfied more consistently.
-            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
             if (window.SA) {SA.RecordState();}
             if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             return false;
@@ -478,7 +478,8 @@
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
         // TODO: Fix this hack.
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw(true);
     }
 
@@ -792,7 +793,7 @@
             {Color: hexcolor,
              ClosedLoop: this.Polyline.Closed,
              LineWidth: this.LineWidth});
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 

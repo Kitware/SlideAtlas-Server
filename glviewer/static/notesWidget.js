@@ -1,3 +1,8 @@
+// A potential problem with user notes.  User note is created when a note
+// is loaded.  It will not be possible to add user text right after a note
+// is created.  I should disable usernote tab in this case. I do not think
+// it is worthwile to create a user not earlier because I would have to
+// merge user notes or indicate that a note is new and will never be loaded.
 // that possibly share a superclass.
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
@@ -1252,6 +1257,13 @@
             self.SaveUserNote();
         }, 2000);
     }
+    NotesWidget.prototype.Flush = function() {
+        if (this.UserNoteTimerId) {
+            clearTimeout(this.UserNoteTimerId);
+            this.UserNoteTimerId = false;
+            this.SaveUserNote();
+        }
+    }
     // Hackish.
     NotesWidget.prototype.SaveUserNote = function() {
         this.UserNoteTimerId = false;
@@ -1259,12 +1271,20 @@
         if (! note || note.ViewerRecords.length == 0) {
             return;
         }
-        var userNote = note.ViewerRecords[0].UserNote;
+        var userNote = note.ViewerRecords[note.StartIndex].UserNote;
 
         // TODO: Fix this hack.
-        // We are only saving user annotations from the first viewer.
         // Make a method in display to record, the save them all.
-        userNote.ViewerRecords[0].CopyAnnotations(SA.VIEWER1, true);
+        if (SA && SA.display) {
+            // TODO: Fix: This will not work because previous widgets will
+            // be in both widgets, but new widgets will only be in one.
+            // I do not want to duplicate widgets in the note.
+            //for (var i = 0; i < SA.display,GetNumberOfViewers(); ++i) {
+            for (var i = 0; i < 1; ++i) {
+                userNote.ViewerRecords[0].CopyAnnotations(SA.display.GetViewer(i), true);
+            }
+        }
+
         if (userNote.ViewerRecords[0].Annotations.length > 0 ||
             userNote.LoadState == 2) {
             userNote.Save();
@@ -1341,7 +1361,7 @@
     // It sets the text from the note.
     // There has to be another from text links.  That does not set the
     // text.
-    NotesWidget.prototype.SelectNote = function(note) {
+    NotesWidget.prototype.SetNote = function(note) {
         // NOTE: Even if note == this.SelectedNote we still need to add the
         // user note annotations because display resets the annotations of
         // the view. this user may have changed annotations without
@@ -1358,7 +1378,9 @@
         // If note is not in the root note's family, set a new root.
         // Avoid decendants of user notes.
         if (ancestor != this.RootNote && ancestor.Type != "UserNote") {
+            // This will call SetNote again when root note is set.
             this.SetRootNote(ancestor);
+            return;
         }
 
         // This should method should be split between Note and NotesWidget
@@ -1559,7 +1581,7 @@
         this.TextEditor.LoadNote(this.RootNote);
         this.LinksRoot.empty();
         this.RootNote.DisplayGUI(this.LinksRoot);
-        this.SelectNote(this.RootNote);
+        this.SetNote(this.RootNote);
 
         // Add an obvious way to add a link / view to the root note.
         if (SA.Edit) {
@@ -1576,7 +1598,7 @@
                     childNote.Save();
                     parentNote.UpdateChildrenGUI();
                     this.Display.SetNote(childNote);
-                    //self.SelectNote(childNote);
+                    //self.SetNote(childNote);
                 });
         }
         // Default to old style when no text exists (for backward compatability).
@@ -1606,10 +1628,12 @@
         note.UpdateChildrenGUI();
 
         note.Save();
-        //this.SelectNote(childNote);
+        //this.SetNote(childNote);
         this.Display.SetNote(childNote);
     }
 
+    // TODO: Make sure method names are consistent.  Update shoud be for
+    // updating the GUI. Record should be for moving gui changes to notes.
     // Display the user notes text.
     // We have only one text editor so only display the text form the first
     // user note.
@@ -1620,9 +1644,9 @@
             this.UserTextEditor.EditOn();
         }
 
-        var note = this.GetCurrentNote();
+        var note = this.SelectedNote;
         if (note && note.ViewerRecords.length > 0) {
-            var userNote = note.ViewerRecords[0].UserNote;
+            var userNote = note.ViewerRecords[note.StartIndex].UserNote;
 
             // Must display the text.
             this.UserTextEditor.LoadNote(userNote);

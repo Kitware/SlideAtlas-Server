@@ -8052,7 +8052,7 @@ window.SA = window.SA || {};
     // have a global method to check each.
     SA.SetNote = function (note) {
         if (SA.notesWidget) {
-            SA.notesWidget.SelectNote(note);
+            SA.notesWidget.SetNote(note);
         }
         if (SA.navigationWidget) {
             SA.navigationWidget.SetNote(note);
@@ -10735,7 +10735,7 @@ window.SA = window.SA || {};
         }
 
         this.saNote = note;
-        this.saNoteStartIdx = note.StartIndex;
+        this.saNoteStartIndex = note.StartIndex;
         var viewIdx = note.StartIndex || 0;
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
@@ -11386,7 +11386,8 @@ function TabPanel(tabbedDiv, title) {
         return null;
     }
     // When a note fails to load, we need to remove it from the global list
-    // of notes.
+    // of notes. We also delete recorder notes.  Once saved, we never user
+    // them again.
     SA.DeleteNote = function (note) {
         var idx = SA.Notes.indexOf(note);
         if (idx != -1) {
@@ -11907,7 +11908,8 @@ function TabPanel(tabbedDiv, title) {
         // notes. Each saves a different subset of the annotations.
         for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
             if (this.ViewerRecords.length > this.StartIndex+i) {
-                this.ViewerRecords[this.StartIndex+i].CopyAnnotations(
+                var viewerRecord = this.ViewerRecords[this.StartIndex+i];
+                viewerRecord.CopyAnnotations(
                     display.GetViewer(i), (this.Type=="UserNote"));
             }
         }
@@ -12231,6 +12233,11 @@ function TabPanel(tabbedDiv, title) {
     SA.Note = Note;
 
 })();
+// A potential problem with user notes.  User note is created when a note
+// is loaded.  It will not be possible to add user text right after a note
+// is created.  I should disable usernote tab in this case. I do not think
+// it is worthwile to create a user not earlier because I would have to
+// merge user notes or indicate that a note is new and will never be loaded.
 // that possibly share a superclass.
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
@@ -13485,6 +13492,13 @@ function TabPanel(tabbedDiv, title) {
             self.SaveUserNote();
         }, 2000);
     }
+    NotesWidget.prototype.Flush = function() {
+        if (this.UserNoteTimerId) {
+            clearTimeout(this.UserNoteTimerId);
+            this.UserNoteTimerId = false;
+            this.SaveUserNote();
+        }
+    }
     // Hackish.
     NotesWidget.prototype.SaveUserNote = function() {
         this.UserNoteTimerId = false;
@@ -13492,12 +13506,20 @@ function TabPanel(tabbedDiv, title) {
         if (! note || note.ViewerRecords.length == 0) {
             return;
         }
-        var userNote = note.ViewerRecords[0].UserNote;
+        var userNote = note.ViewerRecords[note.StartIndex].UserNote;
 
         // TODO: Fix this hack.
-        // We are only saving user annotations from the first viewer.
         // Make a method in display to record, the save them all.
-        userNote.ViewerRecords[0].CopyAnnotations(SA.VIEWER1, true);
+        if (SA && SA.display) {
+            // TODO: Fix: This will not work because previous widgets will
+            // be in both widgets, but new widgets will only be in one.
+            // I do not want to duplicate widgets in the note.
+            //for (var i = 0; i < SA.display,GetNumberOfViewers(); ++i) {
+            for (var i = 0; i < 1; ++i) {
+                userNote.ViewerRecords[0].CopyAnnotations(SA.display.GetViewer(i), true);
+            }
+        }
+
         if (userNote.ViewerRecords[0].Annotations.length > 0 ||
             userNote.LoadState == 2) {
             userNote.Save();
@@ -13574,7 +13596,7 @@ function TabPanel(tabbedDiv, title) {
     // It sets the text from the note.
     // There has to be another from text links.  That does not set the
     // text.
-    NotesWidget.prototype.SelectNote = function(note) {
+    NotesWidget.prototype.SetNote = function(note) {
         // NOTE: Even if note == this.SelectedNote we still need to add the
         // user note annotations because display resets the annotations of
         // the view. this user may have changed annotations without
@@ -13591,7 +13613,9 @@ function TabPanel(tabbedDiv, title) {
         // If note is not in the root note's family, set a new root.
         // Avoid decendants of user notes.
         if (ancestor != this.RootNote && ancestor.Type != "UserNote") {
+            // This will call SetNote again when root note is set.
             this.SetRootNote(ancestor);
+            return;
         }
 
         // This should method should be split between Note and NotesWidget
@@ -13792,7 +13816,7 @@ function TabPanel(tabbedDiv, title) {
         this.TextEditor.LoadNote(this.RootNote);
         this.LinksRoot.empty();
         this.RootNote.DisplayGUI(this.LinksRoot);
-        this.SelectNote(this.RootNote);
+        this.SetNote(this.RootNote);
 
         // Add an obvious way to add a link / view to the root note.
         if (SA.Edit) {
@@ -13809,7 +13833,7 @@ function TabPanel(tabbedDiv, title) {
                     childNote.Save();
                     parentNote.UpdateChildrenGUI();
                     this.Display.SetNote(childNote);
-                    //self.SelectNote(childNote);
+                    //self.SetNote(childNote);
                 });
         }
         // Default to old style when no text exists (for backward compatability).
@@ -13839,10 +13863,12 @@ function TabPanel(tabbedDiv, title) {
         note.UpdateChildrenGUI();
 
         note.Save();
-        //this.SelectNote(childNote);
+        //this.SetNote(childNote);
         this.Display.SetNote(childNote);
     }
 
+    // TODO: Make sure method names are consistent.  Update shoud be for
+    // updating the GUI. Record should be for moving gui changes to notes.
     // Display the user notes text.
     // We have only one text editor so only display the text form the first
     // user note.
@@ -13853,9 +13879,9 @@ function TabPanel(tabbedDiv, title) {
             this.UserTextEditor.EditOn();
         }
 
-        var note = this.GetCurrentNote();
+        var note = this.SelectedNote;
         if (note && note.ViewerRecords.length > 0) {
-            var userNote = note.ViewerRecords[0].UserNote;
+            var userNote = note.ViewerRecords[note.StartIndex].UserNote;
 
             // Must display the text.
             this.UserTextEditor.LoadNote(userNote);
@@ -14812,6 +14838,7 @@ AnnotationWidget.prototype.DetectSections = function() {
 
         // Create a new note.
         var note = new SA.Note();
+        note.Type = "Record";
         // This will probably have to be passed the viewers.
         note.RecordView(this.Display);
 
@@ -14845,6 +14872,11 @@ AnnotationWidget.prototype.DetectSections = function() {
         });
 
         this.TimeLine.push(note);
+        // Remove it from the serachable global list.
+        // "Delete" recorder notes.  Once saved, we never user
+        // them again. I do not think tileline will be an issue.
+        SA.DeleteNote(note);
+
     }
 
 
@@ -15205,6 +15237,9 @@ NavigationWidget.prototype.Update = function() {
 NavigationWidget.prototype.PreviousNote = function() {
     SA.StackCursorFlag = false;
 
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
+
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
@@ -15224,6 +15259,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         // We need to skip setting the camera.
         SA.display = this.Display;
         SA.SetNote(current);
+        SA.UpdateUserNotes();
         // Set the camera after the note has been applied.
         viewer1.SetCamera(fp, rot, height);
 
@@ -15252,10 +15288,14 @@ NavigationWidget.prototype.PreviousNote = function() {
     SA.display = this.Display;
     SA.display.RecordAnnotations();
     SA.SetNote(note);
+    SA.UpdateUserNotes();
 }
 
 NavigationWidget.prototype.NextNote = function() {
     SA.StackCursorFlag = false;
+
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -15276,6 +15316,7 @@ NavigationWidget.prototype.NextNote = function() {
         // We need to skip setting the camera.
         SA.display = this.Display;
         SA.SetNote(current);
+        SA.UpdateUserNotes();
         // Set the camera after the note has been applied.
         viewer0.SetCamera(fp, rot, height);
         current.DisplayStack(this.Display);
@@ -15301,10 +15342,14 @@ NavigationWidget.prototype.NextNote = function() {
     SA.display = this.Display;
     SA.display.RecordAnnotations();
     SA.SetNote(note);
+    SA.UpdateUserNotes();
 }
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
+
     SA.StackCursorFlag = false;
     // Find the previous slide ( skip presentations)
     var prevSlideIdx = this.SlideIndex - 1;
@@ -15315,7 +15360,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
     if (prevSlideIdx < 0) { return; }
 
     var check = true;
-    if (SA.notesWidget && SA.notesWidget.Modified) {
+    if (SA.notesWidget && SA.notesWidget.Modified && SA.Edit) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
@@ -15331,6 +15376,9 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
+    // Make sure user not changes are not pending to be saved.
+    if (SA.notesWidget){ SA.notesWidget.Flush();}
+
     SA.StackCursorFlag = false;
     // Find the next slide ( skip presentations)
     var nextSlideIdx = this.SlideIndex + 1;

@@ -2606,7 +2606,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Text.Position[1] = mouseWorldPt[1];
         this.UpdateArrow();
         this.Layer.EventuallyDraw();
-        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
@@ -2843,10 +2843,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     TextWidget.prototype.HandleMouseMove = function(event) {
         if (this.State == DRAG) {
-            if (SAM.NotesWidget) {
-                // Hack.
-                SAM.NotesWidget.MarkAsModified();
-            }
             var cam = this.Layer.GetCamera();
             var w0 = cam.ConvertPointViewerToWorld(this.LastMouse[0], this.LastMouse[1]);
             var w1 = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
@@ -2857,15 +2853,12 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Text.Position[1] += wdy;
             this.Arrow.Origin = this.Text.Position;
             this.PlacePopup();
-            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.Layer.EventuallyDraw();
             return false;
         }
         if (this.State == DRAG_TEXT) { // Just the text not the anchor glyph
-            if (SAM.NotesWidget) {
-                // Hack.
-                SAM.NotesWidget.MarkAsModified();
-            }
             var dx = event.offsetX - this.LastMouse[0];
             var dy = event.offsetY - this.LastMouse[1];
             this.LastMouse = [event.offsetX, event.offsetY];
@@ -2876,7 +2869,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.UpdateArrow();
             this.PlacePopup();
             this.Layer.EventuallyDraw();
-            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             return false;
         }
         // We do not want to deactivate the widget while the properties dialog is showing.
@@ -3053,7 +3047,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (window.SA) {SA.RecordState();}
 
         this.Layer.EventuallyDraw();
-        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
@@ -3834,8 +3828,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Polyline.Points[i][1] += yOffset;
         }
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
-        if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
-
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw(true);
     }
@@ -3902,7 +3895,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Last resort.  ESC key always deactivates the widget.
             // Deactivate.
             this.Layer.DeactivateWidget(this);
-            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (window.SA) {SA.RecordState();}
             return false;
         }
@@ -3986,7 +3980,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Handle merging points when user drags a vertex onto another.
             this.Polyline.MergePoints(this.Circle.Radius);
             // TODO: Manage modidfied more consistently.
-            if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
             if (window.SA) {SA.RecordState();}
             if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             return false;
@@ -4077,7 +4071,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
 
         // TODO: Fix this hack.
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw(true);
     }
 
@@ -4391,7 +4386,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             {Color: hexcolor,
              ClosedLoop: this.Polyline.Closed,
              LineWidth: this.LineWidth});
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
@@ -4856,7 +4851,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers(this.Layer.AnnotationView);
-            if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
             this.Layer.EventuallyDraw();
             return false;
         }
@@ -4976,7 +4972,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
                                                             LineWidth: this.LineWidth});
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
-        if (SAM.NotesWidget) { SAM.NotesWidget.MarkAsModified(); } // Hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
     }
 
     /*
@@ -5660,7 +5656,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers(this.Layer.AnnotationView);
-            if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+            if (SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.Layer.EventuallyDraw();
             return false;
         }
@@ -5778,7 +5775,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Layer.EventuallyDraw();
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) {SAM.NotesWidget.MarkAsModified();} // hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
@@ -7119,7 +7116,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.State = NEW_DRAGGING;
         }
         if (this.State == NEW_DRAGGING || this.State == DRAG) {
-            if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+            if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.Shape.Origin = cam.ConvertPointViewerToWorld(x, y);
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -7133,7 +7131,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
             this.Shape.UpdateBuffers(this.Layer.AnnotationView);
-            if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+            if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.PlacePopup();
             this.Layer.EventuallyDraw();
         }
@@ -7164,7 +7163,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     CircleWidget.prototype.HandleTouchPinch = function(event) {
         this.Shape.Radius *= event.PinchScale;
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
-        if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+        if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw();
         return false;
     }
@@ -7311,7 +7311,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Layer.EventuallyDraw();
 
         localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
-        if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+        if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 
@@ -7508,6 +7508,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Layer.EventuallyDraw();
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
     };
 
     RectWidget.prototype.Serialize = function() {
@@ -7624,6 +7625,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.SetActive(false);
             if (window.SA) {SA.RecordState();}
             if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         }
     };
 
@@ -7764,6 +7766,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         this.SetActive(false);
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
     };
 
 
@@ -7903,6 +7906,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Layer.EventuallyDraw();
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 
@@ -8258,6 +8262,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         this.Layer.EventuallyDraw();
     };
 
@@ -8348,6 +8353,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.SetActive(false);
         if (window.SA) {SA.RecordState();}
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
 
         return true;
     };
@@ -8492,6 +8498,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     GridWidget.prototype.HandleTouchEnd = function(event) {
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         this.SetActive(false);
     };
 
@@ -8639,6 +8646,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Layer.EventuallyDraw();
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 

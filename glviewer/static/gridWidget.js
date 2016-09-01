@@ -347,6 +347,7 @@
         this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         this.Layer.EventuallyDraw();
     };
 
@@ -437,6 +438,7 @@
         this.SetActive(false);
         if (window.SA) {SA.RecordState();}
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
 
         return true;
     };
@@ -581,6 +583,7 @@
 
     GridWidget.prototype.HandleTouchEnd = function(event) {
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         this.SetActive(false);
     };
 
@@ -728,6 +731,7 @@
         this.Layer.EventuallyDraw();
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         localStorage.GridWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Grid.LineWidth});
     };
 

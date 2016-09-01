@@ -304,7 +304,8 @@
             var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x,y);
             shape.Points.push([pt[0], pt[1]]); // avoid same reference.
             shape.UpdateBuffers(this.Layer.AnnotationView);
-            if (SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+            if (SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.Layer.EventuallyDraw();
             return false;
         }
@@ -422,7 +423,7 @@
         this.Layer.EventuallyDraw();
 
         localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
-        if (SAM.NotesWidget) {SAM.NotesWidget.MarkAsModified();} // hack
+        if (SAM.NotesWidget && ! this.UserNoteFlag) {SAM.NotesWidget.MarkAsModified();} // hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 

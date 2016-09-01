@@ -487,6 +487,7 @@
 
         // Create a new note.
         var note = new SA.Note();
+        note.Type = "Record";
         // This will probably have to be passed the viewers.
         note.RecordView(this.Display);
 
@@ -520,6 +521,11 @@
         });
 
         this.TimeLine.push(note);
+        // Remove it from the serachable global list.
+        // "Delete" recorder notes.  Once saved, we never user
+        // them again. I do not think tileline will be an issue.
+        SA.DeleteNote(note);
+
     }
 
 

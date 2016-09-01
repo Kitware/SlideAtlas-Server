@@ -248,7 +248,7 @@ window.SA = window.SA || {};
         }
 
         this.saNote = note;
-        this.saNoteStartIdx = note.StartIndex;
+        this.saNoteStartIndex = note.StartIndex;
         var viewIdx = note.StartIndex || 0;
 
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {

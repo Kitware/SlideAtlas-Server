@@ -253,7 +253,8 @@
             this.State = NEW_DRAGGING;
         }
         if (this.State == NEW_DRAGGING || this.State == DRAG) {
-            if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+            if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.Shape.Origin = cam.ConvertPointViewerToWorld(x, y);
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -267,7 +268,8 @@
             // Change units from pixels to world.
             this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
             this.Shape.UpdateBuffers(this.Layer.AnnotationView);
-            if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+            if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+            if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             this.PlacePopup();
             this.Layer.EventuallyDraw();
         }
@@ -298,7 +300,8 @@
     CircleWidget.prototype.HandleTouchPinch = function(event) {
         this.Shape.Radius *= event.PinchScale;
         this.Shape.UpdateBuffers(this.Layer.AnnotationView);
-        if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+        if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
+        if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         this.Layer.EventuallyDraw();
         return false;
     }
@@ -445,7 +448,7 @@
         this.Layer.EventuallyDraw();
 
         localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
-        if (SA && SA.notesWidget) {SA.notesWidget.MarkAsModified();} // hack
+        if (SA && SA.notesWidget && ! this.UserNoteFlag) {SA.notesWidget.MarkAsModified();} // hack
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
     }
 

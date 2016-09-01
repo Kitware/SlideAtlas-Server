@@ -41,7 +41,7 @@ window.SA = window.SA || {};
     // have a global method to check each.
     SA.SetNote = function (note) {
         if (SA.notesWidget) {
-            SA.notesWidget.SelectNote(note);
+            SA.notesWidget.SetNote(note);
         }
         if (SA.navigationWidget) {
             SA.navigationWidget.SetNote(note);

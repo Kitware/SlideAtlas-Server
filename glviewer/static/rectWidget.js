@@ -187,6 +187,7 @@
         this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
         this.Layer.EventuallyDraw();
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
     };
 
     RectWidget.prototype.Serialize = function() {
@@ -303,6 +304,7 @@
             this.SetActive(false);
             if (window.SA) {SA.RecordState();}
             if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+            if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         }
     };
 
@@ -443,6 +445,7 @@
 
         this.SetActive(false);
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
     };
 
 
@@ -582,6 +585,7 @@
         this.Layer.EventuallyDraw();
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
+        if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
         localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 

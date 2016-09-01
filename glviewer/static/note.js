@@ -29,7 +29,8 @@
         return null;
     }
     // When a note fails to load, we need to remove it from the global list
-    // of notes.
+    // of notes. We also delete recorder notes.  Once saved, we never user
+    // them again.
     SA.DeleteNote = function (note) {
         var idx = SA.Notes.indexOf(note);
         if (idx != -1) {
@@ -550,7 +551,8 @@
         // notes. Each saves a different subset of the annotations.
         for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
             if (this.ViewerRecords.length > this.StartIndex+i) {
-                this.ViewerRecords[this.StartIndex+i].CopyAnnotations(
+                var viewerRecord = this.ViewerRecords[this.StartIndex+i];
+                viewerRecord.CopyAnnotations(
                     display.GetViewer(i), (this.Type=="UserNote"));
             }
         }
