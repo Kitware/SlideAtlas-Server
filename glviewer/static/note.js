@@ -8,12 +8,9 @@
     "use strict";
 
     // Globals
+    // The client creates the real and permanent id, so this works even if
+    // the note has not been added to the database.
     SA.GetNoteFromId = function (id) {
-        // Not necessary any more because the client creates real ids.
-        //if (id.substr(0,3) == 'tmp') {
-        //    var idx = parseInt(id.substr(3));
-        //    return SA.Notes[idx];
-        //}
         for (var i = 0; i < SA.Notes.length; ++i) {
             var note = SA.Notes[i];
             if (note.Id && note.Id == id) {
@@ -353,9 +350,11 @@
         }
     }
 
+    // User notes are associated with images. They should be referenced by
+    // the viewer record.  THis method is only used by presentations.
+    // TODO: Fix this.
     Note.prototype.SetUserNote = function(userNote) {
         var parentNote = this;
-        console.log("I do not think UserNote is ever set 2.");
         parentNote.UserNote = userNote;
         userNote.Parent = parentNote;
         userNote.Type = "UserNote";
@@ -534,10 +533,10 @@
         return false;
     }
 
+    // TODO: Method only used by presentations.  Move this to viewer record.
     Note.prototype.RecordAnnotations = function(display) {
         // This is ok, because user notes do not have user notes of their own.
         if (this.UserNote) {
-            console.log("I do not think UserNote is ever set 3.");
             // UserNote annotations are kept separate from other annotations.
             this.UserNote.RecordAnnotations(display);
             // Save it to the database aggresively.
@@ -698,7 +697,7 @@
     }
 
     // This method of loading is causing a pain.
-    // Children ...
+    // Children are saved separately now, so the pain should be gone.
     Note.prototype.Load = function(obj){
         var self = this;
 
@@ -745,9 +744,8 @@
             childNote.Div.data("index", i);
         }
 
-        // I believe the server embeds the correct user note.
+        // Only used by presentations.
         if (this.UserNote) {
-            console.log("I do not think UserNote is ever set. 1");
             // Make the user not into a real object.
             var obj = this.UserNote;
             this.UserNote = new SA.Note();

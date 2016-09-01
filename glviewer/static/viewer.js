@@ -756,7 +756,7 @@
 
     // Not used anymore.  Incorpoarated in SaveLargeImage
     // delete these.
-// Save a bunch of stack images ----
+    // Save a bunch of stack images ----
     Viewer.prototype.SaveStackImages = function(fileNameRoot) {
         var self = this;
         SA.AddFinishedLoadingCallback(
@@ -1441,7 +1441,7 @@
         // Put a throttle on events
         if ( ! this.HandleTouch(e, false)) { return; }
 
-        if (SA.display.NavigationWidget &&
+        if (SA.display && SA.display.NavigationWidget &&
             SA.display.NavigationWidget.Visibility) {
             // No slide interaction with the interface up.
             // I had bad interaction with events going to browser.
@@ -1460,7 +1460,7 @@
         var viewerWidth = this.MainView.CanvasDiv.width();
         var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
         console.log(dxdt);
-        if (SA.display.NavigationWidget) {
+        if (SA.display && SA.display.NavigationWidget) {
             if (dxdt > 4.0) {
                 SA.display.NavigationWidget.PreviousNote();
                 return false;

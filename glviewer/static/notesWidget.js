@@ -463,7 +463,7 @@
     TextEditor.prototype.StartWindowManagerTimer = function(linkNote, x, y) {
         // I think motion is a better trigger for the window manager.
         this.WindowManagerX = x;
-        this.WindowManagerY = y; 
+        this.WindowManagerY = y;
         // hint for mouse up (text editor handles the event).
         this.LinkWindowLocation = 0;
         // Start a timer.
@@ -530,7 +530,7 @@
                         self.ShowWindowManager(linkNote, e.pageX, e.pageY);
                     }
                 }
-            });   
+            });
 
             $(link).mouseup(function(e){
                 if( e.button == 0 ) {
@@ -949,7 +949,6 @@
         // this looks for keywords in text and makes tags.
         SA.AddHtmlTags(this.TextEntry);
     }
-    
 
     TextEditor.prototype.GetHtml = function() {
         return this.TextEntry.html();
@@ -993,6 +992,8 @@
         if (SA.Edit) {
             this.EditOn();
         }
+        // Bug fix: Next slide button was not showing text because it's
+        // the editor's height was 0.
         this.TextEntry.trigger('resize');
     }
 
@@ -1239,6 +1240,7 @@
             });
     }
 
+    // TODO: THese methods do not belong in this class.
     // Trying to save user notes quietly.
     // Sort of hackish.
     NotesWidget.prototype.EventuallySaveUserNote = function() {
@@ -1253,7 +1255,15 @@
     // Hackish.
     NotesWidget.prototype.SaveUserNote = function() {
         this.UserNoteTimerId = false;
-        var userNote = SA.notesWidget.UserNote;
+        var note = SA.notesWidget.GetCurrentNote();
+        if (! note || note.ViewerRecords.length == 0) {
+            return;
+        }
+        var userNote = note.ViewerRecords[0].UserNote;
+
+        // TODO: Fix this hack.
+        // We are only saving user annotations from the first viewer.
+        // Make a method in display to record, the save them all.
         userNote.ViewerRecords[0].CopyAnnotations(SA.VIEWER1, true);
         if (userNote.ViewerRecords[0].Annotations.length > 0 ||
             userNote.LoadState == 2) {
@@ -1268,7 +1278,7 @@
         }
         return false;
     }
-        
+
     NotesWidget.prototype.UpdateQuestionMode = function() {
         // Set the question mode
         if ( ! this.RootNote) {
@@ -1338,7 +1348,7 @@
         // changing the note.
 
         var ancestor = note;
-        while (ancestor != this.RootNote && 
+        while (ancestor != this.RootNote &&
                ancestor.Parent &&
                ancestor.Type != "UserNote") {
             ancestor = ancestor.Parent;
@@ -1349,14 +1359,6 @@
         // Avoid decendants of user notes.
         if (ancestor != this.RootNote && ancestor.Type != "UserNote") {
             this.SetRootNote(ancestor);
-        }
-
-        // Only show user notes for the first image of the root note.
-        // I can rethink this later.
-        // This should be ok to call when note is a usernote.
-        // The user note will be itself.
-        if (note.ViewerRecords.length > 0) {
-            this.RequestUserNote(note.ViewerRecords[0].Image._id);
         }
 
         // This should method should be split between Note and NotesWidget
@@ -1387,6 +1389,9 @@
         }
 
         this.SelectedNote = note;
+
+        // Display the user note text.
+        this.UpdateUserNotes();
 
         // Indicate which note is selected in the Views tab
         note.TitleEntry.css({'background':'#f0f0f0'});
@@ -1479,7 +1484,7 @@
         // even when view/camera links are the current note.
         if (this.RootNote) {
             note = this.RootNote;
-        }            
+        }
         note.NotesPanelOpen = (SA.resizePanel && SA.resizePanel.Visibility);
         var self = this;
         note.Save(function () {
@@ -1605,132 +1610,23 @@
         this.Display.SetNote(childNote);
     }
 
-    // UserNotes used to be attached to a parent note.  Now I am indexing them
-    // from the image id.  They will not get lost, but this causes a could
-    // issues.  I do not support multiple user notes per image.  I have to be
-    // careful about infinte recursion when loading. I am only going to display
-    // the note for the first image in the root note. (I can rethink this last
-    // decision later.)
-    // Maybe we should store the image id directly in the user not instead of
-    // the viewerRecord.
-    NotesWidget.prototype.RequestUserNote = function(imageId) {
-        // First see is we have the user note loaded yet.
-        var userNote = SA.GetUserNoteFromImageId(imageId);
-        if (userNote) {
-            if(userNote.LoadState < 2) {
-                // Already waiting for the note.
-                return;
-            }
-            this.SetUserNote(userNote);
-            return;
-        }
-
-        var userNote = new SA.Note();
-        // Changed userNote parent from note to image.
-        // Although this is more robust (user notes are consistent when notes are
-        // copied...), the GUI looks like user notes are associated with notes
-        // not viewerRecords/images.
-        userNote.Parent = imageId;
-        userNote.Type = "UserNote";
-        userNote.LoadState == 1;
-
-        var self = this;
-        $.ajax({
-            type: "get",
-            url: "/webgl-viewer/getusernotes",
-            data: {"imageid": imageId},
-            success: function(data,status) { self.LoadUserNote(data, userNote);},
-            error: function() {
-                SA.Debug( "AJAX - error() : getusernotes" );
-                SA.DeleteNote(userNote);
-            },
-        });
-    }
-
-
-    // Note will not be active until it has a note.
-    // Edit to a previous note are saved before it is replaced.
-    NotesWidget.prototype.LoadUserNote = function(data, userNote) {
-        if (data.Notes.length > 0) {
-            var noteData = data.Notes[0];
-            userNote.Load(noteData);
-            if (data.Notes.length > 1) {
-                SA.Debug("Warning: More than one user note for the smae image..");
-                // This should not happen, but it did.
-                // Merge all the notes into the one.
-                for (var i = 1; i < data.Notes.length; ++i) {
-                    // TODO: line break.
-                    // TODO: Remove the duplicate note in the database.
-                    userNote.Text += data.Notes[i].Text;
-                }
-            }
-        } else {
-            // start with a copy of the current note.
-            // The server searches viewer records for the image.
-            // Only copoy the first viewer records.  More could be problematic.
-            var note = this.GetCurrentNote();
-            if (note && note.ViewerRecords.length > 0) {
-                var record = new SA.ViewerRecord();
-                // Note: user notes only have one viewer record because
-                // they are linked to images.  We onlyl have user notes
-                // loaded for one viewer (viewer1) because we cannot
-                // display text for two usernotes (yet).
-                record.DeepCopy(note.ViewerRecords[0]);
-                userNote.ViewerRecords.push(record);
-                // Working toward autosaving and displaying user annotations.
-                // do not mix user annotations with other.
-                // Display them both at the same time.
-                // Create the viewer records, but do not add the annotations
-                record.Annotations = [];
-            }
-        }
-
-        this.SetUserNote(userNote);
-    }
-
-       
-    NotesWidget.prototype.SetUserNote = function (userNote) {
+    // Display the user notes text.
+    // We have only one text editor so only display the text form the first
+    // user note.
+    NotesWidget.prototype.UpdateUserNotes = function () {
         // Even if the userNote did not change, we still need to render the annotation.
         // User notes are always editable. Unless it this the demo account.
         if (SA.User != "" && SA.VIEWER1) {
             this.UserTextEditor.EditOn();
-            // Display the user annotations on top of the regular notes
-            // annotations.
-            var annotationLayer = SA.VIEWER1.GetAnnotationLayer();
-            // TODO: Get rid of hard coded viewer.
-            if (userNote.ViewerRecords.length > 0 && annotationLayer) {
-                var annotations = userNote.ViewerRecords[0].Annotations;
-                for (var i = 0; i < annotations.length; ++i) {
-                    var widget = annotationLayer.LoadWidget(annotations[i]);
-                    if (! widget) {
-                        // Get rid of corrupt widgets that do not load properly
-                        annotations.splice(i,1);
-                        --i;
-                    }
-                }
-                SA.VIEWER1.EventuallyRender()
-            }
         }
 
-        if (this.UserNote == userNote) {
-            return;
-        }
-        if (this.UserNote && this.UserNote.Id == userNote.Id) {
-            console.log("Find out why this is happening");
-            return;
-        }
+        var note = this.GetCurrentNote();
+        if (note && note.ViewerRecords.length > 0) {
+            var userNote = note.ViewerRecords[0].UserNote;
 
-        if (this.UserNote) {
-            // Save the previous note incase the user is in mid edit????
-            if (this.UserNote.Text != "" || this.UserNote.Children.length > 0) {
-                this.UserNote.Save();
-            }
+            // Must display the text.
+            this.UserTextEditor.LoadNote(userNote);
         }
-
-        this.UserNote = userNote;
-
-        // Must display the text.
-        this.UserTextEditor.LoadNote(this.UserNote);
     }
 
 
