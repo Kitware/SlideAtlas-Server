@@ -24,6 +24,19 @@ window.SA = window.SA || {};
         window.msRequestAnimationFrame;
 
 
+    // Put the user note text and annotions it the viewer without changing
+    // the camera.  THis has the side effect of reloading the primary note
+    // annotations, so the caller should record any new annotations in the
+    // viewer before calling this.
+    SA.UpdateUserNotes = function () {
+        if (SA.notesWidget) {
+            SA.notesWidget.UpdateUserNotes();
+        }
+        if (SA.display) {
+            SA.display.UpdateUserNotes();
+        }
+    }
+
     // So many optional items have a SetNote(note) method, I decided to
     // have a global method to check each.
     SA.SetNote = function (note) {

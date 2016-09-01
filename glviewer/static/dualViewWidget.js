@@ -280,17 +280,14 @@ window.SA = window.SA || {};
 
     // Display Note
     // Set the state of the WebGL viewer from this notes ViewerRecords.
-    DualViewWidget.prototype.DisplayNote = function(note) {
+    // Lock camera is for when the user note updates and we only want to
+    // update the annotations.
+    DualViewWidget.prototype.DisplayNote = function(note, lockCamera) {
         var numViewers = this.GetNumberOfViewers();
         if (numViewers == 0) { return; }
         if (note.Type == 'Stack') {
             // Stack display needs to keep both viewers up to date.
             numViewers = 2;
-        }
-
-        // Remove Annotations from the previous note.
-        for (var i = 0; i < numViewers; ++i) {
-            this.GetViewer(i).Reset();
         }
 
         // We could have more than two in the future.
@@ -305,11 +302,20 @@ window.SA = window.SA || {};
             var viewer = this.GetViewer(i);
 
             if (i + idx < note.ViewerRecords.length) {
-                note.ViewerRecords[idx + i].Apply(viewer);
+                note.ViewerRecords[idx + i].Apply(viewer, lockCamera);
                 // This is for synchroninzing changes in the viewer back to the note.
                 viewer.RecordIndex = i;
             }
         }
+    }
+
+    // User notes are load on demand and will show up after the root note.
+    // When we add the user note annotations, We cannot reset the camera.
+    DualViewWidget.prototype.UpdateUserNotes = function() {
+        // Wwhere do we record annotations before wiping the viewer
+        // annotations out?
+        var note = this.saNote;
+        this.DisplayNote(note, true);
     }
 
     DualViewWidget.prototype.GetNote = function () {
