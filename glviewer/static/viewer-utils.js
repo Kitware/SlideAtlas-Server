@@ -3777,7 +3777,7 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
         delete this.AnimationStartTime;
         delete this.AnimationDuration;
         delete this.AnimationTarget;
-        
+
         return;
     }
 

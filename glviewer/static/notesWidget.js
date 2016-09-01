@@ -288,6 +288,26 @@
 
 
     function TextEditor(parent, display) {
+
+        this.Header = $('<div>')
+            .appendTo(parent)
+            .css({'width':'100%'});
+
+        this.Body = $('<div>')
+            .appendTo(parent)
+            .css({'width':'100%',
+                  'position':'absolute',
+                  'top':'90px',
+                  'bottom':'0px'});
+
+        // Add a call back to have the text editor fill available verticle space.
+        var self = this;
+        this.Header.saOnResize(
+            function () {
+                var top = self.Header.height();
+                self.Body.css({'top':top+'px'});
+            });
+
         var self = this;
         this.Display = display;
         this.Parent = parent;
@@ -343,10 +363,10 @@
                                self.AddQuestion();
                            });
 
-        this.InitializeHomeButton(parent);
+        this.InitializeHomeButton(this.Header);
 
         this.TextEntry = $('<div>')
-            .appendTo(parent)
+            .appendTo(this.Body)
             .attr('contenteditable', "true")
             .removeAttr('readonly')
             .css({'box-sizing': 'border-box',
@@ -658,7 +678,7 @@
             button.prop('title', tooltip);
         }
         button
-            .appendTo(this.Parent)
+            .appendTo(this.Header)
             .addClass('editButton')
             .attr('src',src)
             .click(callback);
@@ -1224,8 +1244,6 @@
         }
 
         this.TextEditor = new SA.TextEditor(this.TextDiv, this.Display);
-        // Add a call back to have the text editor fill available verticle space.
-        SA.FillDiv(this.TextEditor.TextEntry);
 
         if ( ! SA.Edit) {
             this.TextEditor.EditableOff();
@@ -1237,8 +1255,7 @@
         }
         // Private notes.
         this.UserTextEditor = new SA.TextEditor(this.UserTextDiv, this.Display);
-        // Add a call back to have the text editor fill available verticle space.
-        SA.FillDiv(this.UserTextEditor.TextEntry);
+
         this.UserTextEditor.Change(
             function () {
                 self.UserTextEditor.Note.Save();
