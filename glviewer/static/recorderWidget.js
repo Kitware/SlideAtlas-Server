@@ -195,6 +195,7 @@
 
         this.OverviewBounds = viewer.GetOverViewBounds();
         this.Image = cache.Image;
+        this.UserNote = SA.GetUserNoteFromImageId(this.Image._id);
         this.Camera = viewer.GetCamera().Serialize();
 
         // TODO: get rid of this hack somehow. Generalize layers?
