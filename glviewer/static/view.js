@@ -157,7 +157,7 @@
     // camera need to follow.  I am going to make this the resize callback.
     View.prototype.UpdateCanvasSize = function() {
         if ( ! this.CanvasDiv.is(':visible') ) {
-            return;
+            return false;
         }
 
         var pos = this.CanvasDiv.position();

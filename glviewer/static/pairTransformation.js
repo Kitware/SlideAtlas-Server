@@ -2,9 +2,6 @@
 (function () {
     "use strict";
 
-
-
-
     //==============================================================================
     // A correlation is just a pair of matching points from two sections.
     // Abstract the correlation so we have an api for getting points.
@@ -316,3 +313,4 @@
     SA.PairTransformation = PairTransformation;
 
 })();
+

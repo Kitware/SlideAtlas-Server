@@ -80,5 +80,6 @@ cat viewer.js >> sa.max.js
 cat pairTransformation.js >> sa.max.js 
 cat stackSectionWidget.js >> sa.max.js 
 cat sectionsWidget.js >> sa.max.js 
+cat layerView.js >> sa.max.js 
 
 

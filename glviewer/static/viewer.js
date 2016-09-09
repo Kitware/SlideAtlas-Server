@@ -339,6 +339,7 @@
         if (args.interaction !== undefined) {
             this.SetInteractionEnabled(args.interaction);
         }
+        this.UpdateSize();
     }
 
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
@@ -481,9 +482,11 @@
             this.EventuallyRender();
         }
 
-        var annotLayer = this.GetAnnotationLayer();
-        if (annotLayer) {
-            annotLayer.UpdateSize();
+        for (var i = 0; i < this.Layers.length; ++i) {
+            var layer = this.Layers[i];
+            if (layer && layer.UpdateSize) {
+                layer.UpdateSize();
+            }
         }
 
         // I do not know the way the viewport is used to place
@@ -1102,7 +1105,6 @@
             return;
         }
 
-        this.ConstrainCamera();
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
@@ -1198,6 +1200,9 @@
             // We have past the target. Just set the target values.
             this.MainView.Camera.SetHeight(this.ZoomTarget);
             this.MainView.Camera.Roll = this.RollTarget;
+            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
+                                                 this.TranslateTarget[1]]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.RollTarget;
                 var roll = this.RollTarget;
@@ -1205,8 +1210,6 @@
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
-                                                 this.TranslateTarget[1]]);
             this.UpdateZoomGui();
             // Save the state when the animation is finished.
             if (SA.RECORDER_WIDGET) {
@@ -1223,6 +1226,12 @@
             this.MainView.Camera.Roll
                 = currentRoll + (this.RollTarget-currentRoll)
                 *(timeNow-this.AnimateLast)/this.AnimateDuration;
+            this.MainView.Camera.SetFocalPoint(
+                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
+                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
                 var roll = this.MainView.Camera.Roll;
@@ -1230,11 +1239,6 @@
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint(
-                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
-                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
             this.AnimateDuration -= (timeNow-this.AnimateLast);
             // We are not finished yet.
             // Schedule another render
@@ -1459,7 +1463,7 @@
         // Cross the screen in 1/2 second.
         var viewerWidth = this.MainView.CanvasDiv.width();
         var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
-        console.log(dxdt);
+        //console.log(dxdt);
         if (SA.display && SA.display.NavigationWidget) {
             if (dxdt > 4.0) {
                 SA.display.NavigationWidget.PreviousNote();
@@ -1967,6 +1971,7 @@
             dx = dx * speed;
             dy = dy * speed;
             this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+            this.ConstrainCamera();
         }
         // The only interaction that does not go through animate camera.
         this.TriggerInteraction();
@@ -2051,6 +2056,13 @@
                                          });
             }
             return false;
+        }
+
+        // Handle paste
+        if (event.keyCode == 79) {
+            // o to print out world mouse location for debugging.
+            var wPt = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+            console.log("World: " + wPt[0] + ", " + wPt[1]);
         }
 
         // Handle paste
@@ -2431,6 +2443,7 @@
         annotationLayer.ScaleWidget.View = this.MainView;
         // Hack only used for girder testing.
         annotationLayer.Viewer = this;
+        annotationLayer.UpdateSize();
 
         return annotationLayer;
     }

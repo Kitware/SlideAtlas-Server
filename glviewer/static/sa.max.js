@@ -10507,14 +10507,10 @@ window.SA = window.SA || {};
 (function () {
     "use strict";
 
-
-
     // TODO: Get rid of these gloabal variable.
     SA.VIEWERS = [];
     SA.VIEWER1;
     SA.VIEWER2;
-
-
 
     function DualViewWidget(parent) {
         var self = this;
@@ -10529,6 +10525,12 @@ window.SA = window.SA || {};
 
         this.Parent = parent;
         parent.addClass('sa-dual-viewer');
+        // I need relative position but should not modify parent.
+        this.TopDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'relative',
+                  'width':'100%',
+                  'height':'100%'});
 
         // This parent used to be CANVAS.
         var width = parent.innerWidth();
@@ -10537,7 +10539,7 @@ window.SA = window.SA || {};
 
         for (var i = 0; i < 2; ++i) {
             var viewerDiv = $('<div>')
-                .appendTo(parent)
+                .appendTo(this.TopDiv)
                 .saViewer({overview:true, zoomWidget:true})
                 .addClass("sa-view-canvas-div");
 
@@ -10567,7 +10569,7 @@ window.SA = window.SA || {};
         // This is for moving through notes, session views and stacks.
         // It is not exactly related to dual viewer. It is sort of a child
         // of the dual viewer.
-        this.NavigationWidget = new SA.NavigationWidget(parent,this);
+        this.NavigationWidget = new SA.NavigationWidget(this.TopDiv,this);
 
         if ( ! SAM.MOBILE_DEVICE) { // || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
@@ -10584,7 +10586,7 @@ window.SA = window.SA || {};
                 .on("dragstart", function() {
                     return false;});
 
-            $('<img>').appendTo(parent)
+            $('<img>').appendTo(this.TopDiv)
                 .appendTo(this.ViewerDivs[1])
                 .css({'position':'absolute',
                       'left':'0px',
@@ -10664,7 +10666,7 @@ window.SA = window.SA || {};
             record.Camera = {FocalPoint: [w/2, h/2],
                              Roll: 0,
                              Height: h};
-        note.ViewerRecords.push(record);
+            note.ViewerRecords.push(record);
             cache.SetImageData(image);
             this.SetNote(args.note,args.viewIndex);
         }
@@ -10764,6 +10766,95 @@ window.SA = window.SA || {};
         }
     }
 
+
+    DualViewWidget.prototype.MatrixMultiply = function(M, p) {
+        var x = p[0]*M[0] + p[1]*M[1] + M[2];
+        var y = p[0]*M[3] + p[1]*M[4] + M[5];
+        var k = p[0]*M[6] + p[1]*M[7] + M[8];
+        p[0] = x/k;
+        p[1] = y/k;
+    }
+
+
+    DualViewWidget.prototype.InitializeSynchronousViewsWithPoints = function(p1a,p2a, p1b,p2b, p1c,p2c) {
+        // Just fashoin a not for now.
+        var note = new SA.Note();
+        var viewerRecord1 = new SA.ViewerRecord();
+        viewerRecord1.Transform = new SA.PairTransformation(); // not necessary
+        var viewerRecord2 = new SA.ViewerRecord();
+        viewerRecord2.Transform = new SAM.MatrixTransformation();
+        viewerRecord2.Transform.InitializeWithPoints(p1a,p2a, p1b,p2b, p1c,p2c);
+
+        var pt;
+        var p1 = p1a;
+        var p2 = p2a;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+        var p1 = p1b;
+        var p2 = p2b;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+        var p1 = p1c;
+        var p2 = p2c;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+
+
+        note.ViewerRecords = [viewerRecord1, viewerRecord2];
+        note.StartIndex = 0;
+        note.Type = "Stack";
+
+        this.saNote = note;
+        this.saNoteStartIndex = note.StartIndex;
+        this.saViewerIndex = 0;
+
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    }
+    DualViewWidget.prototype.InitializeSynchronousViews = function(camModel1, camModel2) {
+        // Just fashoin a not for now.
+        var note = new SA.Note();
+        var viewerRecord1 = new SA.ViewerRecord();
+        viewerRecord1.Transform = new SA.PairTransformation(); // not necessary
+        var viewerRecord2 = new SA.ViewerRecord();
+        viewerRecord2.Transform = new SAM.MatrixTransformation(camModel1, camModel2);
+
+
+        var pt;
+        pt = viewerRecord2.Transform.ForwardTransformPoint([259,656]);
+        console.log("(345,261):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([285,8896]);
+        console.log("(167,7265):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([9406,16]);
+        console.log("(7789,306):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([7977,6215]);
+        console.log("(6689,5510):" + pt[0] + "," + pt[1]);
+
+        note.ViewerRecords = [viewerRecord1, viewerRecord2];
+        note.StartIndex = 0;
+        note.Type = "Stack";
+
+        this.saNote = note;
+        this.saNoteStartIndex = note.StartIndex;
+        this.saViewerIndex = 0;
+
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    }
 
     // Display Note
     // Set the state of the WebGL viewer from this notes ViewerRecords.
@@ -11041,7 +11132,7 @@ window.SA = window.SA || {};
         // Translate only one camera and modify the tranform to match.
         if (SA.Edit && SA.StackCursorFlag) {
             var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-            if ( ! note.ActiveCorrelation) {
+            if ( ! note.ActiveCorrelation && trans.Correlations) {
                 if ( ! trans) {
                     alert("Missing transform");
                     return;
@@ -11071,7 +11162,7 @@ window.SA = window.SA || {};
             // I really do not want to set the roll unless the user specifically changed it.
             // It would be hard to correct if the wrong value got set early in the aligment.
             var deltaRoll = cam1.Roll - cam0.Roll;
-            if (trans.Correlations.length > 1) {
+            if (trans.Correlations && trans.Correlations.length > 1) {
                 deltaRoll = 0;
                 // Let roll be set by multiple correlation points.
             }
@@ -29345,6 +29436,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         if (args.interaction !== undefined) {
             this.SetInteractionEnabled(args.interaction);
         }
+        this.UpdateSize();
     }
 
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
@@ -29487,9 +29579,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.EventuallyRender();
         }
 
-        var annotLayer = this.GetAnnotationLayer();
-        if (annotLayer) {
-            annotLayer.UpdateSize();
+        for (var i = 0; i < this.Layers.length; ++i) {
+            var layer = this.Layers[i];
+            if (layer && layer.UpdateSize) {
+                layer.UpdateSize();
+            }
         }
 
         // I do not know the way the viewport is used to place
@@ -30108,7 +30202,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
             return;
         }
 
-        this.ConstrainCamera();
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
@@ -30204,6 +30297,9 @@ Cache.prototype.RecursivePruneTiles = function(node)
             // We have past the target. Just set the target values.
             this.MainView.Camera.SetHeight(this.ZoomTarget);
             this.MainView.Camera.Roll = this.RollTarget;
+            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
+                                                 this.TranslateTarget[1]]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.RollTarget;
                 var roll = this.RollTarget;
@@ -30211,8 +30307,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
-                                                 this.TranslateTarget[1]]);
             this.UpdateZoomGui();
             // Save the state when the animation is finished.
             if (SA.RECORDER_WIDGET) {
@@ -30229,6 +30323,12 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.MainView.Camera.Roll
                 = currentRoll + (this.RollTarget-currentRoll)
                 *(timeNow-this.AnimateLast)/this.AnimateDuration;
+            this.MainView.Camera.SetFocalPoint(
+                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
+                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
                 var roll = this.MainView.Camera.Roll;
@@ -30236,11 +30336,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint(
-                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
-                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
             this.AnimateDuration -= (timeNow-this.AnimateLast);
             // We are not finished yet.
             // Schedule another render
@@ -30465,7 +30560,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         // Cross the screen in 1/2 second.
         var viewerWidth = this.MainView.CanvasDiv.width();
         var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
-        console.log(dxdt);
+        //console.log(dxdt);
         if (SA.display && SA.display.NavigationWidget) {
             if (dxdt > 4.0) {
                 SA.display.NavigationWidget.PreviousNote();
@@ -30973,6 +31068,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             dx = dx * speed;
             dy = dy * speed;
             this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+            this.ConstrainCamera();
         }
         // The only interaction that does not go through animate camera.
         this.TriggerInteraction();
@@ -31057,6 +31153,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
                                          });
             }
             return false;
+        }
+
+        // Handle paste
+        if (event.keyCode == 79) {
+            // o to print out world mouse location for debugging.
+            var wPt = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+            console.log("World: " + wPt[0] + ", " + wPt[1]);
         }
 
         // Handle paste
@@ -31437,6 +31540,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         annotationLayer.ScaleWidget.View = this.MainView;
         // Hack only used for girder testing.
         annotationLayer.Viewer = this;
+        annotationLayer.UpdateSize();
 
         return annotationLayer;
     }
@@ -31476,9 +31580,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
 (function () {
     "use strict";
-
-
-
 
     //==============================================================================
     // A correlation is just a pair of matching points from two sections.
@@ -31791,6 +31892,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
     SA.PairTransformation = PairTransformation;
 
 })();
+
 //==============================================================================
 // Initially a contour found for each section in a stack.
 // Each section gets on of these StackSectionWidgets.  I am extending this
@@ -33010,3 +33112,117 @@ Cache.prototype.RecursivePruneTiles = function(node)
     SA.SectionsWidget = SectionsWidget;
 
 })();
+//==============================================================================
+// A gui for vigilant that controls layers in multiple viewers.
+
+
+(function () {
+    "use strict";
+
+
+    function LayerView (parent, label) {
+        this.Layers = [];
+        this.Label = label;
+        this.Color = [Math.random(),Math.random(),Math.random()];
+
+        this.Initialize(parent,label);
+    }
+
+    LayerView.prototype.AddLayer = function (layer) {
+        this.Layers.push(layer);
+        if (this.CheckBox && this.Slider) {
+            this.UpdateLayer(layer);
+        }
+    }
+
+    // Initialize the gui / dom
+    LayerView.prototype.Initialize = function (parent, label) {
+        var self = this;
+
+        // The wrapper div that controls a single layer.
+        var layer_control = $('<div>')
+            .appendTo(parent)
+            .css({ 'border': '1px solid black', 'width': '100%',
+                   'height': '65px' });
+
+        // the sub-div that holds the direct toggle and the label.
+        var toggle_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid grey', 'width': '20%',
+                   'height': '100%', 'float': 'left' });
+
+        this.CheckBox = $('<input type="checkbox">')
+            .appendTo(toggle_wrapper)
+            .change(function(){
+                self.CheckCallback();
+            })
+            .prop('checked', true);
+
+        var layer_label = $('<div>')
+            .appendTo(toggle_wrapper)
+            .html(label);
+
+        // Wrapper for the confidence slider.
+        var conf_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid grey', 'width': '60%',
+                   'height': '100%', 'float': 'left' });
+
+        this.Slider = $('<input type="range" min="75" max="100">')
+            .appendTo(conf_wrapper)
+            .change(function(){
+                self.SliderCallback();
+            });
+        //this.Slider[0].min = 75;
+
+        var min_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("75%")
+            .css({ 'float': 'left' });
+
+        var max_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("100%")
+            .css({ 'float': 'right' });
+
+        var color_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid grey', 'width': '20%',
+                   'height': '100%', 'float': 'left' })
+            .html("Color");
+    }
+
+    LayerView.prototype.CheckCallback = function () {
+        var checked = this.CheckBox.prop('checked');
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.Layers[i].SetVisibility(checked);
+            this.Layers[i].EventuallyDraw();
+        }
+    }
+
+    LayerView.prototype.SliderCallback = function () {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.UpdateLayer(this.Layers[i]);
+        }
+    }
+
+    LayerView.prototype.UpdateLayer = function (layer) {
+        var checked = this.CheckBox.prop('checked');
+        layer.SetVisibility(checked);
+        if (checked) {
+            var vis_value = parseInt(this.Slider.val()) / 100.0;
+            for (var w_index = 0; w_index < layer.WidgetList.length; w_index++){
+                var widget = layer.WidgetList[w_index];
+                widget.Visibility = (widget.confidence > vis_value);
+            }
+        }
+        layer.EventuallyDraw();
+    }
+
+    SA.LayerView = LayerView;
+
+})();
+
+
+
+
