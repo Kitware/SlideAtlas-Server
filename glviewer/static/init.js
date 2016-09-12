@@ -388,7 +388,10 @@ window.SA = window.SA || {};
                 // needed.
                 if (child[0].tagName == 'DIV') {
                     var grandChildren = child.children();
-                    child.empty();
+                    // child.empty() // looses text that is not a child.
+                    // child.contents()[0] gets it. Maybe make a span and
+                    // put it after 'child'.
+                    child.children().remove();
                     grandChildren.insertAfter(child);
                     children = item.children();
                     container = child;
