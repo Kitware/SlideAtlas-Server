@@ -174,7 +174,6 @@
             gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
             gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
             gl.uniform1f(program.opacityUniform, this.Opacity);
-            console.log("center: " + this.Center[0] + ", " + this.Center[1]);
             gl.uniform2f(program.centerUniform, this.Center[0], this.Center[1]);
         }
 

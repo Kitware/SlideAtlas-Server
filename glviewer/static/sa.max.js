@@ -33220,9 +33220,10 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         this.CheckBox = $('<input type="checkbox">')
             .appendTo(toggle_wrapper)
-            .change(function(){
-                self.CheckCallback();
-            })
+            .on('change',
+                function(){
+                    self.CheckCallback();
+                })
             .prop('checked', true);
 
         var layer_label = $('<div>')
@@ -33237,9 +33238,10 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         this.Slider = $('<input type="range" min="75" max="100">')
             .appendTo(conf_wrapper)
-            .change(function(){
-                self.SliderCallback();
-            });
+            .on('input',
+                function(){
+                    self.SliderCallback();
+                });
         //this.Slider[0].min = 75;
 
         var min_label = $('<div>')
@@ -33657,7 +33659,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
             gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
             gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
             gl.uniform1f(program.opacityUniform, this.Opacity);
-            console.log("center: " + this.Center[0] + ", " + this.Center[1]);
             gl.uniform2f(program.centerUniform, this.Center[0], this.Center[1]);
         }
 

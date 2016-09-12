@@ -39,9 +39,10 @@
 
         this.CheckBox = $('<input type="checkbox">')
             .appendTo(toggle_wrapper)
-            .change(function(){
-                self.CheckCallback();
-            })
+            .on('change',
+                function(){
+                    self.CheckCallback();
+                })
             .prop('checked', true);
 
         var layer_label = $('<div>')
@@ -56,9 +57,10 @@
 
         this.Slider = $('<input type="range" min="75" max="100">')
             .appendTo(conf_wrapper)
-            .change(function(){
-                self.SliderCallback();
-            });
+            .on('input',
+                function(){
+                    self.SliderCallback();
+                });
         //this.Slider[0].min = 75;
 
         var min_label = $('<div>')
