@@ -8035,6 +8035,47 @@ window.SA = window.SA || {};
         window.msRequestAnimationFrame;
 
 
+    SA.TileSourceToCache = function (tileSource) {
+        var w = tileSource.width;
+        var h = tileSource.height;
+        var cache = new SA.Cache();
+        cache.TileSource = tileSource;
+        // Make an id for the image so it can be reused.
+        var image = {levels:     tileSource.maxLevel + 1,
+                     dimensions: [w,h],
+                     bounds: [0,w-1, 0,h-1],
+                     _id : new SA.ObjectId().toString()};
+        cache.SetImageData(image);
+        return cache;
+    }
+
+    // TODO: Clean up dependancy on notes.
+    // Girder make a viewer record from a tile source so the rest of slide
+    // atlas works.
+    SA.TileSourceToViewerRecord = function (tileSource) {
+        var w = tileSource.width;
+        var h = tileSource.height;
+        var cache = SA.TileSourceToCache(tileSource);
+        // Make an id for the image so it can be reused.
+        var image = cache.Image;
+        var record = new SA.ViewerRecord();
+        record.Image = image;
+        record.OverviewBounds = [0,w-1,0,h-1];
+        record.Camera = {FocalPoint: [w/2, h/2],
+                         Roll: 0,
+                         Height: h};
+        return record;
+    }
+
+    // Girder make a dummy note from a tile source so the rest of slide
+    // atlas works.
+    SA.TileSourceToNote = function (tileSource) {
+        var note = new SA.Note();
+        var record = SA.TileSourceToViewerRecord(tileSource);
+        note.ViewerRecords.push(record);
+        return note;
+    }
+
     // Put the user note text and annotions it the viewer without changing
     // the camera.  THis has the side effect of reloading the primary note
     // annotations, so the caller should record any new annotations in the
@@ -8399,7 +8440,9 @@ window.SA = window.SA || {};
                 // needed.
                 if (child[0].tagName == 'DIV') {
                     var grandChildren = child.children();
-                    child.empty();
+                    // child.empty(); // loose the "text" contents[0] that
+                    // is not a child.
+                    child.children().remove(); // probably not necessary.
                     grandChildren.insertAfter(child);
                     children = item.children();
                     container = child;
@@ -9103,8 +9146,24 @@ window.SA = window.SA || {};
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
-            /*
+            var imageObj = {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                            levels:     12,
+                            dimensions: [419168, 290400, 1],
+                            bounds: [0,419167, 0, 290399, 0,0],
+                            spacing: [0.1,0.1,1.0],
+                            origin : [100, 10000]};
+            var heatMapSource = new SA.SlideAtlasSource();
+            heatMapSource.Prefix = imageObj.prefix;
+            var heatMapCache = new SA.Cache();
+            heatMapCache.TileSource = heatMapSource;
+            heatMapCache.SetImageData(imageObj);
+
+
             SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetCache(heatMapCache);
+            viewer1.AddLayer(SA.heatMap1);
+
+            /*
             SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                  levels:     12,
@@ -9113,6 +9172,8 @@ window.SA = window.SA || {};
                  spacing: [0.1,0.1,1.0],
                  origin : [100, 10000]});
             viewer1.AddLayer(SA.heatMap1);
+            */
+            /*
 
             SA.heatMap2 = new SA.HeatMap(viewer1.Div);
             SA.heatMap2.Color = [0.0, 0.0, 0.7];
@@ -10540,6 +10601,8 @@ window.SA = window.SA || {};
         for (var i = 0; i < 2; ++i) {
             var viewerDiv = $('<div>')
                 .appendTo(this.TopDiv)
+                .css({'position':'absolulute',
+                      'top':'0px'})
                 .saViewer({overview:true, zoomWidget:true})
                 .addClass("sa-view-canvas-div");
 
@@ -28308,6 +28371,10 @@ Cache.prototype.destructor=function()
 {
 }
 
+Cache.prototype.GetImageData = function() {
+    return this.Image;
+}
+
 Cache.prototype.SetImageData = function(image) {
 
     if ( ! image.TileSize) {
@@ -29029,7 +29096,15 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
 
     // Not used at the moment
-    TileView.prototype.Draw = function () {
+    TileView.prototype.Draw = function (masterView) {
+        if (masterView) {
+            var cam = masterView.Camera;
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(cam, this.Camera);
+            } else {
+                this.Camera.DeepCopy(cam);
+            }
+        }
 
         if (this.gl) {
             var gl = this.gl;
@@ -29084,6 +29159,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             if (MASK_HACK ) {
                 return;
             }
+
             return this.Section.Draw(this);
         }
     }
@@ -29401,26 +29477,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         }
 
         if (args.tileSource) {
-            var w = args.tileSource.width;
-            var h = args.tileSource.height;
-            var cache = new SA.Cache();
-            cache.TileSource = args.tileSource;
-            // Use the note tmp id as an image id so the viewer can index the
-            // cache.
-            var note = new SA.Note();
-            var image = {levels:     args.tileSource.maxLevel + 1,
-                         dimensions: [w,h],
-                         bounds: [0,w-1, 0,h-1],
-                         _id: note.TempId};
-            var record = new SA.ViewerRecord();
-            record.Image = image;
-            record.OverviewBounds = [0,w-1,0,h-1];
-            record.Camera = {FocalPoint: [w/2, h/2],
-                             Roll: 0,
-                             Height: h};
-            note.ViewerRecords.push(record);
-            cache.SetImageData(image);
-            args.note = note;
+            args.note = SA.TileSourceToNote(args.tileSource);
         }
 
         if (args.note) {
@@ -29438,6 +29495,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         }
         this.UpdateSize();
     }
+
 
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
     // will  win.
@@ -31545,6 +31603,15 @@ Cache.prototype.RecursivePruneTiles = function(node)
         return annotationLayer;
     }
 
+    Viewer.prototype.NewViewLayer = function() {
+        // Create an annotation layer by default.
+        var viewLayer = new SA.TileView(this.Div, false);
+        this.AddLayer(viewLayer);
+        viewLayer.UpdateSize();
+
+        return viewLayer;
+    }
+
     // Get rid of this.
     Viewer.prototype.ClearAnnotations = function () {
         var annotationLayer = this.GetAnnotationLayer();
@@ -33142,13 +33209,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
         // The wrapper div that controls a single layer.
         var layer_control = $('<div>')
             .appendTo(parent)
-            .css({ 'border': '1px solid black', 'width': '100%',
+            .css({ 'border': '1px solid #CCC', 'width': '100%',
                    'height': '65px' });
 
         // the sub-div that holds the direct toggle and the label.
         var toggle_wrapper = $('<div>')
             .appendTo(layer_control)
-            .css({ 'border': '1px solid grey', 'width': '20%',
+            .css({ 'border': '1px solid #CCC', 'width': '20%',
                    'height': '100%', 'float': 'left' });
 
         this.CheckBox = $('<input type="checkbox">')
@@ -33165,7 +33232,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         // Wrapper for the confidence slider.
         var conf_wrapper = $('<div>')
             .appendTo(layer_control)
-            .css({ 'border': '1px solid grey', 'width': '60%',
+            .css({ 'border': '1px solid #CCC', 'width': '60%',
                    'height': '100%', 'float': 'left' });
 
         this.Slider = $('<input type="range" min="75" max="100">')
@@ -33187,9 +33254,25 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         var color_wrapper = $('<div>')
             .appendTo(layer_control)
-            .css({ 'border': '1px solid grey', 'width': '20%',
-                   'height': '100%', 'float': 'left' })
-            .html("Color");
+            .css({ 'border': '1px solid #CCC',
+                   'width': '20%',
+                   'padding':'5px',
+                   'height': '100%', 
+                   'float': 'left' });
+        this.ColorInput = $('<input type="color">')
+            .appendTo(color_wrapper)
+            .val(SAM.ConvertColorToHex(this.Color))
+            .change(function () {
+                self.ColorCallback();
+            });
+
+    }
+
+    LayerView.prototype.ColorCallback = function () {
+        this.Color = SAM.ConvertColor(this.ColorInput.val());
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.UpdateLayer(this.Layers[i]);
+        }
     }
 
     LayerView.prototype.CheckCallback = function () {
@@ -33214,6 +33297,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             for (var w_index = 0; w_index < layer.WidgetList.length; w_index++){
                 var widget = layer.WidgetList[w_index];
                 widget.Visibility = (widget.confidence > vis_value);
+                widget.Shape.SetOutlineColor(this.Color);
             }
         }
         layer.EventuallyDraw();
@@ -33222,6 +33306,373 @@ Cache.prototype.RecursivePruneTiles = function(node)
     SA.LayerView = LayerView;
 
 })();
+
+
+
+
+
+// A Renderer - layer tht uses webGL to show an intensity immage maped to color-transparency.
+(function () {
+    "use strict";
+
+
+    function HeatMap(parent) {
+        this.HeatMapDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px',
+                  'border-width':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'box-sizing':'border-box',
+                  'z-index':'150'})
+            .addClass('sa-resize');
+
+        this.View = new SA.TileView(this.HeatMapDiv,true);
+        var gl = this.View.gl;
+        this.Color = [0.0, 0.4, 0.0];
+        this.Window = 1.0;
+        this.Level = 0.5;
+        this.Gamma = 1.0;
+
+        var self = this;
+        this.HeatMapDiv.saOnResize(
+            function() {
+                self.View.UpdateCanvasSize();
+                // Rendering will be a slave to the view because it needs the
+                // view's camera anyway.
+            });
+
+
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "varying vec2 vTextureCoord;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "uniform vec2 uWindowLevel;" +
+            "uniform float uGamma;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  float alpha = textureColor[0];" +
+            "  if (uWindowLevel[0] != 1.0 || uWindowLevel[1] != 0.5) {" +
+            "    alpha = ((alpha-0.5)/uWindowLevel[0]) + uWindowLevel[1];" +
+            "  }" +
+            "  if (uGamma != 1.0) {" +
+            "    if (uGamma < 0.0) {" +
+            "      alpha = pow((1.0-alpha), -uGamma);" +
+            "    } else {" +
+            "      alpha = pow(alpha, uGamma);" +
+            "    }" +
+            "  }" +
+            "  textureColor = vec4(uColor, alpha);" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var vertexShaderString =
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
+
+        var shaderProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Setup the shader program to render heatmaps.
+        shaderProgram.textureCoordAttribute
+            = gl.getAttribLocation(shaderProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        shaderProgram.gamaUniform = gl.getUniformLocation(shaderProgram,"uGamma");
+        shaderProgram.windowLevelUniform = gl.getUniformLocation(shaderProgram,"uWindowLevel");
+        this.View.ShaderProgram = shaderProgram;
+    }
+
+    HeatMap.prototype.SetCache = function (cache) {
+        this.View.SetCache(cache);
+        var imageObj = cache.GetImageData();
+        if ( ! imageObj.spacing) {
+            imageObj.spacing = [1,1,1];
+        }
+        if ( ! imageObj.origin) {
+            imageObj.origin = [0,0,0];
+        }
+        var width = imageObj.dimensions[0] * imageObj.spacing[0];;
+        var height = imageObj.dimensions[1] * imageObj.spacing[1];;
+        this.View.Camera.Load(
+            {FocalPoint: [width/2, height/2],
+             Roll      : 0,
+             Height    : height});
+        this.View.Camera.ComputeMatrix();
+        this.View.UpdateCanvasSize();
+    }
+
+    // Only works for images served by slide atlas. 
+    HeatMap.prototype.SetImageData = function (imageObj) {
+        imageObj.spacing = imageObj.spacing || [1.0, 1.0, 1.0];
+        imageObj.origin  = imageObj.origin  || [0.0, 0.0, 0.0];
+
+        var heatMapSource = new SA.SlideAtlasSource();
+        heatMapSource.Prefix = imageObj.prefix;
+        var heatMapCache = new SA.Cache();
+        heatMapCache.TileSource = heatMapSource;
+        heatMapCache.SetImageData(imageObj);
+        this.View.SetCache(heatMapCache);
+    }
+
+
+    HeatMap.prototype.Draw = function (masterView, inCam) {
+        var inCam = inCam || masterView.Camera;
+
+        if (inCam) {
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(inCam, this.View.GetCamera());
+            } else {
+                // Use spacing and origin for a transformation.
+                var outCam = this.View.Camera;
+                var imageObj = this.View.GetCache().Image;
+                outCam.DeepCopy(inCam);
+                outCam.FocalPoint[0]
+                    = (outCam.FocalPoint[0]-imageObj.origin[0])/imageObj.spacing[0];
+                outCam.FocalPoint[1]
+                    = (outCam.FocalPoint[1]-imageObj.origin[1])/imageObj.spacing[1];
+                outCam.Width /= imageObj.spacing[0];
+                outCam.Height /= imageObj.spacing[1];
+                outCam.ComputeMatrix();
+                this.Camera.DeepCopy(cam);
+            }
+        }
+
+        if (this.View.gl) {
+            var gl = this.View.gl;
+            var program = this.View.ShaderProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            // The blending in funky because there is no destination.
+            // It is bleniding with data from canvas behind the webGl canvas.
+            gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
+            gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            gl.uniform1f(program.gamaUniform, this.Gamma);
+            gl.uniform2f(program.windowLevelUniform, this.Window, this.Level);
+        }
+
+
+
+        this.View.DrawTiles();
+    }
+
+    // Clear the canvas for another render.
+    HeatMap.prototype.Reset = function () {
+    }
+
+
+    SA.HeatMap = HeatMap;
+
+})();
+
+
+
+
+
+
+// A Renderer - layer tints an image and adds opacity.  Maybe lens in the future.
+(function () {
+    "use strict";
+
+    function OverlayView(parent) {
+        this.OverlayViewDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px',
+                  'border-width':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'box-sizing':'border-box',
+                  'z-index':'150'})
+            .addClass('sa-resize');
+
+        this.View = new SA.TileView(this.OverlayViewDiv,true);
+        var gl = this.View.gl;
+        this.Color = [1.0, 0.0, 1.0];
+        this.Center = [500,500];
+        this.Radius = 0;
+        this.Opacity = 1.0;
+
+        var self = this;
+        this.OverlayViewDiv.saOnResize(
+            function() {
+                self.View.UpdateCanvasSize();
+                // Rendering will be a slave to the view because it needs the
+                // view's camera anyway.
+            });
+
+
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "varying vec2 vTextureCoord;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "uniform vec2 uCenter;" +
+            "uniform float uOpacity;" +
+            "void main(void) {" +
+            "  float alpha = uOpacity;" +
+            "  float dx = gl_FragCoord.x - uCenter.x;" +
+            "  float dy = gl_FragCoord.y - uCenter.y;" +
+            "  if ((dx * dx) + (dy * dy) < 40000.0) { alpha = 0.0;}" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  float intensity = textureColor[0];" +
+            "  textureColor[0] = intensity * uColor[0];" +
+            "  textureColor[1] = intensity * uColor[1];" +
+            "  textureColor[2] = intensity * uColor[2];" +
+            "  textureColor[3] = alpha;" +
+            "  gl_FragColor = textureColor;" +
+            //"  gl_FragColor = vec4(gl_FragCoord.x / 1000.0, gl_FragCoord.y / 1000.0, 0, alpha);" +
+            "}";
+        var vertexShaderString =
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "varying vec4 vPos;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
+
+        var shaderProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Setup the shader program to render heatmaps.
+        shaderProgram.textureCoordAttribute
+            = gl.getAttribLocation(shaderProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        shaderProgram.opacityUniform = gl.getUniformLocation(shaderProgram,"uOpacity");
+        shaderProgram.centerUniform = gl.getUniformLocation(shaderProgram,"uCenter");
+        this.View.ShaderProgram = shaderProgram;
+
+        var self = this;
+        //this.View.Canvas
+        this.OverlayViewDiv.on(
+            "mousemove.overlay",
+			      function (event){
+                self.Center[0] = event.offsetX;
+                self.Center[1] = self.OverlayViewDiv.height() - event.offsetY;
+                self.EventuallyDraw();
+                return true;
+            });
+    }
+
+    // To compress draw events.
+    OverlayView.prototype.EventuallyDraw = function() {
+        if ( ! this.RenderPending) {
+            this.RenderPending = true;
+            var self = this;
+            requestAnimFrame(
+                function() {
+                    self.RenderPending = false;
+                    self.Draw();
+                });
+        }
+    }
+
+    OverlayView.prototype.SetCache = function (cache) {
+        this.View.SetCache(cache);
+        var imageObj = cache.GetImageData();
+        if ( ! imageObj.spacing) {
+            imageObj.spacing = [1,1,1];
+        }
+        if ( ! imageObj.origin) {
+            imageObj.origin = [0,0,0];
+        }
+        var width = imageObj.dimensions[0] * imageObj.spacing[0];;
+        var height = imageObj.dimensions[1] * imageObj.spacing[1];;
+        this.View.Camera.Load(
+            {FocalPoint: [width/2, height/2],
+             Roll      : 0,
+             Height    : height});
+        this.View.Camera.ComputeMatrix();
+        this.View.UpdateCanvasSize();
+    }
+
+    // Only works for images served by slide atlas. 
+    OverlayView.prototype.SetImageData = function (imageObj) {
+        imageObj.spacing = imageObj.spacing || [1.0, 1.0, 1.0];
+        imageObj.origin  = imageObj.origin  || [0.0, 0.0, 0.0];
+
+        var heatMapSource = new SA.SlideAtlasSource();
+        heatMapSource.Prefix = imageObj.prefix;
+        var heatMapCache = new SA.Cache();
+        heatMapCache.TileSource = heatMapSource;
+        heatMapCache.SetImageData(imageObj);
+        this.View.SetCache(heatMapCache);
+    }
+
+
+    OverlayView.prototype.Draw = function (masterView, inCam) {
+        // TODO: Clear any pending renders.
+
+        if (masterView) {
+            inCam = inCam || masterView.Camera;
+        }
+
+        if (inCam) {
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(inCam, this.View.GetCamera());
+            } else {
+                // Use spacing and origin for a transformation.
+                var outCam = this.View.Camera;
+                var imageObj = this.View.GetCache().Image;
+                outCam.DeepCopy(inCam);
+                outCam.FocalPoint[0]
+                    = (outCam.FocalPoint[0]-imageObj.origin[0])/imageObj.spacing[0];
+                outCam.FocalPoint[1]
+                    = (outCam.FocalPoint[1]-imageObj.origin[1])/imageObj.spacing[1];
+                outCam.Width /= imageObj.spacing[0];
+                outCam.Height /= imageObj.spacing[1];
+                outCam.ComputeMatrix();
+                this.Camera.DeepCopy(cam);
+            }
+        }
+
+        if (this.View.gl) {
+            var gl = this.View.gl;
+            var program = this.View.ShaderProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            // The blending in funky because there is no destination.
+            // It is bleniding with data from canvas behind the webGl canvas.
+            gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
+            gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            gl.uniform1f(program.opacityUniform, this.Opacity);
+            console.log("center: " + this.Center[0] + ", " + this.Center[1]);
+            gl.uniform2f(program.centerUniform, this.Center[0], this.Center[1]);
+        }
+
+        this.View.DrawTiles();
+    }
+
+    // Clear the canvas for another render.
+    OverlayView.prototype.Reset = function () {
+    }
+
+
+    SA.OverlayView = OverlayView;
+
+})();
+
 
 
 

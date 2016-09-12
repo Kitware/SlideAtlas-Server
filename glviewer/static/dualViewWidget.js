@@ -53,6 +53,8 @@ window.SA = window.SA || {};
         for (var i = 0; i < 2; ++i) {
             var viewerDiv = $('<div>')
                 .appendTo(this.TopDiv)
+                .css({'position':'absolulute',
+                      'top':'0px'})
                 .saViewer({overview:true, zoomWidget:true})
                 .addClass("sa-view-canvas-div");
 

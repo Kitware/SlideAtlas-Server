@@ -304,26 +304,7 @@
         }
 
         if (args.tileSource) {
-            var w = args.tileSource.width;
-            var h = args.tileSource.height;
-            var cache = new SA.Cache();
-            cache.TileSource = args.tileSource;
-            // Use the note tmp id as an image id so the viewer can index the
-            // cache.
-            var note = new SA.Note();
-            var image = {levels:     args.tileSource.maxLevel + 1,
-                         dimensions: [w,h],
-                         bounds: [0,w-1, 0,h-1],
-                         _id: note.TempId};
-            var record = new SA.ViewerRecord();
-            record.Image = image;
-            record.OverviewBounds = [0,w-1,0,h-1];
-            record.Camera = {FocalPoint: [w/2, h/2],
-                             Roll: 0,
-                             Height: h};
-            note.ViewerRecords.push(record);
-            cache.SetImageData(image);
-            args.note = note;
+            args.note = SA.TileSourceToNote(args.tileSource);
         }
 
         if (args.note) {
@@ -341,6 +322,7 @@
         }
         this.UpdateSize();
     }
+
 
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
     // will  win.
@@ -2446,6 +2428,15 @@
         annotationLayer.UpdateSize();
 
         return annotationLayer;
+    }
+
+    Viewer.prototype.NewViewLayer = function() {
+        // Create an annotation layer by default.
+        var viewLayer = new SA.TileView(this.Div, false);
+        this.AddLayer(viewLayer);
+        viewLayer.UpdateSize();
+
+        return viewLayer;
     }
 
     // Get rid of this.

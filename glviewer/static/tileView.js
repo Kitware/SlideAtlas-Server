@@ -61,7 +61,15 @@
 
 
     // Not used at the moment
-    TileView.prototype.Draw = function () {
+    TileView.prototype.Draw = function (masterView) {
+        if (masterView) {
+            var cam = masterView.Camera;
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(cam, this.Camera);
+            } else {
+                this.Camera.DeepCopy(cam);
+            }
+        }
 
         if (this.gl) {
             var gl = this.gl;
@@ -116,6 +124,7 @@
             if (MASK_HACK ) {
                 return;
             }
+
             return this.Section.Draw(this);
         }
     }

@@ -81,5 +81,7 @@ cat pairTransformation.js >> sa.max.js
 cat stackSectionWidget.js >> sa.max.js 
 cat sectionsWidget.js >> sa.max.js 
 cat layerView.js >> sa.max.js 
+cat heatMap.js >> sa.max.js 
+cat overlayView.js >> sa.max.js 
 
 

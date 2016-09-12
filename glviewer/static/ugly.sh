@@ -76,5 +76,6 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc stackSectionWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc sectionsWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc layerView.js >> sa.min.js 
-
+~/bin/uglifyjs -nc heatMap.js >> sa.min.js 
+~/bin/uglifyjs -nc overlayView.js >> sa.min.js 
 

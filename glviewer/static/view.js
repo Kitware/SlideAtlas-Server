@@ -153,6 +153,10 @@
         return this.CanvasDiv.height();
     }
 
+    View.prototype.UpdateSize = function() {
+        this.UpdateCanvasSize();
+    }
+
     // The canvasDiv changes size, the width and height of the canvas and
     // camera need to follow.  I am going to make this the resize callback.
     View.prototype.UpdateCanvasSize = function() {
