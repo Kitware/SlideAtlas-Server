@@ -117,6 +117,30 @@ window.SA = window.SA || {};
               this.CellBuffer = view.tileCellBuffer;
               }
             */
+
+            // Trying to crop away the padding.
+            // Compute bounds in tile pixel coordinate system.
+            var bds = cache.Image.bounds.slice(0);
+            var tileSpacingX = cache.RootSpacing[0] / (1 << this.Level);
+            var tileSpacingY = cache.RootSpacing[1] / (1 << this.Level);
+            var tileOriginX = this.X * cache.TileDimensions[0]
+            var tileOriginY = this.Y * cache.TileDimensions[1]
+            bds[0] = (bds[0] / tileSpacingX) - tileOriginX;
+            bds[1] = (bds[1] / tileSpacingX) - tileOriginX;
+            bds[2] = (bds[2] / tileSpacingY) - tileOriginY;
+            bds[3] = (bds[3] / tileSpacingY) - tileOriginY;
+            // Do we need to crop?
+            if (bds[0] > 0 || bds[1] < cache.TileDimensions[0] || 
+                bds[1] > 0 || bds[3] < cache.TileDimensions[1]) {
+                // Yes we need to crop. Put it in
+                // [minx,miny,sizex,sizey]
+                // Useful for draw image.
+                this.Crop = [];
+                this.Crop[0] = Math.max(bds[0], 0);
+                this.Crop[1] = Math.max(bds[2], 0);
+                this.Crop[2] = (Math.min(bds[1], cache.TileDimensions[0]))-this.Crop[0];
+                this.Crop[3] = (Math.min(bds[3], cache.TileDimensions[1]))-this.Crop[1];
+            }
         } else {
             // Warp model.
             // In draw now.
@@ -373,8 +397,12 @@ window.SA = window.SA || {};
                 tileSize = 256;
             }
             view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-            view.Context2d.drawImage(this.Image,0,0);
-
+            if (this.Crop) {
+                view.Context2d.drawImage(this.Image, this.Crop[0],this.Crop[1],this.Crop[2],this.Crop[3],
+                                         this.Crop[0],this.Crop[1],this.Crop[2],this.Crop[3]);
+            } else {
+                view.Context2d.drawImage(this.Image,0,0);
+            }
             if (SA.WaterMark) {
                 var angle = (this.X+1)*(this.Y+1)*4.0
                 view.Context2d.translate(128,128);
