@@ -20,14 +20,10 @@ window.SA = window.SA || {};
 (function () {
     "use strict";
 
-
-
     // TODO: Get rid of these gloabal variable.
     SA.VIEWERS = [];
     SA.VIEWER1;
     SA.VIEWER2;
-
-
 
     function DualViewWidget(parent) {
         var self = this;
@@ -675,6 +671,57 @@ window.SA = window.SA || {};
                 }
             }
         }
+    }
+
+
+    // Called from the console for renal stack.
+    // For every polyline in the left viewer, try to find a corresponding
+    // polyline in the right viewer. If found, change its color to match.
+    DualViewWidget.prototype.MatchPolylines = function () {
+        var widgets0 = this.Viewer[0].GetAnnotationLayer().GetWidgets();
+        var widgets1 = this.Viewer[1].GetAnnotationLayer().GetWidgets();
+
+        var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+        var sigma = this.Viewers[0].GetCamera().Height / 2;
+
+        for (var i = 0; i < widgets0.length; ++i) {
+            var w0 = widgets0[i];
+            if (w0.Polyline) {
+                var polyline0 = w0.Polyline;
+                // get the center and area.
+                var center0 = [(polyline0.Bounds[0]+polyline0.Bounds[1])*0.5,
+                               (polyline0.Bounds[2]+polyline0.Bounds[3])*0.5];
+                var area0 = polyline0.ComputeArea();
+                var bestMatch;
+                var bestPolyline;
+                for (var j = 0; j < widgets1.length; ++j) {
+                    var w1 = widgets1[j];
+                    if (w1.Polyline) {
+                        var polyline1 = w1.Polyline;
+                        // get the center and area.
+                        center1 = trans.ReverseTransform(center1,sigma);
+
+                        var center1 = [(polyline1.Bounds[0]+polyline1.Bounds[1])*0.5,
+                                       (polyline1.Bounds[2]+polyline1.Bounds[3])*0.5];
+                        var area1 = polyline.ComputeArea();
+                        var dx = center1[0]-center0[0];
+                        var dy = center1[1]-center0[1];
+                        var match = dx*dx + dy*dx + Math.abs(area1-area0);
+                        if (! bestMatch || match < bestMatch) {
+                            bestMatch = match;
+                            bestPolyline = w1;
+                        }
+                    }
+                }
+
+                if (bestMatch < (area1/4)) {
+                    w1.Polyline.OutlineColor =
+                        w0.Polyline.OutlineColor.slice(0);
+                }
+            }
+        }
+
+        this.EventuallyRender();
     }
 
 

@@ -8399,7 +8399,10 @@ window.SA = window.SA || {};
                 // needed.
                 if (child[0].tagName == 'DIV') {
                     var grandChildren = child.children();
-                    child.empty();
+                    // child.empty() // looses text that is not a child.
+                    // child.contents()[0] gets it. Maybe make a span and
+                    // put it after 'child'.
+                    child.children().remove();
                     grandChildren.insertAfter(child);
                     children = item.children();
                     container = child;
@@ -10507,14 +10510,10 @@ window.SA = window.SA || {};
 (function () {
     "use strict";
 
-
-
     // TODO: Get rid of these gloabal variable.
     SA.VIEWERS = [];
     SA.VIEWER1;
     SA.VIEWER2;
-
-
 
     function DualViewWidget(parent) {
         var self = this;
@@ -11162,6 +11161,57 @@ window.SA = window.SA || {};
                 }
             }
         }
+    }
+
+
+    // Called from the console for renal stack.
+    // For every polyline in the left viewer, try to find a corresponding
+    // polyline in the right viewer. If found, change its color to match.
+    DualViewWidget.prototype.MatchPolylines = function () {
+        var widgets0 = this.Viewer[0].GetAnnotationLayer().GetWidgets();
+        var widgets1 = this.Viewer[1].GetAnnotationLayer().GetWidgets();
+
+        var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+        var sigma = this.Viewers[0].GetCamera().Height / 2;
+
+        for (var i = 0; i < widgets0.length; ++i) {
+            var w0 = widgets0[i];
+            if (w0.Polyline) {
+                var polyline0 = w0.Polyline;
+                // get the center and area.
+                var center0 = [(polyline0.Bounds[0]+polyline0.Bounds[1])*0.5,
+                               (polyline0.Bounds[2]+polyline0.Bounds[3])*0.5];
+                var area0 = polyline0.ComputeArea();
+                var bestMatch;
+                var bestPolyline;
+                for (var j = 0; j < widgets1.length; ++j) {
+                    var w1 = widgets1[j];
+                    if (w1.Polyline) {
+                        var polyline1 = w1.Polyline;
+                        // get the center and area.
+                        center1 = trans.ReverseTransform(center1,sigma);
+
+                        var center1 = [(polyline1.Bounds[0]+polyline1.Bounds[1])*0.5,
+                                       (polyline1.Bounds[2]+polyline1.Bounds[3])*0.5];
+                        var area1 = polyline.ComputeArea();
+                        var dx = center1[0]-center0[0];
+                        var dy = center1[1]-center0[1];
+                        var match = dx*dx + dy*dx + Math.abs(area1-area0);
+                        if (! bestMatch || match < bestMatch) {
+                            bestMatch = match;
+                            bestPolyline = w1;
+                        }
+                    }
+                }
+
+                if (bestMatch < (area1/4)) {
+                    w1.Polyline.OutlineColor =
+                        w0.Polyline.OutlineColor.slice(0);
+                }
+            }
+        }
+
+        this.EventuallyRender();
     }
 
 
@@ -27545,6 +27595,30 @@ window.SA = window.SA || {};
               this.CellBuffer = view.tileCellBuffer;
               }
             */
+
+            // Trying to crop away the padding.
+            // Compute bounds in tile pixel coordinate system.
+            var bds = cache.Image.bounds.slice(0);
+            var tileSpacingX = cache.RootSpacing[0] / (1 << this.Level);
+            var tileSpacingY = cache.RootSpacing[1] / (1 << this.Level);
+            var tileOriginX = this.X * cache.TileDimensions[0]
+            var tileOriginY = this.Y * cache.TileDimensions[1]
+            bds[0] = (bds[0] / tileSpacingX) - tileOriginX;
+            bds[1] = (bds[1] / tileSpacingX) - tileOriginX;
+            bds[2] = (bds[2] / tileSpacingY) - tileOriginY;
+            bds[3] = (bds[3] / tileSpacingY) - tileOriginY;
+            // Do we need to crop?
+            if (bds[0] > 0 || bds[1] < cache.TileDimensions[0] || 
+                bds[1] > 0 || bds[3] < cache.TileDimensions[1]) {
+                // Yes we need to crop. Put it in
+                // [minx,miny,sizex,sizey]
+                // Useful for draw image.
+                this.Crop = [];
+                this.Crop[0] = Math.max(bds[0], 0);
+                this.Crop[1] = Math.max(bds[2], 0);
+                this.Crop[2] = (Math.min(bds[1], cache.TileDimensions[0]))-this.Crop[0];
+                this.Crop[3] = (Math.min(bds[3], cache.TileDimensions[1]))-this.Crop[1];
+            }
         } else {
             // Warp model.
             // In draw now.
@@ -27801,8 +27875,12 @@ window.SA = window.SA || {};
                 tileSize = 256;
             }
             view.Context2d.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-            view.Context2d.drawImage(this.Image,0,0);
-
+            if (this.Crop) {
+                view.Context2d.drawImage(this.Image, this.Crop[0],this.Crop[1],this.Crop[2],this.Crop[3],
+                                         this.Crop[0],this.Crop[1],this.Crop[2],this.Crop[3]);
+            } else {
+                view.Context2d.drawImage(this.Image,0,0);
+            }
             if (SA.WaterMark) {
                 var angle = (this.X+1)*(this.Y+1)*4.0
                 view.Context2d.translate(128,128);

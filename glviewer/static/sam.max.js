@@ -7337,7 +7337,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function Rect() {
-        this.Visibility = true;
         SAM.Shape.call(this);
 
         this.Width = 20.0;
@@ -7385,6 +7384,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function RectWidget (layer, newFlag) {
+        this.Visibility = true;
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
