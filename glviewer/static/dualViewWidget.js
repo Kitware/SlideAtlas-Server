@@ -677,9 +677,11 @@ window.SA = window.SA || {};
     // Called from the console for renal stack.
     // For every polyline in the left viewer, try to find a corresponding
     // polyline in the right viewer. If found, change its color to match.
-    DualViewWidget.prototype.MatchPolylines = function () {
-        var widgets0 = this.Viewer[0].GetAnnotationLayer().GetWidgets();
-        var widgets1 = this.Viewer[1].GetAnnotationLayer().GetWidgets();
+    DualViewWidget.prototype.MatchPolylines = function (tolerance) {
+        tolerance = tolerance || 0.5;
+        var widgets0 = this.Viewers[0].GetAnnotationLayer().GetWidgets();
+        var widgets1 = this.Viewers[1].GetAnnotationLayer().GetWidgets();
+        var note = this.saNote;
 
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         var sigma = this.Viewers[0].GetCamera().Height / 2;
@@ -691,32 +693,40 @@ window.SA = window.SA || {};
                 // get the center and area.
                 var center0 = [(polyline0.Bounds[0]+polyline0.Bounds[1])*0.5,
                                (polyline0.Bounds[2]+polyline0.Bounds[3])*0.5];
+                var size = Math.abs(polyline0.Bounds[1] - polyline0.Bounds[0])
+                    + Math.abs(polyline0.Bounds[3]-polyline0.Bounds[2]);
+
                 var area0 = polyline0.ComputeArea();
                 var bestMatch;
                 var bestPolyline;
+                var bestIdx = -1;
                 for (var j = 0; j < widgets1.length; ++j) {
                     var w1 = widgets1[j];
                     if (w1.Polyline) {
                         var polyline1 = w1.Polyline;
                         // get the center and area.
-                        center1 = trans.ReverseTransform(center1,sigma);
+                        var center0b = trans.ForwardTransform(center0,size); //sigma);
 
                         var center1 = [(polyline1.Bounds[0]+polyline1.Bounds[1])*0.5,
                                        (polyline1.Bounds[2]+polyline1.Bounds[3])*0.5];
-                        var area1 = polyline.ComputeArea();
-                        var dx = center1[0]-center0[0];
-                        var dy = center1[1]-center0[1];
-                        var match = dx*dx + dy*dx + Math.abs(area1-area0);
+                        var area1 = polyline1.ComputeArea();
+                        var dx = center1[0]-center0b[0];
+                        var dy = center1[1]-center0b[1];
+                        var match = dx*dx + dy*dy + Math.abs(area1-area0);
                         if (! bestMatch || match < bestMatch) {
                             bestMatch = match;
                             bestPolyline = w1;
+                            bestIdx = j;
                         }
                     }
                 }
 
-                if (bestMatch < (area1/4)) {
-                    w1.Polyline.OutlineColor =
+                if (bestMatch < (area0*tolerance)) {
+                    bestPolyline.Polyline.OutlineColor =
                         w0.Polyline.OutlineColor.slice(0);
+                    console.log("+++ Match: Widget"+i+" to"+bestIdx+", ("+bestMatch+")");
+                } else {
+                    console.log("--- No match: Widget"+i+", Closest "+bestIdx+", ("+bestMatch+")");
                 }
             }
         }
