@@ -712,8 +712,9 @@ window.SA = window.SA || {};
                         var area1 = polyline1.ComputeArea();
                         var dx = center1[0]-center0b[0];
                         var dy = center1[1]-center0b[1];
-                        var match = dx*dx + dy*dy + Math.abs(area1-area0);
-                        if (! bestMatch || match < bestMatch) {
+                        var match = (dx*dx + dy*dy + Math.abs(area1-area0))
+                                       / area0;
+                        if (bestIdx == -1 || match < bestMatch) {
                             bestMatch = match;
                             bestPolyline = w1;
                             bestIdx = j;
@@ -721,12 +722,15 @@ window.SA = window.SA || {};
                     }
                 }
 
-                if (bestMatch < (area0*tolerance)) {
+                if (bestIdx == -1) {
+                    // Should not happen
+                    console.log("+++ No candidates: Widget"+i);
+                } else if (bestMatch < tolerance) {
                     bestPolyline.Polyline.OutlineColor =
                         w0.Polyline.OutlineColor.slice(0);
-                    console.log("+++ Match: Widget"+i+" to"+bestIdx+", ("+bestMatch+")");
+                    console.log("+++ Match: Widget "+i+" = "+bestIdx+", ("+bestMatch+")");
                 } else {
-                    console.log("--- No match: Widget"+i+", Closest "+bestIdx+", ("+bestMatch+")");
+                    console.log("--- No match: Widget "+i+", Closest "+bestIdx+", ("+bestMatch+")");
                 }
             }
         }
