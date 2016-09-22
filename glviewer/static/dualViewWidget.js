@@ -739,6 +739,24 @@ window.SA = window.SA || {};
     }
 
 
+    // For debugging called from console.
+    // Resets the colors of the poly lines lin viewer 2 so we can see what
+    // has changed when we run MatchPolylines
+    // color is an array [1,1,1]
+    DualViewWidget.prototype.SetPolylineColor = function (color) {
+        var widgets1 = this.Viewers[1].GetAnnotationLayer().GetWidgets();
+
+        for (var i = 0; i < widgets1.length; ++i) {
+            var w1 = widgets1[i];
+            if (w1.Polyline) {
+                w1.Polyline.OutlineColor = color.slice(0);
+            }
+        }
+
+        this.EventuallyRender();
+    }
+
+
     SA.DualViewWidget = DualViewWidget;
 
 })();
