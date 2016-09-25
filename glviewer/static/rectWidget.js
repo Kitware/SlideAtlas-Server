@@ -6,13 +6,14 @@
     // Depends on the CIRCLE widget
     "use strict";
 
-    var NEW_HIDDEN = 0;
-    var NEW_DRAG_CENTER = 1;
-    var NEW_DRAG_CORNER = 2;
-    var DRAG = 3;
-    var WAITING = 4; // The normal (resting) state.
-    var ACTIVE = 5; // Mouse is over the widget and it is receiving events.
-    var PROPERTIES_DIALOG = 6; // Properties dialog is up
+    var NEW = 0;
+    var DRAWING = 1;
+    var DRAG_CENTER = 2;
+    var DRAG_CORNER = 3;
+    var DRAG = 4;
+    var WAITING = 5; // The normal (resting) state.
+    var ACTIVE = 6; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 7; // Properties dialog is up
 
 
     function Rect() {
@@ -166,16 +167,18 @@
         // canvas, this will behave odd.
 
         if (newFlag) {
-            this.State = NEW_HIDDEN;
+            this.State = NEW;
             this.Layer.ActivateWidget(this);
+            this.Layer.GetCanvasDiv().css({'cursor':'crosshair'});
             return;
         }
 
+        this.Layer.GetCanvasDiv().css({'cursor':'default'});
         this.State = WAITING;
     }
 
     RectWidget.prototype.Draw = function(view) {
-        if ( this.State != NEW_HIDDEN && this.Visibility) {
+        if ( this.State != NEW && this.Visibility) {
             this.Shape.Draw(view);
         }
     };
@@ -241,7 +244,7 @@
         }
     };
 
-    RectWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+    RectWidget.prototype.HandleKeyDown = function(keyCode, shift) {
         if (! this.Visibility) {
             return true;
         }
@@ -249,6 +252,16 @@
         // The dialog consumes all key events.
         if (this.State == PROPERTIES_DIALOG) {
             return false;
+        }
+
+        if ( this.State == DRAWING) {
+            // escape key (or space or enter) to turn off drawing
+            if (event.keyCode == 27 || event.keyCode == 32 || event.keyCode == 13) {
+                this.Deactivate();
+                // this widget was temporary, All rects created have been copied.
+                this.RemoveFromLayer();
+                return false;
+            }
         }
 
         // Copy
@@ -265,7 +278,10 @@
     };
 
     RectWidget.prototype.HandleDoubleClick = function(event) {
-        return true;
+        this.Deactivate();
+        // this widget was temporary, All rects created have been copied.
+        this.RemoveFromLayer();
+        return false;
     };
 
     RectWidget.prototype.HandleMouseDown = function(event) {
@@ -276,12 +292,17 @@
         if (event.which != 1) {
             return false;
         }
-        if (this.State == NEW_DRAG_CENTER) {
+        if (this.State == DRAWING) {
+            // Switch from draging an "icon" around to resizing the rect.
+            this.State = DRAG_CORNER;
+            return false;
+        }
+        if (this.State == DRAG_CENTER) {
             // We need the viewer position of the circle center to drag radius.
             this.OriginViewer =
                 this.Layer.GetCamera().ConvertPointWorldToViewer(this.Shape.Origin[0],
                                                                  this.Shape.Origin[1]);
-            this.State = NEW_DRAG_CORNER;
+            this.State = DRAG_CORNER;
         }
         if (this.State == ACTIVE) {
             // Determine behavior from active radius.
@@ -303,11 +324,14 @@
             return true;
         }
 
-        if ( this.State == DRAG || this.State == NEW_DRAG_CORNER) {
-            this.SetActive(false);
-            if (window.SA) {SA.RecordState();}
+        if ( this.State == DRAG_CORNER) {
             if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
             if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
+            // Duplicate this widget and keep on drawing.
+            var copy = new RectWidget(this.Layer, false);
+            copy.Load(this.Serialize());
+            this.State = DRAWING;
+            if (window.SA) {SA.RecordState();}
         }
     };
 
@@ -319,31 +343,37 @@
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (event.which === 0 && this.State == ACTIVE) {
-            this.CheckActive(event);
-            return;
+
+        if (event.which === 0) {
+            // This keeps the rectangle from being drawn in the wrong place
+            // before we get our first event.
+            if (this.State == NEW) {
+                this.State = DRAWING;
+            }
+            if (this.State == DRAWING) {
+                // Center follows mouse.
+                this.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
+                this.Layer.EventuallyDraw();
+                return false;
+            }
+            return true;
         }
 
-        if (this.State == NEW_HIDDEN) {
-            this.State = NEW_DRAG_CENTER;
-        }
+        if (event.which != 1) { return; }
 
-        // Center follows mouse.
-        if (this.State == NEW_DRAG_CENTER) {
-            this.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
-            this.PlacePopup();
-            this.Layer.EventuallyDraw();
-            return false;
-        }
-
-        // Center remains fixed, and a corner follows the mouse.
-        // This is an non standard interaction.  Usually one corner
-        // remains fixed and the second corner follows the mouse.
-        if (this.State == NEW_DRAG_CORNER) {
+        if (this.State == DRAG_CORNER) {
+            // Center remains fixed, and a corner follows the mouse.
+            // This is an non standard interaction.  Usually one corner
+            // remains fixed and the second corner follows the mouse.
             //Width Length Origin
             var corner = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
             var dx = corner[0]-this.Shape.Origin[0];
             var dy = corner[1]-this.Shape.Origin[1];
+            // This keeps small movements during a click from change the
+            // size of the rect.
+            if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
+                return false;
+            }
             // Rotate the drag vector in the the rectangles coordinate
             // system.
             var a = this.Shape.Orientation * Math.PI / 180.0;
@@ -498,12 +528,19 @@
         return true;
     };
 
+    RectWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.Layer.RemoveWidget(this);
+        }
+        this.Layer = null;
+    }
 
     RectWidget.prototype.Deactivate = function() {
         this.Popup.StartHideTimer();
+        this.Layer.GetCanvasDiv().css({'cursor':'default'});
+        this.Layer.DeactivateWidget(this);
         this.State = WAITING;
         this.Shape.Active = false;
-        this.Layer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
