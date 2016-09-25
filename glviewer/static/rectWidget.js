@@ -16,7 +16,6 @@
 
 
     function Rect() {
-        this.Visibility = true;
         SAM.Shape.call(this);
 
         this.Width = 20.0;
@@ -64,6 +63,7 @@
 
 
     function RectWidget (layer, newFlag) {
+        this.Visibility = true;
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
@@ -217,6 +217,9 @@
             this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
         }
         this.Shape.Width = parseFloat(obj.width);
+        if (obj.confidence) {
+            this.confidence = parseFloat(obj.confidence);
+        }
         if (obj.length) {
             this.Shape.Length = parseFloat(obj.length);
         }

@@ -395,9 +395,10 @@ window.SA = window.SA || {};
             var viewer = this.GetViewer(i);
 
             if (i + idx < note.ViewerRecords.length) {
-                note.ViewerRecords[idx + i].Apply(viewer, lockCamera);
+                viewer.SetViewerRecord(note.ViewerRecords[idx + i], lockCamera);
                 // This is for synchroninzing changes in the viewer back to the note.
                 viewer.RecordIndex = i;
+
             }
         }
     }

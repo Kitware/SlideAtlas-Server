@@ -598,8 +598,36 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 });
         }
     }
+
+    // Load an array of anntoations into this layer.
+    // It does not clear previous annotations. Call reset to do that.
+    // Called by Viewer.SetViewerRecord()
+    // This is neede to give a callback to an app that needs to update the
+    // visibility of annotations based on a threshold.
+    AnnotationLayer.prototype.LoadAnnotations = function(annotations) {
+        // TODO: Fix this.  Keep actual widgets in the records / notes.
+        // For now lets just do the easy thing and recreate all the
+        // annotations.
+        for (var i = 0; i < annotations.length; ++i) {
+            var widget = this.LoadWidget(annotations[i]);
+            // This a bad hack. Modifying that array passed in.
+            // It is not really needed.  It was a fix for a schema mistake.
+            if (! widget) {
+                // Get rid of corrupt widgets that do not load properly
+                annotations.splice(i,1);
+                --i;
+            }
+        }
+
+        // This is used by the vigilant plugnin to update which annotations
+        // are visible based on a confidence threshold.
+        if (this.LoadCallback) {
+            (this.LoadCallback)();
+        }
+    }
     
     // Load a widget from a json object (origin MongoDB).
+    // Returns the widget if there was not an error.
     AnnotationLayer.prototype.LoadWidget = function(obj) {
         var widget;
         switch(obj.type){
@@ -7486,7 +7514,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function Rect() {
-        this.Visibility = true;
         SAM.Shape.call(this);
 
         this.Width = 20.0;
@@ -7534,6 +7561,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function RectWidget (layer, newFlag) {
+        this.Visibility = true;
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
@@ -7687,6 +7715,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
         }
         this.Shape.Width = parseFloat(obj.width);
+        if (obj.confidence) {
+            this.confidence = parseFloat(obj.confidence);
+        }
         if (obj.length) {
             this.Shape.Length = parseFloat(obj.length);
         }

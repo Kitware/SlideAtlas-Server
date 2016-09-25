@@ -8045,6 +8045,10 @@ window.SA = window.SA || {};
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id : new SA.ObjectId().toString()};
+        if (tileSource.filename) {
+            image.filename = tileSource.filename;
+            image.label = tileSource.filename;
+        }
         cache.SetImageData(image);
         return cache;
     }
@@ -8536,7 +8540,8 @@ window.SA = window.SA || {};
         if (typeof(SA.User) != "undefined") {
             return SA.User;
         }
-        SA.Debug("Could not find user");
+        // Happens with girder plugin.
+        //SA.Debug("Could not find user");
         return "";
     }
 
@@ -10223,7 +10228,7 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
     // This will get the camera and the annotations too.
     var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
-    record.Apply(this.Viewer);
+    this.Viewer.SetViewerRecord(record);
     //this.SelectImage(viewObj.ViewerRecords[0].Image);
 }
 
@@ -10943,9 +10948,10 @@ window.SA = window.SA || {};
             var viewer = this.GetViewer(i);
 
             if (i + idx < note.ViewerRecords.length) {
-                note.ViewerRecords[idx + i].Apply(viewer, lockCamera);
+                viewer.SetViewerRecord(note.ViewerRecords[idx + i], lockCamera);
                 // This is for synchroninzing changes in the viewer back to the note.
                 viewer.RecordIndex = i;
+
             }
         }
     }
@@ -14788,7 +14794,10 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
 
 
+    // TODO: Get rid of this in favor of Viewer::SetViewerRecord.
     ViewerRecord.prototype.Apply = function (viewer, lockCamera) {
+        alert("ViewerRecord::Apply depricated.  Use Viewer.SetViewerRecord instead");
+        /*
         // If a widget is active, then just inactivate it.
         // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
         if (viewer.ActiveWidget) {
@@ -14863,6 +14872,7 @@ AnnotationWidget.prototype.DetectSections = function() {
 
         // fit the canvas to the div size.
         viewer.UpdateSize();
+        */
     }
 
     // This is a helper method to start preloading tiles for an up coming view.
@@ -21719,10 +21729,10 @@ SlidePage.prototype.DisplayNote = function (note, index) {
     this.List.LoadNote(note);
     // Views
     if (this.Records.length > 0) {
-        this.Records[0].Apply(this.ViewerDiv1[0].saViewer);
+        this.ViewerDiv1[0].saViewer.SetViewerRecord(this.Records[0]);
     }
     if (this.Records.length > 1) {
-        this.Records[1].Apply(this.ViewerDiv2[0].saViewer);
+        this.ViewerDiv2[0].saViewer.SetViewerRecord(this.Records[1]);
     }
     this.ViewerDiv1[0].saViewer.CopyrightWrapper.hide();
     this.ViewerDiv2[0].saViewer.CopyrightWrapper.hide();
@@ -21759,9 +21769,9 @@ SlidePage.prototype.InsertViewNote = function (note) {
     // We first have to push the new record to the view.
     if (this.Note.ViewerRecords.length == 1) {
         // TODO: jquery arg
-        this.Note.ViewerRecords[0].Apply(this.ViewerDiv1[0].saViewer);
+        this.ViewerDiv1[0].saViewer.SetViewerRecord(this.Note.viewerRecords[0]);
     } else if (this.Note.ViewerRecords.length == 2) {
-        this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
+        this.ViewerDiv2[0].saViewer.SetViewerRecord(this.Note.viewerRecords[1]);
     }
 
     this.DisplayNote(this.Note, SA.presentation.Index);
@@ -29483,7 +29493,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
         if (args.note) {
             this.saNote = args.note;
             var index = this.saViewerIndex = args.viewerIndex || 0;
-            args.note.ViewerRecords[index].Apply(this);
+            this.SetViewerRecord(args.note.ViewerRecords[index]);
+
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
             this.Parent.attr('sa-viewer-index', this.saViewerIndex);
         }
@@ -29496,12 +29507,67 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.UpdateSize();
     }
 
-
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
-    // will  win.
-    Viewer.prototype.SetViewerRecord = function(viewerRecord) {
-        viewerRecord.Apply(this);
+    // will  win.  The layer needs to have a load callback for vigilant threshold.
+    Viewer.prototype.SetViewerRecord = function(viewerRecord, lockCamera) {
+        // If a widget is active, then just inactivate it.
+        // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+        if (this.ActiveWidget) {
+            // Hackish way to deactivate.
+            this.ActiveWidget.SetActive(false);
+        }
+
+        if (! lockCamera) {
+            this.Reset();
+            var cache = this.GetCache();
+            if ( ! cache || viewerRecord.Image._id != cache.Image._id) {
+                var newCache = SA.FindCache(viewerRecord.Image);
+                this.SetCache(newCache);
+            }
+
+            this.SetOverViewBounds(viewerRecord.OverviewBounds);
+
+            if (viewerRecord.Camera !== undefined && viewerRecord.Transform === undefined) {
+                var cameraRecord = viewerRecord.Camera;
+                this.GetCamera().Load(cameraRecord);
+                if (this.OverView) {
+                    this.OverView.Camera.Roll = cameraRecord.Roll;
+                    this.OverView.Camera.ComputeMatrix();
+                }
+                this.UpdateZoomGui();
+            this.UpdateCamera();
+            }
+        } else {
+            // Just get rid of the annotations.
+            this.GetAnnotationLayer().Reset();
+        }
+
+        // TODO: Get rid of this hack.
+        if (this.AnnotationWidget && viewerRecord.AnnotationVisibility != undefined) {
+            this.AnnotationWidget.SetVisibility(viewerRecord.AnnotationVisibility);
+        }
+
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.Reset();
+            // What about the other layers?
+            // Should we propagate the use of notes outside slide atlas?
+            // Probably not.  Use loading and serializing piecemeal as necessary.
+            if (viewerRecord.Annotations) {
+                annotationLayer.LoadAnnotations(viewerRecord.Annotations);
+            }
+            // Load the annotations from the user note.
+            if (viewerRecord.UserNote) {
+                var annotations = viewerRecord.UserNote.ViewerRecords[0].Annotations;
+                annotationLayer.LoadAnnotations(annotations);
+            }
+        }
+
+        // fit the canvas to the div size.
+        this.UpdateSize();
     }
+
+
     Viewer.prototype.SetNote = function(note, viewIdx) {
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");
@@ -33196,6 +33262,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
     }
 
     LayerView.prototype.AddLayer = function (layer) {
+        var self = this;
+        // For the stack viewer.  The layer gets loaded with another view,
+        // We hve to apply the color and threshold.
+        layer.LoadCallback = function () {
+            self.UpdateLayer(layer);
+        }
+
         this.Layers.push(layer);
         if (this.CheckBox && this.Slider) {
             this.UpdateLayer(layer);

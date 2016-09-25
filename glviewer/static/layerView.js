@@ -15,6 +15,13 @@
     }
 
     LayerView.prototype.AddLayer = function (layer) {
+        var self = this;
+        // For the stack viewer.  The layer gets loaded with another view,
+        // We hve to apply the color and threshold.
+        layer.LoadCallback = function () {
+            self.UpdateLayer(layer);
+        }
+
         this.Layers.push(layer);
         if (this.CheckBox && this.Slider) {
             this.UpdateLayer(layer);

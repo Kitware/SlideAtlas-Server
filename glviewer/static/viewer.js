@@ -310,7 +310,8 @@
         if (args.note) {
             this.saNote = args.note;
             var index = this.saViewerIndex = args.viewerIndex || 0;
-            args.note.ViewerRecords[index].Apply(this);
+            this.SetViewerRecord(args.note.ViewerRecords[index]);
+
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
             this.Parent.attr('sa-viewer-index', this.saViewerIndex);
         }
@@ -323,12 +324,67 @@
         this.UpdateSize();
     }
 
-
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
-    // will  win.
-    Viewer.prototype.SetViewerRecord = function(viewerRecord) {
-        viewerRecord.Apply(this);
+    // will  win.  The layer needs to have a load callback for vigilant threshold.
+    Viewer.prototype.SetViewerRecord = function(viewerRecord, lockCamera) {
+        // If a widget is active, then just inactivate it.
+        // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+        if (this.ActiveWidget) {
+            // Hackish way to deactivate.
+            this.ActiveWidget.SetActive(false);
+        }
+
+        if (! lockCamera) {
+            this.Reset();
+            var cache = this.GetCache();
+            if ( ! cache || viewerRecord.Image._id != cache.Image._id) {
+                var newCache = SA.FindCache(viewerRecord.Image);
+                this.SetCache(newCache);
+            }
+
+            this.SetOverViewBounds(viewerRecord.OverviewBounds);
+
+            if (viewerRecord.Camera !== undefined && viewerRecord.Transform === undefined) {
+                var cameraRecord = viewerRecord.Camera;
+                this.GetCamera().Load(cameraRecord);
+                if (this.OverView) {
+                    this.OverView.Camera.Roll = cameraRecord.Roll;
+                    this.OverView.Camera.ComputeMatrix();
+                }
+                this.UpdateZoomGui();
+            this.UpdateCamera();
+            }
+        } else {
+            // Just get rid of the annotations.
+            this.GetAnnotationLayer().Reset();
+        }
+
+        // TODO: Get rid of this hack.
+        if (this.AnnotationWidget && viewerRecord.AnnotationVisibility != undefined) {
+            this.AnnotationWidget.SetVisibility(viewerRecord.AnnotationVisibility);
+        }
+
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.Reset();
+            // What about the other layers?
+            // Should we propagate the use of notes outside slide atlas?
+            // Probably not.  Use loading and serializing piecemeal as necessary.
+            if (viewerRecord.Annotations) {
+                annotationLayer.LoadAnnotations(viewerRecord.Annotations);
+            }
+            // Load the annotations from the user note.
+            if (viewerRecord.UserNote) {
+                var annotations = viewerRecord.UserNote.ViewerRecords[0].Annotations;
+                annotationLayer.LoadAnnotations(annotations);
+            }
+        }
+
+        // fit the canvas to the div size.
+        this.UpdateSize();
     }
+
+
     Viewer.prototype.SetNote = function(note, viewIdx) {
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");

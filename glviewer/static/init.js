@@ -34,6 +34,10 @@ window.SA = window.SA || {};
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id : new SA.ObjectId().toString()};
+        if (tileSource.filename) {
+            image.filename = tileSource.filename;
+            image.label = tileSource.filename;
+        }
         cache.SetImageData(image);
         return cache;
     }
@@ -525,7 +529,8 @@ window.SA = window.SA || {};
         if (typeof(SA.User) != "undefined") {
             return SA.User;
         }
-        SA.Debug("Could not find user");
+        // Happens with girder plugin.
+        //SA.Debug("Could not find user");
         return "";
     }
 
