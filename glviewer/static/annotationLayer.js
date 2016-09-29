@@ -53,24 +53,32 @@
     }
 
 
+    // Debugging ... not called in normal operation.
+    // Report the area for each polyline in the sequence.
     SAM.areaSequence = function(r, g, b) {
         var pl = new SAM.Polyline();
         var vr = SA.RootNote.ViewerRecords;
+        var area_sequence = [];
         for (var i = 0; i < vr.length; ++i) {
-            as = vr[i].Annotations;
+            var area = 0;
+            var as = vr[i].Annotations;
             for (var j = 0; j < as.length; ++j) {
-                an = as[j];
+                var an = as[j];
                 if (an.type == "polyline" &&
-                    round(an.outlinecolor[0]*255) == r &&
-                    round(an.outlinecolor[1]*255) == g &&
-                    round(an.outlinecolor[2]*255) == b) {
+                    Math.round(an.outlinecolor[0]*255) == r &&
+                    Math.round(an.outlinecolor[1]*255) == g &&
+                    Math.round(an.outlinecolor[2]*255) == b) {
+                    if (area != 0) { console.log("Found more than one in a section");}
                     pl.Points = an.points;
-                    console.log("section " + i +", area " + pl.ComputeArea());
+                    area += pl.ComputeArea() * 0.25 * 0.25;
+                    area = Math.round(area*100) / 100.0;
                 }
             }
+            area_sequence.push(area)
         }
+        //console.log(JSON.stringify(area_sequence));
+        return area_sequence;
     }
-
 
     // Debugging ... not called in normal operation.
     // For manually moving annotations from individual slides to a stack.
