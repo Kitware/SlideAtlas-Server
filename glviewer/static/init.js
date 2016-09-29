@@ -1143,6 +1143,7 @@ window.SA = window.SA || {};
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
+            /*
             var imageObj = {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                             levels:     12,
                             dimensions: [419168, 290400, 1],
@@ -1159,7 +1160,7 @@ window.SA = window.SA || {};
             SA.heatMap1 = new SA.HeatMap(viewer1.Div);
             SA.heatMap1.SetCache(heatMapCache);
             viewer1.AddLayer(SA.heatMap1);
-
+            */
             /*
             SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",

@@ -775,7 +775,7 @@ window.SA = window.SA || {};
     // Called from the console for renal stack.
     // For every polyline in the left viewer, try to find a corresponding
     // polyline in the right viewer. If found, change its color to match.
-    DualViewWidget.prototype.MatchPolylines = function (tolerance) {
+    DualViewWidget.prototype.MatchPolylines = function (color, tolerance) {
         tolerance = tolerance || 0.5;
         var widgets0 = this.Viewers[0].GetAnnotationLayer().GetWidgets();
         var widgets1 = this.Viewers[1].GetAnnotationLayer().GetWidgets();
@@ -788,6 +788,14 @@ window.SA = window.SA || {};
             var w0 = widgets0[i];
             if (w0.Polyline) {
                 var polyline0 = w0.Polyline;
+                var r = Math.floor(polyline0.OutlineColor[0] * 255);
+                var g = Math.floor(polyline0.OutlineColor[1] * 255);
+                var b = Math.floor(polyline0.OutlineColor[2] * 255);
+                if (r != color[0] || g != color[1] || b != color[2]) {
+                    continue;
+                }
+                console.log("Matched color " + i);
+
                 // get the center and area.
                 var center0 = [(polyline0.Bounds[0]+polyline0.Bounds[1])*0.5,
                                (polyline0.Bounds[2]+polyline0.Bounds[3])*0.5];
