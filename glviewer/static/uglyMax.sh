@@ -23,6 +23,7 @@ cat arrowWidget.js >> sam.max.js
 cat circle.js >> sam.max.js 
 cat circleWidget.js >> sam.max.js 
 cat rectWidget.js >> sam.max.js 
+cat rectSetWidget.js >> sam.max.js 
 cat gridWidget.js >> sam.max.js 
 cat scaleWidget.js >> sam.max.js 
 cat cutoutWidget.js >> sam.max.js 

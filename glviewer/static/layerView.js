@@ -62,7 +62,7 @@
             .css({ 'border': '1px solid #CCC', 'width': '60%',
                    'height': '100%', 'float': 'left' });
 
-        this.Slider = $('<input type="range" min="75" max="100">')
+        this.Slider = $('<input type="range" min="50" max="100">')
             .appendTo(conf_wrapper)
             .on('input',
                 function(){
@@ -72,7 +72,7 @@
 
         var min_label = $('<div>')
             .appendTo(conf_wrapper)
-            .html("75%")
+            .html("50%")
             .css({ 'float': 'left' });
 
         var max_label = $('<div>')
@@ -124,7 +124,7 @@
             var vis_value = parseInt(this.Slider.val()) / 100.0;
             for (var w_index = 0; w_index < layer.WidgetList.length; w_index++){
                 var widget = layer.WidgetList[w_index];
-                widget.Visibility = (widget.confidence > vis_value);
+                widget.SetThreshold(vis_value);
                 widget.Shape.SetOutlineColor(this.Color);
             }
         }

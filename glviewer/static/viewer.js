@@ -232,6 +232,8 @@
 
         // notice this is not new AnnotationLayer();
         var annotationLayer1 = this.NewAnnotationLayer();
+        // Some widgets need access to the viewer.  rectSet and segment/contour
+        annotationLayer1.Viewer = this;
         var annotationWidget1 =
             new SA.AnnotationWidget(annotationLayer1, this);
     }
@@ -2151,7 +2153,7 @@
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = -0.9 * cam.GetHeight();
+            var dy = -0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -2166,7 +2168,7 @@
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = 0.9 * cam.GetHeight();
+            var dy = 0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -2180,7 +2182,7 @@
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = -0.9 * cam.GetWidth();
+            var dx = -0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -2195,7 +2197,7 @@
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = 0.9 * cam.GetWidth();
+            var dx = 0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;

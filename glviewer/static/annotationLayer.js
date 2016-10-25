@@ -567,6 +567,11 @@
         }
     }
 
+    // Some widgets need access to the viewer.
+    AnnotationLayer.prototype.GetViewer = function() {
+        return this.Viewer || SA.VIEWER1;
+    }
+
     // Load an array of anntoations into this layer.
     // It does not clear previous annotations. Call reset to do that.
     // Called by Viewer.SetViewerRecord()
@@ -627,6 +632,9 @@
             break;
         case "rect":
             widget = new SAM.RectWidget(this, false);
+            break;
+        case "rect_set":
+            widget = new SAM.RectSetWidget(this, false);
             break;
         case "grid":
             widget = new SAM.GridWidget(this, false);

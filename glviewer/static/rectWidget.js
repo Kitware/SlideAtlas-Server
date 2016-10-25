@@ -15,12 +15,14 @@
     var ACTIVE = 6; // Mouse is over the widget and it is receiving events.
     var PROPERTIES_DIALOG = 7; // Properties dialog is up
 
+    var DEFAULT_WIDTH = -1;
+    var DEFAULT_HEIGHT = -1;
 
     function Rect() {
         SAM.Shape.call(this);
 
-        this.Width = 20.0;
-        this.Length = 50.0;
+        this.Width = 50;
+        this.Height = 50;
         this.Orientation = 0; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // Center in world coordinates.
         this.OutlineColor = [0,0,0];
@@ -41,23 +43,23 @@
         mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
         this.PointBuffer.push(1 *this.Width / 2.0);
-        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(-1 *this.Width / 2.0);
-        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(-1 *this.Width / 2.0);
-        this.PointBuffer.push(-1 *this.Length / 2.0);
+        this.PointBuffer.push(-1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(1 *this.Width / 2.0);
-        this.PointBuffer.push(-1 *this.Length / 2.0);
+        this.PointBuffer.push(-1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(1 *this.Width / 2.0);
-        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
     };
 
@@ -89,7 +91,7 @@
             .val('#30ff00')
             .css({'display':'table-cell'});
 
-      // Line Width
+        // Line Width
         this.Dialog.LineWidthDiv =
             $('<div>')
             .appendTo(this.Dialog.Body)
@@ -128,6 +130,7 @@
             if (defaults.Color) {
                 this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
+            this.Dialog.LineWidthInput.val(0);
             if (defaults.LineWidth) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
             }
@@ -156,9 +159,14 @@
         this.Shape.Origin = [0,0];
         this.Shape.OutlineColor = [0.0,0.0,0.0];
         this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
-        this.Shape.Length = 50.0*cam.Height/viewport[3];
-        this.Shape.Width = 30*cam.Height/viewport[3];
-        this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
+        if (DEFAULT_WIDTH > 0) {
+            this.Shape.Height = DEFAULT_HEIGHT;
+            this.Shape.Width = DEFAULT_WIDTH;
+        } else {
+            this.Shape.Height = 50.0*cam.Height/viewport[3];
+            this.Shape.Width = 50.0*cam.Height/viewport[3];
+        }
+        this.Shape.LineWidth = 0;
         this.Shape.FixedSize = false;
 
         this.Layer.AddWidget(this);
@@ -175,6 +183,13 @@
 
         this.Layer.GetCanvasDiv().css({'cursor':'default'});
         this.State = WAITING;
+    }
+
+    // Threshold above is the only option for now.
+    RectWidget.prototype.SetThreshold = function(threshold) {
+        if (this.confidence !== undefined) {
+            this.Visibility = this.confidence >= threshold;
+        }
     }
 
     RectWidget.prototype.Draw = function(view) {
@@ -201,7 +216,7 @@
         obj.origin = this.Shape.Origin;
         obj.origin[2] = 0.0;
         obj.outlinecolor = this.Shape.OutlineColor;
-        obj.height = this.Shape.Length;
+        obj.height = this.Shape.Height;
         obj.width = this.Shape.Width;
         obj.orientation = this.Shape.Orientation;
         obj.linewidth = this.Shape.LineWidth;
@@ -224,10 +239,10 @@
             this.confidence = parseFloat(obj.confidence);
         }
         if (obj.length) {
-            this.Shape.Length = parseFloat(obj.length);
+            this.Shape.Height = parseFloat(obj.length);
         }
         if (obj.height) {
-            this.Shape.Length = parseFloat(obj.height);
+            this.Shape.Height = parseFloat(obj.height);
         }
         if (obj.orientation) {
             this.Shape.Orientation = parseFloat(obj.orientation);
@@ -332,6 +347,10 @@
             copy.Load(this.Serialize());
             this.State = DRAWING;
             if (window.SA) {SA.RecordState();}
+
+
+            DEFAULT_WIDTH = this.Shape.Width;
+            DEFAULT_HEIGHT = this.Shape.Height;
         }
     };
 
@@ -365,7 +384,7 @@
             // Center remains fixed, and a corner follows the mouse.
             // This is an non standard interaction.  Usually one corner
             // remains fixed and the second corner follows the mouse.
-            //Width Length Origin
+            //Width Height Origin
             var corner = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
             var dx = corner[0]-this.Shape.Origin[0];
             var dy = corner[1]-this.Shape.Origin[1];
@@ -385,7 +404,7 @@
             //console.log("a: "+this.Shape.Orientation+", w: "+dx+","+dy+", r: "+rx+","+ry);
 
             this.Shape.Width = Math.abs(2*rx);
-            this.Shape.Length = Math.abs(2*ry);
+            this.Shape.Height = Math.abs(2*ry);
             this.Shape.UpdateBuffers();
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -426,7 +445,7 @@
                     direction = -1;
                 }
                 if(event.shiftKey) {
-                    this.Shape.Length = this.Shape.Length * ratio;
+                    this.Shape.Height = this.Shape.Height * ratio;
                 }
                 if(event.ctrlKey) {
                     this.Shape.Width = this.Shape.Width * ratio;
@@ -626,7 +645,9 @@
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
-        localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
+        localStorage.RectWidgetDefaults = JSON.stringify(
+            {Color: hexcolor, 
+             LineWidth: this.Shape.LineWidth});
     };
 
     SAM.RectWidget = RectWidget;

@@ -9154,6 +9154,7 @@ window.SA = window.SA || {};
 
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
+            /*
             var imageObj = {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                             levels:     12,
                             dimensions: [419168, 290400, 1],
@@ -9170,7 +9171,7 @@ window.SA = window.SA || {};
             SA.heatMap1 = new SA.HeatMap(viewer1.Div);
             SA.heatMap1.SetCache(heatMapCache);
             viewer1.AddLayer(SA.heatMap1);
-
+            */
             /*
             SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
@@ -11331,7 +11332,7 @@ window.SA = window.SA || {};
     // Called from the console for renal stack.
     // For every polyline in the left viewer, try to find a corresponding
     // polyline in the right viewer. If found, change its color to match.
-    DualViewWidget.prototype.MatchPolylines = function (tolerance) {
+    DualViewWidget.prototype.MatchPolylines = function (color, tolerance) {
         tolerance = tolerance || 0.5;
         var widgets0 = this.Viewers[0].GetAnnotationLayer().GetWidgets();
         var widgets1 = this.Viewers[1].GetAnnotationLayer().GetWidgets();
@@ -11344,6 +11345,14 @@ window.SA = window.SA || {};
             var w0 = widgets0[i];
             if (w0.Polyline) {
                 var polyline0 = w0.Polyline;
+                var r = Math.floor(polyline0.OutlineColor[0] * 255);
+                var g = Math.floor(polyline0.OutlineColor[1] * 255);
+                var b = Math.floor(polyline0.OutlineColor[2] * 255);
+                if (r != color[0] || g != color[1] || b != color[2]) {
+                    continue;
+                }
+                console.log("Matched color " + i);
+
                 // get the center and area.
                 var center0 = [(polyline0.Bounds[0]+polyline0.Bounds[1])*0.5,
                                (polyline0.Bounds[2]+polyline0.Bounds[3])*0.5];
@@ -29529,6 +29538,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         // notice this is not new AnnotationLayer();
         var annotationLayer1 = this.NewAnnotationLayer();
+        // Some widgets need access to the viewer.  rectSet and segment/contour
+        annotationLayer1.Viewer = this;
         var annotationWidget1 =
             new SA.AnnotationWidget(annotationLayer1, this);
     }
@@ -31448,7 +31459,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = -0.9 * cam.GetHeight();
+            var dy = -0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -31463,7 +31474,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = 0.9 * cam.GetHeight();
+            var dy = 0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -31477,7 +31488,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = -0.9 * cam.GetWidth();
+            var dx = -0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -31492,7 +31503,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = 0.9 * cam.GetWidth();
+            var dx = 0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -33423,7 +33434,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             .css({ 'border': '1px solid #CCC', 'width': '60%',
                    'height': '100%', 'float': 'left' });
 
-        this.Slider = $('<input type="range" min="75" max="100">')
+        this.Slider = $('<input type="range" min="50" max="100">')
             .appendTo(conf_wrapper)
             .on('input',
                 function(){
@@ -33433,7 +33444,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         var min_label = $('<div>')
             .appendTo(conf_wrapper)
-            .html("75%")
+            .html("50%")
             .css({ 'float': 'left' });
 
         var max_label = $('<div>')
@@ -33485,7 +33496,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var vis_value = parseInt(this.Slider.val()) / 100.0;
             for (var w_index = 0; w_index < layer.WidgetList.length; w_index++){
                 var widget = layer.WidgetList[w_index];
-                widget.Visibility = (widget.confidence > vis_value);
+                widget.SetThreshold(vis_value);
                 widget.Shape.SetOutlineColor(this.Color);
             }
         }
