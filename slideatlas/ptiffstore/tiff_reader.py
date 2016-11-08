@@ -22,6 +22,8 @@ import ctypes
 
 from ctypes import create_string_buffer
 
+import pdb
+
 import logging
 logger = logging.getLogger('slideatlas')
 
@@ -67,7 +69,11 @@ class TileReader():
         r = libtiff.TIFFGetField(
             self.tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
         assert(r == 1)
-        self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
+        self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_char))
+        self.jpegtables = self.jpegtables[:2] +\
+                          b'\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00' + \
+                          self.jpegtables[2:self.jpegtable_size.value-2]
+
         #logger.debug('Size of jpegtables: %d', self.jpegtable_size.value)
         libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
 
@@ -210,9 +216,7 @@ class TileReader():
         r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
         # logger.debug('Valid size in tile: %s', r2.value)
         # Experiment with the file output
-
-        fp.write(
-            ctypes.string_at(self.jpegtables, self.jpegtable_size.value)[:-2])
+        fp.write(self.jpegtables)
         # Write padding
         padding = "%c" % (255) * 4
         fp.write(padding)
@@ -236,9 +240,7 @@ class TileReader():
         r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
         # logger.debug('Valid size in tile: %s', r2.value)
         # Experiment with the file output
-
-        fp.write(
-            ctypes.string_at(self.jpegtables, self.jpegtable_size.value)[:-2])
+        fp.write(self.jpegtables)
         # Write padding
         padding = "%c" % (255) * 4
         fp.write(padding)
