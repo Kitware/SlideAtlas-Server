@@ -136,8 +136,16 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // Convert any color to an array [r,g,b] values 0->1
     SAM.ConvertColor = function(color) {
-        // Deal with color names.
         if ( typeof(color)=='string' && color[0] != '#') {
+            if (color.slice(0,5) == "rgba(") {
+                color = color.slice(5,-1).split(',');
+                color[0] = color[0]/255;
+                color[1] = color[1]/255;
+                color[2] = color[1]/255;
+                return color;
+            }
+
+            // Deal with color names.
             var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
                           "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
                           "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
@@ -187,6 +195,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // RGB [Float, Float, Float] to #RRGGBB string
     SAM.ConvertColorToHex = function(color) {
         if (typeof(color) == 'string') { 
+            if (color.slice(0,5) == "rgba(") {
+                return color;
+            }
             color = SAM.ConvertColorNameToHex(color);
             if (color.substring(0,1) == '#') {
                 return color;
@@ -8177,13 +8188,47 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Centers= [];
         this.Widths = [];
         this.Heights = [];
+        this.Labels = [];
         this.Confidences = [];
         // Hack to hide rects below a specific confidence.
         this.Threshold = 0.0;
+
+        // For now, one can be active.
+        this.ActiveIndex = -1;
+    }
+
+    // Helper for ground truth.
+    RectSet.prototype.CopyRectangle = function(source, inIdx, outIdx) {
+        if (outIdx === undefined) {
+            outIdx = this.Labels.length;
+        }
+        var inTmp = inIdx*2;
+        var outTmp = outIdx*2;
+        this.Centers[outTmp] = source.Centers[inTmp];
+        this.Centers[outTmp+1] = source.Centers[inTmp+1];
+        this.Widths[outIdx] = source.Widths[inIdx];
+        this.Heights[outIdx] = source.Heights[inIdx];
+        this.Labels[outIdx] = source.Labels[inIdx];
+        this.Confidences[outIdx] = source.Confidences[inIdx];
+    }
+
+
+    RectSet.prototype.DeleteRectangle = function(index) {
+        if (index < 0 || index >= this.Widths.length) {
+            return;
+        }
+
+        this.Centers.splice(2*index,2);
+        this.Widths.splice(index,1);
+        this.Labels.splice(index,1);
+        this.Confidences.splice(index,1);
+        if (this.ActiveIndex == index) {
+            this.ActiveIndex = -1;
+        }
     }
 
     RectSet.prototype.SetOutlineColor = function (c) {
-        this.Color = SAM.ConvertColor(c);
+        this.Color = SAM.ConvertColorToHex(c);
     }
 
     // do not worry about webGl for now.  Only canvas drawing.
@@ -8213,43 +8258,57 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         y = view.Viewport[3]*(0.5*(1.0-y));
         view.Context2d.transform(matrix0,matrix1,matrix4,matrix5,x,y);
 
-        if (this.Color) {
-            view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.Color);
-            view.Context2d.beginPath();
-        }
         view.Context2d.lineWidth = 1;
-        //view.Context2d.beginPath();
+        var path = true;
 
         var cIdx = 0;
         var x = 0;
         var y = 0;
         for (var i = 0; i < this.Widths.length; ++i) {
             if (this.Confidences[i] >= this.Threshold) {
-                var w = this.Widths[i];
-                var h = this.Heights[i];
-                x = this.Centers[cIdx++] - w/2;
-                y = this.Centers[cIdx++] - h/2;
-                if ( ! this.Color) {
+                var hw = this.Widths[i]/2;
+                var hh = this.Heights[i]/2;
+                x = this.Centers[cIdx++];
+                y = this.Centers[cIdx++];
+
+                view.Context2d.beginPath();
+                if (this.Labels[i] == "false_positive") {
+                    view.Context2d.strokeStyle= "#ff0000";
+                } else if (this.Labels[i] == "car") {
+                    view.Context2d.strokeStyle= "#00ff00";
+                } else if (this.Color) {
+                    view.Context2d.strokeStyle= this.Color;
+                } else {
                     // TODO: Put the scale into the canvas transform
                     // Scalar to color map
                     var r = Math.floor(this.Confidences[i]*255);
                     view.Context2d.strokeStyle="#"+r.toString(16)+"ff00";
                     view.Context2d.beginPath();
                 }
-                view.Context2d.moveTo(x*scale, y*scale);
-                view.Context2d.lineTo((x+w)*scale, y*scale);
-                view.Context2d.lineTo((x+w)*scale, (y+h)*scale);
-                view.Context2d.lineTo(x*scale, (y+h)*scale);
-                view.Context2d.lineTo(x*scale, y*scale);
-                if ( ! this.Color) {
+                view.Context2d.moveTo((x-hw)*scale, (y-hh)*scale);
+                view.Context2d.lineTo((x+hw)*scale, (y-hh)*scale);
+                view.Context2d.lineTo((x+hw)*scale, (y+hh)*scale);
+                view.Context2d.lineTo((x-hw)*scale, (y+hh)*scale);
+                view.Context2d.lineTo((x-hw)*scale, (y-hh)*scale);
+                view.Context2d.stroke();
+
+                if (i == this.ActiveIndex) {
+                    // mark the rectangle
+                    view.Context2d.beginPath();
+                    view.Context2d.strokeStyle="#00ffff";
+                    view.Context2d.moveTo((x-hw)*scale, y*scale);
+                    view.Context2d.lineTo((x-hw/2)*scale, y*scale);
+                    view.Context2d.moveTo((x+hw)*scale, y*scale);
+                    view.Context2d.lineTo((x+hw/2)*scale, y*scale);
+                    view.Context2d.moveTo(x*scale, (y-hh)*scale);
+                    view.Context2d.lineTo(x*scale, (y-hh/2)*scale);
+                    view.Context2d.moveTo(x*scale, (y+hh)*scale);
+                    view.Context2d.lineTo(x*scale, (y+hh/2)*scale);
                     view.Context2d.stroke();
                 }
             } else {
                 cIdx += 2;
             }
-        }
-        if ( this.Color) {
-            view.Context2d.stroke();
         }
     }
 
@@ -8270,7 +8329,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         // Using active to step through rectangles with arrow keys.
         this.Active = false;
-        this.ActiveIndex = 0;
     };
 
     // Sort by confidences
@@ -8297,8 +8355,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Update all arrays.
         var newConfidences = new Array(this.Confidences.length);
         var newCenters = new Array(this.Centers.length);
+        var newLabels = new Array(this.Centers.length);
         for (var i = 0; i < newConfidences.length; ++i) {
             var i2 = sortable[i].idx;
+            newLabels[i] = this.Labels[i2];
             newConfidences[i] = this.Confidences[i2];
             i2 = i2 * 2;
             newCenters[2*i] = this.Centers[i2];
@@ -8306,6 +8366,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
         this.Centers = newCenters;
         this.Confidences = newConfidences;
+        this.Labels = newLabels;
     }
 
 
@@ -8328,15 +8389,14 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (this.UserNoteFlag !== undefined){
             obj.user_note_flag = this.UserNoteFlag;
         }
-        if (this.color) {
-            obj.color[0] = this.Shape.Color[0];
-            obj.color[1] = this.Shape.Color[1];
-            obj.color[2] = this.Shape.Color[2];
+        if (this.Shape.Color) {
+            obj.color = SAM.ConvertColor(this.Shape.Color);
         }
         var num = this.Shape.Widths.length;
         obj.confidences = new Array(num);
         obj.widths = new Array(num);
         obj.heights = new Array(num);
+        obj.labels = new Array(num);
         obj.centers = new Array(num*2);
         for (var i = 0; i < num; ++i) {
             obj.widths[i] = this.Shape.Widths[i];
@@ -8344,6 +8404,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             obj.confidences[i] = this.Shape.Confidences[i];
             obj.centers[i] = this.Shape.Centers[i];
             obj.centers[i+num] = this.Shape.Centers[i+num];
+            obj.labels[i] = this.Shape.Labels[i];
         }
         return obj;
     }
@@ -8358,6 +8419,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
         var num = obj.widths.length;
         this.Shape.Confidences = new Array(num);
+        this.Shape.Labels = new Array(num);
         this.Shape.Widths = new Array(num);
         this.Shape.Heights = new Array(num);
         this.Shape.Centers = new Array(num*2);
@@ -8365,6 +8427,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Shape.Widths[i] = parseFloat(obj.widths[i]);
             this.Shape.Heights[i] = parseFloat(obj.heights[i]);
             this.Shape.Confidences[i] = parseFloat(obj.confidences[i]);
+            if (obj.labels) {
+                this.Shape.Labels[i] = obj.labels[i];
+            } else {
+                this.Shape.Labels[i] = "";
+            }
             this.Shape.Centers[i] = parseFloat(obj.centers[i]);
             this.Shape.Centers[i+num] = parseFloat(obj.centers[i+num]);
         }
@@ -8383,33 +8450,77 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
         var direction = 0;
-        if (event.keyCode == 38) {
+
+        if (event.keyCode == 27) { // escape
+            this.Deactivate();
+            return false;
+        } else if (event.keyCode == 48) { // 0
+            // set a class label
+            if (this.Shape.ActiveIndex >= 0 &&
+                this.Shape.ActiveIndex < this.Shape.Widths.length) {
+                this.Shape.Labels[this.Shape.ActiveIndex] = "false_positive";
+                this.ChangeActive(1);
+            }
+        } else if (event.keyCode == 49) { // 1
+            // set a class label
+            if (this.Shape.ActiveIndex >= 0 &&
+                this.Shape.ActiveIndex < this.Shape.Widths.length) {
+                this.Shape.Labels[this.Shape.ActiveIndex] = "car";
+                this.ChangeActive(1);
+            }
+        } else if (event.keyCode == 46) { // Delete key
+            // remove the rectangle
+            var index = this.Shape.ActiveIndex;
+            if (index >= 0 && index < this.Shape.Widths.length) {
+                this.Shape.DeleteRectangle(index);
+                // Advance to the next rect.
+                this.Shape.ActiveIndex = index-1;
+                this.ChangeActive(1);
+            }
+        } else if (event.keyCode == 38) {
             // Up cursor key
         } else if (event.keyCode == 40) {
             // Down cursor key
-        } else if (event.keyCode == 37) {
-            // Left cursor key
-            direction = -1;
-        } else if (event.keyCode == 39) {
-            // Right cursor key
-            direction = 1;
-        }
-        if (direction != 0) {
-            // loop to skip rects below the threshold
-            while (true) {
-                this.ActiveIndex += direction;
-                if (this.ActiveIndex < 0 || this.ActiveIndex >= this.Shape.Widths.length) {
-                    this.Deactivate();
-                    return false;
-                }
-                if (this.Shape.Confidences[this.ActiveIndex] >= this.Shape.Threshold) {
+            // Move to the next without a label
+            var index = this.Shape.ActiveIndex + 1;
+            while (index < this.Shape.Widths.length) {
+                if (this.Shape.Labels[index] == "") {
+                    this.Shape.ActiveIndex = index;
                     this.UpdateActiveView();
                     return false;
                 }
+                index += 1;
             }
+            // Got to end without finding one.
+            this.Deactivate();
+            return false;
+        } else if (event.keyCode == 37) {
+            // Left cursor key
+            this.ChangeActive(-1);
+            return false;
+        } else if (event.keyCode == 39) {
+            // Right cursor key
+            this.ChangeActive(1);
+            return false;
         }
 
         return true;
+    }
+
+    // Forward = 1, backward = -1
+    RectSetWidget.prototype.ChangeActive = function(direction) {
+        // loop to skip rects below the threshold
+        while (true) {
+            this.Shape.ActiveIndex += direction;
+            if (this.Shape.ActiveIndex < 0 || this.Shape.ActiveIndex >= this.Shape.Widths.length) {
+                this.Deactivate();
+                return;
+            }
+            if (this.Shape.Confidences[this.Shape.ActiveIndex] >= this.Shape.Threshold) {
+                this.UpdateActiveView();
+                return;
+            }
+        }
     }
 
     RectSetWidget.prototype.HandleDoubleClick = function(event) {
@@ -8417,7 +8528,23 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
     RectSetWidget.prototype.HandleMouseDown = function(event) {
-        return true;
+        var index = this.Shape.ActiveIndex;
+        if (index < 0 || index >= this.Shape.Widths.length) {
+            return true;
+        }
+        if (event.which != 1) {
+            return true;
+        }
+        // find the world location of the event.
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
+        this.Shape.Centers[2*index] = pt[0];
+        this.Shape.Centers[2*index+1] = pt[1];
+        // Click to center and move to the next.
+        this.Shape.Labels[index] = "car";
+        this.ChangeActive(1);
+        return false;
     }
 
     RectSetWidget.prototype.HandleMouseUp = function(event) {
@@ -8469,7 +8596,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
         if (flag) {
             this.Active = true;
-            this.ActiveIndex = 0;
+            this.Shape.ActiveIndex = 0;
             this.UpdateActiveView();
         } else {
             this.Deactivate();
@@ -8480,7 +8607,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Layer.GetCanvasDiv().css({'cursor':'default'});
         this.Layer.DeactivateWidget(this);
         this.Active = false;
-        //this.Shape.Active = false;
+        this.Shape.ActiveIndex = -1;
+
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
@@ -8495,8 +8623,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     RectSetWidget.prototype.UpdateActiveView = function () {
         var viewer = this.Layer.GetViewer();
         var cam = viewer.GetCamera();
-        viewer.TranslateTarget[0] = this.Shape.Centers[2*this.ActiveIndex];
-        viewer.TranslateTarget[1] = this.Shape.Centers[2*this.ActiveIndex+1];
+        viewer.TranslateTarget[0] = this.Shape.Centers[2*this.Shape.ActiveIndex];
+        viewer.TranslateTarget[1] = this.Shape.Centers[2*this.Shape.ActiveIndex+1];
         viewer.AnimateLast = new Date().getTime();
         viewer.AnimateDuration = 200.0;
         viewer.EventuallyRender(true);
@@ -10473,6 +10601,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             }
             if (widget.type == "rect") {
                 element = {'type'     : 'rectangle',
+                           'label'    : {'value':'test'},
                            'center'   : widget.origin,
                            'height'   : widget.height,
                            'width'    : widget.width,
@@ -10482,6 +10611,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 var num = widget.widths.length;
                 for (var j = 0; j < num; ++j) {
                     element = {'type'     : 'rectangle',
+                               'label'    : {'value':widget.labels[j]},
                                'center'   : [widget.centers[2*j], widget.centers[2*j+1], 0],
                                'height'   : widget.heights[j],
                                'width'    : widget.widths[j],
@@ -10676,6 +10806,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         set_obj.widths = [];
         set_obj.heights = [];
         set_obj.confidences = [];
+        set_obj.labels = [];
 
         var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
@@ -10744,6 +10875,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                         element.scalar = 1.0;
                     }
                     set_obj.confidences.push(element.scalar);
+                    if (element.label) {
+                        set_obj.labels.push(element.label.value);
+                    } else {
+                        set_obj.labels.push("");
+                    }
                 } else {
                     obj.type = "rect",
                     obj.outlinecolor = SAM.ConvertColor(element.lineColor);
@@ -10775,6 +10911,303 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     SAM.GirderWidget = GirderWidget;
 
 })();
+//==============================================================================
+// Manage 3 annotation sets,  detection, posives (ground truth) and false positives.
+// Sort the detections into the positive anntoations.
+// These will be stored in three different rect sets.
+// Create my own layer.
+
+// We might make this a widget (and forward methods like draw) so we can
+// handle mouse events.
+
+(function () {
+    "use strict";
+
+
+    function GroundTruth (parent, detectionId, truePositiveId,
+                          falsePositiveId, layer) {
+        this.Layer = layer;
+        this.Label = "GroundTruth";
+        this.DetectionsId = detectionId;
+        this.TruePositivesId = truePositiveId;
+        this.FalsePositivesId = falsePositiveId;
+
+        this.InitializeGui(parent,this.Label);
+        this.InitializeAnnotation();
+    }
+
+
+    // Initialize the gui / dom
+    GroundTruth.prototype.InitializeGui = function (parent, label) {
+        var self = this;
+
+        // The wrapper div that controls a single layer.
+        var layer_control = $('<div>')
+            .appendTo(parent)
+            .css({ 'border': '1px solid #CCC', 'width': '100%',
+                   'height': '65px' });
+
+        var startButton =
+            $('<div>').appendTo(layer_control)
+            .text("Start")
+            .prop('title', "Start sorting detections")
+            .attr('contenteditable', "false")
+            .css({'border':'1px solid #666666',
+                  'border-radius': '5px',
+                  'background': '#f5f8ff'})
+            .click(function(){self.Start();});
+
+        var stopButton =
+            $('<div>').appendTo(layer_control)
+            .text("Stop")
+            .prop('title', "Stop sorting and save")
+            .attr('contenteditable', "false")
+            .css({'border':'1px solid #666666',
+                  'border-radius': '5px',
+                  'background': '#f5f8ff'})
+            .click(function(){self.Stop();});
+
+        var saveButton =
+            $('<div>').appendTo(layer_control)
+            .text("Save")
+            .prop('title', "Stop sorting and save")
+            .attr('contenteditable', "false")
+            .css({'border':'1px solid #666666',
+                  'border-radius': '5px',
+                  'background': '#f5f8ff'})
+            .click(function(){self.Save();});
+
+        // Wrapper for the confidence slider.
+        var conf_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid #CCC', 'width': '60%',
+                   'height': '100%', 'float': 'left' });
+
+        this.Slider = $('<input type="range" min="50" max="100">')
+            .appendTo(conf_wrapper)
+            .on('input',
+                function(){
+                    self.SliderCallback();
+                });
+        //this.Slider[0].min = 75;
+
+        var min_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("50%")
+            .css({ 'float': 'left' });
+
+        var max_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("100%")
+            .css({ 'float': 'right' });
+
+    }
+
+    GroundTruth.prototype.InitializeAnnotation = function() {
+        this.RequestAnnotationItem(this.DetectionsId, "Detections");
+        this.RequestAnnotationItem(this.TruePositivesId, "TruePositives");
+        this.RequestAnnotationItem(this.FalsePositivesId, "FalsePositives");
+    }
+
+    /*
+    GroundTruth.prototype.LoadGirderImageItem = function(itemId) {
+        //var itemId = "564e42fe3f24e538e9a20eb9";
+        // I think data is the wron place to pass these parameters.
+        var data= {"limit": 50,
+                   "offset": 0,
+                   "sort":"lowerName",
+                   "sortdir":0};
+
+        var self = this;
+        // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
+        girder.restRequest({
+            path:   "annotation?itemId="+itemId,
+            method: "GET",
+            data:   JSON.stringify(data)
+        }).done(function(data) {
+            for (var i = 0; i < data.length; ++i) {
+                self.LoadAnnotationItem(data[i]._id);
+            }
+        });
+    }
+    */
+
+    GroundTruth.prototype.RequestAnnotationItem = function(annotId, key) {
+        //var annotId = "572be29d3f24e53573aa8e91";
+        var self = this;
+        if (window.girder) {
+            girder.restRequest({
+                path: 'annotation/' + annotId,
+                method: 'GET',
+                contentType: 'application/json',
+            }).done(function(data) {
+                self.LoadAnnotation(data, key);
+            });
+        } else {
+            alert("No girder");
+        }
+    }
+
+    // TODO: Share this code (to parse girder data) with girderWidget.
+    GroundTruth.prototype.LoadAnnotation = function(data, key) {
+        // Used for saving the annotation back to girder.
+        this[key+"Annotation"] = data.annotation;
+
+        // Put all the rectangles into one set.
+        var set_obj = {};
+        set_obj.type = "rect_set";
+        set_obj.centers = [];
+        set_obj.widths = [];
+        set_obj.heights = [];
+        set_obj.confidences = [];
+        set_obj.labels = [];
+
+        var annot = data.annotation;
+        for (var i = 0; i < annot.elements.length; ++i) {
+            var element = annot.elements[i];
+            var obj = {};
+
+            if (element.type == "rectangle") {
+                set_obj.widths.push(element.width);
+                set_obj.heights.push(element.height);
+                set_obj.centers.push(element.center[0]);
+                set_obj.centers.push(element.center[1]);
+                if (element.scalar === undefined) {
+                    element.scalar = 1.0;
+                }
+                set_obj.confidences.push(element.scalar);
+                if (element.label) {
+                    set_obj.labels.push(element.label.value);
+                } else {
+                    set_obj.labels.push("");
+                }
+            }
+        }
+
+        this[key+"Widget"] = this.Layer.LoadWidget(set_obj);
+        if (key == "FalsePositives") {
+            this.FalsePositivesWidget.Shape.SetOutlineColor("rgba(255,0,0,0.3)");
+        }
+        if (key == "TruePositives") {
+            this.TruePositivesWidget.Shape.SetOutlineColor("rgba(0,255,0,0.3)");
+        }
+        if (key == "Detections") {
+            this.DetectionsWidget.Shape.SetOutlineColor("#ffff00");
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    GroundTruth.prototype.CheckCallback = function () {
+        var checked = this.CheckBox.prop('checked');
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.Layers[i].SetVisibility(checked);
+            this.Layers[i].EventuallyDraw();
+        }
+    }
+
+    GroundTruth.prototype.SliderCallback = function () {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.UpdateLayer(this.Layers[i]);
+        }
+    }
+
+    GroundTruth.prototype.Start = function () {
+        this.DetectionsWidget.Activate();
+        // Set the deactivate callback.
+        var self = this;
+        this.DetectionsWidget.DeactivateCallback = function () {
+            self.SplitDetections();
+        }
+    }
+
+    // Move labeled rects to false or true positives.
+    GroundTruth.prototype.SplitDetections = function () {
+        var detections = this.DetectionsWidget.Shape;
+        var positives = this.TruePositivesWidget.Shape;
+        var negatives = this.FalsePositivesWidget.Shape;
+        var outIdx = 0;
+        for (var inIdx = 0; inIdx < detections.Labels.length; ++inIdx) {
+            if (detections.Labels[inIdx] == "") {
+                if (inIdx != outIdx) {
+                    detections.CopyRectangle(detections, inIdx, outIdx);
+                }
+                ++outIdx;
+            } else if (detections.Labels[inIdx] == "car") {
+                positives.CopyRectangle(detections, inIdx);
+            } else if (detections.Labels[inIdx] == "false_positive") {
+                negatives.CopyRectangle(detections, inIdx);
+            }
+        }
+        // Shrink the detections arrays
+        var length = detections.Labels.length;
+        detections.Centers.splice(2*outIdx, 2*(length-outIdx));
+        detections.Widths.splice(outIdx, length-outIdx);
+        detections.Heights.splice(outIdx, length-outIdx);
+        detections.Labels.splice(outIdx, length-outIdx);
+        detections.Confidences.splice(outIdx, length-outIdx);
+        // TODO: SAve annotations to girder/
+    }
+
+    GroundTruth.prototype.Stop = function () {
+        this.DetectionsWidget.Deactivate();
+    }
+
+    GroundTruth.prototype.Save = function () {
+        this.DetectionsWidget.Deactivate();
+        if (window.girder) {
+            // Save in the database
+            this.DetectionsAnnotation.elements = this.RectSetToGirderElements(this.DetectionsWidget);
+            girder.restRequest({
+                path:  "annotation/"+this.DetectionsId,
+                method: 'PUT',
+                data: JSON.stringify(this.DetectionsAnnotation),
+                contentType:'application/json'
+            });
+            this.FalsePositivesAnnotation.elements = this.RectSetToGirderElements(this.FalsePositivesWidget);
+            girder.restRequest({
+                path:  "annotation/"+this.FalsePositivesId,
+                method: 'PUT',
+                data: JSON.stringify(this.FalsePositivesAnnotation),
+                contentType:'application/json'
+            });
+            this.TruePositivesAnnotation.elements = this.RectSetToGirderElements(this.TruePositivesWidget);
+            girder.restRequest({
+                path:  "annotation/"+this.TruePositivesId,
+                method: 'PUT',
+                data: JSON.stringify(this.TruePositivesAnnotation),
+                contentType:'application/json'
+            });
+        }
+    }
+
+    // Converts rectSetWidget into girder annotation elements.
+    // returns an elements array.
+    GroundTruth.prototype.RectSetToGirderElements = function(rectSetWidget) {
+        var returnElements = [];
+
+        var widget = rectSetWidget.Serialize();
+        var num = widget.widths.length;
+        for (var j = 0; j < num; ++j) {
+            var element = {'type'     : 'rectangle',
+                           'label'    : {'value':widget.labels[j]},
+                           'center'   : [widget.centers[2*j], widget.centers[2*j+1], 0],
+                           'height'   : widget.heights[j],
+                           'width'    : widget.widths[j],
+                           'rotation' : 0,
+                           'scalar'   : widget.confidences[j]};
+            returnElements.push(element);
+        }
+        return returnElements;
+    }
+
+
+    SAM.GroundTruth = GroundTruth;
+
+})();
+
+
+
+
 //==============================================================================
 // View Object
 // Viewport (x_lowerleft, y_lowerleft, width, height)

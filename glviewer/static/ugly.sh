@@ -34,6 +34,7 @@ echo "uglify sam"
 ~/bin/uglifyjs -nc imageAnnotation.js >> sam.min.js 
 ~/bin/uglifyjs -nc dialog.js >> sam.min.js 
 ~/bin/uglifyjs -nc girderWidget.js >> sam.min.js 
+~/bin/uglifyjs -nc groundTruth.js >> sam.min.js 
 ~/bin/uglifyjs -nc view.js >> sam.min.js 
 
 

@@ -34,6 +34,10 @@ window.SA = window.SA || {};
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id : new SA.ObjectId().toString()};
+        if (tileSource.bounds) {
+            image.bounds = tileSource.bounds;
+        }
+
         if (tileSource.filename) {
             image.filename = tileSource.filename;
             image.label = tileSource.filename;
@@ -54,7 +58,11 @@ window.SA = window.SA || {};
         var record = new SA.ViewerRecord();
         record.Image = image;
         record.OverviewBounds = [0,w-1,0,h-1];
-        record.Camera = {FocalPoint: [w/2, h/2],
+        if (tileSource.bounds) {
+            record.OverviewBounds = tileSource.bounds;
+        }
+        record.Camera = {FocalPoint: [(record.OverviewBounds[0]+record.OverviewBounds[1])/2,
+                                      (record.OverviewBounds[2]+record.OverviewBounds[3])/2],
                          Roll: 0,
                          Height: h};
         return record;

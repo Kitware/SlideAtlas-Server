@@ -200,6 +200,7 @@
             }
             if (widget.type == "rect") {
                 element = {'type'     : 'rectangle',
+                           'label'    : {'value':'test'},
                            'center'   : widget.origin,
                            'height'   : widget.height,
                            'width'    : widget.width,
@@ -209,6 +210,7 @@
                 var num = widget.widths.length;
                 for (var j = 0; j < num; ++j) {
                     element = {'type'     : 'rectangle',
+                               'label'    : {'value':widget.labels[j]},
                                'center'   : [widget.centers[2*j], widget.centers[2*j+1], 0],
                                'height'   : widget.heights[j],
                                'width'    : widget.widths[j],
@@ -403,6 +405,7 @@
         set_obj.widths = [];
         set_obj.heights = [];
         set_obj.confidences = [];
+        set_obj.labels = [];
 
         var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
@@ -471,6 +474,11 @@
                         element.scalar = 1.0;
                     }
                     set_obj.confidences.push(element.scalar);
+                    if (element.label) {
+                        set_obj.labels.push(element.label.value);
+                    } else {
+                        set_obj.labels.push("");
+                    }
                 } else {
                     obj.type = "rect",
                     obj.outlinecolor = SAM.ConvertColor(element.lineColor);

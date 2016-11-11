@@ -16,13 +16,47 @@
         this.Centers= [];
         this.Widths = [];
         this.Heights = [];
+        this.Labels = [];
         this.Confidences = [];
         // Hack to hide rects below a specific confidence.
         this.Threshold = 0.0;
+
+        // For now, one can be active.
+        this.ActiveIndex = -1;
+    }
+
+    // Helper for ground truth.
+    RectSet.prototype.CopyRectangle = function(source, inIdx, outIdx) {
+        if (outIdx === undefined) {
+            outIdx = this.Labels.length;
+        }
+        var inTmp = inIdx*2;
+        var outTmp = outIdx*2;
+        this.Centers[outTmp] = source.Centers[inTmp];
+        this.Centers[outTmp+1] = source.Centers[inTmp+1];
+        this.Widths[outIdx] = source.Widths[inIdx];
+        this.Heights[outIdx] = source.Heights[inIdx];
+        this.Labels[outIdx] = source.Labels[inIdx];
+        this.Confidences[outIdx] = source.Confidences[inIdx];
+    }
+
+
+    RectSet.prototype.DeleteRectangle = function(index) {
+        if (index < 0 || index >= this.Widths.length) {
+            return;
+        }
+
+        this.Centers.splice(2*index,2);
+        this.Widths.splice(index,1);
+        this.Labels.splice(index,1);
+        this.Confidences.splice(index,1);
+        if (this.ActiveIndex == index) {
+            this.ActiveIndex = -1;
+        }
     }
 
     RectSet.prototype.SetOutlineColor = function (c) {
-        this.Color = SAM.ConvertColor(c);
+        this.Color = SAM.ConvertColorToHex(c);
     }
 
     // do not worry about webGl for now.  Only canvas drawing.
@@ -52,43 +86,57 @@
         y = view.Viewport[3]*(0.5*(1.0-y));
         view.Context2d.transform(matrix0,matrix1,matrix4,matrix5,x,y);
 
-        if (this.Color) {
-            view.Context2d.strokeStyle=SAM.ConvertColorToHex(this.Color);
-            view.Context2d.beginPath();
-        }
         view.Context2d.lineWidth = 1;
-        //view.Context2d.beginPath();
+        var path = true;
 
         var cIdx = 0;
         var x = 0;
         var y = 0;
         for (var i = 0; i < this.Widths.length; ++i) {
             if (this.Confidences[i] >= this.Threshold) {
-                var w = this.Widths[i];
-                var h = this.Heights[i];
-                x = this.Centers[cIdx++] - w/2;
-                y = this.Centers[cIdx++] - h/2;
-                if ( ! this.Color) {
+                var hw = this.Widths[i]/2;
+                var hh = this.Heights[i]/2;
+                x = this.Centers[cIdx++];
+                y = this.Centers[cIdx++];
+
+                view.Context2d.beginPath();
+                if (this.Labels[i] == "false_positive") {
+                    view.Context2d.strokeStyle= "#ff0000";
+                } else if (this.Labels[i] == "car") {
+                    view.Context2d.strokeStyle= "#00ff00";
+                } else if (this.Color) {
+                    view.Context2d.strokeStyle= this.Color;
+                } else {
                     // TODO: Put the scale into the canvas transform
                     // Scalar to color map
                     var r = Math.floor(this.Confidences[i]*255);
                     view.Context2d.strokeStyle="#"+r.toString(16)+"ff00";
                     view.Context2d.beginPath();
                 }
-                view.Context2d.moveTo(x*scale, y*scale);
-                view.Context2d.lineTo((x+w)*scale, y*scale);
-                view.Context2d.lineTo((x+w)*scale, (y+h)*scale);
-                view.Context2d.lineTo(x*scale, (y+h)*scale);
-                view.Context2d.lineTo(x*scale, y*scale);
-                if ( ! this.Color) {
+                view.Context2d.moveTo((x-hw)*scale, (y-hh)*scale);
+                view.Context2d.lineTo((x+hw)*scale, (y-hh)*scale);
+                view.Context2d.lineTo((x+hw)*scale, (y+hh)*scale);
+                view.Context2d.lineTo((x-hw)*scale, (y+hh)*scale);
+                view.Context2d.lineTo((x-hw)*scale, (y-hh)*scale);
+                view.Context2d.stroke();
+
+                if (i == this.ActiveIndex) {
+                    // mark the rectangle
+                    view.Context2d.beginPath();
+                    view.Context2d.strokeStyle="#00ffff";
+                    view.Context2d.moveTo((x-hw)*scale, y*scale);
+                    view.Context2d.lineTo((x-hw/2)*scale, y*scale);
+                    view.Context2d.moveTo((x+hw)*scale, y*scale);
+                    view.Context2d.lineTo((x+hw/2)*scale, y*scale);
+                    view.Context2d.moveTo(x*scale, (y-hh)*scale);
+                    view.Context2d.lineTo(x*scale, (y-hh/2)*scale);
+                    view.Context2d.moveTo(x*scale, (y+hh)*scale);
+                    view.Context2d.lineTo(x*scale, (y+hh/2)*scale);
                     view.Context2d.stroke();
                 }
             } else {
                 cIdx += 2;
             }
-        }
-        if ( this.Color) {
-            view.Context2d.stroke();
         }
     }
 
@@ -109,7 +157,6 @@
 
         // Using active to step through rectangles with arrow keys.
         this.Active = false;
-        this.ActiveIndex = 0;
     };
 
     // Sort by confidences
@@ -136,8 +183,10 @@
         // Update all arrays.
         var newConfidences = new Array(this.Confidences.length);
         var newCenters = new Array(this.Centers.length);
+        var newLabels = new Array(this.Centers.length);
         for (var i = 0; i < newConfidences.length; ++i) {
             var i2 = sortable[i].idx;
+            newLabels[i] = this.Labels[i2];
             newConfidences[i] = this.Confidences[i2];
             i2 = i2 * 2;
             newCenters[2*i] = this.Centers[i2];
@@ -145,6 +194,7 @@
         }
         this.Centers = newCenters;
         this.Confidences = newConfidences;
+        this.Labels = newLabels;
     }
 
 
@@ -167,15 +217,14 @@
         if (this.UserNoteFlag !== undefined){
             obj.user_note_flag = this.UserNoteFlag;
         }
-        if (this.color) {
-            obj.color[0] = this.Shape.Color[0];
-            obj.color[1] = this.Shape.Color[1];
-            obj.color[2] = this.Shape.Color[2];
+        if (this.Shape.Color) {
+            obj.color = SAM.ConvertColor(this.Shape.Color);
         }
         var num = this.Shape.Widths.length;
         obj.confidences = new Array(num);
         obj.widths = new Array(num);
         obj.heights = new Array(num);
+        obj.labels = new Array(num);
         obj.centers = new Array(num*2);
         for (var i = 0; i < num; ++i) {
             obj.widths[i] = this.Shape.Widths[i];
@@ -183,6 +232,7 @@
             obj.confidences[i] = this.Shape.Confidences[i];
             obj.centers[i] = this.Shape.Centers[i];
             obj.centers[i+num] = this.Shape.Centers[i+num];
+            obj.labels[i] = this.Shape.Labels[i];
         }
         return obj;
     }
@@ -197,6 +247,7 @@
         }
         var num = obj.widths.length;
         this.Shape.Confidences = new Array(num);
+        this.Shape.Labels = new Array(num);
         this.Shape.Widths = new Array(num);
         this.Shape.Heights = new Array(num);
         this.Shape.Centers = new Array(num*2);
@@ -204,6 +255,11 @@
             this.Shape.Widths[i] = parseFloat(obj.widths[i]);
             this.Shape.Heights[i] = parseFloat(obj.heights[i]);
             this.Shape.Confidences[i] = parseFloat(obj.confidences[i]);
+            if (obj.labels) {
+                this.Shape.Labels[i] = obj.labels[i];
+            } else {
+                this.Shape.Labels[i] = "";
+            }
             this.Shape.Centers[i] = parseFloat(obj.centers[i]);
             this.Shape.Centers[i+num] = parseFloat(obj.centers[i+num]);
         }
@@ -222,33 +278,77 @@
 
 
         var direction = 0;
-        if (event.keyCode == 38) {
+
+        if (event.keyCode == 27) { // escape
+            this.Deactivate();
+            return false;
+        } else if (event.keyCode == 48) { // 0
+            // set a class label
+            if (this.Shape.ActiveIndex >= 0 &&
+                this.Shape.ActiveIndex < this.Shape.Widths.length) {
+                this.Shape.Labels[this.Shape.ActiveIndex] = "false_positive";
+                this.ChangeActive(1);
+            }
+        } else if (event.keyCode == 49) { // 1
+            // set a class label
+            if (this.Shape.ActiveIndex >= 0 &&
+                this.Shape.ActiveIndex < this.Shape.Widths.length) {
+                this.Shape.Labels[this.Shape.ActiveIndex] = "car";
+                this.ChangeActive(1);
+            }
+        } else if (event.keyCode == 46) { // Delete key
+            // remove the rectangle
+            var index = this.Shape.ActiveIndex;
+            if (index >= 0 && index < this.Shape.Widths.length) {
+                this.Shape.DeleteRectangle(index);
+                // Advance to the next rect.
+                this.Shape.ActiveIndex = index-1;
+                this.ChangeActive(1);
+            }
+        } else if (event.keyCode == 38) {
             // Up cursor key
         } else if (event.keyCode == 40) {
             // Down cursor key
-        } else if (event.keyCode == 37) {
-            // Left cursor key
-            direction = -1;
-        } else if (event.keyCode == 39) {
-            // Right cursor key
-            direction = 1;
-        }
-        if (direction != 0) {
-            // loop to skip rects below the threshold
-            while (true) {
-                this.ActiveIndex += direction;
-                if (this.ActiveIndex < 0 || this.ActiveIndex >= this.Shape.Widths.length) {
-                    this.Deactivate();
-                    return false;
-                }
-                if (this.Shape.Confidences[this.ActiveIndex] >= this.Shape.Threshold) {
+            // Move to the next without a label
+            var index = this.Shape.ActiveIndex + 1;
+            while (index < this.Shape.Widths.length) {
+                if (this.Shape.Labels[index] == "") {
+                    this.Shape.ActiveIndex = index;
                     this.UpdateActiveView();
                     return false;
                 }
+                index += 1;
             }
+            // Got to end without finding one.
+            this.Deactivate();
+            return false;
+        } else if (event.keyCode == 37) {
+            // Left cursor key
+            this.ChangeActive(-1);
+            return false;
+        } else if (event.keyCode == 39) {
+            // Right cursor key
+            this.ChangeActive(1);
+            return false;
         }
 
         return true;
+    }
+
+    // Forward = 1, backward = -1
+    RectSetWidget.prototype.ChangeActive = function(direction) {
+        // loop to skip rects below the threshold
+        while (true) {
+            this.Shape.ActiveIndex += direction;
+            if (this.Shape.ActiveIndex < 0 || this.Shape.ActiveIndex >= this.Shape.Widths.length) {
+                this.Deactivate();
+                return;
+            }
+            if (this.Shape.Confidences[this.Shape.ActiveIndex] >= this.Shape.Threshold) {
+                this.UpdateActiveView();
+                return;
+            }
+        }
     }
 
     RectSetWidget.prototype.HandleDoubleClick = function(event) {
@@ -256,7 +356,23 @@
     }
 
     RectSetWidget.prototype.HandleMouseDown = function(event) {
-        return true;
+        var index = this.Shape.ActiveIndex;
+        if (index < 0 || index >= this.Shape.Widths.length) {
+            return true;
+        }
+        if (event.which != 1) {
+            return true;
+        }
+        // find the world location of the event.
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
+        this.Shape.Centers[2*index] = pt[0];
+        this.Shape.Centers[2*index+1] = pt[1];
+        // Click to center and move to the next.
+        this.Shape.Labels[index] = "car";
+        this.ChangeActive(1);
+        return false;
     }
 
     RectSetWidget.prototype.HandleMouseUp = function(event) {
@@ -308,7 +424,7 @@
         }
         if (flag) {
             this.Active = true;
-            this.ActiveIndex = 0;
+            this.Shape.ActiveIndex = 0;
             this.UpdateActiveView();
         } else {
             this.Deactivate();
@@ -319,7 +435,8 @@
         this.Layer.GetCanvasDiv().css({'cursor':'default'});
         this.Layer.DeactivateWidget(this);
         this.Active = false;
-        //this.Shape.Active = false;
+        this.Shape.ActiveIndex = -1;
+
         if (this.DeactivateCallback) {
             this.DeactivateCallback();
         }
@@ -334,8 +451,8 @@
     RectSetWidget.prototype.UpdateActiveView = function () {
         var viewer = this.Layer.GetViewer();
         var cam = viewer.GetCamera();
-        viewer.TranslateTarget[0] = this.Shape.Centers[2*this.ActiveIndex];
-        viewer.TranslateTarget[1] = this.Shape.Centers[2*this.ActiveIndex+1];
+        viewer.TranslateTarget[0] = this.Shape.Centers[2*this.Shape.ActiveIndex];
+        viewer.TranslateTarget[1] = this.Shape.Centers[2*this.Shape.ActiveIndex+1];
         viewer.AnimateLast = new Date().getTime();
         viewer.AnimateDuration = 200.0;
         viewer.EventuallyRender(true);

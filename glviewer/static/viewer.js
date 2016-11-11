@@ -46,6 +46,7 @@
         this.RenderPending = false;
 
         this.HistoryFlag = false;
+        this.MinPixelSize = 0.5;
 
         // Interaction state:
         // What to do for mouse move or mouse up.
@@ -1852,7 +1853,7 @@
             this.ZoomTarget = heightMax;
             modified = true;
         }
-        var heightMin = viewport[3] * spacing * 0.5;
+        var heightMin = viewport[3] * spacing * this.MinPixelSize;
         if (cam.GetHeight() < heightMin) {
             cam.SetHeight(heightMin);
             this.ZoomTarget = heightMin;
@@ -2071,6 +2072,14 @@
     // Returns true if nothing was done with the event.
     Viewer.prototype.HandleKeyDown = function(event) {
         if ( ! this.InteractionEnabled) { return true; }
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyDown && ! this.Layers[i].HandleKeyDown(event)) {
+                return false;
+            }
+        }
+
         if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
             if ( ! SAVING_IMAGE) {
                 SAVING_IMAGE = new SAM.Dialog();

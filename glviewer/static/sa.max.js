@@ -8045,6 +8045,10 @@ window.SA = window.SA || {};
                      dimensions: [w,h],
                      bounds: [0,w-1, 0,h-1],
                      _id : new SA.ObjectId().toString()};
+        if (tileSource.bounds) {
+            image.bounds = tileSource.bounds;
+        }
+
         if (tileSource.filename) {
             image.filename = tileSource.filename;
             image.label = tileSource.filename;
@@ -8065,7 +8069,11 @@ window.SA = window.SA || {};
         var record = new SA.ViewerRecord();
         record.Image = image;
         record.OverviewBounds = [0,w-1,0,h-1];
-        record.Camera = {FocalPoint: [w/2, h/2],
+        if (tileSource.bounds) {
+            record.OverviewBounds = tileSource.bounds;
+        }
+        record.Camera = {FocalPoint: [(record.OverviewBounds[0]+record.OverviewBounds[1])/2,
+                                      (record.OverviewBounds[2]+record.OverviewBounds[3])/2],
                          Roll: 0,
                          Height: h};
         return record;
@@ -19089,10 +19097,12 @@ function saViewerSetup(self, args) {
     if (typeof(args[0]) == 'object') {
         params = args[0];
     }
+
     if (params && params.prefixUrl) {
         SA.ImagePathUrl = params.prefixUrl;
         SAM.ImagePathUrl = params.prefixUrl;
     }
+
     $(window)
         .off('resize.sa')
         .on('resize.sa', saResizeCallback);
@@ -29352,6 +29362,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.RenderPending = false;
 
         this.HistoryFlag = false;
+        this.MinPixelSize = 0.5;
 
         // Interaction state:
         // What to do for mouse move or mouse up.
@@ -31158,7 +31169,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.ZoomTarget = heightMax;
             modified = true;
         }
-        var heightMin = viewport[3] * spacing * 0.5;
+        var heightMin = viewport[3] * spacing * this.MinPixelSize;
         if (cam.GetHeight() < heightMin) {
             cam.SetHeight(heightMin);
             this.ZoomTarget = heightMin;
@@ -31377,6 +31388,14 @@ Cache.prototype.RecursivePruneTiles = function(node)
     // Returns true if nothing was done with the event.
     Viewer.prototype.HandleKeyDown = function(event) {
         if ( ! this.InteractionEnabled) { return true; }
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyDown && ! this.Layers[i].HandleKeyDown(event)) {
+                return false;
+            }
+        }
+
         if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
             if ( ! SAVING_IMAGE) {
                 SAVING_IMAGE = new SAM.Dialog();

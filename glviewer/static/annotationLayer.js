@@ -104,8 +104,16 @@
 
     // Convert any color to an array [r,g,b] values 0->1
     SAM.ConvertColor = function(color) {
-        // Deal with color names.
         if ( typeof(color)=='string' && color[0] != '#') {
+            if (color.slice(0,5) == "rgba(") {
+                color = color.slice(5,-1).split(',');
+                color[0] = color[0]/255;
+                color[1] = color[1]/255;
+                color[2] = color[1]/255;
+                return color;
+            }
+
+            // Deal with color names.
             var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
                           "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
                           "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
@@ -155,6 +163,9 @@
     // RGB [Float, Float, Float] to #RRGGBB string
     SAM.ConvertColorToHex = function(color) {
         if (typeof(color) == 'string') { 
+            if (color.slice(0,5) == "rgba(") {
+                return color;
+            }
             color = SAM.ConvertColorNameToHex(color);
             if (color.substring(0,1) == '#') {
                 return color;

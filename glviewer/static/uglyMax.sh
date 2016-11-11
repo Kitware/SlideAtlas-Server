@@ -30,6 +30,7 @@ cat cutoutWidget.js >> sam.max.js
 cat imageAnnotation.js >> sam.max.js 
 cat dialog.js >> sam.max.js 
 cat girderWidget.js >> sam.max.js 
+cat groundTruth.js >> sam.max.js 
 cat view.js >> sam.max.js 
 
 
