@@ -118,6 +118,8 @@
 
         var self = this;
         var can = this.MainView.CanvasDiv;
+        // So we can programatically set the keyboard focus
+        can.attr('tabindex','1');
         can.on(
             "mousedown.viewer",
 			      function (event){
@@ -171,6 +173,11 @@
 			      function (event){
                 //alert("keydown");
                 return self.HandleKeyDown(event);
+            });
+        can.on(
+            "keyup.viewer",
+			      function (event){
+                return self.HandleKeyUp(event);
             });
 
         // This did not work for double left click
@@ -1261,6 +1268,7 @@
             var currentHeight = this.MainView.Camera.GetHeight();
             var currentCenter = this.MainView.Camera.GetFocalPoint();
             var currentRoll   = this.MainView.Camera.Roll;
+
             this.MainView.Camera.SetHeight(
                 currentHeight + (this.ZoomTarget-currentHeight)
                     *(timeNow-this.AnimateLast)/this.AnimateDuration);
@@ -1850,13 +1858,13 @@
         var heightMax = 2*(bounds[3]-bounds[2]);
         if (cam.GetHeight() > heightMax) {
             cam.SetHeight(heightMax);
-            this.ZoomTarget = heightMax;
+            //this.ZoomTarget = heightMax;
             modified = true;
         }
         var heightMin = viewport[3] * spacing * this.MinPixelSize;
         if (cam.GetHeight() < heightMin) {
             cam.SetHeight(heightMin);
-            this.ZoomTarget = heightMin;
+            //this.ZoomTarget = heightMin;
             modified = true;
         }
         if (modified) {
@@ -1950,10 +1958,7 @@
             return true;
         }
 
-        // TODO: Get rid of this. Should be done with image properties.
-        //event.preventDefault(); // Keep browser from selecting images.
         if ( ! this.RecordMouseMove(event)) { return true; }
-        //this.ComputeMouseWorld(event);
 
         // I think we need to deal with the move here because the mouse can
         // exit the icon and the events are lost.
@@ -2216,6 +2221,20 @@
             this.AnimateDuration = 200.0;
             this.EventuallyRender(true);
             return false;
+        }
+        return true;
+    }
+
+    // returns false if the event was "consumed" (browser convention).
+    // Returns true if nothing was done with the event.
+    Viewer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyUp && ! this.Layers[i].HandleKeyUp(event)) {
+                return false;
+            }
         }
         return true;
     }

@@ -21,8 +21,16 @@
         // Hack to hide rects below a specific confidence.
         this.Threshold = 0.0;
 
-        // For now, one can be active.
+        // For now, one can be active.  Highlight one
         this.ActiveIndex = -1;
+    }
+
+    // Set the size (width,height) of all the rectangles.
+    RectSet.prototype.SetShape = function(shape) {
+        for (var i =0; i < this.Widths.length; ++i){
+            this.Widths[i] = shape[0];
+            this.Heights[i] = shape[1];
+        }
     }
 
     // Helper for ground truth.
@@ -40,6 +48,15 @@
         this.Confidences[outIdx] = source.Confidences[inIdx];
     }
 
+    RectSet.prototype.AddRectangle = function(center, width, height) {
+        var outIdx = this.Labels.length;
+        this.Centers[outIdx*2] = center[0];
+        this.Centers[outIdx*2+1] = center[1];
+        this.Widths[outIdx] = width;
+        this.Heights[outIdx] = height;
+        this.Labels[outIdx] = "";
+        this.Confidences[outIdx] = 1.0;
+    }
 
     RectSet.prototype.DeleteRectangle = function(index) {
         if (index < 0 || index >= this.Widths.length) {
@@ -48,6 +65,7 @@
 
         this.Centers.splice(2*index,2);
         this.Widths.splice(index,1);
+        this.Heights.splice(index,1);
         this.Labels.splice(index,1);
         this.Confidences.splice(index,1);
         if (this.ActiveIndex == index) {
@@ -100,10 +118,8 @@
                 y = this.Centers[cIdx++];
 
                 view.Context2d.beginPath();
-                if (this.Labels[i] == "false_positive") {
-                    view.Context2d.strokeStyle= "#ff0000";
-                } else if (this.Labels[i] == "car") {
-                    view.Context2d.strokeStyle= "#00ff00";
+                if (this.LabelColors && this.LabelColors[this.Labels[i]]) {
+                    view.Context2d.strokeStyle= this.LabelColors[this.Labels[i]];
                 } else if (this.Color) {
                     view.Context2d.strokeStyle= this.Color;
                 } else {
@@ -151,15 +167,20 @@
             return;
         }
 
-        this.Layer = layer;
         this.Shape = new RectSet();
-        this.Layer.AddWidget(this);
-
-        // Using active to step through rectangles with arrow keys.
+        if (layer) {
+            this.Layer = layer;
+            this.Layer.AddWidget(this);
+        }
         this.Active = false;
     };
 
+    RectSetWidget.prototype.GetLength = function() {
+        return this.Shape.Widths.length;
+    }
+
     // Sort by confidences
+    // Note: Not used yet.
     RectSetWidget.prototype.Sort = function(lowToHigh) {
         // Create an array to sort that also keeps the indexes.
         var sortable = new Array(this.Confidences.length);
@@ -265,96 +286,11 @@
         }
     }
 
-    RectSetWidget.prototype.HandleKeyDown = function(keyCode, shift) {
-        if (! this.Visibility) {
-            return true;
-        }
-
-        // escape key: change to inaective
-        if (event.keyCode == 27 || event.keyCode == 32 || event.keyCode == 13) {
-            this.Deactivate();
-            return false;
-        }
-
-
-        var direction = 0;
-
-        if (event.keyCode == 27) { // escape
-            this.Deactivate();
-            return false;
-        } else if (event.keyCode == 48) { // 0
-            // set a class label
-            if (this.Shape.ActiveIndex >= 0 &&
-                this.Shape.ActiveIndex < this.Shape.Widths.length) {
-                this.Shape.Labels[this.Shape.ActiveIndex] = "false_positive";
-                this.ChangeActive(1);
-            }
-        } else if (event.keyCode == 49) { // 1
-            // set a class label
-            if (this.Shape.ActiveIndex >= 0 &&
-                this.Shape.ActiveIndex < this.Shape.Widths.length) {
-                this.Shape.Labels[this.Shape.ActiveIndex] = "car";
-                this.ChangeActive(1);
-            }
-        } else if (event.keyCode == 46) { // Delete key
-            // remove the rectangle
-            var index = this.Shape.ActiveIndex;
-            if (index >= 0 && index < this.Shape.Widths.length) {
-                this.Shape.DeleteRectangle(index);
-                // Advance to the next rect.
-                this.Shape.ActiveIndex = index-1;
-                this.ChangeActive(1);
-            }
-        } else if (event.keyCode == 38) {
-            // Up cursor key
-        } else if (event.keyCode == 40) {
-            // Down cursor key
-            // Move to the next without a label
-            var index = this.Shape.ActiveIndex + 1;
-            while (index < this.Shape.Widths.length) {
-                if (this.Shape.Labels[index] == "") {
-                    this.Shape.ActiveIndex = index;
-                    this.UpdateActiveView();
-                    return false;
-                }
-                index += 1;
-            }
-            // Got to end without finding one.
-            this.Deactivate();
-            return false;
-        } else if (event.keyCode == 37) {
-            // Left cursor key
-            this.ChangeActive(-1);
-            return false;
-        } else if (event.keyCode == 39) {
-            // Right cursor key
-            this.ChangeActive(1);
-            return false;
-        }
-
-        return true;
-    }
-
-    // Forward = 1, backward = -1
-    RectSetWidget.prototype.ChangeActive = function(direction) {
-        // loop to skip rects below the threshold
-        while (true) {
-            this.Shape.ActiveIndex += direction;
-            if (this.Shape.ActiveIndex < 0 || this.Shape.ActiveIndex >= this.Shape.Widths.length) {
-                this.Deactivate();
-                return;
-            }
-            if (this.Shape.Confidences[this.Shape.ActiveIndex] >= this.Shape.Threshold) {
-                this.UpdateActiveView();
-                return;
-            }
-        }
-    }
-
     RectSetWidget.prototype.HandleDoubleClick = function(event) {
         return true;
     }
 
+    /*
     RectSetWidget.prototype.HandleMouseDown = function(event) {
         var index = this.Shape.ActiveIndex;
         if (index < 0 || index >= this.Shape.Widths.length) {
@@ -373,7 +309,7 @@
         this.Shape.Labels[index] = "car";
         this.ChangeActive(1);
         return false;
-    }
+    }*/
 
     RectSetWidget.prototype.HandleMouseUp = function(event) {
         return true;
@@ -416,46 +352,6 @@
     }
 
     RectSetWidget.prototype.Deactivate = function() {
-    }
-
-    RectSetWidget.prototype.SetActive = function(flag) {
-        if (flag == this.Active) {
-            return;
-        }
-        if (flag) {
-            this.Active = true;
-            this.Shape.ActiveIndex = 0;
-            this.UpdateActiveView();
-        } else {
-            this.Deactivate();
-        }
-    }
-
-    RectSetWidget.prototype.Deactivate = function() {
-        this.Layer.GetCanvasDiv().css({'cursor':'default'});
-        this.Layer.DeactivateWidget(this);
-        this.Active = false;
-        this.Shape.ActiveIndex = -1;
-
-        if (this.DeactivateCallback) {
-            this.DeactivateCallback();
-        }
-        this.Layer.EventuallyDraw();
-    }
-
-    // for debugging
-    RectSetWidget.prototype.Activate = function() {
-        this.Layer.ActivateWidget(this);
-    }
-
-    RectSetWidget.prototype.UpdateActiveView = function () {
-        var viewer = this.Layer.GetViewer();
-        var cam = viewer.GetCamera();
-        viewer.TranslateTarget[0] = this.Shape.Centers[2*this.Shape.ActiveIndex];
-        viewer.TranslateTarget[1] = this.Shape.Centers[2*this.Shape.ActiveIndex+1];
-        viewer.AnimateLast = new Date().getTime();
-        viewer.AnimateDuration = 200.0;
-        viewer.EventuallyRender(true);
     }
 
     RectSetWidget.prototype.PlacePopup = function () {

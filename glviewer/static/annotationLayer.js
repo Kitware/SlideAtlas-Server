@@ -501,7 +501,6 @@
         can.on(
             "keydown.viewer",
 			      function (event){
-                //alert("keydown");
                 return self.HandleKeyDown(event);
             });
     }
@@ -838,23 +837,47 @@
         return ! this.ActiveWidget;
     }
 
+    AnnotationLayer.prototype.SetMousePositionFromEvent = function(event) {
+        if (event.offsetX && event.offsetY) {
+            this.MouseX = event.offsetX;
+            this.MouseY = event.offsetY;
+            this.MouseTime = (new Date()).getTime();
+        } else if (event.layerX && event.layerY) {
+            this.MouseX = event.layerX;
+            this.MouseY = event.layerY;
+            this.MouseTime = (new Date()).getTime();
+            event.offsetX = event.layerX;
+            event.offsetY = event.layerY;
+        }
+        this.MouseTime = new Date().getTime();
+    }
+
     AnnotationLayer.prototype.HandleMouseDown = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
-        var timeNow = new Date().getTime();
+        this.LastMouseDownTime = this.MouseDownTime || 1;
+        this.SetMousePositionFromEvent(event);
+
+        // Trying to detect click
+        // TODO: How to skip clicks when doubleclick occur.
+        this.MouseClick = true;
+        this.MouseDownX = this.MouseX;
+        this.MouseDownY = this.MouseY;
+        this.MouseDownTime = this.MouseTime;
+
         if (this.LastMouseDownTime) {
-            if ( timeNow - this.LastMouseDownTime < 200) {
+            if ( this.MouseDownTime - this.LastMouseDownTime < 200) {
                 delete this.LastMouseDownTime;
                 return this.HandleDoubleClick(event);
             }
         }
-        this.LastMouseDownTime = timeNow;
 
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseDown) {
             return this.ActiveWidget.HandleMouseDown(event);
         }
-        return ! this.ActiveWidget;
+        // We do not know if the widget will handle click or double click.
+        return true;
     }
 
     AnnotationLayer.prototype.HandleDoubleClick = function(event) {
@@ -867,10 +890,24 @@
         return ! this.ActiveWidget;
     }
 
+    AnnotationLayer.prototype.HandleClick = function(event) {
+        if ( ! this.GetVisibility() ) { return true; }
+        if (this.ActiveWidget && this.ActiveWidget.HandleClick) {
+            return this.ActiveWidget.HandleClick(event);
+        }
+        return true;
+    }
+
     AnnotationLayer.prototype.HandleMouseUp = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
+
+        if (this.MouseClick) {
+            this.MouseClick = false;
+            return this.HandleClick(event);
+        }
+
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseUp) {
             return this.ActiveWidget.HandleMouseUp(event);
         }
@@ -882,11 +919,28 @@
             return true;
         }
 
+        this.SetMousePositionFromEvent(event);
+        if (event.which != 0 && this.MouseClick) {
+            if (Math.abs(this.MouseDownX-this.MouseX) > 5) {
+                this.MouseClick = false;
+            }
+            if (Math.abs(this.MouseDownY-this.MouseY) > 5) {
+                this.MouseClick = false;
+            }
+            if ((this.MouseTime - this.MouseDownTime) > 400) {
+                this.MouseClick = false;
+            }
+            // Wait to process a move until we know it will not
+            // be a click.
+            return false;
+        }
+
         // The event position is relative to the target which can be a tab on
         // top of the canvas.  Just skip these events.
         if ($(event.target).width() != $(event.currentTarget).width()) {
             return true;
         }
+
 
         this.ComputeMouseWorld(event);
 
@@ -900,8 +954,7 @@
 
         if (this.ActiveWidget) {
             if (this.ActiveWidget.HandleMouseMove) {
-                var ret = this.ActiveWidget.HandleMouseMove(event);
-                return ret;
+                return this.ActiveWidget.HandleMouseMove(event);
             }
         } else {
             if ( ! event.which) {
@@ -912,7 +965,7 @@
 
         // An active widget should stop propagation even if it does not
         // respond to the event.
-        return ! this.ActiveWidget;
+        return true;
     }
 
     AnnotationLayer.prototype.HandleMouseWheel = function(event) {
@@ -922,7 +975,7 @@
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseWheel) {
             return this.ActiveWidget.HandleMouseWheel(event);
         }
-        return ! this.ActiveWidget;
+        return true;
     }
 
     AnnotationLayer.prototype.HandleKeyDown = function(event) {
@@ -932,7 +985,17 @@
         if (this.ActiveWidget && this.ActiveWidget.HandleKeyDown) {
             return this.ActiveWidget.HandleKeyDown(event);
         }
-        return ! this.ActiveWidget;
+        return true;
+    }
+
+    AnnotationLayer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
+        if (this.ActiveWidget && this.ActiveWidget.HandleKeyUp) {
+            return this.ActiveWidget.HandleKeyUp(event);
+        }
+        return true;
     }
 
     // Called on mouse motion with no button pressed.

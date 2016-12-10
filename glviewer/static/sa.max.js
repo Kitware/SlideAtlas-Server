@@ -29434,6 +29434,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         var self = this;
         var can = this.MainView.CanvasDiv;
+        // So we can programatically set the keyboard focus
+        can.attr('tabindex','1');
         can.on(
             "mousedown.viewer",
 			      function (event){
@@ -29487,6 +29489,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
 			      function (event){
                 //alert("keydown");
                 return self.HandleKeyDown(event);
+            });
+        can.on(
+            "keyup.viewer",
+			      function (event){
+                return self.HandleKeyUp(event);
             });
 
         // This did not work for double left click
@@ -30577,6 +30584,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var currentHeight = this.MainView.Camera.GetHeight();
             var currentCenter = this.MainView.Camera.GetFocalPoint();
             var currentRoll   = this.MainView.Camera.Roll;
+
             this.MainView.Camera.SetHeight(
                 currentHeight + (this.ZoomTarget-currentHeight)
                     *(timeNow-this.AnimateLast)/this.AnimateDuration);
@@ -31166,13 +31174,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
         var heightMax = 2*(bounds[3]-bounds[2]);
         if (cam.GetHeight() > heightMax) {
             cam.SetHeight(heightMax);
-            this.ZoomTarget = heightMax;
+            //this.ZoomTarget = heightMax;
             modified = true;
         }
         var heightMin = viewport[3] * spacing * this.MinPixelSize;
         if (cam.GetHeight() < heightMin) {
             cam.SetHeight(heightMin);
-            this.ZoomTarget = heightMin;
+            //this.ZoomTarget = heightMin;
             modified = true;
         }
         if (modified) {
@@ -31266,10 +31274,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             return true;
         }
 
-        // TODO: Get rid of this. Should be done with image properties.
-        //event.preventDefault(); // Keep browser from selecting images.
         if ( ! this.RecordMouseMove(event)) { return true; }
-        //this.ComputeMouseWorld(event);
 
         // I think we need to deal with the move here because the mouse can
         // exit the icon and the events are lost.
@@ -31532,6 +31537,20 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.AnimateDuration = 200.0;
             this.EventuallyRender(true);
             return false;
+        }
+        return true;
+    }
+
+    // returns false if the event was "consumed" (browser convention).
+    // Returns true if nothing was done with the event.
+    Viewer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyUp && ! this.Layers[i].HandleKeyUp(event)) {
+                return false;
+            }
         }
         return true;
     }
@@ -33453,7 +33472,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             .css({ 'border': '1px solid #CCC', 'width': '60%',
                    'height': '100%', 'float': 'left' });
 
-        this.Slider = $('<input type="range" min="50" max="100">')
+        this.Slider = $('<input type="range" min="0" max="100">')
             .appendTo(conf_wrapper)
             .on('input',
                 function(){
@@ -33463,7 +33482,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         var min_label = $('<div>')
             .appendTo(conf_wrapper)
-            .html("50%")
+            .html("0%")
             .css({ 'float': 'left' });
 
         var max_label = $('<div>')

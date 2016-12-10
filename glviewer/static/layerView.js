@@ -62,7 +62,7 @@
             .css({ 'border': '1px solid #CCC', 'width': '60%',
                    'height': '100%', 'float': 'left' });
 
-        this.Slider = $('<input type="range" min="50" max="100">')
+        this.Slider = $('<input type="range" min="0" max="100">')
             .appendTo(conf_wrapper)
             .on('input',
                 function(){
@@ -72,7 +72,7 @@
 
         var min_label = $('<div>')
             .appendTo(conf_wrapper)
-            .html("50%")
+            .html("0%")
             .css({ 'float': 'left' });
 
         var max_label = $('<div>')
