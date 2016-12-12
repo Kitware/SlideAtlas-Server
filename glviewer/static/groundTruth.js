@@ -11,6 +11,11 @@
 (function () {
     "use strict";
 
+    // making the widget always active.
+    // Two states
+    var WAITING = 0;
+    var ITERATING = 1;
+
     // action states
     var KEY_UP = 0;
     var KEY_DOWN = 1;
@@ -19,43 +24,48 @@
 
     function GroundTruth (parent, detectionsId, classes, layer) {
         this.Layer = layer;
-        this.Label = "GroundTruth";
-        this.DetectionsClass = {label:"",
-                                annotation_id:detectionsId,
-                                color:'#FFFF00'};
+
+        this.InteractionState = WAITING;
 
         // Combined key click action.
         this.ActionState = KEY_UP;
 
-        this.Classes = [];
+        // First class is special, it represents the input detections.
+        var detectionClass ={label:"detection",
+                             annotation_id:detectionsId};
+        this.Classes = [detectionClass];
         for (var label in classes) {
             var class_obj = {label:label,
-                         annotation_id:classes[label]};
+                             annotation_id:classes[label]};
             this.Classes.push(class_obj)
         }
         // assign colors to the labels
         // detections will be yellow
-        var num_classes = this.Classes.length;
-        if (num_classes > 0) { // First is red
-            this.Classes[0].color = SAM.ConvertColorToHex([1,0,0]);
+        var num_classes = this.Classes.length
+        // Detection class is yellow.
+        if (num_classes > 0) {
+            this.Classes[0].color = '#FFFF00';
         }
-        if (num_classes > 1) { // last is green
-            this.Classes[num_classes-1].color = SAM.ConvertColorToHex([0,1,0]);
+        if (num_classes > 1) { // Second (false positive) is red
+            this.Classes[1].color = '#FF0000';
+        }
+        if (num_classes > 2) { // last (true positive) is green
+            this.Classes[num_classes-1].color = "#00FF00";
         }
         // the rest will range from purple to cyan
-        for (var i = 1; i < num_classes-1; ++i) {
-            var k = (i-1) / (num_classes-3);
+        for (var i = 2; i < num_classes-1; ++i) {
+            var k = (i-2) / (num_classes-4);
             this.Classes[i].color = SAM.ConvertColorToHex([k,1-k,1]);
         }
 
-        this.InitializeGui(parent,this.Label);
+        this.InitializeGui(parent,"GroundTruth");
         this.InitializeAnnotation();
 
         this.Layer.AddWidget(this);
         // Mode: stepping through ( and processing events).
-        this.CurrentIndex = -1;
+        this.IteratorIndex = -1;
         // Hover selection
-        this.SelectedRect = {widget:undefined, idx:-1};
+        this.HighlightedRect = {widget:undefined, idx:-1};
 
         // active class is highlighted in the gui.
         // It is the class used for clicks
@@ -63,9 +73,10 @@
         this.SetActiveClassIndex(num_classes-1);
     }
 
+    // Returns true if it was a valid class index.
     GroundTruth.prototype.SetActiveClassIndex = function(idx) {
         if (idx < 0 || idx >= this.Classes.length) {
-            return;
+            return false;
         }
         this.Classes[this.ActiveClassIndex].gui
             .css({'background-color':'#FFF'});
@@ -73,26 +84,15 @@
         this.Classes[idx].gui
             .css({'background-color':'#DEF'});
         this.SetCursorColor(this.Layer.GetCanvasDiv(), this.Classes[idx].color);
+        return false;
     }
 
     GroundTruth.prototype.GetActive = function() {
-        return this.CurrentIndex > -1;
+        //return this.IteratorIndex > -1;
+        return true;
     }
 
     GroundTruth.prototype.Draw = function(view) {
-        // Put this in the classes array?
-        if (this.DetectionsClass.widget) {
-            var shape = this.DetectionsClass.widget.Shape;
-            if ( ! shape.LabelColors) {
-                shape.LabelColors = {"":this.DetectionsClass.color};
-                // No race condition. Colors available in contruction.
-                for (var i = 0; i < this.Classes.length; ++i) {
-                    shape.LabelColors[this.Classes[i].label] = this.Classes[i].color;
-                }
-            }
-
-            this.DetectionsClass.widget.Draw(view);
-        }
         for (var i = 0; i < this.Classes.length; ++i) {
             if (this.Classes[i].widget) {
                 this.Classes[i].widget.Draw(view);
@@ -105,15 +105,12 @@
         if (event.which != 0) { return; }
         var cam = this.Layer.GetCamera();
         var pt = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        var rectRadius = this.RectSize / 2;
         var best;
-        if (this.DetectionsClass.widget) {
-            best = this.DetectionsClass.widget.Hash.Get(pt,3);
-            best.widget = this.DetectionsClass.widget;
-        }
         for (var i = 0; i < this.Classes.length; ++i) {
             if (this.Classes[i].widget) {
-                var tmp = this.Classes[i].widget.Hash.Get(pt,3);
-                tmp.widget = this.Classes[i].widget;
+                var tmp = this.Classes[i].widget.Hash.Get(pt, rectRadius);
+                tmp.classObj = this.Classes[i];
                 if ( ! best || tmp.dist < best.dist) {
                     best = tmp;
                 }
@@ -121,7 +118,7 @@
         }
 
         if (best) {
-            this.SetSelectedRect(best.widget, best.idx);
+            this.SetHighlightedRect(best.classObj, best.idx);
         }
 
         return true;
@@ -129,176 +126,172 @@
 
     // Stepping through the detection sequence.
     // -1 is none
-    GroundTruth.prototype.SetCurrentRect = function(idx) {
-        this.SetSelectedRect(this.DetectionsClass.widget,idx);
-        this.CurrentIndex = idx;
-        // animate
+    GroundTruth.prototype.SetIteratorIndex = function(idx) {
+        // Highilght the current
+        this.SetHighlightedRect(this.Classes[0], idx);
+        this.IteratorIndex = idx;
+        // Animate to put this rec in the middle of the view.
         this.UpdateActiveView();
     }
 
-    // The highlighted rect (which can temporarily be dfferent that the
-    // current rect.
-    GroundTruth.prototype.SetSelectedRect = function(widget, idx) {
-        if (this.SelectedRect && this.SelectedRect.idx == idx && this.SelectedRect.widget == widget) {
+    // The highlighted rect (sometimes the same as the
+    // iteration index / rect).
+    GroundTruth.prototype.SetHighlightedRect = function(classObj, idx) {
+        var widget = classObj.widget;
+        // No change,  just return.
+        if (this.HighlightedRect && this.HighlightedRect.idx == idx && this.HighlightedRect.widget == widget) {
             return;
         }
 
         // Remove the highlight fromthe previous.
-        if (this.SelectedRect.idx > -1) {
-            this.SelectedRect.widget.Shape.ActiveIndex = -1;
+        if (this.HighlightedRect.idx > -1) {
+            this.HighlightedRect.widget.Shape.ActiveIndex = -1;
+            this.HighlightedRect.idx = -1;
         }
 
-        if (idx == -1) {
+        if (this.InteractionState == ITERATING && idx == -1) {
             // Unset => go back to the default current rect.
-            widget = this.DetectionsClass.widget;
-            idx = this.CurrentIndex;
+            widget = this.Classes[0].widget;
+           idx = this.IteratorIndex;
         }
 
         if (idx > -1) {
             // Add the new highlight.
             widget.Shape.ActiveIndex = idx;
-            this.SelectedRect = {widget:widget, idx:idx};
+            this.HighlightedRect = {widget:widget, idx:idx};
+            // A selected rect has to respond to keys that change its label.
+            this.Layer.LayerDiv.focus();
         }
         this.Layer.EventuallyDraw();
     }
 
+    // Actions are taken on key up.  Key down sets up a modifier in case a
+    // mouse click is handled before the keyup.  This is only necesary when
+    // iterating.  Mouse click changes the class label and advances.  The
+    // keydown determines the label.
     GroundTruth.prototype.HandleKeyDown = function(event) {
-        if (this.GetActive()) {
+        // Always active now.
+        if (this.InteractionState == ITERATING) {
             if (this.ActionState != KEY_UP) {
                 return false;
             }
             if (event.keyCode > 48 && event.keyCode < 48+this.Classes.length) {
                 this.ActionState = KEY_DOWN;
             }
-            this.SetActiveClassIndex(event.keyCode-49);
-            // Keep the viewer from panning on the arrows.
+        }
+        var valid = this.SetActiveClassIndex(event.keyCode-48);
+        // Keep the viewer from panning on the arrows when iterating.
+        if (valid || this.InteractionState == ITERATING) {
             return false;
         }
+
+        // Let the viewer pan with arrows.
         return true;
     }
     GroundTruth.prototype.HandleKeyUp = function(event) {
         var direction = 0;
         var self = this;
 
-        // Key was used and no advancement is necessary.
-        if (this.ActionState == KEY_USED_NO_ADVANCE) {
+        // Handle the complex decision to adavance or not.
+        // If the key only modified a click, do not advance.
+        if (this.InteractionState == ITERATING) {
+            // Mouse click (with key modifier) was used to add an annotation
+            // outside the sequence and no advancement is necessary.
+            if (this.ActionState == KEY_USED_NO_ADVANCE) {
+                this.ActionState = KEY_UP;
+                return false;
+            }
+            // Mouse click (with key modifier) was used to recenter an
+            // annotation inside the sequences. We need to advance.
+            if (this.ActionState == KEY_USED_ADVANCE) {
+                // Just advance to the next
+                setTimeout(function () { self.ChangeCurrent(1)}, 300);
+                this.ActionState = KEY_UP;
+                return false;
+            }
             this.ActionState = KEY_UP;
-            return false;
-        }
-        // The mouse has been used by a click and we need to advance. 
-        if (this.ActionState == KEY_USED_ADVANCE) {
-            // Just advance to the next
-            setTimeout(function () { self.ChangeCurrent(1)}, 300);
-            this.ActionState = KEY_UP;
-            return false;
-        }
-        this.ActionState = KEY_UP;
-
-        if (event.keyCode == 27) { // escape
-            this.Layer.DeactivateWidget(this);
-            return false;
+            // Escape key stops iteration.
+            if (event.keyCode == 27) { // escape
+                this.Stop();
+                return false;
+            }
         }
 
-        // Change the class only works for DetectionsClass.widget now.
-        // TODO: Consider extending this to positives too.
-        // (It would confuse user less)
-        if ( this.DetectionsClass.widget == this.SelectedRect.widget &&
-             this.SelectedRect.idx == this.CurrentIndex) {
-            var rectSet = this.DetectionsClass.widget.Shape;
-            var index = this.CurrentIndex;
-            if (event.keyCode == 48) { // 0
-                // remove the class label
-                if (index >= 0 &&
-                    index < rectSet.Widths.length) {
-                    rectSet.Labels[index] = "";
-                    this.Layer.EventuallyDraw();
-                    // Automatically move to the next, to save clicks.
+        var rectIdx = this.HighlightedRect.idx;
+        if (rectIdx > -1) {
+            // A rectancle is highlighted
+            var rectWidget = this.HighlightedRect.widget;
+            var rectSet = rectWidget.Shape;
+
+            // Change the class of the highlighted rect.
+            var classIdx = event.keyCode - 48;
+            if (classIdx >= 0 && classIdx < this.Classes.length) {
+                var classLabel = this.Classes[classIdx].label;
+                // set a class label of a single detection
+                rectSet.Labels[rectIdx] = classLabel;
+                this.Layer.EventuallyDraw();
+                // Automatically move to the next, to save clicks.
+                if (this.InteractionState == ITERATING &&
+                    rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex) {
                     setTimeout(function () { self.ChangeCurrent(1)}, 300);
                 }
                 return false;
             }
-            if (event.keyCode >= 49 && event.keyCode < 57) { // 1-9
-                var idx = event.keyCode - 49;
-                if (idx < this.Classes.length) {
-                    var label = this.Classes[idx].label;
-                    if (event.shiftKey) {
-                        // Accept them all
-                        while ( index < rectSet.Widths.length) {
-                            rectSet.Labels[index] = label;
-                            ++index;
-                        }
-                        this.Layer.EventuallyDraw();
-                        this.Stop();
-                        return false;
-                    }
-                    // set a class label of a single detection
-                    if (index >= 0 &&
-                        index < rectSet.Widths.length) {
-                        rectSet.Labels[index] = label;
-                        this.Layer.EventuallyDraw();
-                        // Automatically move to the next, to save clicks.
-                        setTimeout(function () { self.ChangeCurrent(1)}, 300);
-                    }
-                    return false;
-                }
-            }
-        }
 
-        // Delete applies to the selected / highlighted rect.
-        var index = this.SelectedRect.idx;
-        var widget = this.SelectedRect.widget;
-        if (index > -1 && event.keyCode == 46) { // Delete key
-            var rectSet = widget.Shape;
-            // remove the rectangle
-            if (index >= 0 && index < rectSet.Widths.length) {
-                rectSet.DeleteRectangle(index);
+            // Delete applies to the selected / highlighted rect.
+            if (event.keyCode == 46) { // Delete key
+                // remove the rectangle
+                rectSet.DeleteRectangle(rectIdx);
                 // Rebuild the hash.
                 // I could do this incrementally but I am lazy.
                 var bds = this.Layer.GetViewer().GetOverViewBounds();
-                widget.Hash.Build(widget.Shape.Centers,bds);
-                if (widget == this.DetectionsClass.widget) {
+                rectWidget.Hash.Build(rectWidget.Shape.Centers,bds);
+                // Deleted rect was in the detection set while iterating
+                if (this.InteractionState == ITERATING &&
+                    rectWidget == this.Classes[0].widget) {
                     // If we deleted a rect before the current, ...
-                    if (index < this.CurrentIndex) {
-                        this.SetCurrentRect(index-1);
-                    } else if (index == this.CurrentIndex) {
-                        // Animate to the next (index does not actually
+                    if (rectIdx < this.IteratorIndex) {
+                        this.SetIteratorIndex(this.IteratorIndex-1);
+                    } else if (rectIdx == this.IteratorIndex) {
+                        // Animate to the next (rectIdx does not actually
                         // change). Hack to find next under threshold
-                        this.CurrentIndex -= 1;
-                        this.SelectedRect.idx -=1; // hack to get the next
-                        // to highlight
-                        setTimeout(function () { self.ChangeCurrent(1);}, 300);
+                        this.IteratorIndex -= 1;
+                        // hack to get the next to highlight
+                        this.HighlightedRect.idx -=1;
+                        setTimeout(function () { self.ChangeCurrent(1)}, 300);
                     }
                 }
+                this.Layer.EventuallyDraw();
+                return false;
             }
-            this.Highlight = this.SelectedRect;
-            this.Layer.EventuallyDraw();
-            return;
         }
 
         // Forward and backward.
-        var rectSet = this.DetectionsClass.widget.Shape;
-        var inidex = this.CurrentIndex;
-        if (event.keyCode == 40) {
-            // down cursor key
-            // Move to the previous without a label
-            while (index < rectSet.Widths.length) {
-                if (rectSet.Labels[index] == "") {
-                    this.SetCurrentRect(index);
-                    return false;
+        if (this.InteractionState == ITERATING) {
+            var rectSet = this.Classes[0].widget.Shape;
+            var index = this.IteratorIndex;
+            if (event.keyCode == 40) {
+                // down cursor key
+                // Move to the previous without a label
+                while (index < rectSet.Widths.length) {
+                    if (rectSet.Labels[index] == "detection") {
+                        this.SetIteratorIndex(index);
+                        return false;
+                    }
+                    index += 1;
                 }
-                index += 1;
+                // Got to end without finding one.
+                this.Layer.DeactivateWidget(this);
+                return false;
+            } else if (event.keyCode == 37) {
+                // Left cursor key
+                this.ChangeCurrent(-1);
+                return false;
+            } else if (event.keyCode == 39) {
+                // Right cursor key
+                this.ChangeCurrent(1);
+                return false;
             }
-            // Got to end without finding one.
-            this.Layer.DeactivateWidget(this);
-            return false;
-        } else if (event.keyCode == 37) {
-            // Left cursor key
-            this.ChangeCurrent(-1);
-            return false;
-        } else if (event.keyCode == 39) {
-            // Right cursor key
-            this.ChangeCurrent(1);
-            return false;
         }
 
         return true;
@@ -306,16 +299,16 @@
 
     // Animate to the new current rect.
     GroundTruth.prototype.UpdateActiveView = function () {
-        if ( this.DetectionsClass.widget === undefined) {
+        if ( this.Classes[0].widget === undefined) {
             return true;
         }
 
-        var rectSet = this.DetectionsClass.widget.Shape;
+        var rectSet = this.Classes[0].widget.Shape;
 
         // Change the index / confidence label.
-        var idx = this.CurrentIndex;
+        var idx = this.IteratorIndex;
         if (idx < 0) {
-            this.ActiveLabel.text("");
+            this.ActiveLabel.text("detection");
             return;
         } else {
             this.ActiveLabel.text(idx.toString() + " of " +
@@ -328,8 +321,8 @@
         var cam = viewer.GetCamera();
         //viewer.ZoomTarget = this.Layer.GetCamera().GetHeight();
         viewer.RollTarget = this.Layer.GetCamera().Roll;
-        viewer.TranslateTarget[0] = rectSet.Centers[2*this.CurrentIndex];
-        viewer.TranslateTarget[1] = rectSet.Centers[2*this.CurrentIndex+1];
+        viewer.TranslateTarget[0] = rectSet.Centers[2*this.IteratorIndex];
+        viewer.TranslateTarget[1] = rectSet.Centers[2*this.IteratorIndex+1];
         viewer.AnimateLast = new Date().getTime();
         viewer.AnimateDuration = 200.0;
         viewer.EventuallyRender(true);
@@ -337,11 +330,11 @@
 
     // Forward = 1, backward = -1
     GroundTruth.prototype.ChangeCurrent = function(direction) {
-        if ( this.DetectionsClass.widget === undefined) {
+        if ( this.Classes[0].widget === undefined) {
             return true;
         }
-        var rectSet = this.DetectionsClass.widget.Shape;
-        var index = this.CurrentIndex;
+        var rectSet = this.Classes[0].widget.Shape;
+        var index = this.IteratorIndex;
 
         // loop to skip rects below the threshold
         while (true) {
@@ -351,7 +344,7 @@
                 return;
             }
             if (rectSet.Confidences[index] >= rectSet.Threshold) {
-                this.SetCurrentRect(index);
+                this.SetIteratorIndex(index);
                 return;
             }
         }
@@ -361,46 +354,41 @@
         if (event.which != 1) {
             return true;
         }
-
-        var class_idx = this.ActiveClassIndex;
-        this.PendingKeyCode = 0;
-
+        // Compute the new center
         var cam = this.Layer.GetCamera();
         var pt = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-        // If the click is inside the current detection, reposition it
-        // and move to the next detection.
-        // TODO: Consider moving any annotation that is active.
-        var rectSet = this.DetectionsClass.widget.Shape;
-        var index = this.CurrentIndex;
-        if (index >= 0 && index < rectSet.Widths.length) {
-            var x = pt[0] - rectSet.Centers[index*2];
-            var y = pt[1] - rectSet.Centers[index*2+1];
-            if (Math.abs(x) < rectSet.Widths[index]/2 &&
-                Math.abs(y) < rectSet.Heights[index]/2) {
-                rectSet.Labels[index] = this.Classes[class_idx].label;
-                rectSet.Centers[index*2] = pt[0];
-                rectSet.Centers[index*2+1] = pt[1];
-                this.Layer.EventuallyDraw();
+
+        var classIdx = this.ActiveClassIndex;
+        var classLabel = this.Classes[classIdx].label;
+
+        var rectIdx = this.HighlightedRect.idx;
+        var rectWidget = this.HighlightedRect.widget;
+        var rectSet = rectWidget.Shape;
+        // If the click is inside the current detection, reposition it.
+        if (rectIdx > -1 && rectIdx < rectSet.GetLength()) {
+            rectSet.Labels[rectIdx] = classLabel;
+            rectSet.Centers[rectIdx*2] = pt[0];
+            rectSet.Centers[rectIdx*2+1] = pt[1];
+            this.Layer.EventuallyDraw();
+            // Advnce if user clicked on the one iterating rectangle
+            if (this.InteractionState == ITERATING &&
+                rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex){
                 var self = this;
-                if (this.ActionState == KEY_DOWN) {
-                    this.ActionState = KEY_USED_ADVANCE;
-                    return false;
-                }
                 setTimeout(function () { self.ChangeCurrent(1)}, 300);
-                return;
             }
+            return false;
         }
 
+        // Add a new annotation
         // Click defaults to the last class.
-        if (this.Classes.length > 1) {
-            var widget = this.Classes[class_idx].widget;
-            var size = parseInt(this.SizeInput.val());
-            if (isNaN(size)) {size = 32;}
-            widget.Shape.AddRectangle(pt, size, size);
+        if (classIdx >= 0 && classIdx < this.Classes.length) {
+            rectWidget = this.Classes[classIdx].widget;
+            rectSet.AddRectangle(pt, this.RectSize, this.RectSize);
+            rectSet.Labels[rectSet.GetLength()-1] = classLabel;
             // incrementally update the hash here.
-            widget.Hash.Add(pt,widget.GetLength()-1);
+            rectWidget.Hash.Add(pt,rectWidget.GetLength()-1);
             this.Layer.EventuallyDraw();
-            // Keep the key up (f a key is pressed) from advancing
+            // Keep the key up (if a key is pressed) from advancing
             if (this.ActionState == KEY_DOWN) {
                 this.ActionState = KEY_USED_NO_ADVANCE;
                 return false;
@@ -411,7 +399,10 @@
     }
 
     GroundTruth.prototype.CheckActive = function(event) {
-        return this.GetActive();
+        //return this.GetActive();
+        // Changing to alwasy acive so annotations can be changed and added
+        // in the waiting state.
+        return true;
     }
 
     // Initialize the gui / dom
@@ -490,7 +481,7 @@
         var classObj = this.Classes[index];
         classObj.gui = $('<div>')
             .appendTo(classContainer)
-            .text((index+1).toString() + ": " + classObj.label)
+            .text((index).toString() + ": " + classObj.label)
             .css({'color':classObj.color})
             .click(function() {self.SetActiveClassIndex(index);});
     }
@@ -501,7 +492,7 @@
 
 
     GroundTruth.prototype.InitializeAnnotation = function() {
-        this.RequestAnnotationItem(this.DetectionsClass);
+        this.RequestAnnotationItem(this.Classes[0]);
         for (var i = 0; i < this.Classes.length; ++i) {
             this.RequestAnnotationItem(this.Classes[i]);
         }
@@ -509,7 +500,7 @@
 
     GroundTruth.prototype.UpdateHash = function() {
         var bds = this.Layer.GetViewer().GetOverViewBounds();
-        this.DetectionsClass.widget.Hash.Build(this.DetectionsClass.widget.Shape.Centers,bds);
+        this.Classes[0].widget.Hash.Build(this.Classes[0].widget.Shape.Centers,bds);
         for (var i = 0; i < this.Classes.length; ++i) {
             var widget = this.Classes[i].widget;
             widget.Hash.Build(widget.Shape.Centers,bds);
@@ -594,6 +585,16 @@
         var bds = this.Layer.GetViewer().GetOverViewBounds();
         widget.Hash.Build(widget.Shape.Centers,bds);
 
+        // We want to color by labels (not widget)
+        var shape = widget.Shape;
+        if ( ! shape.LabelColors) {
+            shape.LabelColors = {};
+            // Colors setup in contructor.
+            for (var i = 0; i < this.Classes.length; ++i) {
+                shape.LabelColors[this.Classes[i].label] = this.Classes[i].color;
+            }
+        }
+
         class_obj.widget = widget;
         widget.Shape.SetOutlineColor(class_obj.color);
         this.Layer.EventuallyDraw();
@@ -615,7 +616,9 @@
 
     GroundTruth.prototype.Start = function () {
         var self = this;
-        this.Layer.ActivateWidget(this);
+        // Now always active
+        //this.Layer.ActivateWidget(this);
+        this.InteractionState = ITERATING;
         this.Layer.LayerDiv.focus();
 
         // zoom in
@@ -624,7 +627,12 @@
         viewer.ZoomTarget = 500;
 
         // TODO: abstract the highlighting to clean it up.
-        this.SetCurrentRect(0);
+        this.SetIteratorIndex(0);
+        //if (this.Classes[0].widget) {
+        //    this.Classes[0].widget.Shape.ActiveIndex = 0;
+        //    this.UpdateActiveView();
+        //}
+
         this.StartStopButton
             .text("Stop")
             .css({'background-color':'#F55'})
@@ -633,8 +641,12 @@
     }
     GroundTruth.prototype.Stop = function () {
         var self = this;
-        this.Layer.DeactivateWidget(this);
-        this.SetCurrentRect(-1);
+        //this.Layer.DeactivateWidget(this);
+        this.InteractiveState = WAITING;
+        this.SetIteratorIndex(-1);
+        //if (this.Classes[0].widget) {
+        //    this.Classes[0].widget.Shape.ActiveIndex = -1;
+        //}
         this.StartStopButton
             .text("Start")
             .css({'background-color':'#5F5'})
@@ -644,14 +656,16 @@
 
     GroundTruth.prototype.SetSize = function (size) {
         this.SizeInput.val(size.toString());
+        this.RectSize = size;
         // This might not be necessary. Change event might trigger it for us.
         this.ChangeSize();
     }
 
     GroundTruth.prototype.ChangeSize = function () {
         var size = parseInt(this.SizeInput.val());
-        if (this.DetectionsClass.widget) {
-            this.DetectionsClass.widget.Shape.SetShape([size,size]);
+        this.RectSize = size;
+        if (this.Classes[0].widget) {
+            this.Classes[0].widget.Shape.SetShape([size,size]);
         }
         for (var i = 0; i < this.Classes.length; ++i) {
             var widget = this.Classes[i].widget;
@@ -659,54 +673,52 @@
                 widget.Shape.SetShape([size,size]);
             }
         }
-
         this.Layer.EventuallyDraw();
     }
 
     // Move labeled rects in detections to classes.
     // Called before annotations are saved to 
     GroundTruth.prototype.SplitDetections = function () {
-        var detections = this.DetectionsClass.widget.Shape;
+        var detections = this.Classes[0].widget.Shape;
         // Build an object to make indexing classes easier.
         var shapes = {}
         for (var i = 0; i < this.Classes.length; ++i) {
-            shapes[this.Classes[i].label] = this.Classes[i].widget.Shape;
+            shapes[this.Classes[i].label] = this.Classes[i];
+            // Create a new rectSet for each class.
+            // Best way to deal with the shuffle.
+            this.Classes[i].newRectSet = new SAM.RectSet();
+            this.Classes[i].newRectSet.LabelColors = this.Classes[i].widget.Shape.LabelColors;
         }
 
-        var outIdx = 0;
-        for (var inIdx = 0; inIdx < detections.Labels.length; ++inIdx) {
-            var label = detections.Labels[inIdx];
-            if (label == "") {
-                // fill in blank spots
-                if (inIdx != outIdx) {
-                    detections.CopyRectangle(detections, inIdx, outIdx);
-                }
-                ++outIdx;
-            } else if (shapes[label] != undefined) {
-                shapes[label].CopyRectangle(detections, inIdx);
+        for (var i = 0; i < this.Classes.length; ++i) {
+            var inRectSet = this.Classes[i].widget.Shape;
+            for (var inIdx = 0; inIdx < inRectSet.GetLength(); ++inIdx) {
+                var label = inRectSet.Labels[inIdx];
+                var outRectSet = shapes[label].newRectSet;
+                outRectSet.CopyRectangle(inRectSet, inIdx,
+                                         outRectSet.GetLength());
             }
         }
-        // Shrink the detections arrays
-        var length = detections.Labels.length;
-        detections.Centers.splice(2*outIdx, 2*(length-outIdx));
-        detections.Widths.splice(outIdx, length-outIdx);
-        detections.Heights.splice(outIdx, length-outIdx);
-        detections.Labels.splice(outIdx, length-outIdx);
-        detections.Confidences.splice(outIdx, length-outIdx);
+
+        // Now keep the new rectsets and dispose of the old.
+        for (var i = 0; i < this.Classes.length; ++i) {
+            this.Classes[i].widget.Shape = this.Classes[i].newRectSet;
+            delete this.Classes[i].newRectSet;
+        }
 
         this.UpdateHash();
     }
 
     GroundTruth.prototype.Save = function () {
-        this.DetectionsClass.widget.Deactivate();
+        this.Classes[0].widget.Deactivate();
         this.SplitDetections();
         if (window.girder) {
             // Save in the database
-            var annotation = this.DetectionsClass.annotation;
-            annotation.elements = this.RectSetToGirderElements(this.DetectionsClass.widget);
+            var annotation = this.Classes[0].annotation;
+            annotation.elements = this.RectSetToGirderElements(this.Classes[0].widget);
             SA.PushProgress();
             girder.restRequest({
-                path:  "annotation/"+this.DetectionsClass.annotation_id,
+                path:  "annotation/"+this.Classes[0].annotation_id,
                 method: 'PUT',
                 data: JSON.stringify(annotation),
                 contentType:'application/json'
@@ -748,22 +760,13 @@
         return returnElements;
     }
 
+    // Now we are always active.  We have interaction state == ITERATING to
+    // indicate cycling through annotations one by one.
     GroundTruth.prototype.SetActive = function(active) {
         if (active == this.Active) {
             return;
         }
         this.Active = active;
-        if (active) {
-            if (this.DetectionsClass.widget) {
-                this.DetectionsClass.widget.Shape.ActiveIndex = 0;
-                this.UpdateActiveView();
-            }
-        } else {
-            this.Layer.GetCanvasDiv().css({'cursor':'default'});
-            if (this.DetectionsClass.widget) {
-                this.DetectionsClass.widget.Shape.ActiveIndex = -1;
-            }
-        }
         this.Layer.EventuallyDraw();
     }
 

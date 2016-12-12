@@ -25,6 +25,10 @@
         this.ActiveIndex = -1;
     }
 
+    RectSet.prototype.GetLength = function() {
+        return this.Widths.length;
+    }
+
     // Set the size (width,height) of all the rectangles.
     RectSet.prototype.SetShape = function(shape) {
         for (var i =0; i < this.Widths.length; ++i){
@@ -338,7 +342,7 @@
     RectSetWidget.prototype.CheckActive = function(event) {
         return this.Active;
     }
-    
+
     // Multiple active states. Active state is a bit confusing.
     RectSetWidget.prototype.GetActive = function() {
         return this.Active;
@@ -361,5 +365,6 @@
     }
 
     SAM.RectSetWidget = RectSetWidget;
+    SAM.RectSet = RectSet;
 
 })();
