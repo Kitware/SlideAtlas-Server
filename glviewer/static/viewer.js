@@ -704,10 +704,10 @@
             var note = SA.display.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
-                sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
+                sectionFileName = fileName + SA.ZERO_PAD(note.StartIndex, 4) + ".png";
             } else {
                 sectionFileName = fileName.substring(0, idx) +
-                    ZERO_PAD(note.StartIndex, 4) +
+                    SA.ZERO_PAD(note.StartIndex, 4) +
                     fileName.substring(idx, fileName.length);
             }
         }
@@ -721,6 +721,8 @@
         for (var i = 0; i < this.Layers.length; ++i) {
             this.Layers[i].Draw(view);
         }
+
+        console.log(JSON.stringify(this.GetCamera().Serialize()))
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
@@ -770,7 +772,8 @@
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
         var note = SA.display.GetNote();
-        var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
+        var fileName = fileNameRoot + SA.ZERO_PAD(note.StartIndex, 4);
+        console.log(JSON.stringify(this.GetCamera().Serialize()))
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
             SA.display.NavigationWidget.NextNote();
@@ -2043,7 +2046,7 @@
             if ( ! SAVING_IMAGE.SavingFlag) {
                 SAVING_IMAGE.SavingFlag = true;
                 SAVING_IMAGE.Show(1);
-                this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                this.EventuallySaveImage("slideAtlas"+SA.ZERO_PAD(SAVING_IMAGE.Count,3),
                                          function() {
                                              SAVING_IMAGE.SavingFlag = false;
                                              SAVING_IMAGE.Count += 1;

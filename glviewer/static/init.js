@@ -89,7 +89,7 @@ window.SA = window.SA || {};
         }
     }
 
-    function ZERO_PAD(i, n) {
+    SA.ZERO_PAD = function(i, n) {
         var s = "0000000000" + i.toFixed();
         return s.slice(-n);
     }

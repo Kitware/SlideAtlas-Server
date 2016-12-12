@@ -8100,7 +8100,7 @@ window.SA = window.SA || {};
         }
     }
 
-    function ZERO_PAD(i, n) {
+    SA.ZERO_PAD = function(i, n) {
         var s = "0000000000" + i.toFixed();
         return s.slice(-n);
     }
@@ -11167,7 +11167,7 @@ window.SA = window.SA || {};
     // Called from the console for renal stack.
     // For every polyline in the left viewer, try to find a corresponding
     // polyline in the right viewer. If found, change its color to match.
-    DualViewWidget.prototype.MatchPolylines = function (tolerance) {
+    DualViewWidget.prototype.MatchPolylines = function (color, tolerance) {
         tolerance = tolerance || 0.5;
         var widgets0 = this.Viewers[0].GetAnnotationLayer().GetWidgets();
         var widgets1 = this.Viewers[1].GetAnnotationLayer().GetWidgets();
@@ -11180,6 +11180,14 @@ window.SA = window.SA || {};
             var w0 = widgets0[i];
             if (w0.Polyline) {
                 var polyline0 = w0.Polyline;
+                var r = Math.floor(polyline0.OutlineColor[0] * 255);
+                var g = Math.floor(polyline0.OutlineColor[1] * 255);
+                var b = Math.floor(polyline0.OutlineColor[2] * 255);
+                if (r != color[0] || g != color[1] || b != color[2]) {
+                    continue;
+                }
+                console.log("Matched color " + i);
+
                 // get the center and area.
                 var center0 = [(polyline0.Bounds[0]+polyline0.Bounds[1])*0.5,
                                (polyline0.Bounds[2]+polyline0.Bounds[3])*0.5];
@@ -11202,8 +11210,9 @@ window.SA = window.SA || {};
                         var area1 = polyline1.ComputeArea();
                         var dx = center1[0]-center0b[0];
                         var dy = center1[1]-center0b[1];
-                        var match = dx*dx + dy*dy + Math.abs(area1-area0);
-                        if (! bestMatch || match < bestMatch) {
+                        var match = (dx*dx + dy*dy + Math.abs(area1-area0))
+                                       / area0;
+                        if (bestIdx == -1 || match < bestMatch) {
                             bestMatch = match;
                             bestPolyline = w1;
                             bestIdx = j;
@@ -11211,13 +11220,34 @@ window.SA = window.SA || {};
                     }
                 }
 
-                if (bestMatch < (area0*tolerance)) {
+                if (bestIdx == -1) {
+                    // Should not happen
+                    console.log("+++ No candidates: Widget"+i);
+                } else if (bestMatch < tolerance) {
                     bestPolyline.Polyline.OutlineColor =
                         w0.Polyline.OutlineColor.slice(0);
-                    console.log("+++ Match: Widget"+i+" to"+bestIdx+", ("+bestMatch+")");
+                    console.log("+++ Match: Widget "+i+" = "+bestIdx+", ("+bestMatch+")");
                 } else {
-                    console.log("--- No match: Widget"+i+", Closest "+bestIdx+", ("+bestMatch+")");
+                    console.log("--- No match: Widget "+i+", Closest "+bestIdx+", ("+bestMatch+")");
                 }
+            }
+        }
+
+        this.EventuallyRender();
+    }
+
+
+    // For debugging called from console.
+    // Resets the colors of the poly lines lin viewer 2 so we can see what
+    // has changed when we run MatchPolylines
+    // color is an array [1,1,1]
+    DualViewWidget.prototype.SetPolylineColor = function (color) {
+        var widgets1 = this.Viewers[1].GetAnnotationLayer().GetWidgets();
+
+        for (var i = 0; i < widgets1.length; ++i) {
+            var w1 = widgets1[i];
+            if (w1.Polyline) {
+                w1.Polyline.OutlineColor = color.slice(0);
             }
         }
 
@@ -29798,10 +29828,10 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var note = SA.display.GetNote();
             var idx = fileName.indexOf('.');
             if (idx < 0) {
-                sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
+                sectionFileName = fileName + SA.ZERO_PAD(note.StartIndex, 4) + ".png";
             } else {
                 sectionFileName = fileName.substring(0, idx) +
-                    ZERO_PAD(note.StartIndex, 4) +
+                    SA.ZERO_PAD(note.StartIndex, 4) +
                     fileName.substring(idx, fileName.length);
             }
         }
@@ -29815,6 +29845,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
         for (var i = 0; i < this.Layers.length; ++i) {
             this.Layers[i].Draw(view);
         }
+
+        console.log(JSON.stringify(this.GetCamera().Serialize()))
 
         view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
         if (stack) {
@@ -29864,7 +29896,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
     Viewer.prototype.SaveStackImage = function(fileNameRoot) {
         var self = this;
         var note = SA.display.GetNote();
-        var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
+        var fileName = fileNameRoot + SA.ZERO_PAD(note.StartIndex, 4);
+        console.log(JSON.stringify(this.GetCamera().Serialize()))
         this.SaveImage(fileName);
         if (note.StartIndex < note.ViewerRecords.length-1) {
             SA.display.NavigationWidget.NextNote();
@@ -31137,7 +31170,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             if ( ! SAVING_IMAGE.SavingFlag) {
                 SAVING_IMAGE.SavingFlag = true;
                 SAVING_IMAGE.Show(1);
-                this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                this.EventuallySaveImage("slideAtlas"+SA.ZERO_PAD(SAVING_IMAGE.Count,3),
                                          function() {
                                              SAVING_IMAGE.SavingFlag = false;
                                              SAVING_IMAGE.Count += 1;
