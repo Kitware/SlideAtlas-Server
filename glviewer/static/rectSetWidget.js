@@ -29,6 +29,17 @@
         return this.Widths.length;
     }
 
+    RectSet.prototype.GetCenter = function(idx) {
+        idx = idx * 2;
+        return [this.Centers[idx], this.Centers[idx+1]];
+    }
+
+    RectSet.prototype.SetCenter = function(idx,pt) {
+        idx = idx * 2;
+        this.Centers[idx] = pt[0];
+        this.Centers[idx+1] = pt[1];
+    }
+
     // Set the size (width,height) of all the rectangles.
     RectSet.prototype.SetShape = function(shape) {
         for (var i =0; i < this.Widths.length; ++i){

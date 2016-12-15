@@ -321,8 +321,7 @@
         var cam = viewer.GetCamera();
         //viewer.ZoomTarget = this.Layer.GetCamera().GetHeight();
         viewer.RollTarget = this.Layer.GetCamera().Roll;
-        viewer.TranslateTarget[0] = rectSet.Centers[2*this.IteratorIndex];
-        viewer.TranslateTarget[1] = rectSet.Centers[2*this.IteratorIndex+1];
+        viewer.TranslateTarget = rectSet.GetCenter(this.IteratorIndex);
         viewer.AnimateLast = new Date().getTime();
         viewer.AnimateDuration = 200.0;
         viewer.EventuallyRender(true);
@@ -365,15 +364,25 @@
         var rectWidget = this.HighlightedRect.widget;
         var rectSet = rectWidget.Shape;
         // If the click is inside the current detection, reposition it.
-        if (rectIdx > -1 && rectIdx < rectSet.GetLength()) {
+        var c = rectSet.GetCenter(rectIdx);
+        var dx = Math.abs(pt[0] - c[0]);
+        var dy = Math.abs(pt[1] - c[1]);
+        if (rectIdx > -1 && rectIdx < rectSet.GetLength() &&
+            dx < this.RectSize / 2 && dy < this.RectSize / 2) {
             rectSet.Labels[rectIdx] = classLabel;
-            rectSet.Centers[rectIdx*2] = pt[0];
-            rectSet.Centers[rectIdx*2+1] = pt[1];
+            rectSet.SetCenter(rectIdx, pt);
             this.Layer.EventuallyDraw();
-            // Advnce if user clicked on the one iterating rectangle
+            // Advance if user clicked on the one iterating rectangle
             if (this.InteractionState == ITERATING &&
                 rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex){
                 var self = this;
+                // If a key is being used as amodified, stop advaning twice.
+                // SHould we advance on the mouse up or key up?
+                // Lets try mouse up.
+                // work right
+                if (this.ActionState == KEY_DOWN) {
+                    this.ActionState = KEY_USED_NO_ADVANCE;
+                }
                 setTimeout(function () { self.ChangeCurrent(1)}, 300);
             }
             return false;
@@ -383,6 +392,7 @@
         // Click defaults to the last class.
         if (classIdx >= 0 && classIdx < this.Classes.length) {
             rectWidget = this.Classes[classIdx].widget;
+            rectSet = rectWidget.Shape;
             rectSet.AddRectangle(pt, this.RectSize, this.RectSize);
             rectSet.Labels[rectSet.GetLength()-1] = classLabel;
             // incrementally update the hash here.
