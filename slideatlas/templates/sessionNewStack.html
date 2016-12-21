@@ -510,7 +510,7 @@ function addAllCallback() {
     for (var i = 0; i < GALLERY_THUMBS.length; ++i) {
         var thumb = GALLERY_THUMBS[i];
         if (thumb.ListItem.is(':visible')) {
-            // Todo: more sophisticated algorithm that will 
+            // Todo: more sophisticated algorithm that will
             // will work with multiple option..
             var bds = thumb.ImageData.bounds;
             thumb.SlideX = (bds[0]+bds[1]) * 0.5;
@@ -521,6 +521,19 @@ function addAllCallback() {
 
     $('#saveButton').prop('disabled',false);
     $('#stackDiv').animate({scrollLeft: STACK_END_X});
+}
+
+function sortStackItems() {
+    STACK_ITEMS.sort(function(a, b) {
+       // Get the idex from the label.
+       var aDigits = a.ImageData.label.match(/\d/g);
+       var bDigits = b.ImageData.label.match(/\d/g);
+       if (aDigits.length == 0) {aDigits = ['0'];}
+       if (bDigits.length == 0) {bDigits = ['0'];}
+       var aVal = parseInt(aDigits.reduce(function(c,d){return c+d;}, ""));
+       var bVal = parseInt(bDigits.reduce(function(c,d){return c+d;}, ""));
+       return aVal - bVal;
+    });
 }
 
 
