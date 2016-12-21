@@ -74,7 +74,7 @@
         }
 
         if (prune) {
-            for (i in SA.Caches) {
+            for (var i in SA.Caches) {
                 cache = SA.Caches[i];
                 cache.PruneTiles();
             }

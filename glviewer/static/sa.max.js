@@ -14598,7 +14598,13 @@ AnnotationWidget.prototype.DetectSections = function() {
                         success: function(data,status) { self.LoadUserNote(data);},
                         error: function() {
                             SA.Debug( "AJAX - error() : getusernotes" );
-                            SA.DeleteNote(userNote);
+                            if (self.UserNote) {
+                                // TODO: Do not add notes to the SA.Notes
+                                // array until they are loaded.  Figure out
+                                // why this ajax call is failing for HM stack.
+                                SA.DeleteNote(self.UserNote);
+                                delete self.UserNote;
+                            }
                         },
                     });
                 }
@@ -22824,7 +22830,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
         }
 
         if (prune) {
-            for (i in SA.Caches) {
+            for (var i in SA.Caches) {
                 cache = SA.Caches[i];
                 cache.PruneTiles();
             }

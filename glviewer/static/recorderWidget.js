@@ -135,7 +135,13 @@
                         success: function(data,status) { self.LoadUserNote(data);},
                         error: function() {
                             SA.Debug( "AJAX - error() : getusernotes" );
-                            SA.DeleteNote(userNote);
+                            if (self.UserNote) {
+                                // TODO: Do not add notes to the SA.Notes
+                                // array until they are loaded.  Figure out
+                                // why this ajax call is failing for HM stack.
+                                SA.DeleteNote(self.UserNote);
+                                delete self.UserNote;
+                            }
                         },
                     });
                 }
