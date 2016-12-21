@@ -10921,12 +10921,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // First class is special, it represents the input detections.
         var detectionClass ={label:"detection",
                              annotation_id:detectionsId};
-        this.Classes = [detectionClass];
-        for (var label in classes) {
-            var class_obj = {label:label,
-                             annotation_id:classes[label]};
-            this.Classes.push(class_obj)
-        }
+        this.Classes = [].concat([detectionClass], classes);
         // assign colors to the labels
         // detections will be yellow
         var num_classes = this.Classes.length
@@ -11250,30 +11245,33 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         var rectIdx = this.HighlightedRect.idx;
         var rectWidget = this.HighlightedRect.widget;
-        var rectSet = rectWidget.Shape;
+        var rectSet;
         // If the click is inside the current detection, reposition it.
-        var c = rectSet.GetCenter(rectIdx);
-        var dx = Math.abs(pt[0] - c[0]);
-        var dy = Math.abs(pt[1] - c[1]);
-        if (rectIdx > -1 && rectIdx < rectSet.GetLength() &&
-            dx < this.RectSize / 2 && dy < this.RectSize / 2) {
-            rectSet.Labels[rectIdx] = classLabel;
-            rectSet.SetCenter(rectIdx, pt);
-            this.Layer.EventuallyDraw();
-            // Advance if user clicked on the one iterating rectangle
-            if (this.InteractionState == ITERATING &&
-                rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex){
-                var self = this;
-                // If a key is being used as amodified, stop advaning twice.
-                // SHould we advance on the mouse up or key up?
-                // Lets try mouse up.
-                // work right
-                if (this.ActionState == KEY_DOWN) {
-                    this.ActionState = KEY_USED_NO_ADVANCE;
+        if (rectWidget) {
+            rectSet = rectWidget.Shape;
+            var c = rectSet.GetCenter(rectIdx);
+            var dx = Math.abs(pt[0] - c[0]);
+            var dy = Math.abs(pt[1] - c[1]);
+            if (rectIdx > -1 && rectIdx < rectSet.GetLength() &&
+                dx < this.RectSize / 2 && dy < this.RectSize / 2) {
+                rectSet.Labels[rectIdx] = classLabel;
+                rectSet.SetCenter(rectIdx, pt);
+                this.Layer.EventuallyDraw();
+                // Advance if user clicked on the one iterating rectangle
+                if (this.InteractionState == ITERATING &&
+                    rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex){
+                    var self = this;
+                    // If a key is being used as amodified, stop advaning twice.
+                    // SHould we advance on the mouse up or key up?
+                    // Lets try mouse up.
+                    // work right
+                    if (this.ActionState == KEY_DOWN) {
+                        this.ActionState = KEY_USED_NO_ADVANCE;
+                    }
+                    setTimeout(function () { self.ChangeCurrent(1)}, 300);
                 }
-                setTimeout(function () { self.ChangeCurrent(1)}, 300);
+                return false;
             }
-            return false;
         }
 
         // Add a new annotation
