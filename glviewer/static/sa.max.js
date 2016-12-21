@@ -22831,7 +22831,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
 
         if (prune) {
             for (var i in SA.Caches) {
-                cache = SA.Caches[i];
+                var cache = SA.Caches[i];
                 cache.PruneTiles();
             }
         }
