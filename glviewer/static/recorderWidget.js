@@ -111,6 +111,7 @@
 
         if (! this.UserFlag) {
             if( ! this.UserNote || this.UserNote.Parent != this.Image._id){
+                // This returns a note if it has already been loaded.
                 this.UserNote = SA.GetUserNoteFromImageId(this.Image._id);
                 if ( ! this.UserNote) {
                     this.UserNote = new SA.Note();
@@ -125,30 +126,42 @@
                     record.UserFlag = true;
                     this.UserNote.ViewerRecords = [record];
                     this.UserNote.Type = "UserNote";
-                    this.UserNote.LoadState == 1;
-
-                    var self = this;
-                    $.ajax({
-                        type: "get",
-                        url: "/webgl-viewer/getusernotes",
-                        data: {"imageid": this.UserNote.Parent},
-                        success: function(data,status) { self.LoadUserNote(data);},
-                        error: function() {
-                            SA.Debug( "AJAX - error() : getusernotes" );
-                            if (self.UserNote) {
-                                // TODO: Do not add notes to the SA.Notes
-                                // array until they are loaded.  Figure out
-                                // why this ajax call is failing for HM stack.
-                                SA.DeleteNote(self.UserNote);
-                                delete self.UserNote;
-                            }
-                        },
-                    });
+                    // User notes slowing down stack loading.
+                    // Make them load on demand.
                 }
             }
         }
     }
 
+    // Move to note.js
+    ViewerRecord.prototype.RequestUserNote = function () {
+        if (this.UserNote.LoadState != 0) {
+            return;
+        }
+
+        // TODO: Move this to note.js
+        this.UserNote.LoadState == 1; // REQUESTED
+
+        var self = this;
+        $.ajax({
+            type: "get",
+            url: "/webgl-viewer/getusernotes",
+            data: {"imageid": this.UserNote.Parent},
+            success: function(data,status) { self.LoadUserNote(data);},
+            error: function() {
+                SA.Debug( "AJAX - error() : getusernotes" );
+                if (self.UserNote) {
+                    // TODO: Do not add notes to the SA.Notes
+                    // array until they are loaded.  Figure out
+                    // why this ajax call is failing for HM stack.
+                    SA.DeleteNote(self.UserNote);
+                    delete self.UserNote;
+                }
+            },
+        });
+    }
+
+    // Move to note.js
     ViewerRecord.prototype.LoadUserNote = function (data) {
         if (data.Notes.length == 0) {
             return;
