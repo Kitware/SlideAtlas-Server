@@ -7,6 +7,13 @@
 (function () {
     "use strict";
 
+
+    // Note load states.
+    var INVALID = 0; // just an id
+    var REQUESTED = 1;    // Load request and waiting for the callback
+    var SYNCHRONIZED = 2; // Same as database
+    var MODIFIED = 3;     // Client version is more recent than database.
+
     // Globals
     // The client creates the real and permanent id, so this works even if
     // the note has not been added to the database.
@@ -54,7 +61,7 @@
         // 0: just an id
         // 1: requested
         // 2: received
-        this.LoadState = 0;
+        this.LoadState = INVALID;
 
         this.User = SA.GetUser(); // Reset by flask.
         var d = new Date();
@@ -516,7 +523,7 @@
                 if (callback) {
                     (callback)(self);
                 }
-                self.LoadState = 2;
+                self.LoadState = SYNCHRONIZED;
             },
             error: function() {
                 SA.PopProgress();
@@ -534,15 +541,19 @@
         return false;
     }
 
-    // TODO: Method only used by presentations.  Move this to viewer record.
+    // TODO: Method only used by presentations.  Move this to viewer
+    // record.
+    // This takes the state of the GUI and updates the notes to match
     Note.prototype.RecordAnnotations = function(display) {
         // This is ok, because user notes do not have user notes of their own.
         if (this.UserNote) {
             // UserNote annotations are kept separate from other annotations.
             this.UserNote.RecordAnnotations(display);
             // Save it to the database aggresively.
+            // If the note has annotations, they might be new.
+            // If it was loaded, the annotations might have been deleted.
             if (this.UserNote.HasAnnotations() ||
-                this.UserNote.LoadState != 0) {
+                this.UserNote.LoadState != INVALID) {
                 this.UserNote.Save();
             }
         }
@@ -704,7 +715,7 @@
         var self = this;
 
         // Received
-        this.LoadState = 2;
+        this.LoadState = SYNCHRONIZED;
 
         var ivar;
         for (ivar in obj) {
@@ -760,6 +771,10 @@
                 // It would be nice to have a constructor that took an object.
                 this.ViewerRecords[i] = new SA.ViewerRecord();
                 this.ViewerRecords[i].Load(obj);
+                if (i < 3) {
+                    // Delay requesting the user notes for a long stack.
+                    this.ViewerRecords[i].RequestUserNote();
+                }
             }
         }
     }
@@ -769,20 +784,20 @@
     // needed. I will keep it to be safe.
     var HACK_LOAD_CALLBACKS = [];
     Note.prototype.LoadViewId = function(viewId, callback) {
-        if (this.LoadState == 2) {
+        if (this.LoadState == SYNCHRONIZED) {
             // no realoading (could be done with an extra arg).
             (callback)();
             return;
         }
-        if (this.LoadState == 1) {
+        if (this.LoadState == REQUESTED) {
             // Waiting for an ajax call to return.
+            // Add the new callback to any already pending.
             HACK+LOAD_CALLBACKS.push({note:this, callback:callback});
             return;
         }
 
         var self = this;
-        // Received
-        this.LoadState = 1;
+        this.LoadState = REQUESTED;
 
         SA.PushProgress();
 

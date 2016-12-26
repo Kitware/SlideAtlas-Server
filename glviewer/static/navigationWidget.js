@@ -124,6 +124,13 @@ function NavigationWidget(parent,display) {
         }).html();
 }
 
+
+// Making a stack navigator. Starting to abstract an interface.
+NavigationWidget.prototype.GetNote = function() {
+    return this.NoteIterator.GetNote();
+}
+
+
 NavigationWidget.prototype.SetInteractionEnabled = function(flag) {
     var self = this;
     if (flag) {
@@ -162,7 +169,7 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 }
 
 NavigationWidget.prototype.SetNote = function(note) {
-    if (this.NoteIterator.GetNote() == note) {
+    if (this.GetNote() == note) {
         return;
     }
 
@@ -203,10 +210,6 @@ NavigationWidget.prototype.SetNote = function(note) {
     this.Update();
 }
 
-NavigationWidget.prototype.GetNote = function() {
-    return this.NoteIterator.GetNote();
-}
-
 NavigationWidget.prototype.ToggleVisibility = function() {
     this.SetVisibility( ! this.Visibility);
 }
@@ -225,7 +228,7 @@ NavigationWidget.prototype.Update = function() {
     // Disable prev/next note buttons by default.
     this.PreviousNoteButton.removeClass("sa-active");
     this.NextNoteButton.removeClass("sa-active");
-    var note = this.NoteIterator.GetNote();
+    var note = this.GetNote();
     if (note) {
         for (var i = 0; i < this.Session.length; ++i) {
             if (this.Session[i].id == note.Id) {
@@ -236,10 +239,15 @@ NavigationWidget.prototype.Update = function() {
         if (note.Type == "Stack") {
             // Next note refers to ViewerRecords.
             if (note.StartIndex > 0) {
+                note.ViewerRecords[note.StartIndex-1].LoadTiles([0,0,200,150]);
                 this.PreviousNoteButton.addClass("sa-active");
             }
             if (note.StartIndex < note.ViewerRecords.length - 1) {
+                note.ViewerRecords[note.StartIndex+1].LoadTiles([0,0,200,150]);
                 this.NextNoteButton.addClass("sa-active");
+            }
+            if (note.StartIndex < note.ViewerRecords.length - 2) {
+                note.ViewerRecords[note.StartIndex+2].LoadTiles([0,0,200,150]);
             }
         } else {
             // Next note refers to children.
@@ -277,7 +285,7 @@ NavigationWidget.prototype.PreviousNote = function() {
     // Make sure user not changes are not pending to be saved.
     if (SA.notesWidget){ SA.notesWidget.Flush();}
 
-    var current = this.NoteIterator.GetNote();
+    var current = this.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
 
@@ -292,6 +300,9 @@ NavigationWidget.prototype.PreviousNote = function() {
 
         this.Display.RecordAnnotations();
         --current.StartIndex;
+        // It was too slow to request a long stack of user notes when the
+        // stack wasa first loaded.
+        current.ViewerRecords[current.StartIndex].RequestUserNote();
 
         // We need to skip setting the camera.
         SA.display = this.Display;
@@ -334,7 +345,7 @@ NavigationWidget.prototype.NextNote = function() {
     // Make sure user not changes are not pending to be saved.
     if (SA.notesWidget){ SA.notesWidget.Flush();}
 
-    var current = this.NoteIterator.GetNote();
+    var current = this.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex >= current.ViewerRecords.length - 1) {
             return;
@@ -350,6 +361,10 @@ NavigationWidget.prototype.NextNote = function() {
 
         this.Display.RecordAnnotations();
         ++current.StartIndex;
+        // It was too slow to request a long stack of user notes when the
+        // stack wasa first loaded.
+        current.ViewerRecords[current.StartIndex].RequestUserNote();
+
         // We need to skip setting the camera.
         SA.display = this.Display;
         SA.SetNote(current);

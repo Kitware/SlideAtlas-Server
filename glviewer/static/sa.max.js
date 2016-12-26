@@ -11454,6 +11454,13 @@ function TabPanel(tabbedDiv, title) {
 (function () {
     "use strict";
 
+
+    // Note load states.
+    var INVALID = 0; // just an id
+    var REQUESTED = 1;    // Load request and waiting for the callback
+    var SYNCHRONIZED = 2; // Same as database
+    var MODIFIED = 3;     // Client version is more recent than database.
+
     // Globals
     // The client creates the real and permanent id, so this works even if
     // the note has not been added to the database.
@@ -11501,7 +11508,7 @@ function TabPanel(tabbedDiv, title) {
         // 0: just an id
         // 1: requested
         // 2: received
-        this.LoadState = 0;
+        this.LoadState = INVALID;
 
         this.User = SA.GetUser(); // Reset by flask.
         var d = new Date();
@@ -11963,7 +11970,7 @@ function TabPanel(tabbedDiv, title) {
                 if (callback) {
                     (callback)(self);
                 }
-                self.LoadState = 2;
+                self.LoadState = SYNCHRONIZED;
             },
             error: function() {
                 SA.PopProgress();
@@ -11981,15 +11988,19 @@ function TabPanel(tabbedDiv, title) {
         return false;
     }
 
-    // TODO: Method only used by presentations.  Move this to viewer record.
+    // TODO: Method only used by presentations.  Move this to viewer
+    // record.
+    // This takes the state of the GUI and updates the notes to match
     Note.prototype.RecordAnnotations = function(display) {
         // This is ok, because user notes do not have user notes of their own.
         if (this.UserNote) {
             // UserNote annotations are kept separate from other annotations.
             this.UserNote.RecordAnnotations(display);
             // Save it to the database aggresively.
+            // If the note has annotations, they might be new.
+            // If it was loaded, the annotations might have been deleted.
             if (this.UserNote.HasAnnotations() ||
-                this.UserNote.LoadState != 0) {
+                this.UserNote.LoadState != INVALID) {
                 this.UserNote.Save();
             }
         }
@@ -12151,7 +12162,7 @@ function TabPanel(tabbedDiv, title) {
         var self = this;
 
         // Received
-        this.LoadState = 2;
+        this.LoadState = SYNCHRONIZED;
 
         var ivar;
         for (ivar in obj) {
@@ -12207,6 +12218,10 @@ function TabPanel(tabbedDiv, title) {
                 // It would be nice to have a constructor that took an object.
                 this.ViewerRecords[i] = new SA.ViewerRecord();
                 this.ViewerRecords[i].Load(obj);
+                if (i < 3) {
+                    // Delay requesting the user notes for a long stack.
+                    this.ViewerRecords[i].RequestUserNote();
+                }
             }
         }
     }
@@ -12216,20 +12231,20 @@ function TabPanel(tabbedDiv, title) {
     // needed. I will keep it to be safe.
     var HACK_LOAD_CALLBACKS = [];
     Note.prototype.LoadViewId = function(viewId, callback) {
-        if (this.LoadState == 2) {
+        if (this.LoadState == SYNCHRONIZED) {
             // no realoading (could be done with an extra arg).
             (callback)();
             return;
         }
-        if (this.LoadState == 1) {
+        if (this.LoadState == REQUESTED) {
             // Waiting for an ajax call to return.
+            // Add the new callback to any already pending.
             HACK+LOAD_CALLBACKS.push({note:this, callback:callback});
             return;
         }
 
         var self = this;
-        // Received
-        this.LoadState = 1;
+        this.LoadState = REQUESTED;
 
         SA.PushProgress();
 
@@ -14574,6 +14589,7 @@ AnnotationWidget.prototype.DetectSections = function() {
 
         if (! this.UserFlag) {
             if( ! this.UserNote || this.UserNote.Parent != this.Image._id){
+                // This returns a note if it has already been loaded.
                 this.UserNote = SA.GetUserNoteFromImageId(this.Image._id);
                 if ( ! this.UserNote) {
                     this.UserNote = new SA.Note();
@@ -14588,30 +14604,42 @@ AnnotationWidget.prototype.DetectSections = function() {
                     record.UserFlag = true;
                     this.UserNote.ViewerRecords = [record];
                     this.UserNote.Type = "UserNote";
-                    this.UserNote.LoadState == 1;
-
-                    var self = this;
-                    $.ajax({
-                        type: "get",
-                        url: "/webgl-viewer/getusernotes",
-                        data: {"imageid": this.UserNote.Parent},
-                        success: function(data,status) { self.LoadUserNote(data);},
-                        error: function() {
-                            SA.Debug( "AJAX - error() : getusernotes" );
-                            if (self.UserNote) {
-                                // TODO: Do not add notes to the SA.Notes
-                                // array until they are loaded.  Figure out
-                                // why this ajax call is failing for HM stack.
-                                SA.DeleteNote(self.UserNote);
-                                delete self.UserNote;
-                            }
-                        },
-                    });
+                    // User notes slowing down stack loading.
+                    // Make them load on demand.
                 }
             }
         }
     }
 
+    // Move to note.js
+    ViewerRecord.prototype.RequestUserNote = function () {
+        if (this.UserNote.LoadState != 0) {
+            return;
+        }
+
+        // TODO: Move this to note.js
+        this.UserNote.LoadState == 1; // REQUESTED
+
+        var self = this;
+        $.ajax({
+            type: "get",
+            url: "/webgl-viewer/getusernotes",
+            data: {"imageid": this.UserNote.Parent},
+            success: function(data,status) { self.LoadUserNote(data);},
+            error: function() {
+                SA.Debug( "AJAX - error() : getusernotes" );
+                if (self.UserNote) {
+                    // TODO: Do not add notes to the SA.Notes
+                    // array until they are loaded.  Figure out
+                    // why this ajax call is failing for HM stack.
+                    SA.DeleteNote(self.UserNote);
+                    delete self.UserNote;
+                }
+            },
+        });
+    }
+
+    // Move to note.js
     ViewerRecord.prototype.LoadUserNote = function (data) {
         if (data.Notes.length == 0) {
             return;
@@ -15206,6 +15234,13 @@ function NavigationWidget(parent,display) {
         }).html();
 }
 
+
+// Making a stack navigator. Starting to abstract an interface.
+NavigationWidget.prototype.GetNote = function() {
+    return this.NoteIterator.GetNote();
+}
+
+
 NavigationWidget.prototype.SetInteractionEnabled = function(flag) {
     var self = this;
     if (flag) {
@@ -15244,7 +15279,7 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 }
 
 NavigationWidget.prototype.SetNote = function(note) {
-    if (this.NoteIterator.GetNote() == note) {
+    if (this.GetNote() == note) {
         return;
     }
 
@@ -15285,10 +15320,6 @@ NavigationWidget.prototype.SetNote = function(note) {
     this.Update();
 }
 
-NavigationWidget.prototype.GetNote = function() {
-    return this.NoteIterator.GetNote();
-}
-
 NavigationWidget.prototype.ToggleVisibility = function() {
     this.SetVisibility( ! this.Visibility);
 }
@@ -15307,7 +15338,7 @@ NavigationWidget.prototype.Update = function() {
     // Disable prev/next note buttons by default.
     this.PreviousNoteButton.removeClass("sa-active");
     this.NextNoteButton.removeClass("sa-active");
-    var note = this.NoteIterator.GetNote();
+    var note = this.GetNote();
     if (note) {
         for (var i = 0; i < this.Session.length; ++i) {
             if (this.Session[i].id == note.Id) {
@@ -15318,10 +15349,15 @@ NavigationWidget.prototype.Update = function() {
         if (note.Type == "Stack") {
             // Next note refers to ViewerRecords.
             if (note.StartIndex > 0) {
+                note.ViewerRecords[note.StartIndex-1].LoadTiles([0,0,200,150]);
                 this.PreviousNoteButton.addClass("sa-active");
             }
             if (note.StartIndex < note.ViewerRecords.length - 1) {
+                note.ViewerRecords[note.StartIndex+1].LoadTiles([0,0,200,150]);
                 this.NextNoteButton.addClass("sa-active");
+            }
+            if (note.StartIndex < note.ViewerRecords.length - 2) {
+                note.ViewerRecords[note.StartIndex+2].LoadTiles([0,0,200,150]);
             }
         } else {
             // Next note refers to children.
@@ -15359,7 +15395,7 @@ NavigationWidget.prototype.PreviousNote = function() {
     // Make sure user not changes are not pending to be saved.
     if (SA.notesWidget){ SA.notesWidget.Flush();}
 
-    var current = this.NoteIterator.GetNote();
+    var current = this.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
 
@@ -15374,6 +15410,9 @@ NavigationWidget.prototype.PreviousNote = function() {
 
         this.Display.RecordAnnotations();
         --current.StartIndex;
+        // It was too slow to request a long stack of user notes when the
+        // stack wasa first loaded.
+        current.ViewerRecords[current.StartIndex].RequestUserNote();
 
         // We need to skip setting the camera.
         SA.display = this.Display;
@@ -15416,7 +15455,7 @@ NavigationWidget.prototype.NextNote = function() {
     // Make sure user not changes are not pending to be saved.
     if (SA.notesWidget){ SA.notesWidget.Flush();}
 
-    var current = this.NoteIterator.GetNote();
+    var current = this.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex >= current.ViewerRecords.length - 1) {
             return;
@@ -15432,6 +15471,10 @@ NavigationWidget.prototype.NextNote = function() {
 
         this.Display.RecordAnnotations();
         ++current.StartIndex;
+        // It was too slow to request a long stack of user notes when the
+        // stack wasa first loaded.
+        current.ViewerRecords[current.StartIndex].RequestUserNote();
+
         // We need to skip setting the camera.
         SA.display = this.Display;
         SA.SetNote(current);
