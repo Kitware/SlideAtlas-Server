@@ -2164,7 +2164,7 @@
             return false;
         }
         // hack to get copy working
-        layer = this.GetAnnotationLayer();
+        var layer = this.GetAnnotationLayer();
         if (layer) {
             if (! layer.HandleKeyDown(event)) {
                 return false;
