@@ -664,6 +664,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // A widget cannot call this if another widget is active.
     // The widget deals with its own activation and deactivation.
     AnnotationLayer.prototype.ActivateWidget = function(widget) {
+        // not getting key events for copy.
+        this.LayerDiv.focus()
         if (this.ActiveWidget == widget) {
             return;
         }
@@ -7003,13 +7005,13 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         }
     }
 
-    //CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-    //    this.Load(data);
-    //    // Place the widget over the mouse.
-    //    // This would be better as an argument.
-    //    this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
-    //    this.Layer.EventuallyDraw();
-    //}
+    CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
+        this.Load(data);
+        // Place the widget over the mouse.
+        // This would be better as an argument.
+        this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+        this.Layer.EventuallyDraw();
+    }
 
     CircleWidget.prototype.Serialize = function() {
         if(this.Shape === undefined){ return null; }

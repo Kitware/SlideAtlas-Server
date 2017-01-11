@@ -632,6 +632,8 @@
     // A widget cannot call this if another widget is active.
     // The widget deals with its own activation and deactivation.
     AnnotationLayer.prototype.ActivateWidget = function(widget) {
+        // not getting key events for copy.
+        this.LayerDiv.focus()
         if (this.ActiveWidget == widget) {
             return;
         }

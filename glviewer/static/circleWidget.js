@@ -132,13 +132,13 @@
         }
     }
 
-    //CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-    //    this.Load(data);
-    //    // Place the widget over the mouse.
-    //    // This would be better as an argument.
-    //    this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
-    //    this.Layer.EventuallyDraw();
-    //}
+    CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
+        this.Load(data);
+        // Place the widget over the mouse.
+        // This would be better as an argument.
+        this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+        this.Layer.EventuallyDraw();
+    }
 
     CircleWidget.prototype.Serialize = function() {
         if(this.Shape === undefined){ return null; }

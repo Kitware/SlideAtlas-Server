@@ -2060,6 +2060,10 @@
         if (event.keyCode == 86 && event.ctrlKey) {
             // control-v for paste
 
+            if (localStorage.ClipBoard === undefined) {
+                console.log("Clipboard Empty")
+            }
+
             var clip = JSON.parse(localStorage.ClipBoard);
             var camera;
             if (clip.Camera) {
@@ -2067,23 +2071,23 @@
                 camera.Load(clip.Camera);
             }
             if (clip.Type == "CircleWidget") {
-                var widget = new SAM.CircleWidget(this, false);
+                var widget = new SAM.CircleWidget(this.GetAnnotationLayer(), false);
                 widget.PasteCallback(clip.Data, this.MouseWorld, camera);
             }
             if (clip.Type == "PolylineWidget") {
-                var widget = new SAM.PolylineWidget(this, false);
+                var widget = new SAM.PolylineWidget(this.GetAnnotationLayer(), false);
                 widget.PasteCallback(clip.Data, this.MouseWorld, camera);
             }
             if (clip.Type == "TextWidget") {
-                var widget = new SAM.TextWidget(this, "");
+                var widget = new SAM.TextWidget(this.GetAnnotationLayer(), "");
                 widget.PasteCallback(clip.Data, this.MouseWorld, camera);
             }
             if (clip.Type == "RectWidget") {
-                var widget = new SAM.RectWidget(this, "");
+                var widget = new SAM.RectWidget(this.GetAnnotationLayer(), "");
                 widget.PasteCallback(clip.Data, this.MouseWorld, camera);
             }
             if (clip.Type == "GridWidget") {
-                var widget = new SAM.GridWidget(this, "");
+                var widget = new SAM.GridWidget(this.GetAnnotationLayer(), "");
                 widget.PasteCallback(clip.Data, this.MouseWorld, camera);
             }
 
