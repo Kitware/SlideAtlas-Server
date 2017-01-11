@@ -2072,15 +2072,15 @@
             }
             if (clip.Type == "CircleWidget") {
                 var widget = new SAM.CircleWidget(this.GetAnnotationLayer(), false);
-                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+                widget.PasteCallback(clip.Data, this.GetAnnotationLayer().MouseWorld, camera);
             }
             if (clip.Type == "PolylineWidget") {
                 var widget = new SAM.PolylineWidget(this.GetAnnotationLayer(), false);
-                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+                widget.PasteCallback(clip.Data, this.GetAnnotationLayer().MouseWorld, camera);
             }
             if (clip.Type == "TextWidget") {
                 var widget = new SAM.TextWidget(this.GetAnnotationLayer(), "");
-                widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+                widget.PasteCallback(clip.Data, this.GetAnnotationLayer().MouseWorld, camera);
             }
             if (clip.Type == "RectWidget") {
                 var widget = new SAM.RectWidget(this.GetAnnotationLayer(), "");
@@ -2163,6 +2163,14 @@
             this.EventuallyRender(true);
             return false;
         }
+        // hack to get copy working
+        layer = this.GetAnnotationLayer();
+        if (layer) {
+            if (! layer.HandleKeyDown(event)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
