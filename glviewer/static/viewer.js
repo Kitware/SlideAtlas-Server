@@ -2031,6 +2031,8 @@
         if ( ! this.InteractionEnabled) { return true; }
         // Linking polyline segmetnations in a stack.
         if (event.keyCode == 81) {
+            SA.SegmentationSequenceLabel = prompt("Enter a segmentation label");
+            /*
             // q start a new sequence.
             if ( ! SA.SegmentationTable) {
                 var labels = [];
@@ -2045,22 +2047,26 @@
             idx = SA.SegmentationTable.sequences.length;
             SA.SegmentationTable.sequences.push({title:"G"+idx, sections:[]});
             alert("G"+idx);
+            */
         }
-        if (event.keyCode == 87 && SA.SegmentationTable) {
+        if (event.keyCode == 87 && SA.SegmentationSequenceLabel) {
+            /*
             // w add the current active polyline and move to the next section
             var idx = SA.SegmentationTable.sequences.length - 1;
             var item = SA.SegmentationTable.sequences[idx];
             // Get the active annotation
+            */
             var layer = this.GetAnnotationLayer();
-            var note = SA.display.NavigationWidget.GetNote();
+            //var note = SA.display.NavigationWidget.GetNote();
             if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
                 var widget = layer.ActiveWidget;
-                var obj = {area:widget.ComputeArea() * 0.25 * 0.25,
-                           perimeter:widget.ComputeLength() * 0.25}; // microns per pixel.
+                //var obj = {area:widget.ComputeArea() * 0.25 * 0.25,
+                //           perimeter:widget.ComputeLength() * 0.25}; // microns per pixel.
                 widget.InitializeText();
-                widget.Text.String = item.title + " area=" + (obj.area/1000000).toFixed(4)+"mm^2";
-                item.sections[note.StartIndex] = obj;
+                widget.Text.String = SA.SegmentationSequenceLabel;
+                //item.sections[note.StartIndex] = obj;
             }
+            
             SA.display.NavigationWidget.NextNote();
         }
 
