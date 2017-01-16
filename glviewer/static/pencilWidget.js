@@ -32,6 +32,7 @@
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "pencil";
 
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});

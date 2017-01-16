@@ -2029,6 +2029,41 @@
     // Returns true if nothing was done with the event.
     Viewer.prototype.HandleKeyDown = function(event) {
         if ( ! this.InteractionEnabled) { return true; }
+        // Linking polyline segmetnations in a stack.
+        if (event.keyCode == 81) {
+            // q start a new sequence.
+            if ( ! SA.SegmentationTable) {
+                var labels = [];
+                var note = SA.display.NavigationWidget.GetNote();
+                for (var i = 0; i< note.ViewerRecords.length; ++i) {
+                    labels[i] = note.ViewerRecords[i].Image.label;
+                }
+                SA.SegmentationTable = {labels:labels,
+                                        sequences:[]};
+            }
+            console.log(JSON.stringify(SA.SegmentationTable));
+            idx = SA.SegmentationTable.sequences.length;
+            SA.SegmentationTable.sequences.push({title:"G"+idx, sections:[]});
+            alert("G"+idx);
+        }
+        if (event.keyCode == 87 && SA.SegmentationTable) {
+            // w add the current active polyline and move to the next section
+            var idx = SA.SegmentationTable.sequences.length - 1;
+            var item = SA.SegmentationTable.sequences[idx];
+            // Get the active annotation
+            var layer = this.GetAnnotationLayer();
+            var note = SA.display.NavigationWidget.GetNote();
+            if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
+                var widget = layer.ActiveWidget;
+                var obj = {area:widget.ComputeArea() * 0.25 * 0.25,
+                           perimeter:widget.ComputeLength() * 0.25}; // microns per pixel.
+                widget.InitializeText();
+                widget.Text.String = item.title + " area=" + (obj.area/1000000).toFixed(4)+"mm^2";
+                item.sections[note.StartIndex] = obj;
+            }
+            SA.display.NavigationWidget.NextNote();
+        }
+
         if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
             if ( ! SAVING_IMAGE) {
                 SAVING_IMAGE = new SAM.Dialog();

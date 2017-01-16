@@ -2418,6 +2418,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "text";
 
         DEBUG = this;
         if (layer == null) {
@@ -3639,6 +3640,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "polyline";
 
         // Circle is to show an active vertex.
         this.Circle = new SAM.Circle();
@@ -3820,6 +3822,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         this.Polyline.Draw(view);
         this.Circle.Draw(view);
+        if (this.Text) {
+            this.PositionText();
+            this.Text.Draw(view);
+        }
     }
 
     PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
@@ -3859,7 +3865,32 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         obj.creation_camera = this.CreationCamera;
         obj.closedloop = this.Polyline.Closed;
 
+        if (this.Text) {
+            obj.text = this.Text.String;
+        }
+
         return obj;
+    }
+
+    PolylineWidget.prototype.InitializeText = function() {
+        if (this.Text) {return;}
+        this.Text = new SAM.Text();
+        this.Text.String = "Hello";
+        this.Text.UpdateBuffers(this.Layer.AnnotationView); // Needed to get the bounds.
+        this.Text.Color = [0.0, 0.0, 1.0];
+        // position the middle of the text string
+        this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
+                            0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
+        this.Text.Position = [100, 100, 0];
+        // no sign background
+        this.Text.BackgroundFlag = false;
+    }
+
+    PolylineWidget.prototype.PositionText = function() {
+        var bounds = this.Polyline.GetBounds();
+        var x = (bounds[0]+bounds[1])/2;
+        var y = bounds[2];
+        this.Text.Position = [x, y-40, 0];
     }
 
     // Load a widget from a json object (origin MongoDB).
@@ -3878,6 +3909,13 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Polyline.Closed = obj.closedloop;
         this.Polyline.UpdateBuffers(this.Layer.AnnotationView);
         this.UserNoteFlag = obj.user_note_flag;
+
+        if (obj.text) {
+            if ( ! this.Text) {
+                this.InitializeText();
+            }
+            this.Text.String = obj.text;
+        }
 
         // How zoomed in was the view when the annotation was created.
         if (obj.view_height !== undefined) {
@@ -4580,6 +4618,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "pencil";
 
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
@@ -5382,6 +5421,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "lasso";
 
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
@@ -6894,6 +6934,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "circle";
 
         var self = this;
         this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});

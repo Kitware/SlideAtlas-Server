@@ -31,6 +31,7 @@
         // Keep track of annotation created by students without edit
         // permission.
         this.UserNoteFlag = ! SA.Edit;
+        this.Type = "text";
 
         DEBUG = this;
         if (layer == null) {
