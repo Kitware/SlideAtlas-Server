@@ -2025,6 +2025,66 @@
         return false;
     }
 
+    // Special one time function for paper analysis.
+    Viewer.prototype.SegmentationsToCsv = function() {
+        var note = SA.display.NavigationWidget.GetNote();
+        // first collect a set of segmetnatnion labels.
+        labels = {};
+        labelArray = [];
+        for (var i =0; i < note.ViewerRecords.length; ++i) {
+            annotations = note.ViewerRecords[i].Annotations
+            for (var j= 0; j < annotations.length; ++j) {
+                annot = annotations[j];
+                if (annot.type == "polyline" && annot.text) {
+                    if ( ! labels[annot.text]) {
+                        labelArray.push(annot.text);
+                        labels[annot.text] = {area:0.0, perimeter:0.0};
+                    }
+                }
+            }
+        }
+
+        row1 = "";
+        row2 = ","
+        for (var i = 0; i < labelArray.length; ++i) {
+            row1 += ",,";
+            row1 += labelArray[i];
+            row2 += ",AREA µm^2,LINE LENGTH µm"
+        }
+        console.log(row1)
+        console.log(row2)
+
+        // Make a row for each section
+        widget = new SAM.PolylineWidget(SA.VIEWER1.GetAnnotationLayer(), false);
+        for (var i = 0; i < note.ViewerRecords.length; ++i) {
+            viewerRecord = note.ViewerRecords[i];
+            var row = viewerRecord.Image.label + ","+(i+1)+",";
+            for (var j = 0; j < labelArray.length; ++j) {
+                label = labelArray[j];
+                labels[label].area = 0.0;
+                labels[label].perimeter = 0.0;
+            }
+            for (var j = 0; j < viewerRecord.Annotations.length; ++j) {
+                annot = viewerRecord.Annotations[j];
+                if (annot.type == "polyline" && annot.text) {
+                    widget.Load(annot);
+                    widget.Polyline.Closed = true;
+                    labels[annot.text].area += widget.ComputeArea()*0.25*0.25;
+                    labels[annot.text].perimeter += widget.ComputeLength()*0.25;
+                }
+            }
+            for (var j = 0; j < labelArray.length; ++j) {
+                label = labelArray[j];
+                if (labels[label].area == 0.0) {
+                    row += ",,";
+                } else {
+                    row += labels[label].area.toString()+','+labels[label].perimeter.toString()+',';
+                }
+            }
+            console.log(row);
+        }
+    }
+
     // returns false if the event was "consumed" (browser convention).
     // Returns true if nothing was done with the event.
     Viewer.prototype.HandleKeyDown = function(event) {
@@ -2032,39 +2092,14 @@
         // Linking polyline segmetnations in a stack.
         if (event.keyCode == 81) {
             SA.SegmentationSequenceLabel = prompt("Enter a segmentation label");
-            /*
-            // q start a new sequence.
-            if ( ! SA.SegmentationTable) {
-                var labels = [];
-                var note = SA.display.NavigationWidget.GetNote();
-                for (var i = 0; i< note.ViewerRecords.length; ++i) {
-                    labels[i] = note.ViewerRecords[i].Image.label;
-                }
-                SA.SegmentationTable = {labels:labels,
-                                        sequences:[]};
-            }
-            console.log(JSON.stringify(SA.SegmentationTable));
-            idx = SA.SegmentationTable.sequences.length;
-            SA.SegmentationTable.sequences.push({title:"G"+idx, sections:[]});
-            alert("G"+idx);
-            */
         }
         if (event.keyCode == 87 && SA.SegmentationSequenceLabel) {
-            /*
-            // w add the current active polyline and move to the next section
-            var idx = SA.SegmentationTable.sequences.length - 1;
-            var item = SA.SegmentationTable.sequences[idx];
-            // Get the active annotation
-            */
             var layer = this.GetAnnotationLayer();
             //var note = SA.display.NavigationWidget.GetNote();
             if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
                 var widget = layer.ActiveWidget;
-                //var obj = {area:widget.ComputeArea() * 0.25 * 0.25,
-                //           perimeter:widget.ComputeLength() * 0.25}; // microns per pixel.
                 widget.InitializeText();
                 widget.Text.String = SA.SegmentationSequenceLabel;
-                //item.sections[note.StartIndex] = obj;
             }
             
             SA.display.NavigationWidget.NextNote();
