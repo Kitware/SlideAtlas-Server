@@ -2,7 +2,11 @@ rm css/sa.css
 rm sa.min.js
 rm sam.min.js
 
+
+echo "uglify css"
 echo "// auto generated: slide atlas" > css/sa.css
+
+echo "uglify sam"
 
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sam.min.js
 ~/bin/uglifyjs -nc annotationLayer.js >> sam.min.js 
@@ -23,15 +27,18 @@ echo "// auto generated: slide atlas" > css/sa.css
 ~/bin/uglifyjs -nc circle.js >> sam.min.js 
 ~/bin/uglifyjs -nc circleWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc rectWidget.js >> sam.min.js 
+~/bin/uglifyjs -nc rectSetWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc gridWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc scaleWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc cutoutWidget.js >> sam.min.js 
 ~/bin/uglifyjs -nc imageAnnotation.js >> sam.min.js 
 ~/bin/uglifyjs -nc dialog.js >> sam.min.js 
 ~/bin/uglifyjs -nc girderWidget.js >> sam.min.js 
+~/bin/uglifyjs -nc groundTruth.js >> sam.min.js 
 ~/bin/uglifyjs -nc view.js >> sam.min.js 
 
 
+echo "uglify sa"
 
 cat css/main.css >> css/sa.css
 cat css/saViewer.css >> css/sa.css
@@ -75,5 +82,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc pairTransformation.js >> sa.min.js 
 ~/bin/uglifyjs -nc stackSectionWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc sectionsWidget.js >> sa.min.js 
-
+~/bin/uglifyjs -nc layerView.js >> sa.min.js 
+~/bin/uglifyjs -nc heatMap.js >> sa.min.js 
+~/bin/uglifyjs -nc overlayView.js >> sa.min.js 
 

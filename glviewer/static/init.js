@@ -24,6 +24,59 @@ window.SA = window.SA || {};
         window.msRequestAnimationFrame;
 
 
+    SA.TileSourceToCache = function (tileSource) {
+        var w = tileSource.width;
+        var h = tileSource.height;
+        var cache = new SA.Cache();
+        cache.TileSource = tileSource;
+        // Make an id for the image so it can be reused.
+        var image = {levels:     tileSource.maxLevel + 1,
+                     dimensions: [w,h],
+                     bounds: [0,w-1, 0,h-1],
+                     _id : new SA.ObjectId().toString()};
+        if (tileSource.bounds) {
+            image.bounds = tileSource.bounds;
+        }
+
+        if (tileSource.filename) {
+            image.filename = tileSource.filename;
+            image.label = tileSource.filename;
+        }
+        cache.SetImageData(image);
+        return cache;
+    }
+
+    // TODO: Clean up dependancy on notes.
+    // Girder make a viewer record from a tile source so the rest of slide
+    // atlas works.
+    SA.TileSourceToViewerRecord = function (tileSource) {
+        var w = tileSource.width;
+        var h = tileSource.height;
+        var cache = SA.TileSourceToCache(tileSource);
+        // Make an id for the image so it can be reused.
+        var image = cache.Image;
+        var record = new SA.ViewerRecord();
+        record.Image = image;
+        record.OverviewBounds = [0,w-1,0,h-1];
+        if (tileSource.bounds) {
+            record.OverviewBounds = tileSource.bounds;
+        }
+        record.Camera = {FocalPoint: [(record.OverviewBounds[0]+record.OverviewBounds[1])/2,
+                                      (record.OverviewBounds[2]+record.OverviewBounds[3])/2],
+                         Roll: 0,
+                         Height: h};
+        return record;
+    }
+
+    // Girder make a dummy note from a tile source so the rest of slide
+    // atlas works.
+    SA.TileSourceToNote = function (tileSource) {
+        var note = new SA.Note();
+        var record = SA.TileSourceToViewerRecord(tileSource);
+        note.ViewerRecords.push(record);
+        return note;
+    }
+
     // Put the user note text and annotions it the viewer without changing
     // the camera.  THis has the side effect of reloading the primary note
     // annotations, so the caller should record any new annotations in the
@@ -388,10 +441,12 @@ window.SA = window.SA || {};
                 // needed.
                 if (child[0].tagName == 'DIV') {
                     var grandChildren = child.children();
+
                     // child.empty() // looses text that is not a child.
                     // child.contents()[0] gets it. Maybe make a span and
                     // put it after 'child'.
                     child.children().remove();
+
                     grandChildren.insertAfter(child);
                     children = item.children();
                     container = child;
@@ -485,7 +540,8 @@ window.SA = window.SA || {};
         if (typeof(SA.User) != "undefined") {
             return SA.User;
         }
-        SA.Debug("Could not find user");
+        // Happens with girder plugin.
+        //SA.Debug("Could not find user");
         return "";
     }
 
@@ -1096,7 +1152,24 @@ window.SA = window.SA || {};
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
             /*
+            var imageObj = {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                            levels:     12,
+                            dimensions: [419168, 290400, 1],
+                            bounds: [0,419167, 0, 290399, 0,0],
+                            spacing: [0.1,0.1,1.0],
+                            origin : [100, 10000]};
+            var heatMapSource = new SA.SlideAtlasSource();
+            heatMapSource.Prefix = imageObj.prefix;
+            var heatMapCache = new SA.Cache();
+            heatMapCache.TileSource = heatMapSource;
+            heatMapCache.SetImageData(imageObj);
+
+
             SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetCache(heatMapCache);
+            viewer1.AddLayer(SA.heatMap1);
+            */
+            /*
             SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                  levels:     12,
@@ -1105,6 +1178,8 @@ window.SA = window.SA || {};
                  spacing: [0.1,0.1,1.0],
                  origin : [100, 10000]});
             viewer1.AddLayer(SA.heatMap1);
+            */
+            /*
 
             SA.heatMap2 = new SA.HeatMap(viewer1.Div);
             SA.heatMap2.Color = [0.0, 0.0, 0.7];

@@ -23,12 +23,14 @@ cat arrowWidget.js >> sam.max.js
 cat circle.js >> sam.max.js 
 cat circleWidget.js >> sam.max.js 
 cat rectWidget.js >> sam.max.js 
+cat rectSetWidget.js >> sam.max.js 
 cat gridWidget.js >> sam.max.js 
 cat scaleWidget.js >> sam.max.js 
 cat cutoutWidget.js >> sam.max.js 
 cat imageAnnotation.js >> sam.max.js 
 cat dialog.js >> sam.max.js 
 cat girderWidget.js >> sam.max.js 
+cat groundTruth.js >> sam.max.js 
 cat view.js >> sam.max.js 
 
 
@@ -80,5 +82,8 @@ cat viewer.js >> sa.max.js
 cat pairTransformation.js >> sa.max.js 
 cat stackSectionWidget.js >> sa.max.js 
 cat sectionsWidget.js >> sa.max.js 
+cat layerView.js >> sa.max.js 
+cat heatMap.js >> sa.max.js 
+cat overlayView.js >> sa.max.js 
 
 

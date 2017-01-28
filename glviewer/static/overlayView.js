@@ -1,11 +1,10 @@
 
-// A Renderer - layer tht uses webGL to show an intensity immage maped to color-transparency.
+// A Renderer - layer tints an image and adds opacity.  Maybe lens in the future.
 (function () {
     "use strict";
 
-
-    function HeatMap(parent) {
-        this.HeatMapDiv = $('<div>')
+    function OverlayView(parent) {
+        this.OverlayViewDiv = $('<div>')
             .appendTo(parent)
             .css({'position':'absolute',
                   'left':'0px',
@@ -17,15 +16,15 @@
                   'z-index':'150'})
             .addClass('sa-resize');
 
-        this.View = new SA.TileView(this.HeatMapDiv,true);
+        this.View = new SA.TileView(this.OverlayViewDiv,true);
         var gl = this.View.gl;
-        this.Color = [0.0, 0.4, 0.0];
-        this.Window = 1.0;
-        this.Level = 0.5;
-        this.Gamma = 1.0;
+        this.Color = [1.0, 0.0, 1.0];
+        this.Center = [500,500];
+        this.Radius = 0;
+        this.Opacity = 1.0;
 
         var self = this;
-        this.HeatMapDiv.saOnResize(
+        this.OverlayViewDiv.saOnResize(
             function() {
                 self.View.UpdateCanvasSize();
                 // Rendering will be a slave to the view because it needs the
@@ -39,23 +38,21 @@
             "varying vec2 vTextureCoord;" +
             "uniform sampler2D uSampler;" +
             "uniform vec3 uColor;" +
-            "uniform vec2 uWindowLevel;" +
-            "uniform float uGamma;" +
+            "uniform vec2 uCenter;" +
+            "uniform float uOpacity;" +
             "void main(void) {" +
+            "  float alpha = uOpacity;" +
+            "  float dx = gl_FragCoord.x - uCenter.x;" +
+            "  float dy = gl_FragCoord.y - uCenter.y;" +
+            "  if ((dx * dx) + (dy * dy) < 40000.0) { alpha = 0.0;}" +
             "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
-            "  float alpha = textureColor[0];" +
-            "  if (uWindowLevel[0] != 1.0 || uWindowLevel[1] != 0.5) {" +
-            "    alpha = ((alpha-0.5)/uWindowLevel[0]) + uWindowLevel[1];" +
-            "  }" +
-            "  if (uGamma != 1.0) {" +
-            "    if (uGamma < 0.0) {" +
-            "      alpha = pow((1.0-alpha), -uGamma);" +
-            "    } else {" +
-            "      alpha = pow(alpha, uGamma);" +
-            "    }" +
-            "  }" +
-            "  textureColor = vec4(uColor, alpha);" +
+            "  float intensity = textureColor[0];" +
+            "  textureColor[0] = intensity * uColor[0];" +
+            "  textureColor[1] = intensity * uColor[1];" +
+            "  textureColor[2] = intensity * uColor[2];" +
+            "  textureColor[3] = alpha;" +
             "  gl_FragColor = textureColor;" +
+            //"  gl_FragColor = vec4(gl_FragCoord.x / 1000.0, gl_FragCoord.y / 1000.0, 0, alpha);" +
             "}";
         var vertexShaderString =
             "attribute vec3 aVertexPosition;" +
@@ -64,6 +61,7 @@
             "uniform mat4 uPMatrix;" +
             "uniform mat3 uNMatrix;" +
             "varying vec2 vTextureCoord;" +
+            "varying vec4 vPos;" +
             "void main(void) {" +
             "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
             "  vTextureCoord = aTextureCoord;" +
@@ -76,12 +74,36 @@
         gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
         shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
         shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
-        shaderProgram.gamaUniform = gl.getUniformLocation(shaderProgram,"uGamma");
-        shaderProgram.windowLevelUniform = gl.getUniformLocation(shaderProgram,"uWindowLevel");
+        shaderProgram.opacityUniform = gl.getUniformLocation(shaderProgram,"uOpacity");
+        shaderProgram.centerUniform = gl.getUniformLocation(shaderProgram,"uCenter");
         this.View.ShaderProgram = shaderProgram;
+
+        var self = this;
+        //this.View.Canvas
+        this.OverlayViewDiv.on(
+            "mousemove.overlay",
+			      function (event){
+                self.Center[0] = event.offsetX;
+                self.Center[1] = self.OverlayViewDiv.height() - event.offsetY;
+                self.EventuallyDraw();
+                return true;
+            });
     }
 
-    HeatMap.prototype.SetCache = function (cache) {
+    // To compress draw events.
+    OverlayView.prototype.EventuallyDraw = function() {
+        if ( ! this.RenderPending) {
+            this.RenderPending = true;
+            var self = this;
+            requestAnimFrame(
+                function() {
+                    self.RenderPending = false;
+                    self.Draw();
+                });
+        }
+    }
+
+    OverlayView.prototype.SetCache = function (cache) {
         this.View.SetCache(cache);
         var imageObj = cache.GetImageData();
         if ( ! imageObj.spacing) {
@@ -101,7 +123,7 @@
     }
 
     // Only works for images served by slide atlas. 
-    HeatMap.prototype.SetImageData = function (imageObj) {
+    OverlayView.prototype.SetImageData = function (imageObj) {
         imageObj.spacing = imageObj.spacing || [1.0, 1.0, 1.0];
         imageObj.origin  = imageObj.origin  || [0.0, 0.0, 0.0];
 
@@ -114,8 +136,12 @@
     }
 
 
-    HeatMap.prototype.Draw = function (masterView, inCam) {
-        var inCam = inCam || masterView.Camera;
+    OverlayView.prototype.Draw = function (masterView, inCam) {
+        // TODO: Clear any pending renders.
+
+        if (masterView) {
+            inCam = inCam || masterView.Camera;
+        }
 
         if (inCam) {
             if (this.Transform) {
@@ -147,21 +173,19 @@
             // It is bleniding with data from canvas behind the webGl canvas.
             gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
             gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
-            gl.uniform1f(program.gamaUniform, this.Gamma);
-            gl.uniform2f(program.windowLevelUniform, this.Window, this.Level);
+            gl.uniform1f(program.opacityUniform, this.Opacity);
+            gl.uniform2f(program.centerUniform, this.Center[0], this.Center[1]);
         }
-
-
 
         this.View.DrawTiles();
     }
 
     // Clear the canvas for another render.
-    HeatMap.prototype.Reset = function () {
+    OverlayView.prototype.Reset = function () {
     }
 
 
-    SA.HeatMap = HeatMap;
+    SA.OverlayView = OverlayView;
 
 })();
 

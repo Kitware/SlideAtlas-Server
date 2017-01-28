@@ -1543,10 +1543,10 @@ SlidePage.prototype.DisplayNote = function (note, index) {
     this.List.LoadNote(note);
     // Views
     if (this.Records.length > 0) {
-        this.Records[0].Apply(this.ViewerDiv1[0].saViewer);
+        this.ViewerDiv1[0].saViewer.SetViewerRecord(this.Records[0]);
     }
     if (this.Records.length > 1) {
-        this.Records[1].Apply(this.ViewerDiv2[0].saViewer);
+        this.ViewerDiv2[0].saViewer.SetViewerRecord(this.Records[1]);
     }
     this.ViewerDiv1[0].saViewer.CopyrightWrapper.hide();
     this.ViewerDiv2[0].saViewer.CopyrightWrapper.hide();
@@ -1583,9 +1583,9 @@ SlidePage.prototype.InsertViewNote = function (note) {
     // We first have to push the new record to the view.
     if (this.Note.ViewerRecords.length == 1) {
         // TODO: jquery arg
-        this.Note.ViewerRecords[0].Apply(this.ViewerDiv1[0].saViewer);
+        this.ViewerDiv1[0].saViewer.SetViewerRecord(this.Note.viewerRecords[0]);
     } else if (this.Note.ViewerRecords.length == 2) {
-        this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
+        this.ViewerDiv2[0].saViewer.SetViewerRecord(this.Note.viewerRecords[1]);
     }
 
     this.DisplayNote(this.Note, SA.presentation.Index);

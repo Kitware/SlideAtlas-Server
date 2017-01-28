@@ -38,6 +38,12 @@ window.SA = window.SA || {};
 
         this.Parent = parent;
         parent.addClass('sa-dual-viewer');
+        // I need relative position but should not modify parent.
+        this.TopDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'relative',
+                  'width':'100%',
+                  'height':'100%'});
 
         // This parent used to be CANVAS.
         var width = parent.innerWidth();
@@ -46,7 +52,9 @@ window.SA = window.SA || {};
 
         for (var i = 0; i < 2; ++i) {
             var viewerDiv = $('<div>')
-                .appendTo(parent)
+                .appendTo(this.TopDiv)
+                .css({'position':'absolulute',
+                      'top':'0px'})
                 .saViewer({overview:true, zoomWidget:true})
                 .addClass("sa-view-canvas-div");
 
@@ -76,7 +84,7 @@ window.SA = window.SA || {};
         // This is for moving through notes, session views and stacks.
         // It is not exactly related to dual viewer. It is sort of a child
         // of the dual viewer.
-        this.NavigationWidget = new SA.NavigationWidget(parent,this);
+        this.NavigationWidget = new SA.NavigationWidget(this.TopDiv,this);
 
         if ( ! SAM.MOBILE_DEVICE) { // || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
@@ -93,7 +101,7 @@ window.SA = window.SA || {};
                 .on("dragstart", function() {
                     return false;});
 
-            $('<img>').appendTo(parent)
+            $('<img>').appendTo(this.TopDiv)
                 .appendTo(this.ViewerDivs[1])
                 .css({'position':'absolute',
                       'left':'0px',
@@ -173,7 +181,7 @@ window.SA = window.SA || {};
             record.Camera = {FocalPoint: [w/2, h/2],
                              Roll: 0,
                              Height: h};
-        note.ViewerRecords.push(record);
+            note.ViewerRecords.push(record);
             cache.SetImageData(image);
             this.SetNote(args.note,args.viewIndex);
         }
@@ -274,6 +282,95 @@ window.SA = window.SA || {};
     }
 
 
+    DualViewWidget.prototype.MatrixMultiply = function(M, p) {
+        var x = p[0]*M[0] + p[1]*M[1] + M[2];
+        var y = p[0]*M[3] + p[1]*M[4] + M[5];
+        var k = p[0]*M[6] + p[1]*M[7] + M[8];
+        p[0] = x/k;
+        p[1] = y/k;
+    }
+
+
+    DualViewWidget.prototype.InitializeSynchronousViewsWithPoints = function(p1a,p2a, p1b,p2b, p1c,p2c) {
+        // Just fashoin a not for now.
+        var note = new SA.Note();
+        var viewerRecord1 = new SA.ViewerRecord();
+        viewerRecord1.Transform = new SA.PairTransformation(); // not necessary
+        var viewerRecord2 = new SA.ViewerRecord();
+        viewerRecord2.Transform = new SAM.MatrixTransformation();
+        viewerRecord2.Transform.InitializeWithPoints(p1a,p2a, p1b,p2b, p1c,p2c);
+
+        var pt;
+        var p1 = p1a;
+        var p2 = p2a;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+        var p1 = p1b;
+        var p2 = p2b;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+        var p1 = p1c;
+        var p2 = p2c;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+
+
+        note.ViewerRecords = [viewerRecord1, viewerRecord2];
+        note.StartIndex = 0;
+        note.Type = "Stack";
+
+        this.saNote = note;
+        this.saNoteStartIndex = note.StartIndex;
+        this.saViewerIndex = 0;
+
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    }
+    DualViewWidget.prototype.InitializeSynchronousViews = function(camModel1, camModel2) {
+        // Just fashoin a not for now.
+        var note = new SA.Note();
+        var viewerRecord1 = new SA.ViewerRecord();
+        viewerRecord1.Transform = new SA.PairTransformation(); // not necessary
+        var viewerRecord2 = new SA.ViewerRecord();
+        viewerRecord2.Transform = new SAM.MatrixTransformation(camModel1, camModel2);
+
+
+        var pt;
+        pt = viewerRecord2.Transform.ForwardTransformPoint([259,656]);
+        console.log("(345,261):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([285,8896]);
+        console.log("(167,7265):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([9406,16]);
+        console.log("(7789,306):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([7977,6215]);
+        console.log("(6689,5510):" + pt[0] + "," + pt[1]);
+
+        note.ViewerRecords = [viewerRecord1, viewerRecord2];
+        note.StartIndex = 0;
+        note.Type = "Stack";
+
+        this.saNote = note;
+        this.saNoteStartIndex = note.StartIndex;
+        this.saViewerIndex = 0;
+
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    }
+
     // Display Note
     // Set the state of the WebGL viewer from this notes ViewerRecords.
     // Lock camera is for when the user note updates and we only want to
@@ -298,9 +395,10 @@ window.SA = window.SA || {};
             var viewer = this.GetViewer(i);
 
             if (i + idx < note.ViewerRecords.length) {
-                note.ViewerRecords[idx + i].Apply(viewer, lockCamera);
+                viewer.SetViewerRecord(note.ViewerRecords[idx + i], lockCamera);
                 // This is for synchroninzing changes in the viewer back to the note.
                 viewer.RecordIndex = i;
+
             }
         }
     }
@@ -550,7 +648,7 @@ window.SA = window.SA || {};
         // Translate only one camera and modify the tranform to match.
         if (SA.Edit && SA.StackCursorFlag) {
             var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-            if ( ! note.ActiveCorrelation) {
+            if ( ! note.ActiveCorrelation && trans.Correlations) {
                 if ( ! trans) {
                     alert("Missing transform");
                     return;
@@ -580,7 +678,7 @@ window.SA = window.SA || {};
             // I really do not want to set the roll unless the user specifically changed it.
             // It would be hard to correct if the wrong value got set early in the aligment.
             var deltaRoll = cam1.Roll - cam0.Roll;
-            if (trans.Correlations.length > 1) {
+            if (trans.Correlations && trans.Correlations.length > 1) {
                 deltaRoll = 0;
                 // Let roll be set by multiple correlation points.
             }

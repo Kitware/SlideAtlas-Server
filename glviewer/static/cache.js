@@ -359,6 +359,10 @@ Cache.prototype.destructor=function()
 {
 }
 
+Cache.prototype.GetImageData = function() {
+    return this.Image;
+}
+
 Cache.prototype.SetImageData = function(image) {
 
     if ( ! image.TileSize) {

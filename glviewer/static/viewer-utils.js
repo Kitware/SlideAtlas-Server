@@ -2867,10 +2867,12 @@ function saViewerSetup(self, args) {
     if (typeof(args[0]) == 'object') {
         params = args[0];
     }
+
     if (params && params.prefixUrl) {
         SA.ImagePathUrl = params.prefixUrl;
         SAM.ImagePathUrl = params.prefixUrl;
     }
+
     $(window)
         .off('resize.sa')
         .on('resize.sa', saResizeCallback);

@@ -280,7 +280,10 @@
     }
 
 
+    // TODO: Get rid of this in favor of Viewer::SetViewerRecord.
     ViewerRecord.prototype.Apply = function (viewer, lockCamera) {
+        alert("ViewerRecord::Apply depricated.  Use Viewer.SetViewerRecord instead");
+        /*
         // If a widget is active, then just inactivate it.
         // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
         if (viewer.ActiveWidget) {
@@ -355,6 +358,7 @@
 
         // fit the canvas to the div size.
         viewer.UpdateSize();
+        */
     }
 
     // This is a helper method to start preloading tiles for an up coming view.
