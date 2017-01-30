@@ -14786,6 +14786,9 @@ AnnotationWidget.prototype.DetectSections = function() {
 
     // Move to note.js
     ViewerRecord.prototype.RequestUserNote = function () {
+        if (! this.UserNote) {
+            return;
+        }
         if (this.UserNote.LoadState != 0) {
             return;
         }
