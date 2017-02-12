@@ -8035,6 +8035,59 @@ window.SA = window.SA || {};
         window.msRequestAnimationFrame;
 
 
+    SA.TileSourceToCache = function (tileSource) {
+        var w = tileSource.width;
+        var h = tileSource.height;
+        var cache = new SA.Cache();
+        cache.TileSource = tileSource;
+        // Make an id for the image so it can be reused.
+        var image = {levels:     tileSource.maxLevel + 1,
+                     dimensions: [w,h],
+                     bounds: [0,w-1, 0,h-1],
+                     _id : new SA.ObjectId().toString()};
+        if (tileSource.bounds) {
+            image.bounds = tileSource.bounds;
+        }
+
+        if (tileSource.filename) {
+            image.filename = tileSource.filename;
+            image.label = tileSource.filename;
+        }
+        cache.SetImageData(image);
+        return cache;
+    }
+
+    // TODO: Clean up dependancy on notes.
+    // Girder make a viewer record from a tile source so the rest of slide
+    // atlas works.
+    SA.TileSourceToViewerRecord = function (tileSource) {
+        var w = tileSource.width;
+        var h = tileSource.height;
+        var cache = SA.TileSourceToCache(tileSource);
+        // Make an id for the image so it can be reused.
+        var image = cache.Image;
+        var record = new SA.ViewerRecord();
+        record.Image = image;
+        record.OverviewBounds = [0,w-1,0,h-1];
+        if (tileSource.bounds) {
+            record.OverviewBounds = tileSource.bounds;
+        }
+        record.Camera = {FocalPoint: [(record.OverviewBounds[0]+record.OverviewBounds[1])/2,
+                                      (record.OverviewBounds[2]+record.OverviewBounds[3])/2],
+                         Roll: 0,
+                         Height: h};
+        return record;
+    }
+
+    // Girder make a dummy note from a tile source so the rest of slide
+    // atlas works.
+    SA.TileSourceToNote = function (tileSource) {
+        var note = new SA.Note();
+        var record = SA.TileSourceToViewerRecord(tileSource);
+        note.ViewerRecords.push(record);
+        return note;
+    }
+
     // Put the user note text and annotions it the viewer without changing
     // the camera.  THis has the side effect of reloading the primary note
     // annotations, so the caller should record any new annotations in the
@@ -8399,10 +8452,12 @@ window.SA = window.SA || {};
                 // needed.
                 if (child[0].tagName == 'DIV') {
                     var grandChildren = child.children();
+
                     // child.empty() // looses text that is not a child.
                     // child.contents()[0] gets it. Maybe make a span and
                     // put it after 'child'.
                     child.children().remove();
+
                     grandChildren.insertAfter(child);
                     children = item.children();
                     container = child;
@@ -8496,7 +8551,8 @@ window.SA = window.SA || {};
         if (typeof(SA.User) != "undefined") {
             return SA.User;
         }
-        SA.Debug("Could not find user");
+        // Happens with girder plugin.
+        //SA.Debug("Could not find user");
         return "";
     }
 
@@ -9107,7 +9163,24 @@ window.SA = window.SA || {};
             // ==============================
             // Experiment wit combining tranparent webgl ontop of canvas.
             /*
+            var imageObj = {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
+                            levels:     12,
+                            dimensions: [419168, 290400, 1],
+                            bounds: [0,419167, 0, 290399, 0,0],
+                            spacing: [0.1,0.1,1.0],
+                            origin : [100, 10000]};
+            var heatMapSource = new SA.SlideAtlasSource();
+            heatMapSource.Prefix = imageObj.prefix;
+            var heatMapCache = new SA.Cache();
+            heatMapCache.TileSource = heatMapSource;
+            heatMapCache.SetImageData(imageObj);
+
+
             SA.heatMap1 = new SA.HeatMap(viewer1.Div);
+            SA.heatMap1.SetCache(heatMapCache);
+            viewer1.AddLayer(SA.heatMap1);
+            */
+            /*
             SA.heatMap1.SetImageData(
                 {prefix:"/tile?img=560b4011a7a1412197c0cc76&db=5460e35a4a737abc47a0f5e3&name=",
                  levels:     12,
@@ -9116,6 +9189,8 @@ window.SA = window.SA || {};
                  spacing: [0.1,0.1,1.0],
                  origin : [100, 10000]});
             viewer1.AddLayer(SA.heatMap1);
+            */
+            /*
 
             SA.heatMap2 = new SA.HeatMap(viewer1.Div);
             SA.heatMap2.Color = [0.0, 0.0, 0.7];
@@ -10165,7 +10240,7 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
     // This will get the camera and the annotations too.
     var record = new SA.ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
-    record.Apply(this.Viewer);
+    this.Viewer.SetViewerRecord(record);
     //this.SelectImage(viewObj.ViewerRecords[0].Image);
 }
 
@@ -10528,6 +10603,12 @@ window.SA = window.SA || {};
 
         this.Parent = parent;
         parent.addClass('sa-dual-viewer');
+        // I need relative position but should not modify parent.
+        this.TopDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'relative',
+                  'width':'100%',
+                  'height':'100%'});
 
         // This parent used to be CANVAS.
         var width = parent.innerWidth();
@@ -10536,7 +10617,9 @@ window.SA = window.SA || {};
 
         for (var i = 0; i < 2; ++i) {
             var viewerDiv = $('<div>')
-                .appendTo(parent)
+                .appendTo(this.TopDiv)
+                .css({'position':'absolulute',
+                      'top':'0px'})
                 .saViewer({overview:true, zoomWidget:true})
                 .addClass("sa-view-canvas-div");
 
@@ -10566,7 +10649,7 @@ window.SA = window.SA || {};
         // This is for moving through notes, session views and stacks.
         // It is not exactly related to dual viewer. It is sort of a child
         // of the dual viewer.
-        this.NavigationWidget = new SA.NavigationWidget(parent,this);
+        this.NavigationWidget = new SA.NavigationWidget(this.TopDiv,this);
 
         if ( ! SAM.MOBILE_DEVICE) { // || SAM.MOBILE_DEVICE == 'iPad') {
             // Todo: Make the button become more opaque when pressed.
@@ -10583,7 +10666,7 @@ window.SA = window.SA || {};
                 .on("dragstart", function() {
                     return false;});
 
-            $('<img>').appendTo(parent)
+            $('<img>').appendTo(this.TopDiv)
                 .appendTo(this.ViewerDivs[1])
                 .css({'position':'absolute',
                       'left':'0px',
@@ -10663,7 +10746,7 @@ window.SA = window.SA || {};
             record.Camera = {FocalPoint: [w/2, h/2],
                              Roll: 0,
                              Height: h};
-        note.ViewerRecords.push(record);
+            note.ViewerRecords.push(record);
             cache.SetImageData(image);
             this.SetNote(args.note,args.viewIndex);
         }
@@ -10764,6 +10847,95 @@ window.SA = window.SA || {};
     }
 
 
+    DualViewWidget.prototype.MatrixMultiply = function(M, p) {
+        var x = p[0]*M[0] + p[1]*M[1] + M[2];
+        var y = p[0]*M[3] + p[1]*M[4] + M[5];
+        var k = p[0]*M[6] + p[1]*M[7] + M[8];
+        p[0] = x/k;
+        p[1] = y/k;
+    }
+
+
+    DualViewWidget.prototype.InitializeSynchronousViewsWithPoints = function(p1a,p2a, p1b,p2b, p1c,p2c) {
+        // Just fashoin a not for now.
+        var note = new SA.Note();
+        var viewerRecord1 = new SA.ViewerRecord();
+        viewerRecord1.Transform = new SA.PairTransformation(); // not necessary
+        var viewerRecord2 = new SA.ViewerRecord();
+        viewerRecord2.Transform = new SAM.MatrixTransformation();
+        viewerRecord2.Transform.InitializeWithPoints(p1a,p2a, p1b,p2b, p1c,p2c);
+
+        var pt;
+        var p1 = p1a;
+        var p2 = p2a;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+        var p1 = p1b;
+        var p2 = p2b;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+        var p1 = p1c;
+        var p2 = p2c;
+        pt = viewerRecord2.Transform.ForwardTransformPoint(p1);
+        console.log(p2[0] + "," + p2[1] + ":" + pt[0] + "," + pt[1]);
+
+
+        note.ViewerRecords = [viewerRecord1, viewerRecord2];
+        note.StartIndex = 0;
+        note.Type = "Stack";
+
+        this.saNote = note;
+        this.saNoteStartIndex = note.StartIndex;
+        this.saViewerIndex = 0;
+
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    }
+    DualViewWidget.prototype.InitializeSynchronousViews = function(camModel1, camModel2) {
+        // Just fashoin a not for now.
+        var note = new SA.Note();
+        var viewerRecord1 = new SA.ViewerRecord();
+        viewerRecord1.Transform = new SA.PairTransformation(); // not necessary
+        var viewerRecord2 = new SA.ViewerRecord();
+        viewerRecord2.Transform = new SAM.MatrixTransformation(camModel1, camModel2);
+
+
+        var pt;
+        pt = viewerRecord2.Transform.ForwardTransformPoint([259,656]);
+        console.log("(345,261):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([285,8896]);
+        console.log("(167,7265):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([9406,16]);
+        console.log("(7789,306):" + pt[0] + "," + pt[1]);
+        pt = viewerRecord2.Transform.ForwardTransformPoint([7977,6215]);
+        console.log("(6689,5510):" + pt[0] + "," + pt[1]);
+
+        note.ViewerRecords = [viewerRecord1, viewerRecord2];
+        note.StartIndex = 0;
+        note.Type = "Stack";
+
+        this.saNote = note;
+        this.saNoteStartIndex = note.StartIndex;
+        this.saViewerIndex = 0;
+
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    }
+
     // Display Note
     // Set the state of the WebGL viewer from this notes ViewerRecords.
     // Lock camera is for when the user note updates and we only want to
@@ -10788,9 +10960,10 @@ window.SA = window.SA || {};
             var viewer = this.GetViewer(i);
 
             if (i + idx < note.ViewerRecords.length) {
-                note.ViewerRecords[idx + i].Apply(viewer, lockCamera);
+                viewer.SetViewerRecord(note.ViewerRecords[idx + i], lockCamera);
                 // This is for synchroninzing changes in the viewer back to the note.
                 viewer.RecordIndex = i;
+
             }
         }
     }
@@ -11040,7 +11213,7 @@ window.SA = window.SA || {};
         // Translate only one camera and modify the tranform to match.
         if (SA.Edit && SA.StackCursorFlag) {
             var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-            if ( ! note.ActiveCorrelation) {
+            if ( ! note.ActiveCorrelation && trans.Correlations) {
                 if ( ! trans) {
                     alert("Missing transform");
                     return;
@@ -11070,7 +11243,7 @@ window.SA = window.SA || {};
             // I really do not want to set the roll unless the user specifically changed it.
             // It would be hard to correct if the wrong value got set early in the aligment.
             var deltaRoll = cam1.Roll - cam0.Roll;
-            if (trans.Correlations.length > 1) {
+            if (trans.Correlations && trans.Correlations.length > 1) {
                 deltaRoll = 0;
                 // Let roll be set by multiple correlation points.
             }
@@ -14613,6 +14786,9 @@ AnnotationWidget.prototype.DetectSections = function() {
 
     // Move to note.js
     ViewerRecord.prototype.RequestUserNote = function () {
+        if (! this.UserNote) {
+            return;
+        }
         if (this.UserNote.LoadState != 0) {
             return;
         }
@@ -14758,7 +14934,10 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
 
 
+    // TODO: Get rid of this in favor of Viewer::SetViewerRecord.
     ViewerRecord.prototype.Apply = function (viewer, lockCamera) {
+        alert("ViewerRecord::Apply depricated.  Use Viewer.SetViewerRecord instead");
+        /*
         // If a widget is active, then just inactivate it.
         // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
         if (viewer.ActiveWidget) {
@@ -14833,6 +15012,7 @@ AnnotationWidget.prototype.DetectSections = function() {
 
         // fit the canvas to the div size.
         viewer.UpdateSize();
+        */
     }
 
     // This is a helper method to start preloading tiles for an up coming view.
@@ -18969,10 +19149,12 @@ function saViewerSetup(self, args) {
     if (typeof(args[0]) == 'object') {
         params = args[0];
     }
+
     if (params && params.prefixUrl) {
         SA.ImagePathUrl = params.prefixUrl;
         SAM.ImagePathUrl = params.prefixUrl;
     }
+
     $(window)
         .off('resize.sa')
         .on('resize.sa', saResizeCallback);
@@ -21704,10 +21886,10 @@ SlidePage.prototype.DisplayNote = function (note, index) {
     this.List.LoadNote(note);
     // Views
     if (this.Records.length > 0) {
-        this.Records[0].Apply(this.ViewerDiv1[0].saViewer);
+        this.ViewerDiv1[0].saViewer.SetViewerRecord(this.Records[0]);
     }
     if (this.Records.length > 1) {
-        this.Records[1].Apply(this.ViewerDiv2[0].saViewer);
+        this.ViewerDiv2[0].saViewer.SetViewerRecord(this.Records[1]);
     }
     this.ViewerDiv1[0].saViewer.CopyrightWrapper.hide();
     this.ViewerDiv2[0].saViewer.CopyrightWrapper.hide();
@@ -21744,9 +21926,9 @@ SlidePage.prototype.InsertViewNote = function (note) {
     // We first have to push the new record to the view.
     if (this.Note.ViewerRecords.length == 1) {
         // TODO: jquery arg
-        this.Note.ViewerRecords[0].Apply(this.ViewerDiv1[0].saViewer);
+        this.ViewerDiv1[0].saViewer.SetViewerRecord(this.Note.viewerRecords[0]);
     } else if (this.Note.ViewerRecords.length == 2) {
-        this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
+        this.ViewerDiv2[0].saViewer.SetViewerRecord(this.Note.viewerRecords[1]);
     }
 
     this.DisplayNote(this.Note, SA.presentation.Index);
@@ -28384,6 +28566,10 @@ Cache.prototype.destructor=function()
 {
 }
 
+Cache.prototype.GetImageData = function() {
+    return this.Image;
+}
+
 Cache.prototype.SetImageData = function(image) {
 
     if ( ! image.TileSize) {
@@ -29105,7 +29291,15 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
 
     // Not used at the moment
-    TileView.prototype.Draw = function () {
+    TileView.prototype.Draw = function (masterView) {
+        if (masterView) {
+            var cam = masterView.Camera;
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(cam, this.Camera);
+            } else {
+                this.Camera.DeepCopy(cam);
+            }
+        }
 
         if (this.gl) {
             var gl = this.gl;
@@ -29160,6 +29354,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             if (MASK_HACK ) {
                 return;
             }
+
             return this.Section.Draw(this);
         }
     }
@@ -29219,6 +29414,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         this.RenderPending = false;
 
         this.HistoryFlag = false;
+        this.MinPixelSize = 0.5;
 
         // Interaction state:
         // What to do for mouse move or mouse up.
@@ -29290,6 +29486,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         var self = this;
         var can = this.MainView.CanvasDiv;
+        // So we can programatically set the keyboard focus
+        can.attr('tabindex','1');
         can.on(
             "mousedown.viewer",
 			      function (event){
@@ -29343,6 +29541,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
 			      function (event){
                 //alert("keydown");
                 return self.HandleKeyDown(event);
+            });
+        can.on(
+            "keyup.viewer",
+			      function (event){
+                return self.HandleKeyUp(event);
             });
 
         // This did not work for double left click
@@ -29405,6 +29608,8 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
         // notice this is not new AnnotationLayer();
         var annotationLayer1 = this.NewAnnotationLayer();
+        // Some widgets need access to the viewer.  rectSet and segment/contour
+        annotationLayer1.Viewer = this;
         var annotationWidget1 =
             new SA.AnnotationWidget(annotationLayer1, this);
     }
@@ -29477,32 +29682,14 @@ Cache.prototype.RecursivePruneTiles = function(node)
         }
 
         if (args.tileSource) {
-            var w = args.tileSource.width;
-            var h = args.tileSource.height;
-            var cache = new SA.Cache();
-            cache.TileSource = args.tileSource;
-            // Use the note tmp id as an image id so the viewer can index the
-            // cache.
-            var note = new SA.Note();
-            var image = {levels:     args.tileSource.maxLevel + 1,
-                         dimensions: [w,h],
-                         bounds: [0,w-1, 0,h-1],
-                         _id: note.TempId};
-            var record = new SA.ViewerRecord();
-            record.Image = image;
-            record.OverviewBounds = [0,w-1,0,h-1];
-            record.Camera = {FocalPoint: [w/2, h/2],
-                             Roll: 0,
-                             Height: h};
-            note.ViewerRecords.push(record);
-            cache.SetImageData(image);
-            args.note = note;
+            args.note = SA.TileSourceToNote(args.tileSource);
         }
 
         if (args.note) {
             this.saNote = args.note;
             var index = this.saViewerIndex = args.viewerIndex || 0;
-            args.note.ViewerRecords[index].Apply(this);
+            this.SetViewerRecord(args.note.ViewerRecords[index]);
+
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
             this.Parent.attr('sa-viewer-index', this.saViewerIndex);
         }
@@ -29512,13 +29699,70 @@ Cache.prototype.RecursivePruneTiles = function(node)
         if (args.interaction !== undefined) {
             this.SetInteractionEnabled(args.interaction);
         }
+        this.UpdateSize();
     }
 
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
-    // will  win.
-    Viewer.prototype.SetViewerRecord = function(viewerRecord) {
-        viewerRecord.Apply(this);
+    // will  win.  The layer needs to have a load callback for vigilant threshold.
+    Viewer.prototype.SetViewerRecord = function(viewerRecord, lockCamera) {
+        // If a widget is active, then just inactivate it.
+        // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+        if (this.ActiveWidget) {
+            // Hackish way to deactivate.
+            this.ActiveWidget.SetActive(false);
+        }
+
+        if (! lockCamera) {
+            this.Reset();
+            var cache = this.GetCache();
+            if ( ! cache || viewerRecord.Image._id != cache.Image._id) {
+                var newCache = SA.FindCache(viewerRecord.Image);
+                this.SetCache(newCache);
+            }
+
+            this.SetOverViewBounds(viewerRecord.OverviewBounds);
+
+            if (viewerRecord.Camera !== undefined && viewerRecord.Transform === undefined) {
+                var cameraRecord = viewerRecord.Camera;
+                this.GetCamera().Load(cameraRecord);
+                if (this.OverView) {
+                    this.OverView.Camera.Roll = cameraRecord.Roll;
+                    this.OverView.Camera.ComputeMatrix();
+                }
+                this.UpdateZoomGui();
+            this.UpdateCamera();
+            }
+        } else {
+            // Just get rid of the annotations.
+            this.GetAnnotationLayer().Reset();
+        }
+
+        // TODO: Get rid of this hack.
+        if (this.AnnotationWidget && viewerRecord.AnnotationVisibility != undefined) {
+            this.AnnotationWidget.SetVisibility(viewerRecord.AnnotationVisibility);
+        }
+
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.Reset();
+            // What about the other layers?
+            // Should we propagate the use of notes outside slide atlas?
+            // Probably not.  Use loading and serializing piecemeal as necessary.
+            if (viewerRecord.Annotations) {
+                annotationLayer.LoadAnnotations(viewerRecord.Annotations);
+            }
+            // Load the annotations from the user note.
+            if (viewerRecord.UserNote) {
+                var annotations = viewerRecord.UserNote.ViewerRecords[0].Annotations;
+                annotationLayer.LoadAnnotations(annotations);
+            }
+        }
+
+        // fit the canvas to the div size.
+        this.UpdateSize();
     }
+
+
     Viewer.prototype.SetNote = function(note, viewIdx) {
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");
@@ -29654,9 +29898,11 @@ Cache.prototype.RecursivePruneTiles = function(node)
             this.EventuallyRender();
         }
 
-        var annotLayer = this.GetAnnotationLayer();
-        if (annotLayer) {
-            annotLayer.UpdateSize();
+        for (var i = 0; i < this.Layers.length; ++i) {
+            var layer = this.Layers[i];
+            if (layer && layer.UpdateSize) {
+                layer.UpdateSize();
+            }
         }
 
         // I do not know the way the viewport is used to place
@@ -30023,7 +30269,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             }
 
             if (cache.Image.copyright == undefined) {
-                cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
+                cache.Image.copyright = "Copyright 2017. All Rights Reserved.";
             }
             this.CopyrightWrapper
                 .html(cache.Image.copyright);
@@ -30278,7 +30524,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
             return;
         }
 
-        this.ConstrainCamera();
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
@@ -30374,6 +30619,9 @@ Cache.prototype.RecursivePruneTiles = function(node)
             // We have past the target. Just set the target values.
             this.MainView.Camera.SetHeight(this.ZoomTarget);
             this.MainView.Camera.Roll = this.RollTarget;
+            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
+                                                 this.TranslateTarget[1]]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.RollTarget;
                 var roll = this.RollTarget;
@@ -30381,8 +30629,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
-                                                 this.TranslateTarget[1]]);
             this.UpdateZoomGui();
             // Save the state when the animation is finished.
             if (SA.RECORDER_WIDGET) {
@@ -30393,12 +30639,19 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var currentHeight = this.MainView.Camera.GetHeight();
             var currentCenter = this.MainView.Camera.GetFocalPoint();
             var currentRoll   = this.MainView.Camera.Roll;
+
             this.MainView.Camera.SetHeight(
                 currentHeight + (this.ZoomTarget-currentHeight)
                     *(timeNow-this.AnimateLast)/this.AnimateDuration);
             this.MainView.Camera.Roll
                 = currentRoll + (this.RollTarget-currentRoll)
                 *(timeNow-this.AnimateLast)/this.AnimateDuration;
+            this.MainView.Camera.SetFocalPoint(
+                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
+                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
                 var roll = this.MainView.Camera.Roll;
@@ -30406,11 +30659,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint(
-                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
-                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
             this.AnimateDuration -= (timeNow-this.AnimateLast);
             // We are not finished yet.
             // Schedule another render
@@ -30635,7 +30883,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
         // Cross the screen in 1/2 second.
         var viewerWidth = this.MainView.CanvasDiv.width();
         var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
-        console.log(dxdt);
+        //console.log(dxdt);
         if (SA.display && SA.display.NavigationWidget) {
             if (dxdt > 4.0) {
                 SA.display.NavigationWidget.PreviousNote();
@@ -30981,13 +31229,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
         var heightMax = 2*(bounds[3]-bounds[2]);
         if (cam.GetHeight() > heightMax) {
             cam.SetHeight(heightMax);
-            this.ZoomTarget = heightMax;
+            //this.ZoomTarget = heightMax;
             modified = true;
         }
-        var heightMin = viewport[3] * spacing * 0.5;
+        var heightMin = viewport[3] * spacing * this.MinPixelSize;
         if (cam.GetHeight() < heightMin) {
             cam.SetHeight(heightMin);
-            this.ZoomTarget = heightMin;
+            //this.ZoomTarget = heightMin;
             modified = true;
         }
         if (modified) {
@@ -31081,10 +31329,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             return true;
         }
 
-        // TODO: Get rid of this. Should be done with image properties.
-        //event.preventDefault(); // Keep browser from selecting images.
         if ( ! this.RecordMouseMove(event)) { return true; }
-        //this.ComputeMouseWorld(event);
 
         // I think we need to deal with the move here because the mouse can
         // exit the icon and the events are lost.
@@ -31143,6 +31388,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             dx = dx * speed;
             dy = dy * speed;
             this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+            this.ConstrainCamera();
         }
         // The only interaction that does not go through animate camera.
         this.TriggerInteraction();
@@ -31198,44 +31444,92 @@ Cache.prototype.RecursivePruneTiles = function(node)
         return false;
     }
 
+    // Special one time function for paper analysis.
+    Viewer.prototype.SegmentationsToCsv = function() {
+        var note = SA.display.NavigationWidget.GetNote();
+        // first collect a set of segmetnatnion labels.
+        labels = {};
+        labelArray = [];
+        for (var i =0; i < note.ViewerRecords.length; ++i) {
+            annotations = note.ViewerRecords[i].Annotations
+            for (var j= 0; j < annotations.length; ++j) {
+                annot = annotations[j];
+                if (annot.type == "polyline" && annot.text) {
+                    if ( ! labels[annot.text]) {
+                        labelArray.push(annot.text);
+                        labels[annot.text] = {area:0.0, perimeter:0.0};
+                    }
+                }
+            }
+        }
+
+        row1 = "";
+        row2 = ","
+        for (var i = 0; i < labelArray.length; ++i) {
+            row1 += ",,";
+            row1 += labelArray[i];
+            row2 += ",AREA µm^2,LINE LENGTH µm"
+        }
+        console.log(row1)
+        console.log(row2)
+
+        // Make a row for each section
+        widget = new SAM.PolylineWidget(SA.VIEWER1.GetAnnotationLayer(), false);
+        for (var i = 0; i < note.ViewerRecords.length; ++i) {
+            viewerRecord = note.ViewerRecords[i];
+            var row = viewerRecord.Image.label + ","+(i+1)+",";
+            for (var j = 0; j < labelArray.length; ++j) {
+                label = labelArray[j];
+                labels[label].area = 0.0;
+                labels[label].perimeter = 0.0;
+            }
+            for (var j = 0; j < viewerRecord.Annotations.length; ++j) {
+                annot = viewerRecord.Annotations[j];
+                if (annot.type == "polyline" && annot.text) {
+                    widget.Load(annot);
+                    widget.Polyline.Closed = true;
+                    labels[annot.text].area += widget.ComputeArea()*0.25*0.25;
+                    labels[annot.text].perimeter += widget.ComputeLength()*0.25;
+                }
+            }
+            for (var j = 0; j < labelArray.length; ++j) {
+                label = labelArray[j];
+                if (labels[label].area == 0.0) {
+                    row += ",,";
+                } else {
+                    row += labels[label].area.toString()+','+labels[label].perimeter.toString()+',';
+                }
+            }
+            console.log(row);
+        }
+    }
+
     // returns false if the event was "consumed" (browser convention).
     // Returns true if nothing was done with the event.
     Viewer.prototype.HandleKeyDown = function(event) {
         if ( ! this.InteractionEnabled) { return true; }
-        // Linking polyline segmetnations in a stack.
-        if (event.keyCode == 81) {
-            // q start a new sequence.
-            if ( ! SA.SegmentationTable) {
-                var labels = [];
-                var note = SA.display.NavigationWidget.GetNote();
-                for (var i = 0; i< note.ViewerRecords.length; ++i) {
-                    labels[i] = note.ViewerRecords[i].Image.label;
-                }
-                SA.SegmentationTable = {labels:labels,
-                                        sequences:[]};
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyDown && ! this.Layers[i].HandleKeyDown(event)) {
+                return false;
             }
-            console.log(JSON.stringify(SA.SegmentationTable));
-            idx = SA.SegmentationTable.sequences.length;
-            SA.SegmentationTable.sequences.push({title:"G"+idx, sections:[]});
-            alert("G"+idx);
         }
-        if (event.keyCode == 87) {
-            // w add the current active polyline and move to the next section
-            var idx = SA.SegmentationTable.sequences.length - 1;
-            var item = SA.SegmentationTable.sequences[idx];
-            // Get the active annotation
-            var layer = this.GetAnnotationLayer();
-            var note = SA.display.NavigationWidget.GetNote();
-            if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
-                var widget = layer.ActiveWidget;
-                var obj = {area:widget.ComputeArea() * 0.25 * 0.25,
-                           perimeter:widget.ComputeLength() * 0.25}; // microns per pixel.
-                widget.InitializeText();
-                widget.Text.String = item.title + " area=" + (obj.area/1000000).toFixed(4)+"mm^2";
-                item.sections[note.StartIndex] = obj;
-            }
-            SA.display.NavigationWidget.NextNote();
-        }
+
+        // Linking polyline segmentations in a stack.
+        //if (event.keyCode == 81) {
+        //    SA.SegmentationSequenceLabel = prompt("Enter a segmentation label");
+        //}
+        //if (event.keyCode == 87 && SA.SegmentationSequenceLabel) {
+        //    var layer = this.GetAnnotationLayer();
+        //    //var note = SA.display.NavigationWidget.GetNote();
+        //    if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
+        //        var widget = layer.ActiveWidget;
+        //        widget.InitializeText();
+        //        widget.Text.String = SA.SegmentationSequenceLabel;
+        //    }
+        //    SA.display.NavigationWidget.NextNote();
+        //}
 
         if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
             if ( ! SAVING_IMAGE) {
@@ -31262,6 +31556,13 @@ Cache.prototype.RecursivePruneTiles = function(node)
                                          });
             }
             return false;
+        }
+
+        // Handle paste
+        if (event.keyCode == 79) {
+            // o to print out world mouse location for debugging.
+            var wPt = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+            console.log("World: " + wPt[0] + ", " + wPt[1]);
         }
 
         // Handle paste
@@ -31316,7 +31617,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = -0.9 * cam.GetHeight();
+            var dy = -0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -31331,7 +31632,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = 0.9 * cam.GetHeight();
+            var dy = 0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -31345,7 +31646,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = -0.9 * cam.GetWidth();
+            var dx = -0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -31360,7 +31661,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = 0.9 * cam.GetWidth();
+            var dx = 0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -31379,6 +31680,20 @@ Cache.prototype.RecursivePruneTiles = function(node)
             }
         }
 
+        return true;
+    }
+
+    // returns false if the event was "consumed" (browser convention).
+    // Returns true if nothing was done with the event.
+    Viewer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyUp && ! this.Layers[i].HandleKeyUp(event)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -31654,8 +31969,18 @@ Cache.prototype.RecursivePruneTiles = function(node)
         annotationLayer.ScaleWidget.View = this.MainView;
         // Hack only used for girder testing.
         annotationLayer.Viewer = this;
+        annotationLayer.UpdateSize();
 
         return annotationLayer;
+    }
+
+    Viewer.prototype.NewViewLayer = function() {
+        // Create an annotation layer by default.
+        var viewLayer = new SA.TileView(this.Div, false);
+        this.AddLayer(viewLayer);
+        viewLayer.UpdateSize();
+
+        return viewLayer;
     }
 
     // Get rid of this.
@@ -31693,9 +32018,6 @@ Cache.prototype.RecursivePruneTiles = function(node)
 
 (function () {
     "use strict";
-
-
-
 
     //==============================================================================
     // A correlation is just a pair of matching points from two sections.
@@ -32008,6 +32330,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
     SA.PairTransformation = PairTransformation;
 
 })();
+
 //==============================================================================
 // Initially a contour found for each section in a stack.
 // Each section gets on of these StackSectionWidgets.  I am extending this
@@ -33227,3 +33550,509 @@ Cache.prototype.RecursivePruneTiles = function(node)
     SA.SectionsWidget = SectionsWidget;
 
 })();
+//==============================================================================
+// A gui for vigilant that controls layers in multiple viewers.
+
+
+(function () {
+    "use strict";
+
+
+    function LayerView (parent, label) {
+        this.Layers = [];
+        this.Label = label;
+        this.Color = [Math.random(),Math.random(),Math.random()];
+
+        this.Initialize(parent,label);
+    }
+
+    LayerView.prototype.AddLayer = function (layer) {
+        var self = this;
+        // For the stack viewer.  The layer gets loaded with another view,
+        // We hve to apply the color and threshold.
+        layer.LoadCallback = function () {
+            self.UpdateLayer(layer);
+        }
+
+        this.Layers.push(layer);
+        if (this.CheckBox && this.Slider) {
+            this.UpdateLayer(layer);
+        }
+    }
+
+    // Initialize the gui / dom
+    LayerView.prototype.Initialize = function (parent, label) {
+        var self = this;
+
+        // The wrapper div that controls a single layer.
+        var layer_control = $('<div>')
+            .appendTo(parent)
+            .css({ 'border': '1px solid #CCC', 'width': '100%',
+                   'height': '65px' });
+
+        // the sub-div that holds the direct toggle and the label.
+        var toggle_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid #CCC', 'width': '20%',
+                   'height': '100%', 'float': 'left' });
+
+        this.CheckBox = $('<input type="checkbox">')
+            .appendTo(toggle_wrapper)
+            .on('change',
+                function(){
+                    self.CheckCallback();
+                })
+            .prop('checked', true);
+
+        var layer_label = $('<div>')
+            .appendTo(toggle_wrapper)
+            .html(label);
+
+        // Wrapper for the confidence slider.
+        var conf_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid #CCC', 'width': '60%',
+                   'height': '100%', 'float': 'left' });
+
+        this.Slider = $('<input type="range" min="0" max="100">')
+            .appendTo(conf_wrapper)
+            .on('input',
+                function(){
+                    self.SliderCallback();
+                });
+        //this.Slider[0].min = 75;
+
+        var min_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("0%")
+            .css({ 'float': 'left' });
+
+        var max_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("100%")
+            .css({ 'float': 'right' });
+
+        var color_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid #CCC',
+                   'width': '20%',
+                   'padding':'5px',
+                   'height': '100%', 
+                   'float': 'left' });
+        this.ColorInput = $('<input type="color">')
+            .appendTo(color_wrapper)
+            .val(SAM.ConvertColorToHex(this.Color))
+            .change(function () {
+                self.ColorCallback();
+            });
+
+    }
+
+    LayerView.prototype.ColorCallback = function () {
+        this.Color = SAM.ConvertColor(this.ColorInput.val());
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.UpdateLayer(this.Layers[i]);
+        }
+    }
+
+    LayerView.prototype.CheckCallback = function () {
+        var checked = this.CheckBox.prop('checked');
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.Layers[i].SetVisibility(checked);
+            this.Layers[i].EventuallyDraw();
+        }
+    }
+
+    LayerView.prototype.SliderCallback = function () {
+        for (var i = 0; i < this.Layers.length; ++i) {
+            this.UpdateLayer(this.Layers[i]);
+        }
+    }
+
+    LayerView.prototype.UpdateLayer = function (layer) {
+        var checked = this.CheckBox.prop('checked');
+        layer.SetVisibility(checked);
+        if (checked) {
+            var vis_value = parseInt(this.Slider.val()) / 100.0;
+            for (var w_index = 0; w_index < layer.WidgetList.length; w_index++){
+                var widget = layer.WidgetList[w_index];
+                widget.SetThreshold(vis_value);
+                widget.Shape.SetOutlineColor(this.Color);
+            }
+        }
+        layer.EventuallyDraw();
+    }
+
+    SA.LayerView = LayerView;
+
+})();
+
+
+
+
+
+// A Renderer - layer tht uses webGL to show an intensity immage maped to color-transparency.
+(function () {
+    "use strict";
+
+
+    function HeatMap(parent) {
+        this.HeatMapDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px',
+                  'border-width':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'box-sizing':'border-box',
+                  'z-index':'150'})
+            .addClass('sa-resize');
+
+        this.View = new SA.TileView(this.HeatMapDiv,true);
+        var gl = this.View.gl;
+        this.Color = [0.0, 0.4, 0.0];
+        this.Window = 1.0;
+        this.Level = 0.5;
+        this.Gamma = 1.0;
+
+        var self = this;
+        this.HeatMapDiv.saOnResize(
+            function() {
+                self.View.UpdateCanvasSize();
+                // Rendering will be a slave to the view because it needs the
+                // view's camera anyway.
+            });
+
+
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "varying vec2 vTextureCoord;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "uniform vec2 uWindowLevel;" +
+            "uniform float uGamma;" +
+            "void main(void) {" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  float alpha = textureColor[0];" +
+            "  if (uWindowLevel[0] != 1.0 || uWindowLevel[1] != 0.5) {" +
+            "    alpha = ((alpha-0.5)/uWindowLevel[0]) + uWindowLevel[1];" +
+            "  }" +
+            "  if (uGamma != 1.0) {" +
+            "    if (uGamma < 0.0) {" +
+            "      alpha = pow((1.0-alpha), -uGamma);" +
+            "    } else {" +
+            "      alpha = pow(alpha, uGamma);" +
+            "    }" +
+            "  }" +
+            "  textureColor = vec4(uColor, alpha);" +
+            "  gl_FragColor = textureColor;" +
+            "}";
+        var vertexShaderString =
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
+
+        var shaderProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Setup the shader program to render heatmaps.
+        shaderProgram.textureCoordAttribute
+            = gl.getAttribLocation(shaderProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        shaderProgram.gamaUniform = gl.getUniformLocation(shaderProgram,"uGamma");
+        shaderProgram.windowLevelUniform = gl.getUniformLocation(shaderProgram,"uWindowLevel");
+        this.View.ShaderProgram = shaderProgram;
+    }
+
+    HeatMap.prototype.SetCache = function (cache) {
+        this.View.SetCache(cache);
+        var imageObj = cache.GetImageData();
+        if ( ! imageObj.spacing) {
+            imageObj.spacing = [1,1,1];
+        }
+        if ( ! imageObj.origin) {
+            imageObj.origin = [0,0,0];
+        }
+        var width = imageObj.dimensions[0] * imageObj.spacing[0];;
+        var height = imageObj.dimensions[1] * imageObj.spacing[1];;
+        this.View.Camera.Load(
+            {FocalPoint: [width/2, height/2],
+             Roll      : 0,
+             Height    : height});
+        this.View.Camera.ComputeMatrix();
+        this.View.UpdateCanvasSize();
+    }
+
+    // Only works for images served by slide atlas. 
+    HeatMap.prototype.SetImageData = function (imageObj) {
+        imageObj.spacing = imageObj.spacing || [1.0, 1.0, 1.0];
+        imageObj.origin  = imageObj.origin  || [0.0, 0.0, 0.0];
+
+        var heatMapSource = new SA.SlideAtlasSource();
+        heatMapSource.Prefix = imageObj.prefix;
+        var heatMapCache = new SA.Cache();
+        heatMapCache.TileSource = heatMapSource;
+        heatMapCache.SetImageData(imageObj);
+        this.View.SetCache(heatMapCache);
+    }
+
+
+    HeatMap.prototype.Draw = function (masterView, inCam) {
+        var inCam = inCam || masterView.Camera;
+
+        if (inCam) {
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(inCam, this.View.GetCamera());
+            } else {
+                // Use spacing and origin for a transformation.
+                var outCam = this.View.Camera;
+                var imageObj = this.View.GetCache().Image;
+                outCam.DeepCopy(inCam);
+                outCam.FocalPoint[0]
+                    = (outCam.FocalPoint[0]-imageObj.origin[0])/imageObj.spacing[0];
+                outCam.FocalPoint[1]
+                    = (outCam.FocalPoint[1]-imageObj.origin[1])/imageObj.spacing[1];
+                outCam.Width /= imageObj.spacing[0];
+                outCam.Height /= imageObj.spacing[1];
+                outCam.ComputeMatrix();
+                this.Camera.DeepCopy(cam);
+            }
+        }
+
+        if (this.View.gl) {
+            var gl = this.View.gl;
+            var program = this.View.ShaderProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            // The blending in funky because there is no destination.
+            // It is bleniding with data from canvas behind the webGl canvas.
+            gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
+            gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            gl.uniform1f(program.gamaUniform, this.Gamma);
+            gl.uniform2f(program.windowLevelUniform, this.Window, this.Level);
+        }
+
+
+
+        this.View.DrawTiles();
+    }
+
+    // Clear the canvas for another render.
+    HeatMap.prototype.Reset = function () {
+    }
+
+
+    SA.HeatMap = HeatMap;
+
+})();
+
+
+
+
+
+
+// A Renderer - layer tints an image and adds opacity.  Maybe lens in the future.
+(function () {
+    "use strict";
+
+    function OverlayView(parent) {
+        this.OverlayViewDiv = $('<div>')
+            .appendTo(parent)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px',
+                  'border-width':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'box-sizing':'border-box',
+                  'z-index':'150'})
+            .addClass('sa-resize');
+
+        this.View = new SA.TileView(this.OverlayViewDiv,true);
+        var gl = this.View.gl;
+        this.Color = [1.0, 0.0, 1.0];
+        this.Center = [500,500];
+        this.Radius = 0;
+        this.Opacity = 1.0;
+
+        var self = this;
+        this.OverlayViewDiv.saOnResize(
+            function() {
+                self.View.UpdateCanvasSize();
+                // Rendering will be a slave to the view because it needs the
+                // view's camera anyway.
+            });
+
+
+        // Test red->alpha, constant color set externally
+        var heatMapFragmentShaderString =
+            "precision highp float;" +
+            "varying vec2 vTextureCoord;" +
+            "uniform sampler2D uSampler;" +
+            "uniform vec3 uColor;" +
+            "uniform vec2 uCenter;" +
+            "uniform float uOpacity;" +
+            "void main(void) {" +
+            "  float alpha = uOpacity;" +
+            "  float dx = gl_FragCoord.x - uCenter.x;" +
+            "  float dy = gl_FragCoord.y - uCenter.y;" +
+            "  if ((dx * dx) + (dy * dy) < 40000.0) { alpha = 0.0;}" +
+            "  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t)).rgba;" +
+            "  float intensity = textureColor[0];" +
+            "  textureColor[0] = intensity * uColor[0];" +
+            "  textureColor[1] = intensity * uColor[1];" +
+            "  textureColor[2] = intensity * uColor[2];" +
+            "  textureColor[3] = alpha;" +
+            "  gl_FragColor = textureColor;" +
+            //"  gl_FragColor = vec4(gl_FragCoord.x / 1000.0, gl_FragCoord.y / 1000.0, 0, alpha);" +
+            "}";
+        var vertexShaderString =
+            "attribute vec3 aVertexPosition;" +
+            "attribute vec2 aTextureCoord;" +
+            "uniform mat4 uMVMatrix;" +
+            "uniform mat4 uPMatrix;" +
+            "uniform mat3 uNMatrix;" +
+            "varying vec2 vTextureCoord;" +
+            "varying vec4 vPos;" +
+            "void main(void) {" +
+            "  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition,1.0);" +
+            "  vTextureCoord = aTextureCoord;" +
+            "}";
+
+        var shaderProgram = SA.createWebGlProgram(heatMapFragmentShaderString, vertexShaderString, gl);
+        // Setup the shader program to render heatmaps.
+        shaderProgram.textureCoordAttribute
+            = gl.getAttribLocation(shaderProgram,"aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram,"uColor");
+        shaderProgram.opacityUniform = gl.getUniformLocation(shaderProgram,"uOpacity");
+        shaderProgram.centerUniform = gl.getUniformLocation(shaderProgram,"uCenter");
+        this.View.ShaderProgram = shaderProgram;
+
+        var self = this;
+        //this.View.Canvas
+        this.OverlayViewDiv.on(
+            "mousemove.overlay",
+			      function (event){
+                self.Center[0] = event.offsetX;
+                self.Center[1] = self.OverlayViewDiv.height() - event.offsetY;
+                self.EventuallyDraw();
+                return true;
+            });
+    }
+
+    // To compress draw events.
+    OverlayView.prototype.EventuallyDraw = function() {
+        if ( ! this.RenderPending) {
+            this.RenderPending = true;
+            var self = this;
+            requestAnimFrame(
+                function() {
+                    self.RenderPending = false;
+                    self.Draw();
+                });
+        }
+    }
+
+    OverlayView.prototype.SetCache = function (cache) {
+        this.View.SetCache(cache);
+        var imageObj = cache.GetImageData();
+        if ( ! imageObj.spacing) {
+            imageObj.spacing = [1,1,1];
+        }
+        if ( ! imageObj.origin) {
+            imageObj.origin = [0,0,0];
+        }
+        var width = imageObj.dimensions[0] * imageObj.spacing[0];;
+        var height = imageObj.dimensions[1] * imageObj.spacing[1];;
+        this.View.Camera.Load(
+            {FocalPoint: [width/2, height/2],
+             Roll      : 0,
+             Height    : height});
+        this.View.Camera.ComputeMatrix();
+        this.View.UpdateCanvasSize();
+    }
+
+    // Only works for images served by slide atlas. 
+    OverlayView.prototype.SetImageData = function (imageObj) {
+        imageObj.spacing = imageObj.spacing || [1.0, 1.0, 1.0];
+        imageObj.origin  = imageObj.origin  || [0.0, 0.0, 0.0];
+
+        var heatMapSource = new SA.SlideAtlasSource();
+        heatMapSource.Prefix = imageObj.prefix;
+        var heatMapCache = new SA.Cache();
+        heatMapCache.TileSource = heatMapSource;
+        heatMapCache.SetImageData(imageObj);
+        this.View.SetCache(heatMapCache);
+    }
+
+
+    OverlayView.prototype.Draw = function (masterView, inCam) {
+        // TODO: Clear any pending renders.
+
+        if (masterView) {
+            inCam = inCam || masterView.Camera;
+        }
+
+        if (inCam) {
+            if (this.Transform) {
+                this.Transform.ForwardTransformCamera(inCam, this.View.GetCamera());
+            } else {
+                // Use spacing and origin for a transformation.
+                var outCam = this.View.Camera;
+                var imageObj = this.View.GetCache().Image;
+                outCam.DeepCopy(inCam);
+                outCam.FocalPoint[0]
+                    = (outCam.FocalPoint[0]-imageObj.origin[0])/imageObj.spacing[0];
+                outCam.FocalPoint[1]
+                    = (outCam.FocalPoint[1]-imageObj.origin[1])/imageObj.spacing[1];
+                outCam.Width /= imageObj.spacing[0];
+                outCam.Height /= imageObj.spacing[1];
+                outCam.ComputeMatrix();
+                this.Camera.DeepCopy(cam);
+            }
+        }
+
+        if (this.View.gl) {
+            var gl = this.View.gl;
+            var program = this.View.ShaderProgram;
+            gl.useProgram(program);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            // The blending in funky because there is no destination.
+            // It is bleniding with data from canvas behind the webGl canvas.
+            gl.blendFunc(gl.SRC_ALPHA, gl.ZERO);
+            gl.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+            gl.uniform1f(program.opacityUniform, this.Opacity);
+            gl.uniform2f(program.centerUniform, this.Center[0], this.Center[1]);
+        }
+
+        this.View.DrawTiles();
+    }
+
+    // Clear the canvas for another render.
+    OverlayView.prototype.Reset = function () {
+    }
+
+
+    SA.OverlayView = OverlayView;
+
+})();
+
+
+
+
+

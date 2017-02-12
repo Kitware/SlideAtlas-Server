@@ -46,6 +46,7 @@
         this.RenderPending = false;
 
         this.HistoryFlag = false;
+        this.MinPixelSize = 0.5;
 
         // Interaction state:
         // What to do for mouse move or mouse up.
@@ -117,6 +118,8 @@
 
         var self = this;
         var can = this.MainView.CanvasDiv;
+        // So we can programatically set the keyboard focus
+        can.attr('tabindex','1');
         can.on(
             "mousedown.viewer",
 			      function (event){
@@ -170,6 +173,11 @@
 			      function (event){
                 //alert("keydown");
                 return self.HandleKeyDown(event);
+            });
+        can.on(
+            "keyup.viewer",
+			      function (event){
+                return self.HandleKeyUp(event);
             });
 
         // This did not work for double left click
@@ -232,6 +240,8 @@
 
         // notice this is not new AnnotationLayer();
         var annotationLayer1 = this.NewAnnotationLayer();
+        // Some widgets need access to the viewer.  rectSet and segment/contour
+        annotationLayer1.Viewer = this;
         var annotationWidget1 =
             new SA.AnnotationWidget(annotationLayer1, this);
     }
@@ -304,32 +314,14 @@
         }
 
         if (args.tileSource) {
-            var w = args.tileSource.width;
-            var h = args.tileSource.height;
-            var cache = new SA.Cache();
-            cache.TileSource = args.tileSource;
-            // Use the note tmp id as an image id so the viewer can index the
-            // cache.
-            var note = new SA.Note();
-            var image = {levels:     args.tileSource.maxLevel + 1,
-                         dimensions: [w,h],
-                         bounds: [0,w-1, 0,h-1],
-                         _id: note.TempId};
-            var record = new SA.ViewerRecord();
-            record.Image = image;
-            record.OverviewBounds = [0,w-1,0,h-1];
-            record.Camera = {FocalPoint: [w/2, h/2],
-                             Roll: 0,
-                             Height: h};
-            note.ViewerRecords.push(record);
-            cache.SetImageData(image);
-            args.note = note;
+            args.note = SA.TileSourceToNote(args.tileSource);
         }
 
         if (args.note) {
             this.saNote = args.note;
             var index = this.saViewerIndex = args.viewerIndex || 0;
-            args.note.ViewerRecords[index].Apply(this);
+            this.SetViewerRecord(args.note.ViewerRecords[index]);
+
             this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
             this.Parent.attr('sa-viewer-index', this.saViewerIndex);
         }
@@ -339,13 +331,70 @@
         if (args.interaction !== undefined) {
             this.SetInteractionEnabled(args.interaction);
         }
+        this.UpdateSize();
     }
 
     // Which is better calling Note.Apply, or viewer.SetNote?  I think this
-    // will  win.
-    Viewer.prototype.SetViewerRecord = function(viewerRecord) {
-        viewerRecord.Apply(this);
+    // will  win.  The layer needs to have a load callback for vigilant threshold.
+    Viewer.prototype.SetViewerRecord = function(viewerRecord, lockCamera) {
+        // If a widget is active, then just inactivate it.
+        // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+        if (this.ActiveWidget) {
+            // Hackish way to deactivate.
+            this.ActiveWidget.SetActive(false);
+        }
+
+        if (! lockCamera) {
+            this.Reset();
+            var cache = this.GetCache();
+            if ( ! cache || viewerRecord.Image._id != cache.Image._id) {
+                var newCache = SA.FindCache(viewerRecord.Image);
+                this.SetCache(newCache);
+            }
+
+            this.SetOverViewBounds(viewerRecord.OverviewBounds);
+
+            if (viewerRecord.Camera !== undefined && viewerRecord.Transform === undefined) {
+                var cameraRecord = viewerRecord.Camera;
+                this.GetCamera().Load(cameraRecord);
+                if (this.OverView) {
+                    this.OverView.Camera.Roll = cameraRecord.Roll;
+                    this.OverView.Camera.ComputeMatrix();
+                }
+                this.UpdateZoomGui();
+            this.UpdateCamera();
+            }
+        } else {
+            // Just get rid of the annotations.
+            this.GetAnnotationLayer().Reset();
+        }
+
+        // TODO: Get rid of this hack.
+        if (this.AnnotationWidget && viewerRecord.AnnotationVisibility != undefined) {
+            this.AnnotationWidget.SetVisibility(viewerRecord.AnnotationVisibility);
+        }
+
+        var annotationLayer = this.GetAnnotationLayer();
+        if (annotationLayer) {
+            annotationLayer.Reset();
+            // What about the other layers?
+            // Should we propagate the use of notes outside slide atlas?
+            // Probably not.  Use loading and serializing piecemeal as necessary.
+            if (viewerRecord.Annotations) {
+                annotationLayer.LoadAnnotations(viewerRecord.Annotations);
+            }
+            // Load the annotations from the user note.
+            if (viewerRecord.UserNote) {
+                var annotations = viewerRecord.UserNote.ViewerRecords[0].Annotations;
+                annotationLayer.LoadAnnotations(annotations);
+            }
+        }
+
+        // fit the canvas to the div size.
+        this.UpdateSize();
     }
+
+
     Viewer.prototype.SetNote = function(note, viewIdx) {
         if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
             console.log("Cannot set viewer record of note");
@@ -481,9 +530,11 @@
             this.EventuallyRender();
         }
 
-        var annotLayer = this.GetAnnotationLayer();
-        if (annotLayer) {
-            annotLayer.UpdateSize();
+        for (var i = 0; i < this.Layers.length; ++i) {
+            var layer = this.Layers[i];
+            if (layer && layer.UpdateSize) {
+                layer.UpdateSize();
+            }
         }
 
         // I do not know the way the viewport is used to place
@@ -1105,7 +1156,6 @@
             return;
         }
 
-        this.ConstrainCamera();
         // Should the camera have the viewport in them?
         // The do not currently hav a viewport.
 
@@ -1201,6 +1251,9 @@
             // We have past the target. Just set the target values.
             this.MainView.Camera.SetHeight(this.ZoomTarget);
             this.MainView.Camera.Roll = this.RollTarget;
+            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
+                                                 this.TranslateTarget[1]]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.RollTarget;
                 var roll = this.RollTarget;
@@ -1208,8 +1261,6 @@
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint( [this.TranslateTarget[0],
-                                                 this.TranslateTarget[1]]);
             this.UpdateZoomGui();
             // Save the state when the animation is finished.
             if (SA.RECORDER_WIDGET) {
@@ -1220,12 +1271,19 @@
             var currentHeight = this.MainView.Camera.GetHeight();
             var currentCenter = this.MainView.Camera.GetFocalPoint();
             var currentRoll   = this.MainView.Camera.Roll;
+
             this.MainView.Camera.SetHeight(
                 currentHeight + (this.ZoomTarget-currentHeight)
                     *(timeNow-this.AnimateLast)/this.AnimateDuration);
             this.MainView.Camera.Roll
                 = currentRoll + (this.RollTarget-currentRoll)
                 *(timeNow-this.AnimateLast)/this.AnimateDuration;
+            this.MainView.Camera.SetFocalPoint(
+                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
+                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+            this.ConstrainCamera();
             if (this.OverView) {
                 //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
                 var roll = this.MainView.Camera.Roll;
@@ -1233,11 +1291,6 @@
                 this.OverView.Camera.Roll = 0;
                 this.OverView.Camera.ComputeMatrix();
             }
-            this.MainView.Camera.SetFocalPoint(
-                [currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
-                 currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
             this.AnimateDuration -= (timeNow-this.AnimateLast);
             // We are not finished yet.
             // Schedule another render
@@ -1462,7 +1515,7 @@
         // Cross the screen in 1/2 second.
         var viewerWidth = this.MainView.CanvasDiv.width();
         var dxdt = 1000*(this.MouseX-this.LastMouseX)/((this.Time-this.LastTime)*viewerWidth);
-        console.log(dxdt);
+        //console.log(dxdt);
         if (SA.display && SA.display.NavigationWidget) {
             if (dxdt > 4.0) {
                 SA.display.NavigationWidget.PreviousNote();
@@ -1808,13 +1861,13 @@
         var heightMax = 2*(bounds[3]-bounds[2]);
         if (cam.GetHeight() > heightMax) {
             cam.SetHeight(heightMax);
-            this.ZoomTarget = heightMax;
+            //this.ZoomTarget = heightMax;
             modified = true;
         }
-        var heightMin = viewport[3] * spacing * 0.5;
+        var heightMin = viewport[3] * spacing * this.MinPixelSize;
         if (cam.GetHeight() < heightMin) {
             cam.SetHeight(heightMin);
-            this.ZoomTarget = heightMin;
+            //this.ZoomTarget = heightMin;
             modified = true;
         }
         if (modified) {
@@ -1908,10 +1961,7 @@
             return true;
         }
 
-        // TODO: Get rid of this. Should be done with image properties.
-        //event.preventDefault(); // Keep browser from selecting images.
         if ( ! this.RecordMouseMove(event)) { return true; }
-        //this.ComputeMouseWorld(event);
 
         // I think we need to deal with the move here because the mouse can
         // exit the icon and the events are lost.
@@ -1970,6 +2020,7 @@
             dx = dx * speed;
             dy = dy * speed;
             this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+            this.ConstrainCamera();
         }
         // The only interaction that does not go through animate camera.
         this.TriggerInteraction();
@@ -2089,21 +2140,28 @@
     // Returns true if nothing was done with the event.
     Viewer.prototype.HandleKeyDown = function(event) {
         if ( ! this.InteractionEnabled) { return true; }
-        // Linking polyline segmetnations in a stack.
-        if (event.keyCode == 81) {
-            SA.SegmentationSequenceLabel = prompt("Enter a segmentation label");
-        }
-        if (event.keyCode == 87 && SA.SegmentationSequenceLabel) {
-            var layer = this.GetAnnotationLayer();
-            //var note = SA.display.NavigationWidget.GetNote();
-            if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
-                var widget = layer.ActiveWidget;
-                widget.InitializeText();
-                widget.Text.String = SA.SegmentationSequenceLabel;
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyDown && ! this.Layers[i].HandleKeyDown(event)) {
+                return false;
             }
-            
-            SA.display.NavigationWidget.NextNote();
         }
+
+        // Linking polyline segmentations in a stack.
+        //if (event.keyCode == 81) {
+        //    SA.SegmentationSequenceLabel = prompt("Enter a segmentation label");
+        //}
+        //if (event.keyCode == 87 && SA.SegmentationSequenceLabel) {
+        //    var layer = this.GetAnnotationLayer();
+        //    //var note = SA.display.NavigationWidget.GetNote();
+        //    if (layer.ActiveWidget && layer.ActiveWidget.Type == "polyline") {
+        //        var widget = layer.ActiveWidget;
+        //        widget.InitializeText();
+        //        widget.Text.String = SA.SegmentationSequenceLabel;
+        //    }
+        //    SA.display.NavigationWidget.NextNote();
+        //}
 
         if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
             if ( ! SAVING_IMAGE) {
@@ -2130,6 +2188,13 @@
                                          });
             }
             return false;
+        }
+
+        // Handle paste
+        if (event.keyCode == 79) {
+            // o to print out world mouse location for debugging.
+            var wPt = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+            console.log("World: " + wPt[0] + ", " + wPt[1]);
         }
 
         // Handle paste
@@ -2184,7 +2249,7 @@
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = -0.9 * cam.GetHeight();
+            var dy = -0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -2199,7 +2264,7 @@
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
             var dx = 0.0;
-            var dy = 0.9 * cam.GetHeight();
+            var dy = 0.8 * cam.GetHeight();
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
             this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -2213,7 +2278,7 @@
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = -0.9 * cam.GetWidth();
+            var dx = -0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -2228,7 +2293,7 @@
             var cam = this.GetCamera();
             var c = Math.cos(cam.Roll);
             var s = -Math.sin(cam.Roll);
-            var dx = 0.9 * cam.GetWidth();
+            var dx = 0.8 * cam.GetWidth();
             var dy = 0.0;
             var rx = dx*c - dy*s;
             var ry = dx*s + dy*c;
@@ -2247,6 +2312,20 @@
             }
         }
 
+        return true;
+    }
+
+    // returns false if the event was "consumed" (browser convention).
+    // Returns true if nothing was done with the event.
+    Viewer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.InteractionEnabled) { return true; }
+        // Key events are not going first to layers like mouse events.
+        // Give layers a change to process them.
+        for (var i = 0; i < this.Layers.length; ++i) {
+            if ( this.Layers[i].HandleKeyUp && ! this.Layers[i].HandleKeyUp(event)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -2522,8 +2601,18 @@
         annotationLayer.ScaleWidget.View = this.MainView;
         // Hack only used for girder testing.
         annotationLayer.Viewer = this;
+        annotationLayer.UpdateSize();
 
         return annotationLayer;
+    }
+
+    Viewer.prototype.NewViewLayer = function() {
+        // Create an annotation layer by default.
+        var viewLayer = new SA.TileView(this.Div, false);
+        this.AddLayer(viewLayer);
+        viewLayer.UpdateSize();
+
+        return viewLayer;
     }
 
     // Get rid of this.

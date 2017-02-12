@@ -112,8 +112,16 @@
 
     // Convert any color to an array [r,g,b] values 0->1
     SAM.ConvertColor = function(color) {
-        // Deal with color names.
         if ( typeof(color)=='string' && color[0] != '#') {
+            if (color.slice(0,5) == "rgba(") {
+                color = color.slice(5,-1).split(',');
+                color[0] = color[0]/255;
+                color[1] = color[1]/255;
+                color[2] = color[1]/255;
+                return color;
+            }
+
+            // Deal with color names.
             var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
                           "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
                           "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
@@ -163,6 +171,9 @@
     // RGB [Float, Float, Float] to #RRGGBB string
     SAM.ConvertColorToHex = function(color) {
         if (typeof(color) == 'string') { 
+            if (color.slice(0,5) == "rgba(") {
+                return color;
+            }
             color = SAM.ConvertColorNameToHex(color);
             if (color.substring(0,1) == '#') {
                 return color;
@@ -498,11 +509,8 @@
         can.on(
             "keydown.viewer",
 			      function (event){
-                //alert("keydown");
                 return self.HandleKeyDown(event);
             });
-
-        this.UpdateSize();
     }
 
     // Try to remove all global references to this viewer.
@@ -576,8 +584,41 @@
                 });
         }
     }
+
+    // Some widgets need access to the viewer.
+    AnnotationLayer.prototype.GetViewer = function() {
+        return this.Viewer || SA.VIEWER1;
+    }
+
+    // Load an array of anntoations into this layer.
+    // It does not clear previous annotations. Call reset to do that.
+    // Called by Viewer.SetViewerRecord()
+    // This is neede to give a callback to an app that needs to update the
+    // visibility of annotations based on a threshold.
+    AnnotationLayer.prototype.LoadAnnotations = function(annotations) {
+        // TODO: Fix this.  Keep actual widgets in the records / notes.
+        // For now lets just do the easy thing and recreate all the
+        // annotations.
+        for (var i = 0; i < annotations.length; ++i) {
+            var widget = this.LoadWidget(annotations[i]);
+            // This a bad hack. Modifying that array passed in.
+            // It is not really needed.  It was a fix for a schema mistake.
+            if (! widget) {
+                // Get rid of corrupt widgets that do not load properly
+                annotations.splice(i,1);
+                --i;
+            }
+        }
+
+        // This is used by the vigilant plugnin to update which annotations
+        // are visible based on a confidence threshold.
+        if (this.LoadCallback) {
+            (this.LoadCallback)();
+        }
+    }
     
     // Load a widget from a json object (origin MongoDB).
+    // Returns the widget if there was not an error.
     AnnotationLayer.prototype.LoadWidget = function(obj) {
         var widget;
         switch(obj.type){
@@ -609,6 +650,9 @@
             break;
         case "rect":
             widget = new SAM.RectWidget(this, false);
+            break;
+        case "rect_set":
+            widget = new SAM.RectSetWidget(this, false);
             break;
         case "grid":
             widget = new SAM.GridWidget(this, false);
@@ -803,23 +847,47 @@
         return ! this.ActiveWidget;
     }
 
+    AnnotationLayer.prototype.SetMousePositionFromEvent = function(event) {
+        if (event.offsetX && event.offsetY) {
+            this.MouseX = event.offsetX;
+            this.MouseY = event.offsetY;
+            this.MouseTime = (new Date()).getTime();
+        } else if (event.layerX && event.layerY) {
+            this.MouseX = event.layerX;
+            this.MouseY = event.layerY;
+            this.MouseTime = (new Date()).getTime();
+            event.offsetX = event.layerX;
+            event.offsetY = event.layerY;
+        }
+        this.MouseTime = new Date().getTime();
+    }
+
     AnnotationLayer.prototype.HandleMouseDown = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
-        var timeNow = new Date().getTime();
+        this.LastMouseDownTime = this.MouseDownTime || 1;
+        this.SetMousePositionFromEvent(event);
+
+        // Trying to detect click
+        // TODO: How to skip clicks when doubleclick occur.
+        this.MouseClick = true;
+        this.MouseDownX = this.MouseX;
+        this.MouseDownY = this.MouseY;
+        this.MouseDownTime = this.MouseTime;
+
         if (this.LastMouseDownTime) {
-            if ( timeNow - this.LastMouseDownTime < 200) {
+            if ( this.MouseDownTime - this.LastMouseDownTime < 200) {
                 delete this.LastMouseDownTime;
                 return this.HandleDoubleClick(event);
             }
         }
-        this.LastMouseDownTime = timeNow;
 
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseDown) {
             return this.ActiveWidget.HandleMouseDown(event);
         }
-        return ! this.ActiveWidget;
+        // We do not know if the widget will handle click or double click.
+        return true;
     }
 
     AnnotationLayer.prototype.HandleDoubleClick = function(event) {
@@ -832,10 +900,24 @@
         return ! this.ActiveWidget;
     }
 
+    AnnotationLayer.prototype.HandleClick = function(event) {
+        if ( ! this.GetVisibility() ) { return true; }
+        if (this.ActiveWidget && this.ActiveWidget.HandleClick) {
+            return this.ActiveWidget.HandleClick(event);
+        }
+        return true;
+    }
+
     AnnotationLayer.prototype.HandleMouseUp = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
+
+        if (this.MouseClick) {
+            this.MouseClick = false;
+            return this.HandleClick(event);
+        }
+
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseUp) {
             return this.ActiveWidget.HandleMouseUp(event);
         }
@@ -847,11 +929,28 @@
             return true;
         }
 
+        this.SetMousePositionFromEvent(event);
+        if (event.which != 0 && this.MouseClick) {
+            if (Math.abs(this.MouseDownX-this.MouseX) > 5) {
+                this.MouseClick = false;
+            }
+            if (Math.abs(this.MouseDownY-this.MouseY) > 5) {
+                this.MouseClick = false;
+            }
+            if ((this.MouseTime - this.MouseDownTime) > 400) {
+                this.MouseClick = false;
+            }
+            // Wait to process a move until we know it will not
+            // be a click.
+            return false;
+        }
+
         // The event position is relative to the target which can be a tab on
         // top of the canvas.  Just skip these events.
         if ($(event.target).width() != $(event.currentTarget).width()) {
             return true;
         }
+
 
         this.ComputeMouseWorld(event);
 
@@ -865,8 +964,7 @@
 
         if (this.ActiveWidget) {
             if (this.ActiveWidget.HandleMouseMove) {
-                var ret = this.ActiveWidget.HandleMouseMove(event);
-                return ret;
+                return this.ActiveWidget.HandleMouseMove(event);
             }
         } else {
             if ( ! event.which) {
@@ -877,7 +975,7 @@
 
         // An active widget should stop propagation even if it does not
         // respond to the event.
-        return ! this.ActiveWidget;
+        return true;
     }
 
     AnnotationLayer.prototype.HandleMouseWheel = function(event) {
@@ -887,7 +985,7 @@
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseWheel) {
             return this.ActiveWidget.HandleMouseWheel(event);
         }
-        return ! this.ActiveWidget;
+        return true;
     }
 
     AnnotationLayer.prototype.HandleKeyDown = function(event) {
@@ -897,7 +995,17 @@
         if (this.ActiveWidget && this.ActiveWidget.HandleKeyDown) {
             return this.ActiveWidget.HandleKeyDown(event);
         }
-        return ! this.ActiveWidget;
+        return true;
+    }
+
+    AnnotationLayer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
+        if (this.ActiveWidget && this.ActiveWidget.HandleKeyUp) {
+            return this.ActiveWidget.HandleKeyUp(event);
+        }
+        return true;
     }
 
     // Called on mouse motion with no button pressed.
@@ -1015,7 +1123,6 @@
             },
         });
 
-
         // Change an existing annotation
         data = {"name": "Test", 
                 "elements": [{"type": "polyline", 
@@ -1036,13 +1143,165 @@
         });
     }
 
-
     AnnotationLayer.prototype.UpdateSize = function () {
-        if (this.AnnotationView && this.AnnotationView.UpdateCanvasSize() ) {
-            this.EventuallyDraw();
+        if (! this.AnnotationView) {
+            return false;
         }
+        if (this.AnnotationView.UpdateCanvasSize()) {
+            this.EventuallyDraw();
+            return true;
+        }
+        return false;
     }
 
     SAM.AnnotationLayer = AnnotationLayer;
+})();
+
+
+// here temporarily
+// transformation that user camera models
+(function () {
+    "use strict";
+
+
+
+
+    //==============================================================================
+    // A correlation is just a pair of matching points from two sections.
+    // Abstract the correlation so we have an api for getting points.
+    // Currently, stack has direct access to correlation ivars / points.
+    // The api will make forward and back transformations use the same code.
+
+
+    // Pass in world to image transformation (3x3) for each image.
+    function MatrixTransformation() {
+        this.WorldToImage1=mat3.create();
+        this.Image1ToWorld=mat3.create();
+        this.WorldToImage2=mat3.create();
+        this.Image2ToWorld=mat3.create();
+    }
+
+    MatrixTransformation.prototype.M2Invert = function(m1) {
+        var d = m1[0]*m1[3] - m1[1]*m1[2];
+        return [ m1[3]/d, -m1[1]/d,
+                -m1[2]/d,  m1[0]/d];
+    }
+    MatrixTransformation.prototype.M2Multiply = function(m1,m2) {
+        return [m1[0]*m2[0] + m1[1]*m2[2], m1[0]*m2[1] + m1[1]*m2[3],
+                m1[2]*m2[0] + m1[3]*m2[2], m1[2]*m2[1] + m1[3]*m2[3]];
+    }
+
+
+    // Initialize with 3 corresponding points.
+    MatrixTransformation.prototype.InitializeWithPoints = function(p1a,p2a, p1b,p2b, p1c,p2c) {
+        var m1=mat3.create();
+        var m2=mat3.create();
+        mat3.identity(m1);
+        mat3.identity(m2);
+        // Take the first point as the origin.
+        m1[2] = p1a[0]; m1[5] = p1a[1];
+        m2[2] = p2a[0]; m2[5] = p2a[1];
+        // Assume that the image1 coordinates (minus origin) are world.
+        // Matrix to transform i,j to new basis b,c
+        var A1 = [p1b[0]-p1a[0], p1c[0]-p1a[0], 
+                  p1b[1]-p1a[1], p1c[1]-p1a[1]];
+        var A2 = [p2b[0]-p2a[0], p2c[0]-p2a[0], 
+                  p2b[1]-p2a[1], p2c[1]-p2a[1]];
+        var M = this.M2Multiply(A2,this.M2Invert(A1));
+        // Use the 2x2 in the 3x3
+        m2[0] = M[0]; m2[1] = M[1];
+        m2[3] = M[2]; m2[4] = M[3];
+
+        this.Initialize(m1,m2);
+    }
+
+    // Pass in two matrixes (World to image)
+    MatrixTransformation.prototype.Initialize = function(m1, m2) {
+        // Now invert these matrixes.
+        mat3.set(m1,this.WorldToImage1);
+        mat3.set(m2,this.WorldToImage2);
+
+        // A lot of hastle to get the inverse for a 3x3.
+        // It is not that hard to compute.
+        var m4a = mat4.create();
+        var m4b = mat4.create();
+        mat3.toMat4(this.WorldToImage1,m4a);
+        mat4.inverse(m4a,m4b);
+        mat4.toMat3(m4b,this.Image1ToWorld);
+
+        mat3.toMat4(this.WorldToImage2,m4a);
+        mat4.inverse(m4a,m4b);
+        mat4.toMat3(m4b,this.Image2ToWorld);
+    }
+
+    // 1->2
+    // This is confusing because for slides I consider image as world.
+    // World here is geo location.
+    MatrixTransformation.prototype.ForwardTransformPoint = function(ptIn) {
+        var m = this.Image1ToWorld;
+        var x = ptIn[0]*m[0] + ptIn[1]*m[1] + m[2];
+        var y = ptIn[0]*m[3] + ptIn[1]*m[4] + m[5];
+        var h = ptIn[0]*m[6] + ptIn[1]*m[7] + m[8];
+        m = this.WorldToImage2;
+        var x2 = x*m[0] + y*m[1] + h*m[2];
+        var y2 = x*m[3] + y*m[4] + h*m[5];
+        var h2   = x*m[6] + y*m[7] + h*m[8];
+        return [x2/h2, y2/h2];
+    }
+    // 2->1
+    MatrixTransformation.prototype.ReverseTransformPoint = function(ptIn) {
+        var m = this.Image2ToWorld;
+        var x = ptIn[0]*m[0] + ptIn[1]*m[1] + m[2];
+        var y = ptIn[0]*m[3] + ptIn[1]*m[4] + m[5];
+        var h = ptIn[0]*m[6] + ptIn[1]*m[7] + m[8];
+        m = this.WorldToImage1;
+        var x2 = x*m[0] + y*m[1] + h*m[2];
+        var y2 = x*m[3] + y*m[4] + h*m[5];
+        var h2   = x*m[6] + y*m[7] + h*m[8];
+        return [x2/h2, y2/h2];
+    }
+
+    // 1->2
+    MatrixTransformation.prototype.ForwardTransformCamera = function(camIn, camOut) {
+        var fpIn = camIn.FocalPoint;
+        var fpOut = camOut.FocalPoint;
+        var upIn = [fpIn[0]+1,fpIn[1]];
+
+        var pt = this.ForwardTransformPoint(fpIn);
+        fpOut[0] = pt[0]; fpOut[1] = pt[1];
+        var upOut = this.ForwardTransformPoint(upIn);
+        upOut[0] -= fpOut[0];
+        upOut[1] -= fpOut[1];
+        var scale = Math.sqrt(upOut[0]*upOut[0] + upOut[1]*upOut[1]);
+        // compute the height.
+        camOut.SetHeight(camIn.GetHeight() * scale);
+        // Compute the rotation. upOut = [Sin,cos];
+        var angle = Math.atan2(upOut[1], upOut[0]);
+        camOut.Roll = camIn.Roll;// - angle;
+        camOut.ComputeMatrix();
+    }
+
+    // 2->1
+    MatrixTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
+        var fpIn = camIn.FocalPoint;
+        var fpOut = camOut.FocalPoint;
+        var upIn = [fpIn[0]+1,fpIn[1]];
+
+        var pt = this.ReverseTransformPoint(fpIn);
+        fpOut[0] = pt[0]; fpOut[1] = pt[1];
+        var upOut = this.ReverseTransformPoint(upIn);
+        upOut[0] -= fpOut[0];
+        upOut[1] -= fpOut[1];
+        var scale = Math.sqrt(upOut[0]*upOut[0] + upOut[1]*upOut[1]);
+        // compute the height.
+        camOut.SetHeight(camIn.GetHeight() * scale);
+        // Compute the rotation. upOut = [Sin,cos];
+        var angle = Math.atan2(upOut[1], upOut[0]);
+        camOut.Roll = camIn.Roll;// - angle;
+        camOut.ComputeMatrix();
+    }
+
+    SAM.MatrixTransformation = MatrixTransformation;
+
 })();
 

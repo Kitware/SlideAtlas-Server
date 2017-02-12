@@ -200,10 +200,25 @@
             }
             if (widget.type == "rect") {
                 element = {'type'     : 'rectangle',
+                           'label'    : {'value':'test'},
                            'center'   : widget.origin,
                            'height'   : widget.height,
                            'width'    : widget.width,
                            'rotation' : widget.orientation};
+            }
+            if (widget.type == "rect_set") {
+                var num = widget.widths.length;
+                for (var j = 0; j < num; ++j) {
+                    element = {'type'     : 'rectangle',
+                               'label'    : {'value':widget.labels[j]},
+                               'center'   : [widget.centers[2*j], widget.centers[2*j+1], 0],
+                               'height'   : widget.heights[j],
+                               'width'    : widget.widths[j],
+                               'rotation' : 0,
+                               'scalar'   : widget.confidences[j]};
+                    returnElements.push(element);
+                }
+                element = undefined;
             }
             if (widget.type == "polyline") {
                 // add the z coordinate
@@ -383,6 +398,15 @@
 
         this.AnnotationLayer.Reset();
 
+        // Put all the rectangles into one set.
+        var set_obj = {};
+        set_obj.type = "rect_set";
+        set_obj.centers = [];
+        set_obj.widths = [];
+        set_obj.heights = [];
+        set_obj.confidences = [];
+        set_obj.labels = [];
+
         var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
             var element = annot.elements[i];
@@ -441,14 +465,30 @@
                 this.AnnotationLayer.LoadWidget(obj);
             }
             if (element.type == "rectangle") {
-                obj.type = "rect",
-                obj.outlinecolor = SAM.ConvertColor(element.lineColor);
-                obj.linewidth = element.lineWidth;
-                obj.origin = element.center;
-                obj.width = element.width;
-                obj.length = element.height;
-                obj.orientation = element.rotation;
-                this.AnnotationLayer.LoadWidget(obj);
+                if (true) {
+                    set_obj.widths.push(element.width);
+                    set_obj.heights.push(element.height);
+                    set_obj.centers.push(element.center[0]);
+                    set_obj.centers.push(element.center[1]);
+                    if (element.scalar === undefined) {
+                        element.scalar = 1.0;
+                    }
+                    set_obj.confidences.push(element.scalar);
+                    if (element.label) {
+                        set_obj.labels.push(element.label.value);
+                    } else {
+                        set_obj.labels.push("");
+                    }
+                } else {
+                    obj.type = "rect",
+                    obj.outlinecolor = SAM.ConvertColor(element.lineColor);
+                    obj.linewidth = element.lineWidth;
+                    obj.origin = element.center;
+                    obj.width = element.width;
+                    obj.length = element.height;
+                    obj.orientation = element.rotation;
+                    this.AnnotationLayer.LoadWidget(obj);
+                }
             }
             if (element.type == "polyline") {
                 obj.type = element.type;
@@ -459,6 +499,11 @@
                 this.AnnotationLayer.LoadWidget(obj);
             }
         }
+
+        if (set_obj.widths.length > 0) {
+            this.AnnotationLayer.LoadWidget(set_obj);
+        }
+
         this.AnnotationLayer.EventuallyDraw();
     }
 

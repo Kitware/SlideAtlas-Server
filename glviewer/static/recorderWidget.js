@@ -135,6 +135,9 @@
 
     // Move to note.js
     ViewerRecord.prototype.RequestUserNote = function () {
+        if (! this.UserNote) {
+            return;
+        }
         if (this.UserNote.LoadState != 0) {
             return;
         }
@@ -280,7 +283,10 @@
     }
 
 
+    // TODO: Get rid of this in favor of Viewer::SetViewerRecord.
     ViewerRecord.prototype.Apply = function (viewer, lockCamera) {
+        alert("ViewerRecord::Apply depricated.  Use Viewer.SetViewerRecord instead");
+        /*
         // If a widget is active, then just inactivate it.
         // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
         if (viewer.ActiveWidget) {
@@ -355,6 +361,7 @@
 
         // fit the canvas to the div size.
         viewer.UpdateSize();
+        */
     }
 
     // This is a helper method to start preloading tiles for an up coming view.
@@ -511,6 +518,11 @@
         // This will probably have to be passed the viewers.
         note.RecordView(this.Display);
 
+        // Erase the annotations.
+        for (var i = 0; i < note.ViewerRecords.length;++i) {
+            note.ViewerRecords[i].Annotations = undefined;
+        }
+
         // The note will want to know its context
         // The stack viewer does not have  notes widget.
         if (SA.display) {
@@ -531,6 +543,7 @@
             url: "/webgl-viewer/saveusernote",
             data: {"note": JSON.stringify(note.Serialize(true)),
                    "col" : "tracking",
+                   "device": SAM.detectMobile(),
                    "type": "Record"},
             success: function(data,status) {
                 note.Id = data;

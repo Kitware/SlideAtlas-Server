@@ -144,8 +144,16 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
     // Convert any color to an array [r,g,b] values 0->1
     SAM.ConvertColor = function(color) {
-        // Deal with color names.
         if ( typeof(color)=='string' && color[0] != '#') {
+            if (color.slice(0,5) == "rgba(") {
+                color = color.slice(5,-1).split(',');
+                color[0] = color[0]/255;
+                color[1] = color[1]/255;
+                color[2] = color[1]/255;
+                return color;
+            }
+
+            // Deal with color names.
             var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
                           "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
                           "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
@@ -195,6 +203,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     // RGB [Float, Float, Float] to #RRGGBB string
     SAM.ConvertColorToHex = function(color) {
         if (typeof(color) == 'string') { 
+            if (color.slice(0,5) == "rgba(") {
+                return color;
+            }
             color = SAM.ConvertColorNameToHex(color);
             if (color.substring(0,1) == '#') {
                 return color;
@@ -530,11 +541,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         can.on(
             "keydown.viewer",
 			      function (event){
-                //alert("keydown");
                 return self.HandleKeyDown(event);
             });
-
-        this.UpdateSize();
     }
 
     // Try to remove all global references to this viewer.
@@ -608,8 +616,41 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 });
         }
     }
+
+    // Some widgets need access to the viewer.
+    AnnotationLayer.prototype.GetViewer = function() {
+        return this.Viewer || SA.VIEWER1;
+    }
+
+    // Load an array of anntoations into this layer.
+    // It does not clear previous annotations. Call reset to do that.
+    // Called by Viewer.SetViewerRecord()
+    // This is neede to give a callback to an app that needs to update the
+    // visibility of annotations based on a threshold.
+    AnnotationLayer.prototype.LoadAnnotations = function(annotations) {
+        // TODO: Fix this.  Keep actual widgets in the records / notes.
+        // For now lets just do the easy thing and recreate all the
+        // annotations.
+        for (var i = 0; i < annotations.length; ++i) {
+            var widget = this.LoadWidget(annotations[i]);
+            // This a bad hack. Modifying that array passed in.
+            // It is not really needed.  It was a fix for a schema mistake.
+            if (! widget) {
+                // Get rid of corrupt widgets that do not load properly
+                annotations.splice(i,1);
+                --i;
+            }
+        }
+
+        // This is used by the vigilant plugnin to update which annotations
+        // are visible based on a confidence threshold.
+        if (this.LoadCallback) {
+            (this.LoadCallback)();
+        }
+    }
     
     // Load a widget from a json object (origin MongoDB).
+    // Returns the widget if there was not an error.
     AnnotationLayer.prototype.LoadWidget = function(obj) {
         var widget;
         switch(obj.type){
@@ -641,6 +682,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             break;
         case "rect":
             widget = new SAM.RectWidget(this, false);
+            break;
+        case "rect_set":
+            widget = new SAM.RectSetWidget(this, false);
             break;
         case "grid":
             widget = new SAM.GridWidget(this, false);
@@ -835,23 +879,47 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return ! this.ActiveWidget;
     }
 
+    AnnotationLayer.prototype.SetMousePositionFromEvent = function(event) {
+        if (event.offsetX && event.offsetY) {
+            this.MouseX = event.offsetX;
+            this.MouseY = event.offsetY;
+            this.MouseTime = (new Date()).getTime();
+        } else if (event.layerX && event.layerY) {
+            this.MouseX = event.layerX;
+            this.MouseY = event.layerY;
+            this.MouseTime = (new Date()).getTime();
+            event.offsetX = event.layerX;
+            event.offsetY = event.layerY;
+        }
+        this.MouseTime = new Date().getTime();
+    }
+
     AnnotationLayer.prototype.HandleMouseDown = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
-        var timeNow = new Date().getTime();
+        this.LastMouseDownTime = this.MouseDownTime || 1;
+        this.SetMousePositionFromEvent(event);
+
+        // Trying to detect click
+        // TODO: How to skip clicks when doubleclick occur.
+        this.MouseClick = true;
+        this.MouseDownX = this.MouseX;
+        this.MouseDownY = this.MouseY;
+        this.MouseDownTime = this.MouseTime;
+
         if (this.LastMouseDownTime) {
-            if ( timeNow - this.LastMouseDownTime < 200) {
+            if ( this.MouseDownTime - this.LastMouseDownTime < 200) {
                 delete this.LastMouseDownTime;
                 return this.HandleDoubleClick(event);
             }
         }
-        this.LastMouseDownTime = timeNow;
 
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseDown) {
             return this.ActiveWidget.HandleMouseDown(event);
         }
-        return ! this.ActiveWidget;
+        // We do not know if the widget will handle click or double click.
+        return true;
     }
 
     AnnotationLayer.prototype.HandleDoubleClick = function(event) {
@@ -864,10 +932,24 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return ! this.ActiveWidget;
     }
 
+    AnnotationLayer.prototype.HandleClick = function(event) {
+        if ( ! this.GetVisibility() ) { return true; }
+        if (this.ActiveWidget && this.ActiveWidget.HandleClick) {
+            return this.ActiveWidget.HandleClick(event);
+        }
+        return true;
+    }
+
     AnnotationLayer.prototype.HandleMouseUp = function(event) {
         if ( ! this.GetVisibility() ) {
             return true;
         }
+
+        if (this.MouseClick) {
+            this.MouseClick = false;
+            return this.HandleClick(event);
+        }
+
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseUp) {
             return this.ActiveWidget.HandleMouseUp(event);
         }
@@ -879,11 +961,28 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             return true;
         }
 
+        this.SetMousePositionFromEvent(event);
+        if (event.which != 0 && this.MouseClick) {
+            if (Math.abs(this.MouseDownX-this.MouseX) > 5) {
+                this.MouseClick = false;
+            }
+            if (Math.abs(this.MouseDownY-this.MouseY) > 5) {
+                this.MouseClick = false;
+            }
+            if ((this.MouseTime - this.MouseDownTime) > 400) {
+                this.MouseClick = false;
+            }
+            // Wait to process a move until we know it will not
+            // be a click.
+            return false;
+        }
+
         // The event position is relative to the target which can be a tab on
         // top of the canvas.  Just skip these events.
         if ($(event.target).width() != $(event.currentTarget).width()) {
             return true;
         }
+
 
         this.ComputeMouseWorld(event);
 
@@ -897,8 +996,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         if (this.ActiveWidget) {
             if (this.ActiveWidget.HandleMouseMove) {
-                var ret = this.ActiveWidget.HandleMouseMove(event);
-                return ret;
+                return this.ActiveWidget.HandleMouseMove(event);
             }
         } else {
             if ( ! event.which) {
@@ -909,7 +1007,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         // An active widget should stop propagation even if it does not
         // respond to the event.
-        return ! this.ActiveWidget;
+        return true;
     }
 
     AnnotationLayer.prototype.HandleMouseWheel = function(event) {
@@ -919,7 +1017,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (this.ActiveWidget && this.ActiveWidget.HandleMouseWheel) {
             return this.ActiveWidget.HandleMouseWheel(event);
         }
-        return ! this.ActiveWidget;
+        return true;
     }
 
     AnnotationLayer.prototype.HandleKeyDown = function(event) {
@@ -929,7 +1027,17 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (this.ActiveWidget && this.ActiveWidget.HandleKeyDown) {
             return this.ActiveWidget.HandleKeyDown(event);
         }
-        return ! this.ActiveWidget;
+        return true;
+    }
+
+    AnnotationLayer.prototype.HandleKeyUp = function(event) {
+        if ( ! this.GetVisibility() ) {
+            return true;
+        }
+        if (this.ActiveWidget && this.ActiveWidget.HandleKeyUp) {
+            return this.ActiveWidget.HandleKeyUp(event);
+        }
+        return true;
     }
 
     // Called on mouse motion with no button pressed.
@@ -1047,7 +1155,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             },
         });
 
-
         // Change an existing annotation
         data = {"name": "Test", 
                 "elements": [{"type": "polyline", 
@@ -1068,14 +1175,166 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         });
     }
 
-
     AnnotationLayer.prototype.UpdateSize = function () {
-        if (this.AnnotationView && this.AnnotationView.UpdateCanvasSize() ) {
-            this.EventuallyDraw();
+        if (! this.AnnotationView) {
+            return false;
         }
+        if (this.AnnotationView.UpdateCanvasSize()) {
+            this.EventuallyDraw();
+            return true;
+        }
+        return false;
     }
 
     SAM.AnnotationLayer = AnnotationLayer;
+})();
+
+
+// here temporarily
+// transformation that user camera models
+(function () {
+    "use strict";
+
+
+
+
+    //==============================================================================
+    // A correlation is just a pair of matching points from two sections.
+    // Abstract the correlation so we have an api for getting points.
+    // Currently, stack has direct access to correlation ivars / points.
+    // The api will make forward and back transformations use the same code.
+
+
+    // Pass in world to image transformation (3x3) for each image.
+    function MatrixTransformation() {
+        this.WorldToImage1=mat3.create();
+        this.Image1ToWorld=mat3.create();
+        this.WorldToImage2=mat3.create();
+        this.Image2ToWorld=mat3.create();
+    }
+
+    MatrixTransformation.prototype.M2Invert = function(m1) {
+        var d = m1[0]*m1[3] - m1[1]*m1[2];
+        return [ m1[3]/d, -m1[1]/d,
+                -m1[2]/d,  m1[0]/d];
+    }
+    MatrixTransformation.prototype.M2Multiply = function(m1,m2) {
+        return [m1[0]*m2[0] + m1[1]*m2[2], m1[0]*m2[1] + m1[1]*m2[3],
+                m1[2]*m2[0] + m1[3]*m2[2], m1[2]*m2[1] + m1[3]*m2[3]];
+    }
+
+
+    // Initialize with 3 corresponding points.
+    MatrixTransformation.prototype.InitializeWithPoints = function(p1a,p2a, p1b,p2b, p1c,p2c) {
+        var m1=mat3.create();
+        var m2=mat3.create();
+        mat3.identity(m1);
+        mat3.identity(m2);
+        // Take the first point as the origin.
+        m1[2] = p1a[0]; m1[5] = p1a[1];
+        m2[2] = p2a[0]; m2[5] = p2a[1];
+        // Assume that the image1 coordinates (minus origin) are world.
+        // Matrix to transform i,j to new basis b,c
+        var A1 = [p1b[0]-p1a[0], p1c[0]-p1a[0], 
+                  p1b[1]-p1a[1], p1c[1]-p1a[1]];
+        var A2 = [p2b[0]-p2a[0], p2c[0]-p2a[0], 
+                  p2b[1]-p2a[1], p2c[1]-p2a[1]];
+        var M = this.M2Multiply(A2,this.M2Invert(A1));
+        // Use the 2x2 in the 3x3
+        m2[0] = M[0]; m2[1] = M[1];
+        m2[3] = M[2]; m2[4] = M[3];
+
+        this.Initialize(m1,m2);
+    }
+
+    // Pass in two matrixes (World to image)
+    MatrixTransformation.prototype.Initialize = function(m1, m2) {
+        // Now invert these matrixes.
+        mat3.set(m1,this.WorldToImage1);
+        mat3.set(m2,this.WorldToImage2);
+
+        // A lot of hastle to get the inverse for a 3x3.
+        // It is not that hard to compute.
+        var m4a = mat4.create();
+        var m4b = mat4.create();
+        mat3.toMat4(this.WorldToImage1,m4a);
+        mat4.inverse(m4a,m4b);
+        mat4.toMat3(m4b,this.Image1ToWorld);
+
+        mat3.toMat4(this.WorldToImage2,m4a);
+        mat4.inverse(m4a,m4b);
+        mat4.toMat3(m4b,this.Image2ToWorld);
+    }
+
+    // 1->2
+    // This is confusing because for slides I consider image as world.
+    // World here is geo location.
+    MatrixTransformation.prototype.ForwardTransformPoint = function(ptIn) {
+        var m = this.Image1ToWorld;
+        var x = ptIn[0]*m[0] + ptIn[1]*m[1] + m[2];
+        var y = ptIn[0]*m[3] + ptIn[1]*m[4] + m[5];
+        var h = ptIn[0]*m[6] + ptIn[1]*m[7] + m[8];
+        m = this.WorldToImage2;
+        var x2 = x*m[0] + y*m[1] + h*m[2];
+        var y2 = x*m[3] + y*m[4] + h*m[5];
+        var h2   = x*m[6] + y*m[7] + h*m[8];
+        return [x2/h2, y2/h2];
+    }
+    // 2->1
+    MatrixTransformation.prototype.ReverseTransformPoint = function(ptIn) {
+        var m = this.Image2ToWorld;
+        var x = ptIn[0]*m[0] + ptIn[1]*m[1] + m[2];
+        var y = ptIn[0]*m[3] + ptIn[1]*m[4] + m[5];
+        var h = ptIn[0]*m[6] + ptIn[1]*m[7] + m[8];
+        m = this.WorldToImage1;
+        var x2 = x*m[0] + y*m[1] + h*m[2];
+        var y2 = x*m[3] + y*m[4] + h*m[5];
+        var h2   = x*m[6] + y*m[7] + h*m[8];
+        return [x2/h2, y2/h2];
+    }
+
+    // 1->2
+    MatrixTransformation.prototype.ForwardTransformCamera = function(camIn, camOut) {
+        var fpIn = camIn.FocalPoint;
+        var fpOut = camOut.FocalPoint;
+        var upIn = [fpIn[0]+1,fpIn[1]];
+
+        var pt = this.ForwardTransformPoint(fpIn);
+        fpOut[0] = pt[0]; fpOut[1] = pt[1];
+        var upOut = this.ForwardTransformPoint(upIn);
+        upOut[0] -= fpOut[0];
+        upOut[1] -= fpOut[1];
+        var scale = Math.sqrt(upOut[0]*upOut[0] + upOut[1]*upOut[1]);
+        // compute the height.
+        camOut.SetHeight(camIn.GetHeight() * scale);
+        // Compute the rotation. upOut = [Sin,cos];
+        var angle = Math.atan2(upOut[1], upOut[0]);
+        camOut.Roll = camIn.Roll;// - angle;
+        camOut.ComputeMatrix();
+    }
+
+    // 2->1
+    MatrixTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
+        var fpIn = camIn.FocalPoint;
+        var fpOut = camOut.FocalPoint;
+        var upIn = [fpIn[0]+1,fpIn[1]];
+
+        var pt = this.ReverseTransformPoint(fpIn);
+        fpOut[0] = pt[0]; fpOut[1] = pt[1];
+        var upOut = this.ReverseTransformPoint(upIn);
+        upOut[0] -= fpOut[0];
+        upOut[1] -= fpOut[1];
+        var scale = Math.sqrt(upOut[0]*upOut[0] + upOut[1]*upOut[1]);
+        // compute the height.
+        camOut.SetHeight(camIn.GetHeight() * scale);
+        // Compute the rotation. upOut = [Sin,cos];
+        var angle = Math.atan2(upOut[1], upOut[0]);
+        camOut.Roll = camIn.Roll;// - angle;
+        camOut.ComputeMatrix();
+    }
+
+    SAM.MatrixTransformation = MatrixTransformation;
+
 })();
 
 // TODO:
@@ -7387,12 +7646,14 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     var ACTIVE = 6; // Mouse is over the widget and it is receiving events.
     var PROPERTIES_DIALOG = 7; // Properties dialog is up
 
+    var DEFAULT_WIDTH = -1;
+    var DEFAULT_HEIGHT = -1;
 
     function Rect() {
         SAM.Shape.call(this);
 
-        this.Width = 20.0;
-        this.Length = 50.0;
+        this.Width = 50;
+        this.Height = 50;
         this.Orientation = 0; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // Center in world coordinates.
         this.OutlineColor = [0,0,0];
@@ -7413,23 +7674,23 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
         this.PointBuffer.push(1 *this.Width / 2.0);
-        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(-1 *this.Width / 2.0);
-        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(-1 *this.Width / 2.0);
-        this.PointBuffer.push(-1 *this.Length / 2.0);
+        this.PointBuffer.push(-1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(1 *this.Width / 2.0);
-        this.PointBuffer.push(-1 *this.Length / 2.0);
+        this.PointBuffer.push(-1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
 
         this.PointBuffer.push(1 *this.Width / 2.0);
-        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(1 *this.Height / 2.0);
         this.PointBuffer.push(0.0);
     };
 
@@ -7461,7 +7722,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             .val('#30ff00')
             .css({'display':'table-cell'});
 
-      // Line Width
+        // Line Width
         this.Dialog.LineWidthDiv =
             $('<div>')
             .appendTo(this.Dialog.Body)
@@ -7500,6 +7761,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             if (defaults.Color) {
                 this.Dialog.ColorInput.val(SAM.ConvertColorToHex(defaults.Color));
             }
+            this.Dialog.LineWidthInput.val(0);
             if (defaults.LineWidth) {
                 this.Dialog.LineWidthInput.val(defaults.LineWidth);
             }
@@ -7528,9 +7790,14 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         this.Shape.Origin = [0,0];
         this.Shape.OutlineColor = [0.0,0.0,0.0];
         this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
-        this.Shape.Length = 50.0*cam.Height/viewport[3];
-        this.Shape.Width = 30*cam.Height/viewport[3];
-        this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
+        if (DEFAULT_WIDTH > 0) {
+            this.Shape.Height = DEFAULT_HEIGHT;
+            this.Shape.Width = DEFAULT_WIDTH;
+        } else {
+            this.Shape.Height = 50.0*cam.Height/viewport[3];
+            this.Shape.Width = 50.0*cam.Height/viewport[3];
+        }
+        this.Shape.LineWidth = 0;
         this.Shape.FixedSize = false;
 
         this.Layer.AddWidget(this);
@@ -7547,6 +7814,13 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         this.Layer.GetCanvasDiv().css({'cursor':'default'});
         this.State = WAITING;
+    }
+
+    // Threshold above is the only option for now.
+    RectWidget.prototype.SetThreshold = function(threshold) {
+        if (this.confidence !== undefined) {
+            this.Visibility = this.confidence >= threshold;
+        }
     }
 
     RectWidget.prototype.Draw = function(view) {
@@ -7573,7 +7847,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         obj.origin = this.Shape.Origin;
         obj.origin[2] = 0.0;
         obj.outlinecolor = this.Shape.OutlineColor;
-        obj.height = this.Shape.Length;
+        obj.height = this.Shape.Height;
         obj.width = this.Shape.Width;
         obj.orientation = this.Shape.Orientation;
         obj.linewidth = this.Shape.LineWidth;
@@ -7592,11 +7866,14 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
         }
         this.Shape.Width = parseFloat(obj.width);
+        if (obj.confidence) {
+            this.confidence = parseFloat(obj.confidence);
+        }
         if (obj.length) {
-            this.Shape.Length = parseFloat(obj.length);
+            this.Shape.Height = parseFloat(obj.length);
         }
         if (obj.height) {
-            this.Shape.Length = parseFloat(obj.height);
+            this.Shape.Height = parseFloat(obj.height);
         }
         if (obj.orientation) {
             this.Shape.Orientation = parseFloat(obj.orientation);
@@ -7701,6 +7978,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             copy.Load(this.Serialize());
             this.State = DRAWING;
             if (window.SA) {SA.RecordState();}
+
+
+            DEFAULT_WIDTH = this.Shape.Width;
+            DEFAULT_HEIGHT = this.Shape.Height;
         }
     };
 
@@ -7734,7 +8015,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Center remains fixed, and a corner follows the mouse.
             // This is an non standard interaction.  Usually one corner
             // remains fixed and the second corner follows the mouse.
-            //Width Length Origin
+            //Width Height Origin
             var corner = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
             var dx = corner[0]-this.Shape.Origin[0];
             var dy = corner[1]-this.Shape.Origin[1];
@@ -7754,7 +8035,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             //console.log("a: "+this.Shape.Orientation+", w: "+dx+","+dy+", r: "+rx+","+ry);
 
             this.Shape.Width = Math.abs(2*rx);
-            this.Shape.Length = Math.abs(2*ry);
+            this.Shape.Height = Math.abs(2*ry);
             this.Shape.UpdateBuffers();
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -7795,7 +8076,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                     direction = -1;
                 }
                 if(event.shiftKey) {
-                    this.Shape.Length = this.Shape.Length * ratio;
+                    this.Shape.Height = this.Shape.Height * ratio;
                 }
                 if(event.ctrlKey) {
                     this.Shape.Width = this.Shape.Width * ratio;
@@ -7995,10 +8276,393 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         if (this.UserNoteFlag && SA.notesWidget){SA.notesWidget.EventuallySaveUserNote();}
         if (SAM.NotesWidget && ! this.UserNoteFlag) { SAM.NotesWidget.MarkAsModified(); } // Hack
-        localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
+        localStorage.RectWidgetDefaults = JSON.stringify(
+            {Color: hexcolor, 
+             LineWidth: this.Shape.LineWidth});
     };
 
     SAM.RectWidget = RectWidget;
+
+})();
+// individual rectangles do not scale.  This will handle thousands as one annotation.
+// No rotation for now. No direct interaction for now.
+// No properties dialog for now.
+// Only the world / slide conrdinate system supported.
+// Does nto supprot fixed size 
+
+// How are we going to store them in girder annotations?
+
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
+    // use shape api, bu this is simpler so do not subclass.
+    function RectSet() {
+        // a single array [x,y,x,y,x,y...]
+        this.Centers= [];
+        this.Widths = [];
+        this.Heights = [];
+        this.Labels = [];
+        this.Confidences = [];
+        // Hack to hide rects below a specific confidence.
+        this.Threshold = 0.0;
+
+        // For now, one can be active.  Highlight one
+        this.ActiveIndex = -1;
+    }
+
+    RectSet.prototype.GetLength = function() {
+        return this.Widths.length;
+    }
+
+    RectSet.prototype.GetCenter = function(idx) {
+        idx = idx * 2;
+        return [this.Centers[idx], this.Centers[idx+1]];
+    }
+
+    RectSet.prototype.SetCenter = function(idx,pt) {
+        idx = idx * 2;
+        this.Centers[idx] = pt[0];
+        this.Centers[idx+1] = pt[1];
+    }
+
+    // Set the size (width,height) of all the rectangles.
+    RectSet.prototype.SetShape = function(shape) {
+        for (var i =0; i < this.Widths.length; ++i){
+            this.Widths[i] = shape[0];
+            this.Heights[i] = shape[1];
+        }
+    }
+
+    // Helper for ground truth.
+    RectSet.prototype.CopyRectangle = function(source, inIdx, outIdx) {
+        if (outIdx === undefined) {
+            outIdx = this.Labels.length;
+        }
+        var inTmp = inIdx*2;
+        var outTmp = outIdx*2;
+        this.Centers[outTmp] = source.Centers[inTmp];
+        this.Centers[outTmp+1] = source.Centers[inTmp+1];
+        this.Widths[outIdx] = source.Widths[inIdx];
+        this.Heights[outIdx] = source.Heights[inIdx];
+        this.Labels[outIdx] = source.Labels[inIdx];
+        this.Confidences[outIdx] = source.Confidences[inIdx];
+    }
+
+    RectSet.prototype.AddRectangle = function(center, width, height) {
+        var outIdx = this.Labels.length;
+        this.Centers[outIdx*2] = center[0];
+        this.Centers[outIdx*2+1] = center[1];
+        this.Widths[outIdx] = width;
+        this.Heights[outIdx] = height;
+        this.Labels[outIdx] = "";
+        this.Confidences[outIdx] = 1.0;
+    }
+
+    RectSet.prototype.DeleteRectangle = function(index) {
+        if (index < 0 || index >= this.Widths.length) {
+            return;
+        }
+
+        this.Centers.splice(2*index,2);
+        this.Widths.splice(index,1);
+        this.Heights.splice(index,1);
+        this.Labels.splice(index,1);
+        this.Confidences.splice(index,1);
+        if (this.ActiveIndex == index) {
+            this.ActiveIndex = -1;
+        }
+    }
+
+    RectSet.prototype.SetOutlineColor = function (c) {
+        this.Color = SAM.ConvertColorToHex(c);
+    }
+
+    // do not worry about webGl for now.  Only canvas drawing.
+    // webgl would support more rects I assume.
+    RectSet.prototype.Draw = function (view) {
+        // 2d Canvas -----------------------------------------------
+        view.Context2d.save();
+        // Identity.
+        view.Context2d.setTransform(1,0,0,1,0,0);
+
+        // only supported case: this.PositionCoordinateSystem == Shape.SLIDE
+        var theta = view.Camera.Roll;
+        var matrix0 =  Math.cos(theta);
+        var matrix1 =  Math.sin(theta);
+        var matrix4 = -Math.sin(theta);
+        var matrix5 =  Math.cos(theta);
+
+        var scale = view.Viewport[3] / view.Camera.GetHeight();
+
+        // First transform the origin-world to view.
+        var m = view.Camera.Matrix;
+        var x = m[12]/m[15];
+        var y = m[13]/m[15];
+
+        // convert origin-view to pixels (view coordinate system).
+        x = view.Viewport[2]*(0.5*(1.0+x));
+        y = view.Viewport[3]*(0.5*(1.0-y));
+        view.Context2d.transform(matrix0,matrix1,matrix4,matrix5,x,y);
+
+        view.Context2d.lineWidth = 1;
+        var path = true;
+
+        var cIdx = 0;
+        var x = 0;
+        var y = 0;
+        for (var i = 0; i < this.Widths.length; ++i) {
+            if (this.Confidences[i] >= this.Threshold) {
+                var hw = this.Widths[i]/2;
+                var hh = this.Heights[i]/2;
+                x = this.Centers[cIdx++];
+                y = this.Centers[cIdx++];
+
+                view.Context2d.beginPath();
+                if (this.LabelColors && this.LabelColors[this.Labels[i]]) {
+                    view.Context2d.strokeStyle= this.LabelColors[this.Labels[i]];
+                } else if (this.Color) {
+                    view.Context2d.strokeStyle= this.Color;
+                } else {
+                    // TODO: Put the scale into the canvas transform
+                    // Scalar to color map
+                    var r = Math.floor(this.Confidences[i]*255);
+                    view.Context2d.strokeStyle="#"+r.toString(16)+"ff00";
+                    view.Context2d.beginPath();
+                }
+                view.Context2d.moveTo((x-hw)*scale, (y-hh)*scale);
+                view.Context2d.lineTo((x+hw)*scale, (y-hh)*scale);
+                view.Context2d.lineTo((x+hw)*scale, (y+hh)*scale);
+                view.Context2d.lineTo((x-hw)*scale, (y+hh)*scale);
+                view.Context2d.lineTo((x-hw)*scale, (y-hh)*scale);
+                view.Context2d.stroke();
+
+                if (i == this.ActiveIndex) {
+                    // mark the rectangle
+                    view.Context2d.beginPath();
+                    view.Context2d.strokeStyle="#00ffff";
+                    view.Context2d.moveTo((x-hw)*scale, y*scale);
+                    view.Context2d.lineTo((x-hw/2)*scale, y*scale);
+                    view.Context2d.moveTo((x+hw)*scale, y*scale);
+                    view.Context2d.lineTo((x+hw/2)*scale, y*scale);
+                    view.Context2d.moveTo(x*scale, (y-hh)*scale);
+                    view.Context2d.lineTo(x*scale, (y-hh/2)*scale);
+                    view.Context2d.moveTo(x*scale, (y+hh)*scale);
+                    view.Context2d.lineTo(x*scale, (y+hh/2)*scale);
+                    view.Context2d.stroke();
+                }
+            } else {
+                cIdx += 2;
+            }
+        }
+    }
+
+
+    function RectSetWidget (layer, newFlag) {
+        this.Visibility = true;
+        // Keep track of annotation created by students without edit
+        // permission.
+        this.UserNoteFlag = ! SA.Edit;
+
+        if (layer === null) {
+            return;
+        }
+
+        this.Shape = new RectSet();
+        if (layer) {
+            this.Layer = layer;
+            this.Layer.AddWidget(this);
+        }
+        this.Active = false;
+    };
+
+    RectSetWidget.prototype.GetLength = function() {
+        return this.Shape.Widths.length;
+    }
+
+    // Sort by confidences
+    // Note: Not used yet.
+    RectSetWidget.prototype.Sort = function(lowToHigh) {
+        // Create an array to sort that also keeps the indexes.
+        var sortable = new Array(this.Confidences.length);
+        var reverse =1;
+        if (lowToHigh) {
+            reverse = -1;
+        }
+        for (var i=0; i < sortable.length; ++i) {
+            sortable[i] = {conf:reverse*this.Confidences[i], idx:i};
+        }
+        sortable.sort(function (a, b) {
+            if (a.conf > b.conf) {
+                return 1;
+            }
+            if (a.conf < b.conf) {
+                return -1;
+            }
+            // a must be equal to b
+            return 0;
+        });
+        // Update all arrays.
+        var newConfidences = new Array(this.Confidences.length);
+        var newCenters = new Array(this.Centers.length);
+        var newLabels = new Array(this.Centers.length);
+        for (var i = 0; i < newConfidences.length; ++i) {
+            var i2 = sortable[i].idx;
+            newLabels[i] = this.Labels[i2];
+            newConfidences[i] = this.Confidences[i2];
+            i2 = i2 * 2;
+            newCenters[2*i] = this.Centers[i2];
+            newCenters[2*i+1] = this.Centers[i2+1];
+        }
+        this.Centers = newCenters;
+        this.Confidences = newConfidences;
+        this.Labels = newLabels;
+    }
+
+
+
+    // Threshold above is the only option for now.
+    RectSetWidget.prototype.SetThreshold = function(threshold) {
+        this.Shape.Threshold = threshold;
+    }
+
+    RectSetWidget.prototype.Draw = function(view) {
+        if (this.Visibility) {
+            this.Shape.Draw(view);
+        }
+    }
+
+    RectSetWidget.prototype.Serialize = function() {
+        if(this.Shape === undefined){ return null; }
+
+        var obj = {type: "rect_set"};
+        if (this.UserNoteFlag !== undefined){
+            obj.user_note_flag = this.UserNoteFlag;
+        }
+        if (this.Shape.Color) {
+            obj.color = SAM.ConvertColor(this.Shape.Color);
+        }
+        var num = this.Shape.Widths.length;
+        obj.confidences = new Array(num);
+        obj.widths = new Array(num);
+        obj.heights = new Array(num);
+        obj.labels = new Array(num);
+        obj.centers = new Array(num*2);
+        for (var i = 0; i < num; ++i) {
+            obj.widths[i] = this.Shape.Widths[i];
+            obj.heights[i] = this.Shape.Heights[i];
+            obj.confidences[i] = this.Shape.Confidences[i];
+            obj.centers[i] = this.Shape.Centers[i];
+            obj.centers[i+num] = this.Shape.Centers[i+num];
+            obj.labels[i] = this.Shape.Labels[i];
+        }
+        return obj;
+    }
+
+    // Load a widget from a json object (origin MongoDB).
+    RectSetWidget.prototype.Load = function(obj) {
+        this.UserNoteFlag = obj.user_note_flag;
+        if (obj.color) {
+            this.Shape.Color = [parseFloat(obj.color[0]),
+                                parseFloat(obj.color[1]),
+                                parseFloat(obj.color[2])];
+        }
+        var num = obj.widths.length;
+        this.Shape.Confidences = new Array(num);
+        this.Shape.Labels = new Array(num);
+        this.Shape.Widths = new Array(num);
+        this.Shape.Heights = new Array(num);
+        this.Shape.Centers = new Array(num*2);
+        for (var i = 0; i < num; ++i) {
+            this.Shape.Widths[i] = parseFloat(obj.widths[i]);
+            this.Shape.Heights[i] = parseFloat(obj.heights[i]);
+            this.Shape.Confidences[i] = parseFloat(obj.confidences[i]);
+            if (obj.labels) {
+                this.Shape.Labels[i] = obj.labels[i];
+            } else {
+                this.Shape.Labels[i] = "";
+            }
+            this.Shape.Centers[i] = parseFloat(obj.centers[i]);
+            this.Shape.Centers[i+num] = parseFloat(obj.centers[i+num]);
+        }
+    }
+
+    RectSetWidget.prototype.HandleDoubleClick = function(event) {
+        return true;
+    }
+
+    /*
+    RectSetWidget.prototype.HandleMouseDown = function(event) {
+        var index = this.Shape.ActiveIndex;
+        if (index < 0 || index >= this.Shape.Widths.length) {
+            return true;
+        }
+        if (event.which != 1) {
+            return true;
+        }
+        // find the world location of the event.
+        var x = event.offsetX;
+        var y = event.offsetY;
+        var pt = this.Layer.GetCamera().ConvertPointViewerToWorld(x, y);
+        this.Shape.Centers[2*index] = pt[0];
+        this.Shape.Centers[2*index+1] = pt[1];
+        // Click to center and move to the next.
+        this.Shape.Labels[index] = "car";
+        this.ChangeActive(1);
+        return false;
+    }*/
+
+    RectSetWidget.prototype.HandleMouseUp = function(event) {
+        return true;
+    }
+
+    RectSetWidget.prototype.HandleMouseMove = function(event) {
+        return true;
+    }
+
+    RectSetWidget.prototype.HandleMouseWheel = function(event) {
+        return true;
+    }
+
+    RectSetWidget.prototype.HandleTouchPan = function(event) {
+        return true;
+    }
+
+    RectSetWidget.prototype.HandleTouchPinch = function(event) {
+        return true;
+    }
+
+    RectSetWidget.prototype.HandleTouchEnd = function(event) {
+        return true;
+    }
+
+    RectSetWidget.prototype.CheckActive = function(event) {
+        return this.Active;
+    }
+
+    // Multiple active states. Active state is a bit confusing.
+    RectSetWidget.prototype.GetActive = function() {
+        return this.Active;
+    }
+
+    RectSetWidget.prototype.RemoveFromLayer = function() {
+        if (this.Layer) {
+            this.Layer.RemoveWidget(this);
+        }
+        this.Layer = null;
+    }
+
+    RectSetWidget.prototype.Deactivate = function() {
+    }
+
+    RectSetWidget.prototype.PlacePopup = function () {
+    }
+
+    RectSetWidget.prototype.ShowPropertiesDialog = function () {
+    }
+
+    SAM.RectSetWidget = RectSetWidget;
+    SAM.RectSet = RectSet;
 
 })();
 
@@ -9963,10 +10627,25 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             }
             if (widget.type == "rect") {
                 element = {'type'     : 'rectangle',
+                           'label'    : {'value':'test'},
                            'center'   : widget.origin,
                            'height'   : widget.height,
                            'width'    : widget.width,
                            'rotation' : widget.orientation};
+            }
+            if (widget.type == "rect_set") {
+                var num = widget.widths.length;
+                for (var j = 0; j < num; ++j) {
+                    element = {'type'     : 'rectangle',
+                               'label'    : {'value':widget.labels[j]},
+                               'center'   : [widget.centers[2*j], widget.centers[2*j+1], 0],
+                               'height'   : widget.heights[j],
+                               'width'    : widget.widths[j],
+                               'rotation' : 0,
+                               'scalar'   : widget.confidences[j]};
+                    returnElements.push(element);
+                }
+                element = undefined;
             }
             if (widget.type == "polyline") {
                 // add the z coordinate
@@ -10146,6 +10825,15 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
         this.AnnotationLayer.Reset();
 
+        // Put all the rectangles into one set.
+        var set_obj = {};
+        set_obj.type = "rect_set";
+        set_obj.centers = [];
+        set_obj.widths = [];
+        set_obj.heights = [];
+        set_obj.confidences = [];
+        set_obj.labels = [];
+
         var annot = annotObj.Data.annotation;
         for (var i = 0; i < annot.elements.length; ++i) {
             var element = annot.elements[i];
@@ -10204,14 +10892,30 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 this.AnnotationLayer.LoadWidget(obj);
             }
             if (element.type == "rectangle") {
-                obj.type = "rect",
-                obj.outlinecolor = SAM.ConvertColor(element.lineColor);
-                obj.linewidth = element.lineWidth;
-                obj.origin = element.center;
-                obj.width = element.width;
-                obj.length = element.height;
-                obj.orientation = element.rotation;
-                this.AnnotationLayer.LoadWidget(obj);
+                if (true) {
+                    set_obj.widths.push(element.width);
+                    set_obj.heights.push(element.height);
+                    set_obj.centers.push(element.center[0]);
+                    set_obj.centers.push(element.center[1]);
+                    if (element.scalar === undefined) {
+                        element.scalar = 1.0;
+                    }
+                    set_obj.confidences.push(element.scalar);
+                    if (element.label) {
+                        set_obj.labels.push(element.label.value);
+                    } else {
+                        set_obj.labels.push("");
+                    }
+                } else {
+                    obj.type = "rect",
+                    obj.outlinecolor = SAM.ConvertColor(element.lineColor);
+                    obj.linewidth = element.lineWidth;
+                    obj.origin = element.center;
+                    obj.width = element.width;
+                    obj.length = element.height;
+                    obj.orientation = element.rotation;
+                    this.AnnotationLayer.LoadWidget(obj);
+                }
             }
             if (element.type == "polyline") {
                 obj.type = element.type;
@@ -10222,12 +10926,913 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
                 this.AnnotationLayer.LoadWidget(obj);
             }
         }
+
+        if (set_obj.widths.length > 0) {
+            this.AnnotationLayer.LoadWidget(set_obj);
+        }
+
         this.AnnotationLayer.EventuallyDraw();
     }
 
     SAM.GirderWidget = GirderWidget;
 
 })();
+//==============================================================================
+// Collection widget, No serialize or load.
+// Manage 3 annotation sets,  detection, posives (ground truth) and false positives.
+// Sort the detections into the positive anntoations.
+// These will be stored in three different rect sets.
+// Create my own layer.
+
+// We might make this a widget (and forward methods like draw) so we can
+// handle mouse events.
+
+(function () {
+    "use strict";
+
+    // making the widget always active.
+    // Two states
+    var WAITING = 0;
+    var ITERATING = 1;
+
+    // action states
+    var KEY_UP = 0;
+    var KEY_DOWN = 1;
+    var KEY_USED_ADVANCE = 2
+    var KEY_USED_NO_ADVANCE = 3
+
+    function GroundTruth (parent, detectionsId, classes, layer) {
+        this.Layer = layer;
+
+        this.InteractionState = WAITING;
+
+        // Combined key click action.
+        this.ActionState = KEY_UP;
+
+        // First class is special, it represents the input detections.
+        var detectionClass ={label:"detection",
+                             annotation_id:detectionsId};
+        this.Classes = [].concat([detectionClass], classes);
+        // assign colors to the labels
+        // detections will be yellow
+        var num_classes = this.Classes.length
+        // Detection class is yellow.
+        if (num_classes > 0) {
+            this.Classes[0].color = '#FFFF00';
+        }
+        if (num_classes > 1) { // Second (false positive) is red
+            this.Classes[1].color = '#FF0000';
+        }
+        if (num_classes > 2) { // last (true positive) is green
+            this.Classes[num_classes-1].color = "#00FF00";
+        }
+        // the rest will range from purple to cyan
+        for (var i = 2; i < num_classes-1; ++i) {
+            var k = (i-2) / (num_classes-4);
+            this.Classes[i].color = SAM.ConvertColorToHex([k,1-k,1]);
+        }
+
+        this.InitializeGui(parent,"GroundTruth");
+        this.InitializeAnnotation();
+
+        this.Layer.AddWidget(this);
+        // Mode: stepping through ( and processing events).
+        this.IteratorIndex = -1;
+        // Hover selection
+        this.HighlightedRect = {widget:undefined, idx:-1};
+
+        // active class is highlighted in the gui.
+        // It is the class used for clicks
+        this.ActiveClassIndex = 0;
+        this.SetActiveClassIndex(num_classes-1);
+    }
+
+    // Returns true if it was a valid class index.
+    GroundTruth.prototype.SetActiveClassIndex = function(idx) {
+        if (idx < 0 || idx >= this.Classes.length) {
+            return false;
+        }
+        this.Classes[this.ActiveClassIndex].gui
+            .css({'background-color':'#FFF'});
+        this.ActiveClassIndex = idx;
+        this.Classes[idx].gui
+            .css({'background-color':'#DEF'});
+        this.SetCursorColor(this.Layer.GetCanvasDiv(), this.Classes[idx].color);
+        return false;
+    }
+
+    GroundTruth.prototype.GetActive = function() {
+        //return this.IteratorIndex > -1;
+        return true;
+    }
+
+    GroundTruth.prototype.Draw = function(view) {
+        for (var i = 0; i < this.Classes.length; ++i) {
+            if (this.Classes[i].widget) {
+                this.Classes[i].widget.Draw(view);
+            }
+        }
+    }
+
+    // Highlight on hover.
+    GroundTruth.prototype.HandleMouseMove = function(event) {
+        if (event.which != 0) { return; }
+        var cam = this.Layer.GetCamera();
+        var pt = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        var rectRadius = this.RectSize / 2;
+        var best;
+        for (var i = 0; i < this.Classes.length; ++i) {
+            if (this.Classes[i].widget) {
+                var tmp = this.Classes[i].widget.Hash.Get(pt, rectRadius);
+                tmp.classObj = this.Classes[i];
+                if ( ! best || tmp.dist < best.dist) {
+                    best = tmp;
+                }
+            }
+        }
+
+        if (best) {
+            this.SetHighlightedRect(best.classObj, best.idx);
+        }
+
+        return true;
+    }
+
+    // Stepping through the detection sequence.
+    // -1 is none
+    GroundTruth.prototype.SetIteratorIndex = function(idx) {
+        // Highilght the current
+        this.SetHighlightedRect(this.Classes[0], idx);
+        this.IteratorIndex = idx;
+        // Animate to put this rec in the middle of the view.
+        this.UpdateActiveView();
+    }
+
+    // The highlighted rect (sometimes the same as the
+    // iteration index / rect).
+    GroundTruth.prototype.SetHighlightedRect = function(classObj, idx) {
+        var widget = classObj.widget;
+        // No change,  just return.
+        if (this.HighlightedRect && this.HighlightedRect.idx == idx && this.HighlightedRect.widget == widget) {
+            return;
+        }
+
+        // Remove the highlight fromthe previous.
+        if (this.HighlightedRect.idx > -1) {
+            this.HighlightedRect.widget.Shape.ActiveIndex = -1;
+            this.HighlightedRect.idx = -1;
+        }
+
+        if (this.InteractionState == ITERATING && idx == -1) {
+            // Unset => go back to the default current rect.
+            widget = this.Classes[0].widget;
+           idx = this.IteratorIndex;
+        }
+
+        if (idx > -1) {
+            // Add the new highlight.
+            widget.Shape.ActiveIndex = idx;
+            this.HighlightedRect = {widget:widget, idx:idx};
+            // A selected rect has to respond to keys that change its label.
+            this.Layer.LayerDiv.focus();
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    // Actions are taken on key up.  Key down sets up a modifier in case a
+    // mouse click is handled before the keyup.  This is only necesary when
+    // iterating.  Mouse click changes the class label and advances.  The
+    // keydown determines the label.
+    GroundTruth.prototype.HandleKeyDown = function(event) {
+        // Always active now.
+        if (this.InteractionState == ITERATING) {
+            if (this.ActionState != KEY_UP) {
+                return false;
+            }
+            if (event.keyCode > 48 && event.keyCode < 48+this.Classes.length) {
+                this.ActionState = KEY_DOWN;
+            }
+        }
+        var valid = this.SetActiveClassIndex(event.keyCode-48);
+        // Keep the viewer from panning on the arrows when iterating.
+        if (valid || this.InteractionState == ITERATING) {
+            return false;
+        }
+
+        // Let the viewer pan with arrows.
+        return true;
+    }
+    GroundTruth.prototype.HandleKeyUp = function(event) {
+        var direction = 0;
+        var self = this;
+
+        // Handle the complex decision to adavance or not.
+        // If the key only modified a click, do not advance.
+        if (this.InteractionState == ITERATING) {
+            // Mouse click (with key modifier) was used to add an annotation
+            // outside the sequence and no advancement is necessary.
+            if (this.ActionState == KEY_USED_NO_ADVANCE) {
+                this.ActionState = KEY_UP;
+                return false;
+            }
+            // Mouse click (with key modifier) was used to recenter an
+            // annotation inside the sequences. We need to advance.
+            if (this.ActionState == KEY_USED_ADVANCE) {
+                // Just advance to the next
+                setTimeout(function () { self.ChangeCurrent(1)}, 300);
+                this.ActionState = KEY_UP;
+                return false;
+            }
+            this.ActionState = KEY_UP;
+            // Escape key stops iteration.
+            if (event.keyCode == 27) { // escape
+                this.Stop();
+                return false;
+            }
+        }
+
+        var rectIdx = this.HighlightedRect.idx;
+        if (rectIdx > -1) {
+            // A rectancle is highlighted
+            var rectWidget = this.HighlightedRect.widget;
+            var rectSet = rectWidget.Shape;
+
+            // Change the class of the highlighted rect.
+            var classIdx = event.keyCode - 48;
+            if (classIdx >= 0 && classIdx < this.Classes.length) {
+                var classLabel = this.Classes[classIdx].label;
+                // set a class label of a single detection
+                rectSet.Labels[rectIdx] = classLabel;
+                this.Layer.EventuallyDraw();
+                // Automatically move to the next, to save clicks.
+                if (this.InteractionState == ITERATING &&
+                    rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex) {
+                    setTimeout(function () { self.ChangeCurrent(1)}, 300);
+                }
+                return false;
+            }
+
+            // Delete applies to the selected / highlighted rect.
+            if (event.keyCode == 46) { // Delete key
+                // remove the rectangle
+                rectSet.DeleteRectangle(rectIdx);
+                // Rebuild the hash.
+                // I could do this incrementally but I am lazy.
+                var bds = this.Layer.GetViewer().GetOverViewBounds();
+                rectWidget.Hash.Build(rectWidget.Shape.Centers,bds);
+                // Deleted rect was in the detection set while iterating
+                if (this.InteractionState == ITERATING &&
+                    rectWidget == this.Classes[0].widget) {
+                    // If we deleted a rect before the current, ...
+                    if (rectIdx < this.IteratorIndex) {
+                        this.SetIteratorIndex(this.IteratorIndex-1);
+                    } else if (rectIdx == this.IteratorIndex) {
+                        // Animate to the next (rectIdx does not actually
+                        // change). Hack to find next under threshold
+                        this.IteratorIndex -= 1;
+                        // hack to get the next to highlight
+                        this.HighlightedRect.idx -=1;
+                        setTimeout(function () { self.ChangeCurrent(1)}, 300);
+                    }
+                }
+                this.Layer.EventuallyDraw();
+                return false;
+            }
+        }
+
+        // Forward and backward.
+        if (this.InteractionState == ITERATING) {
+            var rectSet = this.Classes[0].widget.Shape;
+            var index = this.IteratorIndex;
+            if (event.keyCode == 40) {
+                // down cursor key
+                // Move to the previous without a label
+                while (index < rectSet.Widths.length) {
+                    if (rectSet.Labels[index] == "detection") {
+                        this.SetIteratorIndex(index);
+                        return false;
+                    }
+                    index += 1;
+                }
+                // Got to end without finding one.
+                this.Layer.DeactivateWidget(this);
+                return false;
+            } else if (event.keyCode == 37) {
+                // Left cursor key
+                this.ChangeCurrent(-1);
+                return false;
+            } else if (event.keyCode == 39) {
+                // Right cursor key
+                this.ChangeCurrent(1);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Animate to the new current rect.
+    GroundTruth.prototype.UpdateActiveView = function () {
+        if ( this.Classes[0].widget === undefined) {
+            return true;
+        }
+
+        var rectSet = this.Classes[0].widget.Shape;
+
+        // Change the index / confidence label.
+        var idx = this.IteratorIndex;
+        if (idx < 0) {
+            this.ActiveLabel.text("detection");
+            return;
+        } else {
+            this.ActiveLabel.text(idx.toString() + " of " +
+                                  rectSet.Labels.length.toString() + ", " +
+                                  rectSet.Confidences[idx].toPrecision(2) +
+                                  ", " + rectSet.Labels[idx]);
+        }
+
+        var viewer = this.Layer.GetViewer();
+        var cam = viewer.GetCamera();
+        //viewer.ZoomTarget = this.Layer.GetCamera().GetHeight();
+        viewer.RollTarget = this.Layer.GetCamera().Roll;
+        viewer.TranslateTarget = rectSet.GetCenter(this.IteratorIndex);
+        viewer.AnimateLast = new Date().getTime();
+        viewer.AnimateDuration = 200.0;
+        viewer.EventuallyRender(true);
+    }
+
+    // Forward = 1, backward = -1
+    GroundTruth.prototype.ChangeCurrent = function(direction) {
+        if ( this.Classes[0].widget === undefined) {
+            return true;
+        }
+        var rectSet = this.Classes[0].widget.Shape;
+        var index = this.IteratorIndex;
+
+        // loop to skip rects below the threshold
+        while (true) {
+            index += direction;
+            if (index < 0 || index >= rectSet.Widths.length) {
+                this.Stop();
+                return;
+            }
+            if (rectSet.Confidences[index] >= rectSet.Threshold) {
+                this.SetIteratorIndex(index);
+                return;
+            }
+        }
+    }
+
+    GroundTruth.prototype.HandleClick = function(event) {
+        if (event.which != 1) {
+            return true;
+        }
+        // Compute the new center
+        var cam = this.Layer.GetCamera();
+        var pt = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+
+        var classIdx = this.ActiveClassIndex;
+        var classLabel = this.Classes[classIdx].label;
+
+        var rectIdx = this.HighlightedRect.idx;
+        var rectWidget = this.HighlightedRect.widget;
+        var rectSet;
+        // If the click is inside the current detection, reposition it.
+        if (rectWidget) {
+            rectSet = rectWidget.Shape;
+            var c = rectSet.GetCenter(rectIdx);
+            var dx = Math.abs(pt[0] - c[0]);
+            var dy = Math.abs(pt[1] - c[1]);
+            if (rectIdx > -1 && rectIdx < rectSet.GetLength() &&
+                dx < this.RectSize / 2 && dy < this.RectSize / 2) {
+                rectSet.Labels[rectIdx] = classLabel;
+                rectSet.SetCenter(rectIdx, pt);
+                this.Layer.EventuallyDraw();
+                // Advance if user clicked on the one iterating rectangle
+                if (this.InteractionState == ITERATING &&
+                    rectWidget == this.Classes[0].widget && rectIdx == this.IteratorIndex){
+                    var self = this;
+                    // If a key is being used as amodified, stop advaning twice.
+                    // SHould we advance on the mouse up or key up?
+                    // Lets try mouse up.
+                    // work right
+                    if (this.ActionState == KEY_DOWN) {
+                        this.ActionState = KEY_USED_NO_ADVANCE;
+                    }
+                    setTimeout(function () { self.ChangeCurrent(1)}, 300);
+                }
+                return false;
+            }
+        }
+
+        // Add a new annotation
+        // Click defaults to the last class.
+        if (classIdx >= 0 && classIdx < this.Classes.length) {
+            rectWidget = this.Classes[classIdx].widget;
+            rectSet = rectWidget.Shape;
+            rectSet.AddRectangle(pt, this.RectSize, this.RectSize);
+            rectSet.Labels[rectSet.GetLength()-1] = classLabel;
+            // incrementally update the hash here.
+            rectWidget.Hash.Add(pt,rectWidget.GetLength()-1);
+            this.Layer.EventuallyDraw();
+            // Keep the key up (if a key is pressed) from advancing
+            if (this.ActionState == KEY_DOWN) {
+                this.ActionState = KEY_USED_NO_ADVANCE;
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    GroundTruth.prototype.CheckActive = function(event) {
+        //return this.GetActive();
+        // Changing to alwasy acive so annotations can be changed and added
+        // in the waiting state.
+        return true;
+    }
+
+    // Initialize the gui / dom
+    GroundTruth.prototype.InitializeGui = function (parent, label) {
+        var self = this;
+
+        // The wrapper div that controls a single layer.
+        var layer_control = $('<div>')
+            .appendTo(parent)
+            .css({ 'border': '1px solid #CCC', 'width': '100%'});
+
+        this.ActiveLabel =
+            $('<div>').appendTo(layer_control)
+            .prop('title', "Start sorting detections")
+            .attr('contenteditable', "false")
+            .text("");
+
+        var sizeContainer =
+            $('<p>').appendTo(layer_control);
+        this.SizeLabel =
+            $('<label>').appendTo(sizeContainer)
+            .text("Size:  ");
+        this.SizeInput =
+            $('<input type="number">').appendTo(sizeContainer)
+            .prop('title', "Change the size of the glyphs")
+            .on('change', function(){self.ChangeSize();});
+
+        var buttonContainer =
+            $('<p>').appendTo(layer_control);
+        this.StartStopButton =
+            $('<button>').appendTo(buttonContainer)
+            .text("Start")
+            .css({'background-color':'#5F5'})
+            .prop('title', "Start sorting detections")
+            //.button()
+            .css({'width':'5em'})
+            .on('click', function(){self.Start();});
+        var saveButton =
+            $('<button>').appendTo(buttonContainer)
+            .text("Save")
+            .prop('title', "Save annotations to server")
+            .click(function(){self.Save();});
+
+        // Wrapper for the confidence slider.
+        var conf_wrapper = $('<div>')
+            .appendTo(layer_control)
+            .css({ 'border': '1px solid #CCC', 'width': '100%', 'height':'50px'});
+
+        this.Slider = $('<input type="range" min="0" max="100">')
+            .appendTo(conf_wrapper)
+            .on('input',
+                function(){
+                    self.SliderCallback();
+                });
+        //this.Slider[0].min = 75;
+
+        var min_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("0%")
+            .css({ 'float': 'left' });
+
+        var max_label = $('<div>')
+            .appendTo(conf_wrapper)
+            .html("100%")
+            .css({ 'float': 'right' });
+
+        var classContainer =
+            $('<p>').appendTo(layer_control);
+        for (var i = 0; i < this.Classes.length; ++i) {
+            this.MakeClassButton(classContainer, i);
+        }
+    }
+
+    GroundTruth.prototype.MakeClassButton = function(classContainer, index) {
+        var self = this;
+        var classObj = this.Classes[index];
+        classObj.gui = $('<div>')
+            .appendTo(classContainer)
+            .text((index).toString() + ": " + classObj.label)
+            .css({'color':classObj.color})
+            .click(function() {self.SetActiveClassIndex(index);});
+    }
+
+
+
+
+
+
+    GroundTruth.prototype.InitializeAnnotation = function() {
+        this.RequestAnnotationItem(this.Classes[0]);
+        for (var i = 0; i < this.Classes.length; ++i) {
+            this.RequestAnnotationItem(this.Classes[i]);
+        }
+    }
+
+    GroundTruth.prototype.UpdateHash = function() {
+        var bds = this.Layer.GetViewer().GetOverViewBounds();
+        this.Classes[0].widget.Hash.Build(this.Classes[0].widget.Shape.Centers,bds);
+        for (var i = 0; i < this.Classes.length; ++i) {
+            var widget = this.Classes[i].widget;
+            widget.Hash.Build(widget.Shape.Centers,bds);
+        }
+    }
+
+    /*
+    GroundTruth.prototype.LoadGirderImageItem = function(itemId) {
+        //var itemId = "564e42fe3f24e538e9a20eb9";
+        // I think data is the wron place to pass these parameters.
+        var data= {"limit": 50,
+                   "offset": 0,
+                   "sort":"lowerName",
+                   "sortdir":0};
+
+        var self = this;
+        // This gives an array of {_id:"....",annotation:{name:"...."},itemId:"...."}
+        girder.restRequest({
+            path:   "annotation?itemId="+itemId,
+            method: "GET",
+            data:   JSON.stringify(data)
+        }).done(function(data) {
+            for (var i = 0; i < data.length; ++i) {
+                self.LoadAnnotationItem(data[i]._id);
+            }
+        });
+    }
+    */
+
+    GroundTruth.prototype.RequestAnnotationItem = function(class_obj) {
+        //var annotId = "572be29d3f24e53573aa8e91";
+        var self = this;
+        if (window.girder) {
+            girder.restRequest({
+                path: 'annotation/' + class_obj.annotation_id,
+                method: 'GET',
+                contentType: 'application/json',
+            }).done(function(data) {
+                self.LoadAnnotation(data, class_obj);
+            });
+        } else {
+            alert("No girder");
+        }
+    }
+
+    // TODO: Share this code (to parse girder data) with girderWidget.
+    GroundTruth.prototype.LoadAnnotation = function(data, class_obj) {
+        // Used for saving the annotation back to girder.
+        class_obj.annotation = data.annotation;
+
+        // Put all the rectangles into one set.
+        var set_obj = {};
+        set_obj.type = "rect_set";
+        set_obj.centers = [];
+        set_obj.widths = [];
+        set_obj.heights = [];
+        set_obj.confidences = [];
+        set_obj.labels = [];
+
+        var annot = data.annotation;
+        for (var i = 0; i < annot.elements.length; ++i) {
+            var element = annot.elements[i];
+            var obj = {};
+
+            if (element.type == "rectangle") {
+                set_obj.widths.push(element.width);
+                set_obj.heights.push(element.height);
+                set_obj.centers.push(element.center[0]);
+                set_obj.centers.push(element.center[1]);
+                if (element.scalar === undefined) {
+                    element.scalar = 1.0;
+                }
+                set_obj.confidences.push(element.scalar);
+                // ignore the database label because we use our own
+                set_obj.labels.push(class_obj.label);
+            }
+        }
+
+        var widget = new SAM.RectSetWidget();
+        widget.Load(set_obj);
+        widget.Hash = new SpatialHash();
+        var bds = this.Layer.GetViewer().GetOverViewBounds();
+        widget.Hash.Build(widget.Shape.Centers,bds);
+
+        // We want to color by labels (not widget)
+        var shape = widget.Shape;
+        if ( ! shape.LabelColors) {
+            shape.LabelColors = {};
+            // Colors setup in contructor.
+            for (var i = 0; i < this.Classes.length; ++i) {
+                shape.LabelColors[this.Classes[i].label] = this.Classes[i].color;
+            }
+        }
+
+        class_obj.widget = widget;
+        widget.Shape.SetOutlineColor(class_obj.color);
+        this.Layer.EventuallyDraw();
+    }
+
+    GroundTruth.prototype.CheckCallback = function () {
+    //    var checked = this.CheckBox.prop('checked');
+    //    for (var i = 0; i < this.Layers.length; ++i) {
+    //        this.Layers[i].SetVisibility(checked);
+    //        this.Layers[i].EventuallyDraw();
+    //    }
+    }
+
+    GroundTruth.prototype.SliderCallback = function () {
+    //    for (var i = 0; i < this.Layers.length; ++i) {
+    //        this.UpdateLayer(this.Layers[i]);
+    //    }
+    }
+
+    GroundTruth.prototype.Start = function () {
+        var self = this;
+        // Now always active
+        //this.Layer.ActivateWidget(this);
+        this.InteractionState = ITERATING;
+        this.Layer.LayerDiv.focus();
+
+        // zoom in
+        var viewer = this.Layer.GetViewer();
+        var cam = viewer.GetCamera();
+        viewer.ZoomTarget = 500;
+
+        // TODO: abstract the highlighting to clean it up.
+        this.SetIteratorIndex(0);
+        //if (this.Classes[0].widget) {
+        //    this.Classes[0].widget.Shape.ActiveIndex = 0;
+        //    this.UpdateActiveView();
+        //}
+
+        this.StartStopButton
+            .text("Stop")
+            .css({'background-color':'#F55'})
+            .prop('title', "Stop sorting detections")
+            .on('click', function(){self.Stop();});
+    }
+    GroundTruth.prototype.Stop = function () {
+        var self = this;
+        //this.Layer.DeactivateWidget(this);
+        this.InteractiveState = WAITING;
+        this.SetIteratorIndex(-1);
+        //if (this.Classes[0].widget) {
+        //    this.Classes[0].widget.Shape.ActiveIndex = -1;
+        //}
+        this.StartStopButton
+            .text("Start")
+            .css({'background-color':'#5F5'})
+            .prop('title', "Start sorting detections")
+            .on('click', function(){self.Start();});
+    }
+
+    GroundTruth.prototype.SetSize = function (size) {
+        this.SizeInput.val(size.toString());
+        this.RectSize = size;
+        // This might not be necessary. Change event might trigger it for us.
+        this.ChangeSize();
+    }
+
+    GroundTruth.prototype.ChangeSize = function () {
+        var size = parseInt(this.SizeInput.val());
+        this.RectSize = size;
+        if (this.Classes[0].widget) {
+            this.Classes[0].widget.Shape.SetShape([size,size]);
+        }
+        for (var i = 0; i < this.Classes.length; ++i) {
+            var widget = this.Classes[i].widget;
+            if (widget) {
+                widget.Shape.SetShape([size,size]);
+            }
+        }
+        this.Layer.EventuallyDraw();
+    }
+
+    // Move labeled rects in detections to classes.
+    // Called before annotations are saved to 
+    GroundTruth.prototype.SplitDetections = function () {
+        var detections = this.Classes[0].widget.Shape;
+        // Build an object to make indexing classes easier.
+        var shapes = {}
+        for (var i = 0; i < this.Classes.length; ++i) {
+            shapes[this.Classes[i].label] = this.Classes[i];
+            // Create a new rectSet for each class.
+            // Best way to deal with the shuffle.
+            this.Classes[i].newRectSet = new SAM.RectSet();
+            this.Classes[i].newRectSet.LabelColors = this.Classes[i].widget.Shape.LabelColors;
+        }
+
+        for (var i = 0; i < this.Classes.length; ++i) {
+            var inRectSet = this.Classes[i].widget.Shape;
+            for (var inIdx = 0; inIdx < inRectSet.GetLength(); ++inIdx) {
+                var label = inRectSet.Labels[inIdx];
+                var outRectSet = shapes[label].newRectSet;
+                outRectSet.CopyRectangle(inRectSet, inIdx,
+                                         outRectSet.GetLength());
+            }
+        }
+
+        // Now keep the new rectsets and dispose of the old.
+        for (var i = 0; i < this.Classes.length; ++i) {
+            this.Classes[i].widget.Shape = this.Classes[i].newRectSet;
+            delete this.Classes[i].newRectSet;
+        }
+
+        this.UpdateHash();
+    }
+
+    GroundTruth.prototype.Save = function () {
+        this.Classes[0].widget.Deactivate();
+        this.SplitDetections();
+        if (window.girder) {
+            // Save in the database
+            var annotation = this.Classes[0].annotation;
+            annotation.elements = this.RectSetToGirderElements(this.Classes[0].widget);
+            SA.PushProgress();
+            girder.restRequest({
+                path:  "annotation/"+this.Classes[0].annotation_id,
+                method: 'PUT',
+                data: JSON.stringify(annotation),
+                contentType:'application/json'
+            }).done(function(){SA.PopProgress();});
+            for (var i = 0; i < this.Classes.length; ++i) {
+                var widget = this.Classes[i].widget;
+                var annotation = this.Classes[i].annotation;
+                annotation.elements = this.RectSetToGirderElements(widget);
+                SA.PushProgress();
+                // not sure about this id
+                girder.restRequest({
+                    path:  "annotation/"+this.Classes[i].annotation_id,
+                    method: 'PUT',
+                    data: JSON.stringify(annotation),
+                    contentType:'application/json'
+                }).done(function(){SA.PopProgress();});
+            }
+            this.Layer.EventuallyDraw();
+        }
+    }
+
+    // Converts rectSetWidget into girder annotation elements.
+    // returns an elements array.
+    GroundTruth.prototype.RectSetToGirderElements = function(rectSetWidget) {
+        var returnElements = [];
+
+        var widget = rectSetWidget.Serialize();
+        var num = widget.widths.length;
+        for (var j = 0; j < num; ++j) {
+            var element = {'type'     : 'rectangle',
+                           'label'    : {'value':widget.labels[j]},
+                           'center'   : [widget.centers[2*j], widget.centers[2*j+1], 0],
+                           'height'   : widget.heights[j],
+                           'width'    : widget.widths[j],
+                           'rotation' : 0,
+                           'scalar'   : widget.confidences[j]};
+            returnElements.push(element);
+        }
+        return returnElements;
+    }
+
+    // Now we are always active.  We have interaction state == ITERATING to
+    // indicate cycling through annotations one by one.
+    GroundTruth.prototype.SetActive = function(active) {
+        if (active == this.Active) {
+            return;
+        }
+        this.Active = active;
+        this.Layer.EventuallyDraw();
+    }
+
+    GroundTruth.prototype.SetCursorColor = function(element, color) {
+        // create off-screen canvas
+        var cursor = document.createElement('canvas');
+        var ctx = cursor.getContext('2d');
+
+        cursor.width = 16;
+        cursor.height = 24;
+
+        // draw an arrow
+
+        //ctx.lineWidth = 1;
+        ctx.moveTo(0, 18);
+        ctx.lineTo(0, 0); // tip
+        ctx.lineTo(12, 12);
+        ctx.lineTo(7, 13);
+        ctx.lineTo(11, 21);
+        ctx.lineTo(8, 22);
+        ctx.lineTo(4, 14);
+        ctx.closePath();
+
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
+
+        // set image as cursor (modern browsers can take PNGs as cursor).
+        element[0].style.cursor = 'url(' + cursor.toDataURL() + '), auto';
+    }
+
+    SAM.GroundTruth = GroundTruth;
+
+
+
+    // 2d
+    function SpatialHash() {
+        // Must be initialized before use.
+    }
+
+    SpatialHash.prototype.Initialize = function(bounds, size) {
+        this.Origin = [bounds[0], bounds[2]];
+        this.BinSize = Math.sqrt((bounds[1]-bounds[0]) * (bounds[3]-bounds[2])/(size+1));
+        this.XDim = Math.ceil((bounds[1]-bounds[0]) / this.BinSize);
+        this.YDim = Math.ceil((bounds[3]-bounds[2]) / this.BinSize);
+        this.Grid = new Array(this.YDim);
+        for (var y = 0; y < this.YDim; ++y) {
+            var row = new Array(this.XDim);
+            for (var x= 0; x < this.XDim; ++x) {
+                row[x] = [];
+            }
+            this.Grid[y] = row;
+        }
+    }
+
+    SpatialHash.prototype.Add = function(pt, idx) {
+        var row = Math.floor((pt[1]-this.Origin[1])/this.BinSize);
+        row = Math.max(Math.min(row, this.YDim-1), 0);
+        var col = Math.floor((pt[0]-this.Origin[0])/this.BinSize);
+        col = Math.max(Math.min(col, this.XDim-1), 0);
+        this.Grid[row][col].push({pt:pt, idx:idx});
+    }
+
+    SpatialHash.prototype.Build = function(centers, bounds) {
+        this.Initialize(bounds, centers.length / 2);
+        for (var idx = 0; idx < centers.length; idx += 2) {
+            this.Add([centers[idx], centers[idx+1]], idx>>1);
+        }
+    }
+
+    // Returns the index of the closest point withing radius.
+    // Returns -1 if there are no points that close.
+    // I assume radius will be smaller than binSize. 
+    // If it is not, this will be inefficient.
+    SpatialHash.prototype.Get = function(location, radius) {
+        // Find binds touching this square.
+        var bds = [location[0]-radius, location[0]+radius,
+                   location[1]-radius, location[1]+radius];
+        // Transform bounds to grid indexes  (keep in range).
+        bds[0] = Math.max(Math.min(
+            Math.floor((bds[0]-this.Origin[0])/this.BinSize), this.XDim-1), 0);
+        bds[1] = Math.max(Math.min(
+            Math.floor((bds[1]-this.Origin[0])/this.BinSize), this.XDim-1), 0);
+        bds[2] = Math.max(Math.min(
+            Math.floor((bds[2]-this.Origin[1])/this.BinSize), this.YDim-1), 0);
+        bds[3] = Math.max(Math.min(
+            Math.floor((bds[3]-this.Origin[1])/this.BinSize), this.YDim-1), 0);
+
+        // Find the closest entry to location in these bins.
+        var bestDist = radius;
+        var best;
+        for (var row = bds[2]; row <= bds[3]; ++row) {
+            for (var col = bds[0]; col <= bds[1]; ++col) {
+                var bin = this.Grid[row][col];
+                for (var i = 0; i < bin.length; ++i) {
+                    var item = bin[i];
+                    var dist = Math.max(Math.abs(item.pt[0]-location[0]),
+                                        Math.abs(item.pt[1]-location[1]));
+                    if (dist <= bestDist) {
+                        bestDist = dist;
+                        best = item;
+                    }
+                }
+            }
+        }
+        if (! best) { 
+            return {idx:-1, dist:2*radius};
+        }
+
+        return {pt:best.pt, idx:best.idx, dist:bestDist};
+    }
+
+
+})();
+
+
+
+
 //==============================================================================
 // View Object
 // Viewport (x_lowerleft, y_lowerleft, width, height)
@@ -10383,11 +11988,15 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return this.CanvasDiv.height();
     }
 
+    View.prototype.UpdateSize = function() {
+        this.UpdateCanvasSize();
+    }
+
     // The canvasDiv changes size, the width and height of the canvas and
     // camera need to follow.  I am going to make this the resize callback.
     View.prototype.UpdateCanvasSize = function() {
         if ( ! this.CanvasDiv.is(':visible') ) {
-            return;
+            return false;
         }
 
         var pos = this.CanvasDiv.position();
