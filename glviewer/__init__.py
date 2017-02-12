@@ -820,7 +820,7 @@ def saverecord(db, note, user):
     else:
         # We need the id to set the parent id of children.
         # put a dumy object in the database as a placeholder
-        note["_id"] = db["views"].save({})
+        note["_id"] = db["records"].save({})
 
     # convert the image strings to ObjectIds.
     if note.has_key("ViewerRecords"):
@@ -841,11 +841,11 @@ def saverecord(db, note, user):
         # remove all the children before saving the note.
         # The client must set the _ids of the notes / children
         # to keep them the same.
-        oldNote = db["views"].find_one({"_id": note["_id"]})
+        oldNote = db["records"].find_one({"_id": note["_id"]})
         if oldNote and 'Children' in oldNote:
             for child in oldNote["Children"]:
                if not child in childrenRefs:
-                    db["views"].remove({"_id":child})
+                    db["records"].remove({"_id":child})
 
     # Save the note for real.
     # db["views"].update({"_id": ObjectId(viewId) },
@@ -853,7 +853,7 @@ def saverecord(db, note, user):
 
     # TODO:  see is update can be used all the time
     if note.has_key("Type"):
-        return db["views"].save(note)
+        return db["rercords"].save(note)
     else:
         id = note['_id']
         del note['_id']
