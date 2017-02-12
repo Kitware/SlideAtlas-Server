@@ -559,6 +559,17 @@ def saveimagedata():
 def saveusernote():
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
+    db = admindb    
+
+    if request.form.has_key('type') and request.form['type'] == "Record":
+        noteObj = request.form['note']
+        note = json.loads(noteObj)
+        user = getattr(security.current_user, 'email', '')
+        note['device'] = request.form['device']
+        note['type'] = "Record"
+        saverecord(db, note, user)
+        return ""
+
 
     # special case.  Just passed a view id to copy.
     if request.form.has_key('view'):
@@ -799,6 +810,54 @@ def savenote(db, note, user):
         id = note['_id']
         del note['_id']
         return db["views"].update({'_id':id},
+                                  {'$set': note})
+        
+# for preston
+def saverecord(db, note, user):
+    note["user"] = user
+    if note.has_key("_id"):
+        note["_id"] = ObjectId(note["_id"])
+    else:
+        # We need the id to set the parent id of children.
+        # put a dumy object in the database as a placeholder
+        note["_id"] = db["views"].save({})
+
+    # convert the image strings to ObjectIds.
+    if note.has_key("ViewerRecords"):
+        for record in note["ViewerRecords"]:
+            if isinstance(record["Image"], basestring):
+                record["Image"] = ObjectId(record["Image"])
+            if isinstance(record["Database"], basestring):
+                record["Database"] = ObjectId(record["Database"])
+
+    # save the children as separate objects and keep an array of ObjectIds
+    childrenRefs = []
+    if note.has_key("Children"):
+        for child in note["Children"]:
+            child["ParentId"] = note["_id"]
+            childrenRefs.append(savenote(db, child, user))
+        note["Children"] = childrenRefs
+        # I do not want to orphan children in the database.
+        # remove all the children before saving the note.
+        # The client must set the _ids of the notes / children
+        # to keep them the same.
+        oldNote = db["views"].find_one({"_id": note["_id"]})
+        if oldNote and 'Children' in oldNote:
+            for child in oldNote["Children"]:
+               if not child in childrenRefs:
+                    db["views"].remove({"_id":child})
+
+    # Save the note for real.
+    # db["views"].update({"_id": ObjectId(viewId) },
+    #                    { "$set": { "notes": notes } })
+
+    # TODO:  see is update can be used all the time
+    if note.has_key("Type"):
+        return db["views"].save(note)
+    else:
+        id = note['_id']
+        del note['_id']
+        return db["records"].update({'_id':id},
                                   {'$set': note})
         
 

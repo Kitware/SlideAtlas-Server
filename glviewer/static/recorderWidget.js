@@ -518,6 +518,11 @@
         // This will probably have to be passed the viewers.
         note.RecordView(this.Display);
 
+        // Erase the annotations.
+        for (var i = 0; i < note.ViewerRecords.length;++i) {
+            note.ViewerRecords[i].Annotations = undefined;
+        }
+
         // The note will want to know its context
         // The stack viewer does not have  notes widget.
         if (SA.display) {
@@ -538,6 +543,7 @@
             url: "/webgl-viewer/saveusernote",
             data: {"note": JSON.stringify(note.Serialize(true)),
                    "col" : "tracking",
+                   "device": SAM.detectMobile(),
                    "type": "Record"},
             success: function(data,status) {
                 note.Id = data;
