@@ -853,7 +853,7 @@ def saverecord(db, note, user):
 
     # TODO:  see is update can be used all the time
     if note.has_key("Type"):
-        return db["rercords"].save(note)
+        return db["records"].save(note)
     else:
         id = note['_id']
         del note['_id']
