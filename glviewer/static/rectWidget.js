@@ -71,7 +71,8 @@
         // permission.
         this.UserNoteFlag = ! SA.Edit;
 
-        this.Dialog = new SAM.Dialog(this);
+        var self = this;
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
         this.Dialog.Title.text('Rect Annotation Editor');
         // Color

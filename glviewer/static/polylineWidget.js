@@ -403,6 +403,10 @@
         return false;
     }
 
+    PolylineWidget.prototype.HandleClick = function(event) {
+      return this.HandleMouseUp(event);
+    }
+
     // Returns false when it is finished doing its work.
     PolylineWidget.prototype.HandleMouseUp = function(event) {
 
