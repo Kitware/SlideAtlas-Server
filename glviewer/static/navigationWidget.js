@@ -175,6 +175,15 @@ NavigationWidget.prototype.SetNote = function(note) {
 
     var self = this;
     // Initialize the session neede to get the next slide.
+    if (note.SessionId) {
+      this.SessionId = note.SessionId
+    }
+    if (note.Session) {
+      this.Session = note.Session
+      this.Update();
+    }
+
+    // legacy
     if ( ! this.SessionId) {
         if (SA.Session) {
             this.Session = SA.Session.session.views;
