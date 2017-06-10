@@ -183,7 +183,7 @@ NavigationWidget.prototype.SetNote = function(note) {
       this.Update();
     }
 
-    // legacy
+    /* legacy
     if ( ! this.SessionId) {
         if (SA.Session) {
             this.Session = SA.Session.session.views;
@@ -214,7 +214,7 @@ NavigationWidget.prototype.SetNote = function(note) {
         // copied.
         note.SessionId = this.SessionId;
     }
-
+    */
     this.NoteIterator.SetNote(note);
     this.Update();
 }
@@ -240,7 +240,7 @@ NavigationWidget.prototype.Update = function() {
     var note = this.GetNote();
     if (note) {
         for (var i = 0; i < this.Session.length; ++i) {
-            if (this.Session[i].id == note.Id) {
+            if (this.Session[i] == note.Id) {
                 this.SlideIndex = i;
             }
         }
@@ -414,10 +414,10 @@ NavigationWidget.prototype.PreviousSlide = function() {
     SA.StackCursorFlag = false;
     // Find the previous slide ( skip presentations)
     var prevSlideIdx = this.SlideIndex - 1;
-    while (prevSlideIdx >= 0 &&
-           this.Session[prevSlideIdx].Type == "Presentation") {
-        --prevSlideIdx;
-    }
+    //while (prevSlideIdx >= 0 &&
+    //       this.Session[prevSlideIdx].Type == "Presentation") {
+    //    --prevSlideIdx;
+    //}
     if (prevSlideIdx < 0) { return; }
 
     var check = true;
@@ -428,7 +428,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
         // TODO: Improve the API here.  Get rid of global access.
         if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex = prevSlideIdx;
-        SA.SetNoteFromId(this.Session[this.SlideIndex].id);
+        SA.SetNoteFromId(this.Session[this.SlideIndex]);
 
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
@@ -443,10 +443,10 @@ NavigationWidget.prototype.NextSlide = function() {
     SA.StackCursorFlag = false;
     // Find the next slide ( skip presentations)
     var nextSlideIdx = this.SlideIndex + 1;
-    while (nextSlideIdx < this.Session.length &&
-           this.Session[nextSlideIdx].Type == "Presentation") {
-        ++nextSlideIdx;
-    }
+    //while (nextSlideIdx < this.Session.length &&
+    //       this.Session[nextSlideIdx].Type == "Presentation") {
+    //    ++nextSlideIdx;
+    //}
     if (nextSlideIdx >= this.Session.length) { return; }
     var check = true;
     if ( SA.notesWidget && SA.notesWidget.Modified) {
@@ -455,7 +455,7 @@ NavigationWidget.prototype.NextSlide = function() {
     if (check) {
         if (SA.notesWidget) {SA.notesWidget.MarkAsNotModified();}
         this.SlideIndex = nextSlideIdx;
-        SA.SetNoteFromId(this.Session[this.SlideIndex].id);
+        SA.SetNoteFromId(this.Session[this.SlideIndex]);
 
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
