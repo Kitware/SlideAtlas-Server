@@ -8194,22 +8194,24 @@ window.SA = window.SA || {};
     SA.Run = function() {
         SA.Running == true;
         // load on demand now. Hide annotations is from getview in note.LoadViewId(...)
-        self = SA;
-        if (SA.SessionId) {
+        if ( SA.ViewId == "presentation") {
+          self = SA;
+          if (SA.SessionId) {
             $.ajax({
-                type: "get",
-                url: SA.SessionUrl+"?json=true&sessid="+SA.SessionId,
-                success: function(data,status) {
-                    self.Session = data;
-                    self.HideAnnotations = data.hide;
-                    // TODO: fix this serialization.
-                    //self.Run2();
-                },
-                error: function() {
-                    SA.Debug("AJAX - error() : session" );
-                    //self.Run2();
-                },
+              type: "get",
+              url: SA.SessionUrl+"?json=true&sessid="+SA.SessionId,
+              success: function(data,status) {
+                self.Session = data;
+                self.HideAnnotations = data.hide;
+                // TODO: fix this serialization.
+                //self.Run2();
+              },
+              error: function() {
+                SA.Debug("AJAX - error() : session" );
+                //self.Run2();
+              },
             });
+          }
         }
         SA.Run2();
     }
