@@ -695,17 +695,6 @@ def readViewTree(db, viewId, levels):
     if viewObj is None:
         return None
 
-    #if not 'SessionId' in viewObj:
-    sessObj = db['sessions'].find_one({'views':viewId},{'_id':True, \
-                                                        'views':True, \
-                                                        'hideAnnotations':True})
-    if sessObj:
-        viewObj['SessionId'] = sessObj['_id']
-        if 'views' in sessObj:
-            viewObj["Session"] = sessObj['views']
-        if 'hideAnnotations' in sessObj:
-            viewObj["HideAnnotations"] = sessObj['hideAnnotations']
-
     # Read and add the image objects
     if 'ViewerRecords' in viewObj:
         for record in viewObj['ViewerRecords']:
@@ -966,6 +955,19 @@ def getview():
     if viewObj is None:
         abort(404)
 
+    # Get session info
+    viewId = viewObj['_id']
+    sessObj = admindb['sessions'].find_one({'views':viewId},{'_id':True, \
+                                                        'views':True, \
+                                                        'hideAnnotations':True})
+    if sessObj:
+        viewObj['SessionId'] = str(sessObj['_id'])
+        if 'views' in sessObj:
+            viewObj['Session'] = [str(i) for i in sessObj['views']]
+        if 'hideAnnotations' in sessObj:
+            viewObj['HideAnnotations'] = sessObj['hideAnnotations']
+
+
     # I am giving the viewer the responsibility of hiding stuff.
     # copy the hide annotation from the session to the view.
     #viewObj["HideAnnotations"] = False
@@ -1015,6 +1017,8 @@ def getview():
 
     noteObj = {
         '_id': viewid,
+        'Session': viewObj.get('Session',[]),
+        'HideAnnotations': viewObj.get('HideAnnotations', False),
         'Title': viewObj.get('Title', imgobj['label']),
         'HiddenTitle': viewObj.get('HiddenTitle', ''),
         # Construct the ViewerRecord for the base view
