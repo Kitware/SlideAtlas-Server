@@ -695,10 +695,12 @@ def readViewTree(db, viewId, levels):
     if viewObj is None:
         return None
 
-    if not 'SessionId' in viewObj:
-        sessObj = db['sessions'].find_one({'views':viewId},{'_id':True})
-        if sessObj:
-            viewObj['SessionId'] = sessObj['_id'];
+    #if not 'SessionId' in viewObj:
+    sessObj = db['sessions'].find_one({'views':viewId},{'_id':True})
+    if sessObj:
+        viewObj['SessionId'] = sessObj['_id']
+        viewObj["Session"] = sessObj['views']
+        viewObj["HideAnnotations"] = sessObj['hide_annotations']
 
     # Read and add the image objects
     if 'ViewerRecords' in viewObj:
@@ -945,13 +947,13 @@ def getimagenames():
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
-    sessid = request.args.get('sessid', None)
-    if isinstance(sessid, basestring):
-        try:
-            sessid = ObjectId(sessid)
-        except InvalidId:
-            # sessid may come from a client-provided URL, and could be invalid
-            sessid = None
+    #sessid = request.args.get('sessid', None)
+    #if isinstance(sessid, basestring):
+    #    try:
+    #        sessid = ObjectId(sessid)
+    #    except InvalidId:
+    #        # sessid may come from a client-provided URL, and could be invalid
+    #        sessid = None
     viewid = request.args.get('viewid', None)
 
     admindb = models.ImageStore._get_db()
@@ -963,11 +965,11 @@ def getview():
     # I am giving the viewer the responsibility of hiding stuff.
     # copy the hide annotation from the session to the view.
     viewObj["HideAnnotations"] = False
-    if sessid:
-        sessObj = models.Session.objects.with_id(sessid)
-        if sessObj and sessObj.hide_annotations:
-            viewObj["HideAnnotations"] = True
-            viewObj["Session"] = sessObj.views
+    #if sessid:
+    #    sessObj = models.Session.objects.with_id(sessid)
+    #    if sessObj and sessObj.hide_annotations:
+    #        viewObj["HideAnnotations"] = True
+    #        viewObj["Session"] = sessObj.views
 
     # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"
