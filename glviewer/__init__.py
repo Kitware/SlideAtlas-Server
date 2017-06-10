@@ -1082,8 +1082,17 @@ def getsess():
             # embed the image info (first record)
             imgdb = str(viewObj['ViewerRecords'][0]['Database'])
             imgid = str(viewObj['ViewerRecords'][0]['Image'])
-            tmp = {'Id':str(viewObj['_id']), 'ImageId':imgid, 'ImageDb':imgdb}
-            tmp['Label'] = viewObj.get('Title', '')
+            tmp = {'Id':str(viewObj['_id']), 'ImageId':imgid, \
+                   'ImageDb':imgdb, 'Label':' '}
+            # Why are some of the view titles not set?
+            if 'Title' in viewObj:
+                tmp['Label'] = viewObj['Title']
+            else:
+                # Get the label from the image
+                image_store = models.ImageStore.objects.get_or_404(id=ObjectId(imgdb))
+                imgObj = image_store.to_pymongo()['images'].find_one({'_id': imgid})
+                if not imgObj is None and 'label' in imgObj:
+                    tmp['Label'] = imgObj['label']
             viewObjs.append(tmp)
 
     retObj = {'views':viewObjs}
