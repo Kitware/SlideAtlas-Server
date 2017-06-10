@@ -1072,7 +1072,7 @@ def getsess():
     admindb = models.ImageStore._get_db()
     sessObj = admindb['sessions'].find_one({'_id':sessid},{'views':True})
     viewObjs = []
-    for viewid in sessObj['views']:
+    for viewid in sessObj.get('views',[]):
         viewObj = admindb['views'].find_one({'_id':viewid},{'Title':True,'ViewerRecords.Image':True, \
                                                             'ViewerRecords.Database':True,'Title':True})
         if viewObj is None or not 'Database' in viewObj['ViewerRecords'][0]:
@@ -1108,7 +1108,7 @@ def getsess():
 # However,  a malicious user could do harm with this call.
 @mod.route('/sessions-save')
 def sessions_save():
-    sessionArgList = request.args.get('input', None)
+    sessionArgList = request.form['input']
     if not isinstance(sessionArgList, list):
         return jsonify({'error': 'expecting a list of sessions as input'})
 
