@@ -351,6 +351,7 @@ def glsavevieworder():
 
     return "Success"
 
+# I do not think this is used.
 # From the session page when views are delete will be used with the drag
 # and drop editor too.
 @mod.route('/move-view', methods=['POST'])
@@ -1097,6 +1098,58 @@ def getsess():
 
     retObj = {'views':viewObjs}
 
+    return jsonify(retObj)
+
+
+
+# Drag and drop loosing view. This is an atomic save.
+# TODO: Delete views when they are eliminated fro all sessions.
+# The drag and drop editor does not do this so this is not urgent.
+# However,  a malicious user could do harm with this call.
+@mod.route('/sessions-save')
+def sessions_save():
+    sessionArgList = request.args.get('input', None)
+    if not isinstance(sessionArgList, list):
+        return jsonify({'error': 'expecting a list of sessions as input'})
+
+    db = models.ImageStore._get_db()
+
+    # Get the sessions and views from the database
+    sessionObjList = []
+    for sessionArg in sessionArgList:
+        if not 'views' in sessionArg:
+            return jsonify({'error': 'missing view'})
+        # get the session from the database
+        sessId = ObjectId(sessionArg['session'])
+        sessObj = db['sessions'].find_one({'_id':sessId})
+        # make a list of views.
+        sessObj['views'] = []
+        for viewArg in sessionArg['views']:
+            viewId = viewArg['view']
+            viewObj = db['views'].find_one({'_id':ObjectId(viewId)})
+            if viewObj is None:
+                return jsonify({'error': 'could not find view %s'%viewId})
+            if 'copy' in viewArg and viewArg['copy']:
+                viewObj.pop('_id')
+            sessObj['views'].append(viewObj)
+        sessionObjList.append(sessobj)
+
+    retSessionList = []
+    # no errors.  Save any copied views.
+    for sessionObj in sessionObjList:
+        retSession = {'views':[]}
+        retSessionList.append(retSession)
+        for i in range(len(sessionObj['views'])):
+            viewObj = sessionObj['views'][i]
+            if '_id' in viewObj:
+                viewId = viewObj['_id']
+            else:
+                viewId = db['views'].save(viewObj)
+            sessionObj['views'][i] = ObjectId(viewId)
+            retSession['views'].append(str(viewId))
+        db['sessions'].save(sessionObj)
+
+    retObj = {'sessions': retSessionList}
     return jsonify(retObj)
 
 
