@@ -946,6 +946,12 @@ def getimagenames():
 @mod.route('/getview')
 def getview():
     sessid = request.args.get('sessid', None)
+    if isinstance(sessid, basestring):
+        try:
+            sessid = ObjectId(sessid)
+        except InvalidId:
+            # sessid may come from a client-provided URL, and could be invalid
+            sessid = None
     viewid = request.args.get('viewid', None)
 
     admindb = models.ImageStore._get_db()
@@ -960,7 +966,8 @@ def getview():
     if sessid:
         sessObj = models.Session.objects.with_id(sessid)
         if sessObj and sessObj.hide_annotations:
-            viewObj["HideAnnotations"] = sessObj.hide_annotations
+            viewObj["HideAnnotations"] = True
+            viewObj["Session"] = sessObj.views
 
     # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"
