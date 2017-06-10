@@ -696,11 +696,15 @@ def readViewTree(db, viewId, levels):
         return None
 
     #if not 'SessionId' in viewObj:
-    sessObj = db['sessions'].find_one({'views':viewId},{'_id':True})
+    sessObj = db['sessions'].find_one({'views':viewId},{'_id':True, \
+                                                        'views':True, \
+                                                        'hideAnnotations':True})
     if sessObj:
         viewObj['SessionId'] = sessObj['_id']
-        viewObj["Session"] = sessObj['views']
-        viewObj["HideAnnotations"] = sessObj['hide_annotations']
+        if 'views' in sessObj:
+            viewObj["Session"] = sessObj['views']
+        if 'hideAnnotations' in sessObj:
+            viewObj["HideAnnotations"] = sessObj['hideAnnotations']
 
     # Read and add the image objects
     if 'ViewerRecords' in viewObj:
@@ -947,7 +951,7 @@ def getimagenames():
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
-    #sessid = request.args.get('sessid', None)
+    sessid = request.args.get('sessid', None)
     #if isinstance(sessid, basestring):
     #    try:
     #        sessid = ObjectId(sessid)
@@ -964,7 +968,7 @@ def getview():
 
     # I am giving the viewer the responsibility of hiding stuff.
     # copy the hide annotation from the session to the view.
-    viewObj["HideAnnotations"] = False
+    #viewObj["HideAnnotations"] = False
     #if sessid:
     #    sessObj = models.Session.objects.with_id(sessid)
     #    if sessObj and sessObj.hide_annotations:
