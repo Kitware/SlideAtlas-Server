@@ -1048,3 +1048,46 @@ def getview():
 
 
 
+
+
+
+# Too slow: /sessions?json=1&sessid="+this.Id,
+# Make a fast version for collection browser.
+
+@mod.route('/getsess')
+def getsess():
+    sessid = request.args.get('sessid', None)
+    if isinstance(sessid, basestring):
+        try:
+            sessid = ObjectId(sessid)
+        except InvalidId:
+            # sessid may come from a client-provided URL, and could be invalid
+            sessid = None
+    else:
+        sessid = None
+    if sessid is None:
+        abort(404)
+
+    admindb = models.ImageStore._get_db()
+    sessObj = admindb['sessions'].find_one({'_id':sessid},{'views':True})
+    viewObjs = []
+    for viewid in sessObj['views']:
+        viewObj = admindb['views'].find_one({'_id':viewid},{'Title':True,'ViewerRecords.Image':True, \
+                                                            'ViewerRecords.Database':True})
+        if viewObj is None or not 'Database' in viewObjs['ViewerRecords'][0]:
+            # Substitute a broken image.
+            viewObjs.appen({'id':viewObj['_id'], 'image_id':'55be241b3ed65909a84cdf0c', \
+                            'image_store':'52a0b030554a19140a5323a9', 'label':'Broken Image'})
+        else:
+            # embed the image info (first record)
+            imgdb = str(viewObj['ViewerRecords'][0]['Database'])
+            imgid = str(viewObj['ViewerRecords'][0]['Image'])
+            viewObjs.append({'id':str(viewObj['_id']), 'image_id':imgid,
+                             'image_store':imgdb, 'label': viewObj['Title']})
+
+    retObj = {'views':viewObjs}
+
+    return jsonify(retObj)
+
+
+

@@ -257,7 +257,8 @@ CollectionBrowser = (function (){
         PushProgress();
         $.ajax({
             type: "get",
-            url: "/sessions?json=1&sessid="+this.Id,
+            url: "/webgl-viewer/getsess",
+            data: {'sessid': this.Id},
             success: function(data) {
                 PopProgress();
                 self.LoadViewData(data);
@@ -290,11 +291,10 @@ CollectionBrowser = (function (){
         // Why did i modify?  Did I intend to doe the opposite?
         //this.Modified();
         this.ModifiedTime = this.SavedTime = 1;
-        for (var i = 0; i < data.session.views.length; ++i) {
-            viewObject = new ViewObject(this).LoadData(data.session.views[i]);
-            // Info not in views?
+        for (var i = 0; i < data.views.length; ++i) {
+            viewObject = new ViewObject(this).LoadData(data.views[i]);
             //viewObject.Label = data.images[i].label;
-            viewObject.Source = "/thumb?db="+data.images[i].db+"&img="+data.images[i].img;
+            viewObject.Source = "/thumb?db="+data.views[i].image_store+"&img="+data.views[i].image_id;
             this.ViewObjects.push(viewObject);
         }
         for (var i = 0; i < this.LoadCallbacks.length; ++i) {
