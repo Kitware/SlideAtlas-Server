@@ -294,7 +294,7 @@ CollectionBrowser = (function (){
         for (var i = 0; i < data.views.length; ++i) {
             viewObject = new ViewObject(this).LoadData(data.views[i]);
             //viewObject.Label = data.images[i].label;
-            viewObject.Source = "/thumb?db="+data.views[i].image_store+"&img="+data.views[i].image_id;
+            viewObject.Source = "/thumb?db="+data.views[i].ImageDb+"&img="+data.views[i].ImageId;
             this.ViewObjects.push(viewObject);
         }
         for (var i = 0; i < this.LoadCallbacks.length; ++i) {
@@ -526,10 +526,10 @@ CollectionBrowser = (function (){
     }
     // A work around for overloading constructors
     ViewObject.prototype.LoadData = function(data) {
-        this.Id = data.id;
-        this.ImageId = data.image_id;
-        this.ImageDb = data.image_store_id;
-        this.Label = data.label.replace("|AC34","");
+        this.Id = data.Id;
+        this.ImageId = data.ImageId;
+        this.ImageDb = data.ImageDb;
+        this.Label = data.Label.replace("|AC34","");
         this.CopyFlag = false;
         this.Source = "";
         return this;

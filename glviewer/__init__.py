@@ -1073,17 +1073,18 @@ def getsess():
     viewObjs = []
     for viewid in sessObj['views']:
         viewObj = admindb['views'].find_one({'_id':viewid},{'Title':True,'ViewerRecords.Image':True, \
-                                                            'ViewerRecords.Database':True})
-        if viewObj is None or not 'Database' in viewObjs['ViewerRecords'][0]:
+                                                            'ViewerRecords.Database':True,'Title':True})
+        if viewObj is None or not 'Database' in viewObj['ViewerRecords'][0]:
             # Substitute a broken image.
-            viewObjs.appen({'id':viewObj['_id'], 'image_id':'55be241b3ed65909a84cdf0c', \
-                            'image_store':'52a0b030554a19140a5323a9', 'label':'Broken Image'})
+            viewObjs.append({'Id':viewObj['_id'], 'ImageId':'55be241b3ed65909a84cdf0c', \
+                             'ImageDb':'52a0b030554a19140a5323a9','Label':'Broken Image'})
         else:
             # embed the image info (first record)
             imgdb = str(viewObj['ViewerRecords'][0]['Database'])
             imgid = str(viewObj['ViewerRecords'][0]['Image'])
-            viewObjs.append({'id':str(viewObj['_id']), 'image_id':imgid,
-                             'image_store':imgdb, 'label': viewObj['Title']})
+            tmp = {'Id':str(viewObj['_id']), 'ImageId':imgid, 'ImageDb':imgdb}
+            tmp['Label'] = viewObj.get('Title', '')
+            viewObjs.append(tmp)
 
     retObj = {'views':viewObjs}
 
