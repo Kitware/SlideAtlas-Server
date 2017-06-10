@@ -804,8 +804,11 @@
         $.ajax({
             type: "get",
             url: "/webgl-viewer/getview",
-            data: {"viewid": viewId},
+            data: {"viewid": viewId, "sessid": SA.SessionId},
             success: function(data,status) {
+
+                SA.HideAnnotations = data.HideAnnotations;
+
                 SA.PopProgress();
                 self.Load(data);
                 if (callback) {

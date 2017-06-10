@@ -291,6 +291,7 @@ BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
         type: "get",
         url: "/webgl-viewer/getview",
         data: {"viewid": viewId},
+        //data: {"viewid": viewId, "sessid": SA.SessionId},
         success: function(data,status) {
             self.PopProgress();
             self.LoadViewChildren(viewFolder, data);
@@ -370,6 +371,7 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
+        //data: {"viewid": viewId, "sessid": SA.SessionId},
         data: {"viewid": viewid},
         success: function(data,status) {
             self.PopProgress();

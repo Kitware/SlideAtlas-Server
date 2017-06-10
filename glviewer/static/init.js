@@ -182,6 +182,7 @@ window.SA = window.SA || {};
     // SA global will be set to this object.
     SA.Run = function() {
         SA.Running == true;
+        // load on demand now. Hide annotations is from getview in note.LoadViewId(...)
         self = SA;
         if (SA.SessionId) {
             $.ajax({
@@ -191,16 +192,15 @@ window.SA = window.SA || {};
                     self.Session = data;
                     self.HideAnnotations = data.hide;
                     // TODO: fix this serialization.
-                    self.Run2();
+                    //self.Run2();
                 },
                 error: function() {
                     SA.Debug("AJAX - error() : session" );
-                    self.Run2();
+                    //self.Run2();
                 },
             });
-        } else {
-            SA.Run2();
         }
+        SA.Run2();
     }
 
 

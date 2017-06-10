@@ -8193,6 +8193,7 @@ window.SA = window.SA || {};
     // SA global will be set to this object.
     SA.Run = function() {
         SA.Running == true;
+        // load on demand now. Hide annotations is from getview in note.LoadViewId(...)
         self = SA;
         if (SA.SessionId) {
             $.ajax({
@@ -8202,16 +8203,15 @@ window.SA = window.SA || {};
                     self.Session = data;
                     self.HideAnnotations = data.hide;
                     // TODO: fix this serialization.
-                    self.Run2();
+                    //self.Run2();
                 },
                 error: function() {
                     SA.Debug("AJAX - error() : session" );
-                    self.Run2();
+                    //self.Run2();
                 },
             });
-        } else {
-            SA.Run2();
         }
+        SA.Run2();
     }
 
 
@@ -10465,6 +10465,7 @@ BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
         type: "get",
         url: "/webgl-viewer/getview",
         data: {"viewid": viewId},
+        //data: {"viewid": viewId, "sessid": SA.SessionId},
         success: function(data,status) {
             self.PopProgress();
             self.LoadViewChildren(viewFolder, data);
@@ -10544,6 +10545,7 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
+        //data: {"viewid": viewId, "sessid": SA.SessionId},
         data: {"viewid": viewid},
         success: function(data,status) {
             self.PopProgress();
@@ -12424,8 +12426,11 @@ function TabPanel(tabbedDiv, title) {
         $.ajax({
             type: "get",
             url: "/webgl-viewer/getview",
-            data: {"viewid": viewId},
+            data: {"viewid": viewId, "sessid": SA.SessionId},
             success: function(data,status) {
+
+                SA.HideAnnotations = data.HideAnnotations;
+
                 SA.PopProgress();
                 self.Load(data);
                 if (callback) {
@@ -15169,6 +15174,11 @@ AnnotationWidget.prototype.DetectSections = function() {
         // This will probably have to be passed the viewers.
         note.RecordView(this.Display);
 
+        // Erase the annotations.
+        for (var i = 0; i < note.ViewerRecords.length;++i) {
+            note.ViewerRecords[i].Annotations = undefined;
+        }
+
         // The note will want to know its context
         // The stack viewer does not have  notes widget.
         if (SA.display) {
@@ -15189,6 +15199,7 @@ AnnotationWidget.prototype.DetectSections = function() {
             url: "/webgl-viewer/saveusernote",
             data: {"note": JSON.stringify(note.Serialize(true)),
                    "col" : "tracking",
+                   "device": SAM.detectMobile(),
                    "type": "Record"},
             success: function(data,status) {
                 note.Id = data;
@@ -21187,6 +21198,11 @@ Presentation.prototype.Save = function () {
 
     // Check to see if the root is in the session. If not, add it.
     var noteInSession = false;
+    // TODO: Handle this properly.
+    if ( ! SA.Session) {
+        console.log("No session. presentation might not have been saved properly");
+        return;
+    }
     var session = SA.Session.session.views;
     for (var i = 0; i < session.length && ! noteInSession; ++i) {
         if (session[i].id == this.RootNote.Id) {
