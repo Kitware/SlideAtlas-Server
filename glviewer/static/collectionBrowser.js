@@ -191,11 +191,46 @@ CollectionBrowser = (function (){
         }
     }
 
+    // Top level save.Save all the sessions at once.
     LibraryObject.prototype.Save = function () {
-        for (var i = 0; i < this.CollectionObjects.length; ++i)
-            {
-                this.CollectionObjects[i].Save();
+        var sessionsToSave = []
+        for (var i = 0; i < this.CollectionObjects.length; ++i) {
+            sessionsToSave = [].concat(sessionsToSave, this.CollectionObjects[i].Save());
+        }
+
+        // Not very elegant.  SIngle save. success needs to update session
+        // objects. Separate arguments (sesison objects from data to send
+        // to server.
+        sessionObjs = []
+        for (var i = 0; i < sessionsToSave.length; ++i) {
+            sessionObjs[i] = sessionsToSave[i].SessionObj;
+            delete sessionsToSave[i].SessionObj;
+        }
+
+        var self = this;
+        PushProgress();
+        $.ajax({
+            type: "post",
+            url: "/webgl_viewer/sessions-save",
+            data: {"input" :  JSON.stringify({'sessions':sessionsToSave})},
+            success: function(data) {
+                PopProgress();
+                if (data.error) {
+                  window.alert(data.error)
+                  return;
+                }
+                var dataArray = data.sessions;
+                // If copy, view ids have changed.
+                for (var i = 0; i < sessionObjs.length; ++i) {
+                    sessionObjs[i].UpdateViewIds(dataArray[i]);
+                    sessionObjs[i].SaveLock = false;
+                }
+            },
+            error: function() {
+                PopProgress();
+                console.log( "AJAX - error: sessions-save (collectionBrowser)" );
             }
+        });    
     }
 
 
@@ -211,10 +246,11 @@ CollectionBrowser = (function (){
     }
 
     CollectionObject.prototype.Save = function () {
-        for (var i = 0; i < this.SessionObjects.length; ++i)
-            {
-                this.SessionObjects[i].Save();
-            }
+      var sessionsToSave = []
+      for (var i = 0; i < this.SessionObjects.length; ++i) {
+        sessionsToSave = [].concat(sessionsToSave, this.SessionObjects[i].Save());
+      }
+      return sessionsToSave;
     }
 
 
@@ -433,13 +469,13 @@ CollectionBrowser = (function (){
 
     SessionObject.prototype.Save = function() {
         if ( this.SavedTime >= this.ModifiedTime) {
-            return;
+            return [];
         }
         this.SavedTime = this.ModifiedTime;
 
         if (this.State != LOADED) {
             console.log("Error Save: Session not loaded.");
-            return;
+            return [];
         }
 
         var views = [];
@@ -465,7 +501,8 @@ CollectionBrowser = (function (){
         args.views = views;
         args.session = this.Id;
         args.label = this.Label;
-
+        /* We were loosing views from partial saves.
+           Wait to save all sessions in a single ajax call.
         var self = this;
         PushProgress();
         $.ajax({
@@ -483,6 +520,8 @@ CollectionBrowser = (function (){
                 console.log( "AJAX - error: session-save (collectionBrowser)" );
             }
         });
+        */
+        return [args];
 
     }
 
@@ -1217,6 +1256,7 @@ CollectionBrowser = (function (){
         return false;
     }
 
+    /*
     // Copy is set as a data in the <li> items
     Session.prototype.Save = function() {
         if ( ! this.Modified) {
@@ -1287,19 +1327,9 @@ CollectionBrowser = (function (){
             otherSession.RequestMetaData();
         } if (otherSession.LoadState == LOAD_IMAGES) {
             otherSession.RequestMetaData();
-            /* this messed up the layout for some reason  needs a clear.
-            // Lets just copy / clone this session
-            otherSession.ViewList.empty();
-            this.ViewList.children('li').each(function () {
-                viewItem = $(this).clone(true);
-                viewItem
-                    .data("browserIdx", browserIdx)
-                    .appendTo(otherSession.ViewList);
-            });
-            */
         }
     }
-
+    */
     
 //==============================================================================
     var DROP_TARGETS = [];
