@@ -1090,7 +1090,7 @@ def getsess():
             else:
                 # Get the label from the image
                 image_store = models.ImageStore.objects.get_or_404(id=ObjectId(imgdb))
-                imgObj = image_store.to_pymongo()['images'].find_one({'_id': imgid})
+                imgObj = image_store.to_pymongo()['images'].find_one({'_id': ObjectId(imgid)})
                 if not imgObj is None and 'label' in imgObj:
                     tmp['Label'] = imgObj['label']
             viewObjs.append(tmp)
