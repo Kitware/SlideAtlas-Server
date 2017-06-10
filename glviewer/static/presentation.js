@@ -844,6 +844,11 @@ Presentation.prototype.Save = function () {
 
     // Check to see if the root is in the session. If not, add it.
     var noteInSession = false;
+    // TODO: Handle this properly.
+    if ( ! SA.Session) {
+        console.log("No session. presentation might not have been saved properly");
+        return;
+    }
     var session = SA.Session.session.views;
     for (var i = 0; i < session.length && ! noteInSession; ++i) {
         if (session[i].id == this.RootNote.Id) {

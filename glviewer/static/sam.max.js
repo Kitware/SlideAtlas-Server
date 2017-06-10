@@ -4266,6 +4266,10 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         return false;
     }
 
+    PolylineWidget.prototype.HandleClick = function(event) {
+      return this.HandleMouseUp(event);
+    }
+
     // Returns false when it is finished doing its work.
     PolylineWidget.prototype.HandleMouseUp = function(event) {
 
@@ -7702,7 +7706,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         // permission.
         this.UserNoteFlag = ! SA.Edit;
 
-        this.Dialog = new SAM.Dialog(this);
+        var self = this;
+        this.Dialog = new SAM.Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
         this.Dialog.Title.text('Rect Annotation Editor');
         // Color
