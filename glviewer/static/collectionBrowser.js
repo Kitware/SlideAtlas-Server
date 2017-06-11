@@ -431,7 +431,7 @@ CollectionBrowser = (function (){
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
             var viewId = viewObj.Id;
-            var sessId = SessionObject.Id;
+            var sessId = viewObj.SessionObject.Id;
             var index = viewObj.GetPositionInSession();
             var copyFlag = viewObj.CopyFlag;
             // If to and from are the same session, index is relative to
