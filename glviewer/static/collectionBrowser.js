@@ -245,6 +245,18 @@ CollectionBrowser = (function (){
         }
     }
 
+
+    SessionObject.prototype.GetViewIdPosition = function(viewId) {
+        for (idx = 0; idx < this.ViewObjects.length; ++idx) {
+            if (this.ViewObjects[idx].Id == viewId) {
+                return idx;
+            }
+        }
+        console.log("Error: could not find viewId in session.")
+        return 0;
+    }
+
+
     SessionObject.prototype.RequestViewData = function(sucessCallback,
                                                        errorCallback) {
         if (this.State == LOADED) {
@@ -446,6 +458,7 @@ CollectionBrowser = (function (){
         var viewId = viewObj.Id;
         var sessId = this.Id;
         var index = viewObj.GetPositionInSession();
+        var index = this.GetViewIdPosition(viewObj.Id);
         var copyFlag = viewObj.CopyFlag;
         // If to and from are the same session, index is relative to
         // session after the view was removed.
@@ -588,15 +601,6 @@ CollectionBrowser = (function (){
         // source and destination are the same.
         this.CopyFlag = viewObj.CopyFlag;
         return this;
-    }
-    ViewObject.prototype.GetPositionInSession = function() {
-        for (idx = 0; idx < this.SessionObject.ViewObjects.length; ++idx) {
-            if (this.SessionObject.ViewObjects[idx].Id == this.Id) {
-                return idx;
-            }
-        }
-        console.log("Error: could not find view in session.")
-        return 0;
     }
 
 
