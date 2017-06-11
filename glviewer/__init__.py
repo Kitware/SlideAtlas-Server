@@ -371,13 +371,27 @@ def moveView():
     toPosition= 0
     if request.form.has_key("idx"):
         toPosition = int(request.form["idx"])
+    copyFlag = False
+    if request.form.has_key("copy"):
+        tmp = request.form["copy"]
+        copyFlag = tmp.lower() in ['true', '1', 't', 'y', 'yes']
 
     if fromSessionId == None and toSessionId == None:
         return "Error: Must have a destination session or source session."
+    if copyFlag and toSessionId is None:
+        return "Error: Must have a destination session when copying"
+
+    if copyFlag:
+        viewObj = db["views"].find_one({'_id':viewId})
+        if viewObj is None:
+            return "Error: Could not find view to copy."
+        delete viewObj['_id']
+        viewId = db["views"].save(viewObj)
+        fromSessionId = None
 
     fromSession = None
     if fromSessionId == None:
-        fromSession = db["sessions"].find_one({'views':viewId});
+        fromSession = db["sessions"].find_one({'views':viewId})
     else:
         fromSession = db['sessions'].find_one({'_id':ObjectId(fromSessionId)})
     # check if session id is valid
