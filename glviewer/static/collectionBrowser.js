@@ -1,4 +1,9 @@
 // TODO: 
+// Changing from /session-save to /webgl-viewer/moveview because partial
+// (session_save can be slow) saves dropped views.
+// Leaving undo as /session-save for now.
+
+
 // BUG: Notes now have a sessionId so the navigation widget will work when
 // a note is loaded in issolation.  We are not updating this reference when
 // the view is moved.
@@ -191,46 +196,11 @@ CollectionBrowser = (function (){
         }
     }
 
-    // Top level save.Save all the sessions at once.
     LibraryObject.prototype.Save = function () {
-        var sessionsToSave = []
-        for (var i = 0; i < this.CollectionObjects.length; ++i) {
-            sessionsToSave = [].concat(sessionsToSave, this.CollectionObjects[i].Save());
-        }
-
-        // Not very elegant.  SIngle save. success needs to update session
-        // objects. Separate arguments (sesison objects from data to send
-        // to server.
-        sessionObjs = []
-        for (var i = 0; i < sessionsToSave.length; ++i) {
-            sessionObjs[i] = sessionsToSave[i].SessionObj;
-            delete sessionsToSave[i].SessionObj;
-        }
-
-        var self = this;
-        PushProgress();
-        $.ajax({
-            type: "post",
-            url: "/webgl_viewer/sessions-save",
-            data: {"input" :  JSON.stringify({'sessions':sessionsToSave})},
-            success: function(data) {
-                PopProgress();
-                if (data.error) {
-                  window.alert(data.error)
-                  return;
-                }
-                var dataArray = data.sessions;
-                // If copy, view ids have changed.
-                for (var i = 0; i < sessionObjs.length; ++i) {
-                    sessionObjs[i].UpdateViewIds(dataArray[i]);
-                    sessionObjs[i].SaveLock = false;
-                }
-            },
-            error: function() {
-                PopProgress();
-                console.log( "AJAX - error: sessions-save (collectionBrowser)" );
+        for (var i = 0; i < this.CollectionObjects.length; ++i)
+            {
+                this.CollectionObjects[i].Save();
             }
-        });    
     }
 
 
@@ -246,11 +216,10 @@ CollectionBrowser = (function (){
     }
 
     CollectionObject.prototype.Save = function () {
-      var sessionsToSave = []
-      for (var i = 0; i < this.SessionObjects.length; ++i) {
-        sessionsToSave = [].concat(sessionsToSave, this.SessionObjects[i].Save());
-      }
-      return sessionsToSave;
+        for (var i = 0; i < this.SessionObjects.length; ++i)
+            {
+                this.SessionObjects[i].Save();
+            }
     }
 
 
@@ -457,25 +426,50 @@ CollectionBrowser = (function (){
             }
         }   
 
+        // Leave all the previous mess for updating the GUI (it works).
+        // Use the structure to move the views in the data base.
+        for (var i = 0; i < selectedViewObjects.length; ++i) {
+            var viewObj = selectedViewObjects[i];
+            var viewId = viewObj.Id;
+            var sessId = SessionObject.Id; 
+            var index = viewObj.GetPositionInSession();
+            // If to and from are the same session, index is relative to
+            // session after the view was removed.
+            $.ajax({
+                type: "post",
+                url: "/webgl-viewer/move-view",
+                data: {"view" : viewId,
+                       "to"   : sessId,
+                       "idx"  : index},
+                       success : function(data,status) {
+                                     if (data != "Success") {
+                                     window.alert(data);
+                                     return;
+                                 }},
+                       error: function() {
+                                  alert("AJAX - error() : undo delete view" );
+                                 }});
+        }
+
 
         // I am not sure that the GUI stuff belongs in this method.
         // Update GUI will repopulate this array.
         ClearSelected();
         // Save modified sessions.
-        LIBRARY_OBJ.Save();
+        // LIBRARY_OBJ.Save();
         UpdateGUI();
     }
 
 
     SessionObject.prototype.Save = function() {
         if ( this.SavedTime >= this.ModifiedTime) {
-            return [];
+            return;
         }
         this.SavedTime = this.ModifiedTime;
 
         if (this.State != LOADED) {
             console.log("Error Save: Session not loaded.");
-            return [];
+            return;
         }
 
         var views = [];
@@ -501,8 +495,7 @@ CollectionBrowser = (function (){
         args.views = views;
         args.session = this.Id;
         args.label = this.Label;
-        /* We were loosing views from partial saves.
-           Wait to save all sessions in a single ajax call.
+
         var self = this;
         PushProgress();
         $.ajax({
@@ -520,8 +513,6 @@ CollectionBrowser = (function (){
                 console.log( "AJAX - error: session-save (collectionBrowser)" );
             }
         });
-        */
-        return [args];
 
     }
 
@@ -587,6 +578,15 @@ CollectionBrowser = (function (){
         // source and destination are the same.
         this.CopyFlag = viewObj.CopyFlag;
         return this;
+    }
+    ViewObject.prototype.GetPositionInSession = function() {
+        for (idx = 0; idx < this.SessionObject.ViewObjects.length; ++idx) {
+            if (this.SessionObject.ViewObjects[i] == this) {
+                return idx;
+            }
+        }
+        console.log("Error: could not find view in session.")
+        return 0;
     }
 
 
@@ -1256,7 +1256,6 @@ CollectionBrowser = (function (){
         return false;
     }
 
-    /*
     // Copy is set as a data in the <li> items
     Session.prototype.Save = function() {
         if ( ! this.Modified) {
@@ -1327,9 +1326,19 @@ CollectionBrowser = (function (){
             otherSession.RequestMetaData();
         } if (otherSession.LoadState == LOAD_IMAGES) {
             otherSession.RequestMetaData();
+            /* this messed up the layout for some reason  needs a clear.
+            // Lets just copy / clone this session
+            otherSession.ViewList.empty();
+            this.ViewList.children('li').each(function () {
+                viewItem = $(this).clone(true);
+                viewItem
+                    .data("browserIdx", browserIdx)
+                    .appendTo(otherSession.ViewList);
+            });
+            */
         }
     }
-    */
+
     
 //==============================================================================
     var DROP_TARGETS = [];
