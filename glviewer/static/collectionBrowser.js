@@ -431,8 +431,9 @@ CollectionBrowser = (function (){
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
             var viewId = viewObj.Id;
-            var sessId = SessionObject.Id; 
+            var sessId = SessionObject.Id;
             var index = viewObj.GetPositionInSession();
+            var copyFlag = viewObj.CopyFlag;
             // If to and from are the same session, index is relative to
             // session after the view was removed.
             $.ajax({
@@ -440,15 +441,16 @@ CollectionBrowser = (function (){
                 url: "/webgl-viewer/move-view",
                 data: {"view" : viewId,
                        "to"   : sessId,
-                       "idx"  : index},
-                       success : function(data,status) {
-                                     if (data != "Success") {
-                                     window.alert(data);
-                                     return;
-                                 }},
-                       error: function() {
-                                  alert("AJAX - error() : undo delete view" );
-                                 }});
+                       "idx"  : index,
+                       "copy" : copyFlag},
+                success : function(data,status) {
+                              if (data != "Success") {
+                                  window.alert(data);
+                                  return;
+                              }},
+                error: function() {
+                           alert("AJAX - error() : undo delete view" );
+                       }});
         }
 
 
@@ -581,7 +583,7 @@ CollectionBrowser = (function (){
     }
     ViewObject.prototype.GetPositionInSession = function() {
         for (idx = 0; idx < this.SessionObject.ViewObjects.length; ++idx) {
-            if (this.SessionObject.ViewObjects[i] == this) {
+            if (this.SessionObject.ViewObjects[idx].Id == this.Id) {
                 return idx;
             }
         }
