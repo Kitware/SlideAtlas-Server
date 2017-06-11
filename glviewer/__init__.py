@@ -385,7 +385,7 @@ def moveView():
         viewObj = db["views"].find_one({'_id':viewId})
         if viewObj is None:
             return "Error: Could not find view to copy."
-        delete viewObj['_id']
+        del viewObj['_id']
         viewId = db["views"].save(viewObj)
         fromSessionId = None
 
