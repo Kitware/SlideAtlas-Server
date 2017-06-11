@@ -424,35 +424,13 @@ CollectionBrowser = (function (){
                     }
                 }
             }
-        }   
+        }
 
         // Leave all the previous mess for updating the GUI (it works).
         // Use the structure to move the views in the data base.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
-            var viewObj = selectedViewObjects[i];
-            var viewId = viewObj.Id;
-            var sessId = viewObj.SessionObject.Id;
-            var index = viewObj.GetPositionInSession();
-            var copyFlag = viewObj.CopyFlag;
-            // If to and from are the same session, index is relative to
-            // session after the view was removed.
-            $.ajax({
-                type: "post",
-                url: "/webgl-viewer/move-view",
-                data: {"view" : viewId,
-                       "to"   : sessId,
-                       "idx"  : index,
-                       "copy" : copyFlag},
-                success : function(data,status) {
-                              if (data != "Success") {
-                                  window.alert(data);
-                                  return;
-                              }},
-                error: function() {
-                           alert("AJAX - error() : undo delete view" );
-                       }});
+            this.SaveMovedView(viewObj);
         }
-
 
         // I am not sure that the GUI stuff belongs in this method.
         // Update GUI will repopulate this array.
@@ -460,6 +438,36 @@ CollectionBrowser = (function (){
         // Save modified sessions.
         // LIBRARY_OBJ.Save();
         UpdateGUI();
+    }
+
+
+    SessionObject.prototype.SaveMovedView = function(viewObj) {
+        var viewObj = selectedViewObjects[i];
+        var viewId = viewObj.Id;
+        var sessId = viewObj.SessionObject.Id;
+        var index = viewObj.GetPositionInSession();
+        var copyFlag = viewObj.CopyFlag;
+        // If to and from are the same session, index is relative to
+        // session after the view was removed.
+        $.ajax({
+            type: "post",
+            url: "/webgl-viewer/move-view",
+            data: {"view" : viewId,
+                   "to"   : sessId,
+                   "idx"  : index,
+                   "copy" : copyFlag},
+            success : function(data,status) {
+                if (data.toLowerCase().substr(0,5) = "error") {
+                    window.alert(data);
+                    return;
+                }
+                if (copyFlag) {
+                    viewObj.sessionObject.ViewObjects[index].Id = data;
+                }
+            },
+            error: function() {
+                alert("AJAX - error() : undo delete view" );
+            }});
     }
 
 
