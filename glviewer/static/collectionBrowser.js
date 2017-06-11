@@ -429,6 +429,7 @@ CollectionBrowser = (function (){
         // Leave all the previous mess for updating the GUI (it works).
         // Use the structure to move the views in the data base.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
+            var viewObj = selectedViewObjects[i];
             this.SaveMovedView(viewObj);
         }
 
@@ -442,7 +443,6 @@ CollectionBrowser = (function (){
 
 
     SessionObject.prototype.SaveMovedView = function(viewObj) {
-        var viewObj = selectedViewObjects[i];
         var viewId = viewObj.Id;
         var sessId = viewObj.SessionObject.Id;
         var index = viewObj.GetPositionInSession();
