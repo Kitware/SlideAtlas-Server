@@ -444,7 +444,7 @@ CollectionBrowser = (function (){
 
     SessionObject.prototype.SaveMovedView = function(viewObj) {
         var viewId = viewObj.Id;
-        var sessId = viewObj.SessionObject.Id;
+        var sessId = this.Id;
         var index = viewObj.GetPositionInSession();
         var copyFlag = viewObj.CopyFlag;
         // If to and from are the same session, index is relative to
@@ -457,7 +457,7 @@ CollectionBrowser = (function (){
                    "idx"  : index,
                    "copy" : copyFlag},
             success : function(data,status) {
-                if (data.toLowerCase().substr(0,5) = "error") {
+                if (data.toLowerCase().substr(0,5) == "error") {
                     window.alert(data);
                     return;
                 }
