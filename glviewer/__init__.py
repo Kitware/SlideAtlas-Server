@@ -444,7 +444,7 @@ def moveView():
     toSession["views"].insert(toPosition,viewId)
     db["sessions"].save(toSession)
 
-    return "Success"
+    return str(viewId)
 
 
 # Change the hide labels flag in a session
