@@ -457,7 +457,6 @@ CollectionBrowser = (function (){
     SessionObject.prototype.SaveMovedView = function(viewObj) {
         var viewId = viewObj.Id;
         var sessId = this.Id;
-        var index = viewObj.GetPositionInSession();
         var index = this.GetViewIdPosition(viewObj.Id);
         var copyFlag = viewObj.CopyFlag;
         // If to and from are the same session, index is relative to
