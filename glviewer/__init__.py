@@ -436,9 +436,9 @@ def moveView():
         fromSession["views"].remove(viewId)
         db["sessions"].save(fromSession)
 
-    # if they are the same session then toSession is out of date now.
-    if toSession["_id"] == fromSession["_id"]:
-        toSession = fromSession
+        # if they are the same session then toSession is out of date now.
+        if toSession["_id"] == fromSession["_id"]:
+            toSession = fromSession
 
     # Should I change view["SessionId"] or get rid of this variable?
     toSession["views"].insert(toPosition,viewId)
