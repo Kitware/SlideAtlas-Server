@@ -1086,6 +1086,8 @@ def getsess():
     admindb = models.ImageStore._get_db()
     sessObj = admindb['sessions'].find_one({'_id':sessid},{'views':True})
     viewObjs = []
+    if not 'views' in sessObj:
+        return jsonify({'views':viewObjs})
     for viewid in sessObj['views']:
         viewObj = admindb['views'].find_one({'_id':viewid},{'Title':True,'ViewerRecords.Image':True, \
                                                             'ViewerRecords.Database':True,'Title':True})
