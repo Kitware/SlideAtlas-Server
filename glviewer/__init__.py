@@ -683,7 +683,7 @@ def getfavoriteviews():
     for viewId in viewItr:
         viewObj = readViewTree(admindb, viewId["_id"], -1)
         # There should be no legacy views, but keep the check just in case.
-        if "Type" in viewObj:
+        if not viewObj is None and "Type" in viewObj:
             convertViewToPixelCoordinateSystem(viewObj)
             viewArray.append(viewObj)
 
