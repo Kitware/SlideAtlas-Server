@@ -101,7 +101,7 @@
     {% set navigation_bar = [
         ('home', '/', 'Home', True),
         ('sessions', '/sessions', 'Collections', True),
-        ('search', '/search', 'Search', True),
+        ('search', '/search', 'Search', show_admin),
         ('admin', '/apiv1/admin#/', 'Admin', show_admin),
         ('admin', url_for('admin.index'), 'Admin 2', show_admin),
         ('status', '/status', 'Status', True),
