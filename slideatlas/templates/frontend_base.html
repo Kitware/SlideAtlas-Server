@@ -98,10 +98,11 @@
 {% block navbar %}
     {# TODO: change to only showing Admin for users with some sort of privileges #}
     {% set show_admin = security.AdminRequirement().can() %}
+    {% set is_site_admin = security.AdminSiteRequirement().can() %}
     {% set navigation_bar = [
         ('home', '/', 'Home', True),
         ('sessions', '/sessions', 'Collections', True),
-        ('search', '/search', 'Search', show_admin),
+        ('search', '/search', 'Search', is_site_admin),
         ('admin', '/apiv1/admin#/', 'Admin', show_admin),
         ('admin', url_for('admin.index'), 'Admin 2', show_admin),
         ('status', '/status', 'Status', True),
