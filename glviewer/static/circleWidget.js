@@ -249,7 +249,7 @@
             return false;
         }
 	// Cirlce was getting stuck in interaction tate with mouse up.
-        if (event.which == 0) {
+        if (event.which == 0 && (this.State == DRAG || this.State == DRAG_RADIUS)) {
             this.SetActive(false);
             return true;
         }
