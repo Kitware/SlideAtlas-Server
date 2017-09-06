@@ -174,8 +174,7 @@
     }
 
     CircleWidget.prototype.HandleMouseWheel = function(event) {
-        // TODO: Scale the radius.
-        return false;
+        return true;
     }
 
     CircleWidget.prototype.HandleKeyDown = function(keyCode) {
