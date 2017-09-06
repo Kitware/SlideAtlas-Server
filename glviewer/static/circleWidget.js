@@ -248,6 +248,11 @@
             this.SetActive(this.CheckActive(event));
             return false;
         }
+	// Cirlce was getting stuck in interaction tate with mouse up.
+        if (event.which == 0) {
+            this.SetActive(false);
+            return true;
+        }
 
         var cam = this.Layer.GetCamera();
         if (this.State == NEW_HIDDEN) {
