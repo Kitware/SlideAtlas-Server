@@ -173,6 +173,18 @@ NavigationWidget.prototype.SetNote = function(note) {
         return;
     }
 
+    if (note.Navigation === "None") {
+      this.SetVisibility(false);
+    } else if (note.Nagivation === "Notes") {
+      this.SetVisibility(true);
+      this.PreviousSlideButton.hide();
+      this.NextSlideButton.hide();
+    } else if (note.Navigation === "Slides") {
+      this.SetVisibility(true);
+      this.PreviousSlideButton.show();
+      this.NextSlideButton.show();
+    }
+
     var self = this;
     // Initialize the session neede to get the next slide.
     if (note.SessionId) {

@@ -642,6 +642,14 @@
             obj.WaterMark = this.WaterMark;
         }
 
+        if (this.Navigation) {
+          if (this.Navigation === "None" ||
+              this.Navigation === "Notes" ||
+              this.Navigation === "Slides") {
+            obj.Navigation = this.Navigation;
+          }
+        }
+
         // user data to customize note types
         // I needed this for background color and apsect ratio of presentations.
         if (this.TypeData) {
