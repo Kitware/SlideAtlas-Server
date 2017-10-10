@@ -446,7 +446,7 @@ CollectionBrowser = (function (){
     }
 
     SessionObject.prototype.SaveMovedViews = function(viewObjs) {
-        if (selectedViewObjects.length == 0) {
+        if (viewObjs.length == 0) {
             // NOTE: TODO: We should not update the GUI unless Save returns successfully.
             // I am not sure that the GUI stuff belongs in this method.
             // Update GUI will repopulate this array.
