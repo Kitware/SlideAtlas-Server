@@ -7350,8 +7350,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
     CircleWidget.prototype.HandleMouseWheel = function(event) {
-        // TODO: Scale the radius.
-        return false;
+        return true;
     }
 
     CircleWidget.prototype.HandleKeyDown = function(keyCode) {
@@ -7423,6 +7422,11 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
         if (event.which == 0 && this.State == ACTIVE) {
             this.SetActive(this.CheckActive(event));
             return false;
+        }
+	// Cirlce was getting stuck in interaction tate with mouse up.
+        if (event.which == 0 && (this.State == DRAG || this.State == DRAG_RADIUS)) {
+            this.SetActive(false);
+            return true;
         }
 
         var cam = this.Layer.GetCamera();

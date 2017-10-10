@@ -440,21 +440,26 @@ CollectionBrowser = (function (){
 
         // Leave all the previous mess for updating the GUI (it works).
         // Use the structure to move the views in the data base.
-        for (var i = 0; i < selectedViewObjects.length; ++i) {
-            var viewObj = selectedViewObjects[i];
-            this.SaveMovedView(viewObj);
-        }
-
-        // I am not sure that the GUI stuff belongs in this method.
-        // Update GUI will repopulate this array.
-        ClearSelected();
-        // Save modified sessions.
-        // LIBRARY_OBJ.Save();
-        UpdateGUI();
+        // Note: I do not think the api works when called multiple times quickly.
+        // Serialize it.
+        this.SaveMovedViews(selectedViewObjects);
     }
 
-
-    SessionObject.prototype.SaveMovedView = function(viewObj) {
+    SessionObject.prototype.SaveMovedViews = function(viewObjs) {
+        if (selectedViewObjects.length == 0) {
+            // NOTE: TODO: We should not update the GUI unless Save returns successfully.
+            // I am not sure that the GUI stuff belongs in this method.
+            // Update GUI will repopulate this array.
+            ClearSelected();
+            // Save modified sessions.
+            // LIBRARY_OBJ.Save();
+            UpdateGUI();
+            return;
+        }
+        let remainingViewObjs = viewObjs.splice(0);
+        let viewObj = remainingViewObjs.pop();
+      
+        var self = this;
         var viewId = viewObj.Id;
         var sessId = this.Id;
         var index = this.GetViewIdPosition(viewObj.Id);
@@ -476,12 +481,12 @@ CollectionBrowser = (function (){
                 if (copyFlag) {
                     viewObj.sessionObject.ViewObjects[index].Id = data;
                 }
+                self.SaveMovedViews(remainingViewObjs);
             },
             error: function() {
                 alert("AJAX - error() : undo delete view" );
             }});
     }
-
 
     SessionObject.prototype.Save = function() {
         if ( this.SavedTime >= this.ModifiedTime) {
