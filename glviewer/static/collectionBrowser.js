@@ -479,7 +479,7 @@ CollectionBrowser = (function (){
                     return;
                 }
                 if (copyFlag) {
-                    viewObj.sessionObject.ViewObjects[index].Id = data;
+                    viewObj.SessionObject.ViewObjects[index].Id = data;
                 }
                 self.SaveMovedViews(remainingViewObjs);
             },
