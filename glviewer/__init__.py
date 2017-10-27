@@ -424,6 +424,10 @@ def moveView():
     if toSession == None:
         return "Error: Problem finding destination or creating a trash collection"
 
+    # Should I change view["SessionId"] or get rid of this variable?
+    toSession["views"].insert(toPosition,viewId)
+    db["sessions"].save(toSession)
+
     if fromSession != None:
         # check to make sure the fromSession actually has the view
         found = False
@@ -439,10 +443,6 @@ def moveView():
         # if they are the same session then toSession is out of date now.
         if toSession["_id"] == fromSession["_id"]:
             toSession = fromSession
-
-    # Should I change view["SessionId"] or get rid of this variable?
-    toSession["views"].insert(toPosition,viewId)
-    db["sessions"].save(toSession)
 
     return str(viewId)
 
