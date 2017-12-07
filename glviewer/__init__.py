@@ -712,6 +712,8 @@ def readViewTree(db, viewId, levels):
 
     # Read and add the image objects
     if 'ViewerRecords' in viewObj:
+        if not 'Type' in viewObj:
+            viewObj['Type'] = 'Note'
         for record in viewObj['ViewerRecords']:
             # This default does not make sense anymore
             imgdb = db
