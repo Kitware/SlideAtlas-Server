@@ -554,7 +554,9 @@
             // If it was loaded, the annotations might have been deleted.
             if (this.UserNote.HasAnnotations() ||
                 this.UserNote.LoadState != INVALID) {
+              if (this.Mode !== 'answer-hide') {
                 this.UserNote.Save();
+              }
             }
         }
 
@@ -781,7 +783,9 @@
                 this.ViewerRecords[i].Load(obj);
                 if (i < 3) {
                     // Delay requesting the user notes for a long stack.
+                  if (this.Mode !== 'answer-hide') {
                     this.ViewerRecords[i].RequestUserNote();
+                  }
                 }
             }
         }
