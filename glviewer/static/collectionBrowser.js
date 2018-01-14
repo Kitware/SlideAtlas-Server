@@ -196,6 +196,8 @@ CollectionBrowser = (function (){
         }
     }
 
+    // This appears to be a legacy method that is now only called when the undo
+    // button is pressed.
     LibraryObject.prototype.Save = function () {
         for (var i = 0; i < this.CollectionObjects.length; ++i)
             {
@@ -215,6 +217,8 @@ CollectionBrowser = (function (){
         }
     }
 
+    // This appears to be a legacy method that is now only called when the undo
+    // button is pressed.
     CollectionObject.prototype.Save = function () {
         for (var i = 0; i < this.SessionObjects.length; ++i)
             {
@@ -229,12 +233,14 @@ CollectionBrowser = (function (){
     INITIALIZED = 0;
     WAITING = 1;
     LOADED = 2;
+    SAVING = 3;
     function SessionObject(data) {
         this.Id = data.sessid;
         this.Label = data.label;
         // A separate request is required to get the view data.
         this.ViewObjects = [];
         this.LoadCallbacks = [];
+
 
         this.State = INITIALIZED;
         this.ModifiedTime = this.SavedTime = TIME_COUNT;
@@ -336,7 +342,15 @@ CollectionBrowser = (function (){
             alert("Destintation is not finished loading.");
             return;
         }
+        if (this.State != SAVING) {
+            // Maybe we do not need to clear the selected.
+            ClearSelected();
+            alert("Destintation is not finished saving.");
+            return;
+        }
 
+        console.log("Drop " + SELECTED.length + " selected views into " + this.Label);
+      
         // We have to deal with viewObjects because copies have no view GUIs
         var selectedViewObjects = [];
 
@@ -353,6 +367,7 @@ CollectionBrowser = (function (){
             if (copy) {
                 viewObj.Selected = false;
                 viewObj = new ViewObject().Copy(viewObj);
+                console.log("copy view " + viewObj.Label);
                 viewObj.Selected = keepSelected;
                 viewObj.CopyFlag = true;
                 TRASH_SESSION.InsertViewObject(viewObj, i);
@@ -445,8 +460,12 @@ CollectionBrowser = (function (){
         this.SaveMovedViews(selectedViewObjects);
     }
 
+    // Actually send the messages to the server to make the moves (one at a time)
+    // This is recursive.  It only sends one, but is called again from the ajax return.
     SessionObject.prototype.SaveMovedViews = function(viewObjs) {
+        this.State = SAVING;
         if (viewObjs.length == 0) {
+            this.State = WAITING;
             // NOTE: TODO: We should not update the GUI unless Save returns successfully.
             // I am not sure that the GUI stuff belongs in this method.
             // Update GUI will repopulate this array.
@@ -456,6 +475,8 @@ CollectionBrowser = (function (){
             UpdateGUI();
             return;
         }
+
+        // This appears to be making a copy of the list (but destroying the original)
         let remainingViewObjs = viewObjs.splice(0);
         let viewObj = remainingViewObjs.pop();
       
@@ -466,6 +487,9 @@ CollectionBrowser = (function (){
         var copyFlag = viewObj.CopyFlag;
         // If to and from are the same session, index is relative to
         // session after the view was removed.
+
+        console.log(remainingViewObjs.length.toString() + ": move " + viewObj.Label + " ("
+                    viewId + ") to " + this.Label + " (" + sessId + "), idx = " + index)  
         $.ajax({
             type: "post",
             url: "/webgl-viewer/move-view",
@@ -481,13 +505,15 @@ CollectionBrowser = (function (){
                 if (copyFlag) {
                     viewObj.SessionObject.ViewObjects[index].Id = data;
                 }
-                self.SaveMovedViews(remainingViewObjs);
+                self.SaveMovedViews(remainingViewObjs);                
             },
             error: function() {
                 alert("AJAX - error() : undo delete view" );
             }});
     }
 
+    // This appears to be a legacy method that is now only called when the undo
+    // button is pressed.
     SessionObject.prototype.Save = function() {
         if ( this.SavedTime >= this.ModifiedTime) {
             return;
@@ -772,7 +798,7 @@ CollectionBrowser = (function (){
             .appendTo(this.ListItem)
             .attr('src',"/webgl-viewer/static/"+"plus.png")
             .addClass("sa-view-icon");
-        $('<span>')
+        this.SessionLabel = $('<span>')
             .appendTo(this.ListItem)
             .text(collectionObject.Label);
         this.SessionList = $('<ul>')
@@ -783,6 +809,7 @@ CollectionBrowser = (function (){
 
         var self = this;
         this.OpenCloseIcon.click(function(){self.ToggleSessionList();});
+        this.SessionLabel.click(function(){self.SelectAll();});
 
         // Populate the sessions list.
         this.Sessions = [];
@@ -792,7 +819,18 @@ CollectionBrowser = (function (){
         }
     }
 
-
+    Collection.prototype.SelectAll = function() {
+        ClearSelected();
+        if ( ! this.Views) {
+            return;
+        }
+        for (var idx = 0; idx < this.Views.length; ++idx){
+            AddSelected(this.Views[idx]);
+            // Not sure what this anchor is .....
+            LAST_SELECTED = this.Views[idx];
+        }
+    }
+      
     Collection.prototype.ToggleSessionList = function() {
         if (this.SessionListOpen) {
             this.SessionListOpen = false;
@@ -1008,7 +1046,7 @@ CollectionBrowser = (function (){
             });
     }
 
-
+    // This is called when the mouse leaves an item and a mouse button is pressed.
     // Leaving triggers a drag (when mouse is pressed).
     var leaveHandler = function(event){
         var view = this.View;
@@ -1254,7 +1292,8 @@ CollectionBrowser = (function (){
     // Makes the drop if yes. (I could change this to "DropCheck".
     Session.prototype.Drop = function(x,y, copy) {
         if (this.UpdateDropTarget(x,y)) {
-            // Delete the clone <li>s
+            console.log("Drop " + CLONES.length + " clones into " + this.Label);
+            // Delete the clones
             for (var i = 0; i < CLONES.length; ++i) {
                 var clone = CLONES[i];
                 clone.remove();
@@ -1271,11 +1310,17 @@ CollectionBrowser = (function (){
 
             return true;
         }
+        console.log("No drop target.");
+        CLONES = [];
+        MESSAGE.hide();
         return false;
     }
 
+    // This appears to be a legacy method that is now only called when the undo
+    // button is pressed. Actually, I do not think this is called at all.
     // Copy is set as a data in the <li> items
     Session.prototype.Save = function() {
+        console.log("Session.Save:  a method I thought was depreciated was called.")
         if ( ! this.Modified) {
             return;
         }
@@ -1360,12 +1405,17 @@ CollectionBrowser = (function (){
     
 //==============================================================================
     var DROP_TARGETS = [];
+    // This is called to start dragging the selected views.
+    // The selected views have been stored in the global "SELECTED"
+    // It sets up the clone items that follow the mouse.
     function StartViewDrag(event) {
         var copy = (event.which == 3) || event.ctrlKey;
 
         if (SELECTED.length == 0) {
             return;
         }
+        console.log("StartDrag with " + SELECTED.length + " items")
+      
         var x = event.clientX;
         var y = event.clientY;
 
@@ -1558,7 +1608,7 @@ CollectionBrowser = (function (){
     function ScheduleImagePopup(img) {
         // Clear any previous timer
         HideImagePopup();
-        POPUP_TIMER_ID = window.setTimeout(function(){ShowImagePopup(img);}, 1200);
+        POPUP_TIMER_ID = window.setTimeout(function(){ShowImagePopup(img);}, 2000);
     }
     function ClearPendingImagePopup() {
         if (POPUP_TIMER_ID) {
