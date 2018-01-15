@@ -1290,6 +1290,7 @@ CollectionBrowser = (function (){
 
     // Check to see if the session is the drop target.
     // Makes the drop if yes. (I could change this to "DropCheck".
+    // This is called for every session in the browser.  It will fail for all but one.
     Session.prototype.Drop = function(x,y, copy) {
         if (this.UpdateDropTarget(x,y)) {
             console.log("Drop " + CLONES.length + " clones into " + this.Label);
@@ -1310,9 +1311,6 @@ CollectionBrowser = (function (){
 
             return true;
         }
-        console.log("No drop target.");
-        CLONES = [];
-        MESSAGE.hide();
         return false;
     }
 
@@ -1585,7 +1583,7 @@ CollectionBrowser = (function (){
         for (var i = 0; i < SELECTED.length; ++i) {
             SELECTED[i].Item.children().css({'opacity':'1.0'});
         }
-
+        console.log("Could not find drop target.");    
         return false;
     }
 
