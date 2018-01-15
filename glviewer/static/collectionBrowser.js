@@ -339,13 +339,7 @@ CollectionBrowser = (function (){
         }
         if (this.State != LOADED) {
             ClearSelected();
-            alert("Destintation is not finished loading.");
-            return;
-        }
-        if (this.State != SAVING) {
-            // Maybe we do not need to clear the selected.
-            ClearSelected();
-            alert("Destintation is not finished saving.");
+            alert("Destintation is not finished loading (or saving).");
             return;
         }
 
@@ -465,7 +459,8 @@ CollectionBrowser = (function (){
     SessionObject.prototype.SaveMovedViews = function(viewObjs) {
         this.State = SAVING;
         if (viewObjs.length == 0) {
-            this.State = WAITING;
+            // waiting is actually not an idling state. Loaded is.
+            this.State = LOADED;
             // NOTE: TODO: We should not update the GUI unless Save returns successfully.
             // I am not sure that the GUI stuff belongs in this method.
             // Update GUI will repopulate this array.
