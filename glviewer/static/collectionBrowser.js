@@ -488,7 +488,7 @@ CollectionBrowser = (function (){
         // If to and from are the same session, index is relative to
         // session after the view was removed.
 
-        console.log(remainingViewObjs.length.toString() + ": move " + viewObj.Label + " ("
+        console.log(remainingViewObjs.length.toString() + ": move " + viewObj.Label + " (" +
                     viewId + ") to " + this.Label + " (" + sessId + "), idx = " + index)  
         $.ajax({
             type: "post",
