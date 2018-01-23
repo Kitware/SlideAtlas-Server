@@ -394,8 +394,10 @@ CollectionBrowser = (function (){
         // Duplicate the object temporarily
 
         // Add the selected.
-        for (var i = 0; i < selectedViewObjects.length; ++i) {
-            var viewObj = selectedViewObjects[i];
+        tmp = selectedViewObjects;
+        selectedViewObjects = []
+        for (var i = 0; i < tmp.length; ++i) {
+            var viewObj = tmp[i];
             // We have to be careful. If the destination session is the
             // same as the source destination.  Make a copy of the viewObj
             // so it will not be removed when trying to remove the
@@ -404,13 +406,13 @@ CollectionBrowser = (function (){
             viewObj.Selected = keepSelected;
             // Insert
             this.InsertViewObject(viewObj, index);
+            selectedViewObjects.push(viewObj);
             // Put them in order (hack)
             index++;
         }
-
-        // Remove the selected.
-        for (var i = 0; i < selectedViewObjects.length; ++i) {
-            var viewObj = selectedViewObjects[i];
+        // Remove the placeholders.
+        for (var i = 0; i < tmp.length; ++i) {
+            var viewObj = tmp[i];
             var sessionObj = viewObj.SessionObject;
             sessionObj.RemoveViewObject(viewObj);
         }
@@ -429,7 +431,7 @@ CollectionBrowser = (function (){
             }
             if ( ! found) {
                 HistoryUndo();
-                alert("lost: " + viewObj.Label);
+                alert("Sanity check failed. Lost: " + viewObj.Label);
                 return;
             }
             // Make sure the views are removed from the previous session.
@@ -439,7 +441,7 @@ CollectionBrowser = (function (){
                     for (var j = 0; j < sessionObj.ViewObjects.length; ++j) {
                         if(sessionObj.ViewObjects[j].Id == viewObj.Id) {
                             HistoryUndo();
-                            alert("Move did not remove: " + viewObj.Label);
+                            alert("Sanity check failed. Move did not remove: " + viewObj.Label);
                             return;
                         }
                     }
