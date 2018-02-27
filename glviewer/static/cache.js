@@ -88,7 +88,7 @@
     this.maxLevel = 10;
     this.getTileUrl = function (level,x,y) {
       if (level > this.maxLevel) {return "";}
-      return this.server + '/api/v1/item/' + this.id + '/tiles/zxy/'
+      return this.server + '/api/v1/item/' + this.itemId + '/tiles/zxy/'
         + level + '/' + x + '/' + y;
     }
   }
