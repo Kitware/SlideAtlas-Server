@@ -85,7 +85,7 @@
     this.fileId = "5446ed79dd98b555509bd197";
     this.itemId = "5810e274a7a14124417eead3";
     this.server = "https://images.slide-atlas.org";
-    this,maxLevel = 10;
+    this.maxLevel = 10;
     this.getTileUrl = function (level,x,y) {
       if (level > this.maxLevel) {return "";}
       return this.server + '/api/v1/item/' + this.id + '/tiles/zxy/'
