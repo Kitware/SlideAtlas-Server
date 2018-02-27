@@ -28257,131 +28257,143 @@ window.SA = window.SA || {};
 
 })();
 (function () {
-    "use strict";
+  "use strict";
 
 
-    // I am adding a levels with grids to index tiles in addition
-    // to the tree.  Eventually I want to get rid fo the tree.
-    // I am trying to get rid of the roots now.
+  // I am adding a levels with grids to index tiles in addition
+  // to the tree.  Eventually I want to get rid fo the tree.
+  // I am trying to get rid of the roots now.
 
-    // A stripped down source object.
-    // A source object must have a getTileUrl method.
-    // It can have any instance variables it needs to
-    // compute the URL.
-    SA.SlideAtlasSource = function () {
-        this.Prefix = undefined;
+  // A stripped down source object.
+  // A source object must have a getTileUrl method.
+  // It can have any instance variables it needs to
+  // compute the URL.
+  SA.SlideAtlasSource = function () {
+    this.Prefix = undefined;
 
-        // Higher levels are higher resolution.
-        // x, y, slide are integer indexes of tiles in the grid.
-        this.getTileUrl = function(level, x, y, z) {
-            var name = this.Prefix + "t";
-            while (level  > 0) {
-                --level;
-                var cx = (x>>level)&1;
-                var cy = (y>>level)&1;
-                var childIdx = cx+(2*cy);
-                if (childIdx == 0) {name += "q";}
-                if (childIdx == 1) {name += "r";}
-                if (childIdx == 2) {name += "t";}
-                if (childIdx == 3) {name += "s";}
-            }
-            name = name + ".jpg"
-            return name;
-        }
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.getTileUrl = function(level, x, y, z) {
+      var name = this.Prefix + "t";
+      while (level  > 0) {
+        --level;
+        var cx = (x>>level)&1;
+        var cy = (y>>level)&1;
+        var childIdx = cx+(2*cy);
+        if (childIdx == 0) {name += "q";}
+        if (childIdx == 1) {name += "r";}
+        if (childIdx == 2) {name += "t";}
+        if (childIdx == 3) {name += "s";}
+      }
+      name = name + ".jpg"
+      return name;
+    }
+  }
+
+  SA.GigamacroSource = function () {
+    this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+    this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
+
+    this.setDimensions = function(xDim,yDim) {
+      this.Dimensions = [xDim, yDim];
+      this.GridSize = [];
+      this.Levels = 0;
+      while (true) {
+        var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+        this.GridSize.splice(0,0,gridLevelDim);
+        this.Levels += 1;
+        if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+        xDim = xDim / 2;
+        yDim = yDim / 2;
+      }
     }
 
-    SA.GigamacroSource = function () {
-        this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
-        this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
-
-        this.setDimensions = function(xDim,yDim) {
-            this.Dimensions = [xDim, yDim];
-            this.GridSize = [];
-            this.Levels = 0;
-            while (true) {
-                var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
-                this.GridSize.splice(0,0,gridLevelDim);
-                this.Levels += 1;
-                if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
-                xDim = xDim / 2;
-                yDim = yDim / 2;
-            }
-        }
-
-        // Higher levels are higher resolution.
-        // x, y, slide are integer indexes of tiles in the grid.
-        this.getTileUrl = function(level, x, y, z) {
-            var g = this.GridSize[level];
-            if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) {
-                return "";
-            }
-            var num = y*g[0] + x;
-            for (var i = 0; i < level; ++i) {
-                g = this.GridSize[i];
-                num += g[0]*g[1];
-            }
-            var tileGroup = Math.floor(num / 256);
-            var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
-            return name;
-        }
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.getTileUrl = function(level, x, y, z) {
+      var g = this.GridSize[level];
+      if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) {
+        return "";
+      }
+      var num = y*g[0] + x;
+      for (var i = 0; i < level; ++i) {
+        g = this.GridSize[i];
+        num += g[0]*g[1];
+      }
+      var tileGroup = Math.floor(num / 256);
+      var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
+      return name;
     }
+  }
 
+  /*
     SA.GirderSource = function () {
-        this.height = 18432;
-        this.width = 18432;
-        this.tileSize = 256;
-        this.minLevel = 0;
-        this.maxLevel = 7;
-        this.getTileUrl = function (level,x,y) {
-            return 'http://lemon:8081/api/v1/item/564e42fe3f24e538e9a20eb9/tiles/zxy/'
-                + level + '/' + x + '/' + y;
-        }
+    this.height = 18432;
+    this.width = 18432;
+    this.tileSize = 256;
+    this.minLevel = 0;
+    this.maxLevel = 7;
+    this.getTileUrl = function (level,x,y) {
+    return 'http://lemon:8081/api/v1/item/564e42fe3f24e538e9a20eb9/tiles/zxy/'
+    + level + '/' + x + '/' + y;
     }
+    }
+  */
+  SA.GirderSource = function () {
+    this.fileId = "5446ed79dd98b555509bd197";
+    this.itemId = "5810e274a7a14124417eead3";
+    this.server = "https://images.slide-atlas.org";
+    this,maxLevel = 10;
+    this.getTileUrl = function (level,x,y) {
+      if (level > this.maxLevel) {return "";}
+      return this.server + '/api/v1/item/' + this.id + '/tiles/zxy/'
+        + level + '/' + x + '/' + y;
+    }
+  }
 
-    // Our subdivision of leaves is arbitrary.
-    SA.IIIFSource = function () {
-        this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
-        this.TileSize = 256;
+  // Our subdivision of leaves is arbitrary.
+  SA.IIIFSource = function () {
+    this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
+    this.TileSize = 256;
 
-        this.setDimensions = function(xDim,yDim) {
-            this.Dimensions = [xDim, yDim];
-            this.GridSize = [];
-            this.Levels = 0;
-            while (true) {
-                var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
-                this.Levels += 1;
-                if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
-                xDim = xDim / 2;
-                yDim = yDim / 2;
-            }
-        }
+    this.setDimensions = function(xDim,yDim) {
+      this.Dimensions = [xDim, yDim];
+      this.GridSize = [];
+      this.Levels = 0;
+      while (true) {
+        var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+        this.Levels += 1;
+        if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+        xDim = xDim / 2;
+        yDim = yDim / 2;
+      }
+    }
 
     // Higher levels are higher resolution. (0 is the root).
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
-        // compute the dimensions of this resolution.
-        var x0 = x * 256;
-        var y0 = y * 256;
-        var x1 = x0 + 256;
-        var y1 = y0 + 256;
-        // crop the tile
-        var res = this.Levels - level - 1;
-        var dx = this.Dimensions[0] >> res;
-        var dy = this.Dimensions[1] >> res;
-        if (x1 > dx) { x1 = dx; }
-        if (y1 > dy) { y1 = dy; }
-        dx = x1-x0;
-        dy = y1-y0;
-        // Compute the scale.
-        res = 1.0 / (1 << res);
+      // compute the dimensions of this resolution.
+      var x0 = x * 256;
+      var y0 = y * 256;
+      var x1 = x0 + 256;
+      var y1 = y0 + 256;
+      // crop the tile
+      var res = this.Levels - level - 1;
+      var dx = this.Dimensions[0] >> res;
+      var dy = this.Dimensions[1] >> res;
+      if (x1 > dx) { x1 = dx; }
+      if (y1 > dy) { y1 = dy; }
+      dx = x1-x0;
+      dy = y1-y0;
+      // Compute the scale.
+      res = 1.0 / (1 << res);
 
-        var name = this.Prefix+"&s="+res+"&r=0&x="+x0+"&y="+y0+"&w="+dx+"&h="+dy;
-        return name;
+      var name = this.Prefix+"&s="+res+"&r=0&x="+x0+"&y="+y0+"&w="+dx+"&h="+dy;
+      return name;
     }
-}
+  }
 
-
-SA.DanielSource = function () {
+  SA.DanielSource = function () {
     this.Prefix = "http://dragon.krash.net:2009/data/1"
     this.MinLevel = 0;
     this.MaxLevel = 7;
@@ -28389,29 +28401,28 @@ SA.DanielSource = function () {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
-        if (z < this.MinLevel) {return "";}
-        if (z > this.MaxLevel) {return "";}
-        var name = this.Prefix + level + '-' + x + '-' + y;
-        return name;
+      if (z < this.MinLevel) {return "";}
+      if (z > this.MaxLevel) {return "";}
+      var name = this.Prefix + level + '-' + x + '-' + y;
+      return name;
     }
-}
+  }
 
-
-SA.IIPSource = function () {
+  SA.IIPSource = function () {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
-        // The number if tiles in a row for this level grid.
-        var xDim = Math.ceil(this.ImageWidth / 
-                             (this.TileSize << (this.NumLevels - z - 1)));
-        var idx = y * xDim + x;
-        imageSrc = this.Prefix + (z+2) + "," + idx;
+      // The number if tiles in a row for this level grid.
+      var xDim = Math.ceil(this.ImageWidth / 
+                           (this.TileSize << (this.NumLevels - z - 1)));
+      var idx = y * xDim + x;
+      imageSrc = this.Prefix + (z+2) + "," + idx;
     }
 
     this.ImageWidth = 0;
     this.TileSize = 256;
     this.NumLevels = 0;
-}
+  }
 
 
 
@@ -28419,54 +28430,69 @@ SA.IIPSource = function () {
 
 //==============================================================================
 
-SA.FindCache = function(image) {
+  SA.FindCache = function(image) {
     // Look through existing caches and reuse one if possible
     for (var i = 0; i < SA.Caches.length; ++i) {
-        if (SA.Caches[i].Image._id == image._id) {
-            return SA.Caches[i];
-        }
+      if (SA.Caches[i].Image._id == image._id) {
+        return SA.Caches[i];
+      }
     }
     var cache = new SA.Cache();
 
     // Special case to link to IIIF? Harvard art..
     //http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap&s=1&r=0&x=0&y=0&w=600&h=600
 
+    if (image.girder) {
+      var tileSource = new SA.GirderSource ();
+      tileSource.fileId = image._id;
+      tileSource.itemId = image.girder.itemId;
+      tileSource.server = image.girder.server;
+      tileSource.height = image.dimensions[1];
+      tileSource.width =  image.dimensions[0];
+      tileSource.tileSize = image.TileSize;
+      tileSource.minLevel = 0;
+      tileSource.maxLevel = image.levels - 1;
+      cache.SetImageData(image);
+      cache.TileSource = tileSource;
+      return cache;
+    }
+
     if (image._id == "556e0ad63ed65909dbc2e383") {
-        var tileSource = new SA.IIIFSource ();
-        tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=47174896";
-        // "width":2087,"height":2550,"scale_factors":[1,2,4,8,16,32],
-        tileSource.setDimensions(2087,2550);
-        image.levels = tileSource.Levels;
-        image.dimensions = tileSource.Dimensions;
-        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
-        cache.SetImageData(image);
-        cache.TileSource = tileSource;
-        return cache;
+      var tileSource = new SA.IIIFSource ();
+      tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=47174896";
+      // "width":2087,"height":2550,"scale_factors":[1,2,4,8,16,32],
+      tileSource.setDimensions(2087,2550);
+      image.levels = tileSource.Levels;
+      image.dimensions = tileSource.Dimensions;
+      image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+      cache.SetImageData(image);
+      cache.TileSource = tileSource;
+      return cache;
     }
 
     if (image._id == "556c89a83ed65909dbc2e317") {
-        var tileSource = new SA.IIIFSource ();
-        tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
-        tileSource.setDimensions(3890,5787);
-        image.levels = tileSource.Levels;
-        image.dimensions = tileSource.Dimensions;
-        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
-        cache.SetImageData(image);
-        cache.TileSource = tileSource;
-        return cache;
+      var tileSource = new SA.IIIFSource ();
+      tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
+      tileSource.setDimensions(3890,5787);
+      image.levels = tileSource.Levels;
+      image.dimensions = tileSource.Dimensions;
+      image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+      cache.SetImageData(image);
+      cache.TileSource = tileSource;
+      return cache;
     }
 
     // Special case to link to gigamacro.
     if (image._id == "555a1af93ed65909dbc2e19a") {
-        var tileSource = new SA.GigamacroSource ();
-        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
-        tileSource.setDimensions(14316,8459);
-        image.levels = tileSource.Levels;
-        image.dimensions = tileSource.Dimensions;
-        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
-        cache.SetImageData(image);
-        cache.TileSource = tileSource;
-        return cache;
+      var tileSource = new SA.GigamacroSource ();
+      tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+      tileSource.setDimensions(14316,8459);
+      image.levels = tileSource.Levels;
+      image.dimensions = tileSource.Dimensions;
+      image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+      cache.SetImageData(image);
+      cache.TileSource = tileSource;
+      return cache;
     }
     if (image._id == "555a5e163ed65909dbc2e19d") {
         var tileSource = new SA.GigamacroSource ();
