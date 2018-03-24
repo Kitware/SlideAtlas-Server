@@ -327,11 +327,14 @@
     PolylineWidget.prototype.HandleKeyDown = function(event) {
         if (event.keyCode == 65 && !this.AddedToVolume) { //a for add area.  Volume hack.
             if (! SAM.Volume) {
-                SAM.Volume = 0.0;
+              SAM.Volume = 0.0;
+              SAM.VOlumeArray = [];
             }
-            SAM.Volume += this.ComputeArea() * 0.25 * 0.25;
+            var area = this.ComputeArea() * 0.25 * 0.25;
+            SAM.Volume += area;
+            SAM.VolumeArray.push(area);
             this.AddedToVolume = true;
-            console.log(SAM.Volume);
+            console.log(this.VolumeArray.length.toString() + " : " + SAM.Volume.toString());
         }
         // Copy
         if (event.keyCode == 67 && event.ctrlKey) {
