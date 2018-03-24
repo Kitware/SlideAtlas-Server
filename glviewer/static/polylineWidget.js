@@ -328,7 +328,7 @@
         if (event.keyCode == 65 && !this.AddedToVolume) { //a for add area.  Volume hack.
             if (! SAM.Volume) {
               SAM.Volume = 0.0;
-              SAM.VOlumeArray = [];
+              SAM.VolumeArray = [];
             }
             var area = this.ComputeArea() * 0.25 * 0.25;
             SAM.Volume += area;
