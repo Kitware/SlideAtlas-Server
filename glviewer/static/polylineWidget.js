@@ -324,6 +324,13 @@
     }
 
     PolylineWidget.prototype.HandleKeyDown = function(event) {
+        if (event.keyCode == 65 ) { //a for add area.  Volume hack.
+            if (! SAM.Volume) {
+                SAM.Volume = 0.0;
+            }
+            SAM.Volume += this.ComputeArea() * 0.25 * 0.25;
+            console.log(SAM.Volume);
+        }
         // Copy
         if (event.keyCode == 67 && event.ctrlKey) {
             // control-c for copy
