@@ -29,6 +29,7 @@
 
 
     function PolylineWidget (layer, newFlag) {
+        this.AddedToVolume = false;
         if (layer === undefined) {
             return;
         }
@@ -324,11 +325,12 @@
     }
 
     PolylineWidget.prototype.HandleKeyDown = function(event) {
-        if (event.keyCode == 65 ) { //a for add area.  Volume hack.
+        if (event.keyCode == 65 && !this.AddedToVolume) { //a for add area.  Volume hack.
             if (! SAM.Volume) {
                 SAM.Volume = 0.0;
             }
             SAM.Volume += this.ComputeArea() * 0.25 * 0.25;
+            this.AddedToVolume = true;
             console.log(SAM.Volume);
         }
         // Copy
@@ -654,7 +656,7 @@
             // Tolerance: 5 screen pixels.
             dist = EDGE_RADIUS / this.Layer.GetPixelsPerUnit();
             dist = Math.max(dist, this.Polyline.GetLineWidth()/2);
-            this.ActiveEdge = this.Polyline.PointOnShape(pt, dist);
+            this.ActiveEdge = this.Polyline.PointOnShape(pt, dist*2);
             if ( ! this.ActiveEdge) {
                 return false;
             }
