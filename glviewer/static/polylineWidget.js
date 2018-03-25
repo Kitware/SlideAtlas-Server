@@ -334,7 +334,7 @@
             SAM.Volume += area;
             SAM.VolumeArray.push(area);
             this.AddedToVolume = true;
-            console.log(this.VolumeArray.length.toString() + " : " + SAM.Volume.toString());
+            console.log(SAM.VolumeArray.length.toString() + " : " + SAM.Volume.toString());
         }
         // Copy
         if (event.keyCode == 67 && event.ctrlKey) {
