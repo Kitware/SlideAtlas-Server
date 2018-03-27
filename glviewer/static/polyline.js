@@ -181,7 +181,7 @@
             var vy2 = vy1;
             vx1 = this.Points[j][0] - cx;
             vy1 = this.Points[j][1] - cy;
-            area += (vx1*vy2) - (vx2*vy1);
+            area += ((vx1*vy2) - (vx2*vy1))*0.5;
         }
 
         // Handle both left hand loops and right hand loops.
