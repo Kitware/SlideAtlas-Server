@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import os
 from flask import Blueprint, Response, current_app, request, redirect
 
 from slideatlas import models
@@ -67,6 +68,11 @@ def thumb(image_store, image):
     """
     Return a thumbnail image
     """
+    if 'girder' in image:
+        server = image['girder']['server']
+        girderItemId = image['girder']['itemId']
+        return os.path.join(server, 'api/v1/item', girderItemId, 'tiles/thumbnail?height=100')
+
     # TODO: support Not Modified) responses, but only after thumbnails are
     #   moved out of ImageStores; thumbnails are mutable, so 2 database lookups
     #   will currently always have to be made
