@@ -70,7 +70,7 @@ def thumb(image_store, image, imageobj):
     if imageobj and 'girder' in imageobj:
         server = imageobj['girder']['server']
         girderItemId = imageobj['girder']['itemId']
-        return server + '/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100'
+        return Response(server + '/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100',status=301)
 
     # TODO: support Not Modified) responses, but only after thumbnails are
     #   moved out of ImageStores; thumbnails are mutable, so 2 database lookups
@@ -93,7 +93,13 @@ def thumb_query():
     image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
     with image_store:
         imagecol = models.Image._get_collection()
-        imageobj = imagecol.find_one({"_id": ObjectId(image_id)})
+        tile_data = image_store.get_tile(image_id, tile_name)
+        try:
+            imageobj = imagecol.find_one({"_id": ObjectId(image_id)})
+        except:
+            # TODO: more specific exception
+            current_app.logger.warning('Bad image id: %s' % image_id)
+            return Response('{"error": "Thumb loading error: %s"}' % image_id, status=404)
         image = models.Image.objects.get_or_404(id=image_id)
 
     return thumb(image_store, image, imageobj)
