@@ -1,4 +1,4 @@
-# coding=utf-8
+s# coding=utf-8
 
 from flask import Blueprint, Response, current_app, request, redirect
 
@@ -70,7 +70,10 @@ def thumb(image_store, image, imageobj):
     if imageobj and 'girder' in imageobj:
         server = imageobj['girder']['server']
         girderItemId = imageobj['girder']['itemId']
-        return Response(server + '/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100',status=301)
+        girder_url = server + '{"location":"/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100"}'
+        resp = Response(girder_url, status=301)
+        resp.headers['Location'] = girder_url
+        return resp
 
     # TODO: support Not Modified) responses, but only after thumbnails are
     #   moved out of ImageStores; thumbnails are mutable, so 2 database lookups
