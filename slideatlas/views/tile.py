@@ -93,7 +93,6 @@ def thumb_query():
     image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
     with image_store:
         imagecol = models.Image._get_collection()
-        tile_data = image_store.get_tile(image_id, tile_name)
         try:
             imageobj = imagecol.find_one({"_id": ObjectId(image_id)})
         except:
