@@ -64,13 +64,13 @@ def tile_query():
 ################################################################################
 @mod.route('/thumb/<ImageStore:image_store>/<Image:image>')
 # @security.login_required
-def thumb(image_store, image):
+def thumb(image_store, image, imageobj):
     """
     Return a thumbnail image
     """
-    if 'girder' in image:
-        server = image['girder']['server']
-        girderItemId = image['girder']['itemId']
+    if 'girder' in imageobj:
+        server = imageobj['girder']['server']
+        girderItemId = imageobj['girder']['itemId']
         return os.path.join(server, 'api/v1/item', girderItemId, 'tiles/thumbnail?height=100')
 
     # TODO: support Not Modified) responses, but only after thumbnails are
@@ -91,11 +91,15 @@ def thumb_query():
     image_id = request.args.get('img')
     image_store_id = request.args.get('db')
 
+
+    
     image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
     with image_store:
+        imagecol = models.Image._get_collection()
+        imageobj = imagecol.find_one({"_id": image_id})
         image = models.Image.objects.get_or_404(id=image_id)
 
-    return thumb(image_store, image)
+    return thumb(image_store, image, imageobj)
 
 
 ################################################################################
