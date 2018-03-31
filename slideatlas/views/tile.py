@@ -68,7 +68,7 @@ def thumb(image_store, image, imageobj):
     """
     Return a thumbnail image
     """
-    if 'girder' in imageobj:
+    if imageobj and 'girder' in imageobj:
         server = imageobj['girder']['server']
         girderItemId = imageobj['girder']['itemId']
         return os.path.join(server, 'api/v1/item', girderItemId, 'tiles/thumbnail?height=100')
@@ -90,13 +90,11 @@ def thumb(image_store, image, imageobj):
 def thumb_query():
     image_id = request.args.get('img')
     image_store_id = request.args.get('db')
-
-
     
     image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
     with image_store:
         imagecol = models.Image._get_collection()
-        imageobj = imagecol.find_one({"_id": image_id})
+        imageobj = imagecol.find_one({"_id": ObjectId(image_id)})
         image = models.Image.objects.get_or_404(id=image_id)
 
     return thumb(image_store, image, imageobj)
