@@ -70,7 +70,9 @@ def thumb(image_store, image, imageobj):
     if imageobj and 'girder' in imageobj:
         server = imageobj['girder']['server']
         girderItemId = imageobj['girder']['itemId']
-        return Response(server + '/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100',status=301)
+        girder_url = server + '/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100'
+        resp = Response('{"Location":%s}'%girder_url,status=301)
+        return resp
 
     # TODO: support Not Modified) responses, but only after thumbnails are
     #   moved out of ImageStores; thumbnails are mutable, so 2 database lookups
