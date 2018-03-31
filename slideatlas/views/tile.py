@@ -72,6 +72,7 @@ def thumb(image_store, image, imageobj):
         girderItemId = imageobj['girder']['itemId']
         girder_url = server + '/api/v1/item/' + str(girderItemId) + '/tiles/thumbnail?height=100'
         resp = Response('{"Location":%s}'%girder_url,status=301)
+        resp.headers['Location'] = girder_url
         return resp
 
     # TODO: support Not Modified) responses, but only after thumbnails are
