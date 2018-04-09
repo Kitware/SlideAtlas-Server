@@ -1093,7 +1093,8 @@ def getsess():
     for viewid in sessObj['views']:
         viewObj = admindb['views'].find_one({'_id':viewid},{'Title':True,'ViewerRecords.Image':True, \
                                                             'ViewerRecords.Database':True,'Title':True})
-        if viewObj is None or not 'Database' in viewObj['ViewerRecords'][0]:
+        if viewObj is None or len(viewObj['ViewerRecords']) == 0 or \
+           not 'Database' in viewObj['ViewerRecords'][0]:
             # Substitute a broken image.
             viewObjs.append({'Id':viewObj['_id'], 'ImageId':'55be241b3ed65909a84cdf0c', \
                              'ImageDb':'52a0b030554a19140a5323a9','Label':'Broken Image'})
