@@ -342,6 +342,7 @@
         if (new_title === this.Title) {
             return;
         }
+        this.Title = new_title;
         if (SA.notesWidget) {
             SA.notesWidget.MarkAsModified();
         }

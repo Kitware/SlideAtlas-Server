@@ -1619,7 +1619,7 @@
                     // We need to save the note to get its Id (for the link div).
                     childNote.Save();
                     parentNote.UpdateChildrenGUI();
-                    this.Display.SetNote(childNote);
+                    self.Display.SetNote(childNote);
                     //self.SetNote(childNote);
                 });
         }
