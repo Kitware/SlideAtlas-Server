@@ -3552,7 +3552,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             var vy2 = vy1;
             vx1 = this.Points[j][0] - cx;
             vy1 = this.Points[j][1] - cy;
-            area += (vx1*vy2) - (vx2*vy1);
+            area += ((vx1*vy2) - (vx2*vy1))*0.5;
         }
 
         // Handle both left hand loops and right hand loops.
@@ -3892,6 +3892,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 
 
     function PolylineWidget (layer, newFlag) {
+        this.AddedToVolume = false;
         if (layer === undefined) {
             return;
         }
@@ -4187,6 +4188,17 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
     }
 
     PolylineWidget.prototype.HandleKeyDown = function(event) {
+        if (event.keyCode == 65 && !this.AddedToVolume) { //a for add area.  Volume hack.
+            if (! SAM.Volume) {
+              SAM.Volume = 0.0;
+              SAM.VolumeArray = [];
+            }
+            var area = this.ComputeArea() * 0.25 * 0.25;
+            SAM.Volume += area;
+            SAM.VolumeArray.push(area);
+            this.AddedToVolume = true;
+            console.log(SAM.VolumeArray.length.toString() + " : " + SAM.Volume.toString());
+        }
         // Copy
         if (event.keyCode == 67 && event.ctrlKey) {
             // control-c for copy
@@ -4510,7 +4522,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
             // Tolerance: 5 screen pixels.
             dist = EDGE_RADIUS / this.Layer.GetPixelsPerUnit();
             dist = Math.max(dist, this.Polyline.GetLineWidth()/2);
-            this.ActiveEdge = this.Polyline.PointOnShape(pt, dist);
+            this.ActiveEdge = this.Polyline.PointOnShape(pt, dist*2);
             if ( ! this.ActiveEdge) {
                 return false;
             }

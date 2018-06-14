@@ -11737,6 +11737,16 @@ function TabPanel(tabbedDiv, title) {
         }
 
         if (SA.Edit) {
+            this.EditButton = $('<img>')
+                .appendTo(this.ButtonsDiv)
+                .hide()
+                .attr('src',SA.ImagePathUrl+"Pencil-icon.png")
+                .addClass('editButton')
+                .prop('title', "edit name")
+                .css({
+                    'width':'12px',
+                    'height':'12px',
+                    'opacity':'0.5'});
             this.AddButton = $('<img>')
                 .appendTo(this.ButtonsDiv)
                 .attr('src',SA.ImagePathUrl+"page_add.png")
@@ -11898,6 +11908,7 @@ function TabPanel(tabbedDiv, title) {
         var self = this;
         this.Parent = parent;
         if (parent && SA.Edit) {
+            this.EditButton.show();
             this.RemoveButton.show();
         }
     }
@@ -11947,6 +11958,18 @@ function TabPanel(tabbedDiv, title) {
 
         // Try to copy to the clipboard.
         document.execCommand('copy',false,null);
+    }
+
+    // Edit the name of the Note (which defaults to "New View")
+    Note.prototype.EditCallback = function() {
+        var new_title = prompt("New Name:", this.Title);
+        if (new_title === this.Title) {
+            return;
+        }
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
+        }
+        this.TitleEntry.text(this.Title);
     }
 
     Note.prototype.DeleteCallback = function() {
@@ -12250,6 +12273,10 @@ function TabPanel(tabbedDiv, title) {
             this.RemoveButton
                 .click(function () {
                     self.DeleteCallback();
+                });
+            this.EditButton
+                .click(function () {
+                    self.EditCallback();
                 });
         }
 
@@ -28343,10 +28370,10 @@ window.SA = window.SA || {};
     this.fileId = "5446ed79dd98b555509bd197";
     this.itemId = "5810e274a7a14124417eead3";
     this.server = "https://images.slide-atlas.org";
-    this,maxLevel = 10;
+    this.maxLevel = 10;
     this.getTileUrl = function (level,x,y) {
       if (level > this.maxLevel) {return "";}
-      return this.server + '/api/v1/item/' + this.id + '/tiles/zxy/'
+      return this.server + '/api/v1/item/' + this.itemId + '/tiles/zxy/'
         + level + '/' + x + '/' + y;
     }
   }

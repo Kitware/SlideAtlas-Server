@@ -113,6 +113,16 @@
         }
 
         if (SA.Edit) {
+            this.EditButton = $('<img>')
+                .appendTo(this.ButtonsDiv)
+                .hide()
+                .attr('src',SA.ImagePathUrl+"Pencil-icon.png")
+                .addClass('editButton')
+                .prop('title', "edit name")
+                .css({
+                    'width':'12px',
+                    'height':'12px',
+                    'opacity':'0.5'});
             this.AddButton = $('<img>')
                 .appendTo(this.ButtonsDiv)
                 .attr('src',SA.ImagePathUrl+"page_add.png")
@@ -274,6 +284,7 @@
         var self = this;
         this.Parent = parent;
         if (parent && SA.Edit) {
+            this.EditButton.show();
             this.RemoveButton.show();
         }
     }
@@ -323,6 +334,18 @@
 
         // Try to copy to the clipboard.
         document.execCommand('copy',false,null);
+    }
+
+    // Edit the name of the Note (which defaults to "New View")
+    Note.prototype.EditCallback = function() {
+        var new_title = prompt("New Name:", this.Title);
+        if (new_title === this.Title) {
+            return;
+        }
+        if (SA.notesWidget) {
+            SA.notesWidget.MarkAsModified();
+        }
+        this.TitleEntry.text(this.Title);
     }
 
     Note.prototype.DeleteCallback = function() {
@@ -626,6 +649,10 @@
             this.RemoveButton
                 .click(function () {
                     self.DeleteCallback();
+                });
+            this.EditButton
+                .click(function () {
+                    self.EditCallback();
                 });
         }
 
