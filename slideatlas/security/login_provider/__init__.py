@@ -1,14 +1,14 @@
 # coding=utf-8
 
 from .common import *
-from .facebook import *
+#from .facebook import *
 from .google import *
 from .linkedin import *
 from .shibboleth import *
 
 from .common import OAuthLogin
 from .google import GoogleOAuthLogin
-from .facebook import FacebookOAuthLogin
+#from .facebook import FacebookOAuthLogin
 from .linkedin import LinkedinOAuthLogin
 from .shibboleth import ShibbolethLogin
 
@@ -29,7 +29,7 @@ def add_views(app, blueprint):
     app.register_error_handler(OAuthLogin.AuthorizationError, OAuthLogin.AuthorizationError.handler)
 
     login_providers = [
-        FacebookOAuthLogin(app, blueprint),
+        #FacebookOAuthLogin(app, blueprint),
         GoogleOAuthLogin(app, blueprint),
         LinkedinOAuthLogin(app, blueprint),
         ShibbolethLogin(app, blueprint),
