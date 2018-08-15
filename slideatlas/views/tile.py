@@ -132,6 +132,10 @@ def label_query():
         resp = Response('{"Location":%s}'%girder_url,status=301)
         resp.headers['Location'] = girder_url
         return resp
+    else:
+        resp = Response('{"Location":%s}'%'<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="0" height="0" alt="" />',status=301)
+        resp.headers['Location'] = girder_url
+        return resp
 
 
 ################################################################################
