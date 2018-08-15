@@ -108,6 +108,33 @@ def thumb_query():
 
 
 ################################################################################
+@mod.route('/label')
+# @security.login_required
+def label_query():
+    image_id = request.args.get('img')
+    image_store_id = request.args.get('db')
+    
+    image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
+    with image_store:
+        imagecol = models.Image._get_collection()
+        try:
+            imageobj = imagecol.find_one({"_id": ObjectId(image_id)})
+        except:
+            # TODO: more specific exception
+            current_app.logger.warning('Bad image id: %s' % image_id)
+            return Response('{"error": "Thumb loading error: %s"}' % image_id, status=404)
+        image = models.Image.objects.get_or_404(id=image_id)
+
+    if imageobj and 'girder' in imageobj:
+        server = imageobj['girder']['server']
+        girderItemId = imageobj['girder']['itemId']
+        girder_url = server + '/api/v1/item/' + str(girderItemId) + '/tiles/images/label?height=100'
+        resp = Response('{"Location":%s}'%girder_url,status=301)
+        resp.headers['Location'] = girder_url
+        return resp
+
+
+################################################################################
 @mod.route('/viewthumb')
 def thumb_from_view():
     """
