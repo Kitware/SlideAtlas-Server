@@ -697,6 +697,11 @@
                                      alt="Open" title="Open" width="100px">
                             </a>
                         </td>
+                        <td height=52px class="sa-handle">
+                          <img src="{{ url_for('tile.label_query', db=view_son.image_store_id, img=view_son.image_id) }}"
+                               {% if view_son.Type == 'Stack' %}class="sa-view-stac"{% endif %}
+                               alt="Open" title="Open" width="100px">
+                        </td>
                         <td>
                             <div sa-id="{{view_son.id}}" class="lead sa-view-get" contenteditable="true"
                                  data-label="{{view_son.label}}">
