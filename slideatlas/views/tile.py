@@ -133,8 +133,13 @@ def label_query():
         resp.headers['Location'] = girder_url
         return resp
     else:
-        image_data = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-        return Response(image_data, mimetype='image/jpeg')
+        image_url = '/webgl-viewer/static/blank.png'
+        resp = Response('{"Location":%s}'%image_url,status=301)
+        resp.headers['Location'] = image_url
+        return resp
+
+        #image_data = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+        #return Response(image_data, mimetype='image/jpeg')
         #url = '<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="0" height="0" alt="" />'
         #resp = Response('{"Location":%s}'%url,status=204)
         #resp.headers['Location'] = url
