@@ -2,12 +2,12 @@
 
 from .common import *
 #from .facebook import *
-from .google import *
+#from .google import *
 from .linkedin import *
 from .shibboleth import *
 
 from .common import OAuthLogin
-from .google import GoogleOAuthLogin
+#from .google import GoogleOAuthLogin
 #from .facebook import FacebookOAuthLogin
 from .linkedin import LinkedinOAuthLogin
 from .shibboleth import ShibbolethLogin
@@ -30,7 +30,7 @@ def add_views(app, blueprint):
 
     login_providers = [
         #FacebookOAuthLogin(app, blueprint),
-        GoogleOAuthLogin(app, blueprint),
+        #GoogleOAuthLogin(app, blueprint),
         LinkedinOAuthLogin(app, blueprint),
         ShibbolethLogin(app, blueprint),
     ]
