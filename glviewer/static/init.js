@@ -1,6 +1,5 @@
 window.SA = window.SA || {};
 
-
 (function () {
     "use strict";
 
