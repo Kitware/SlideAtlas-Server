@@ -1271,6 +1271,9 @@
     // Trying to save user notes quietly.
     // Sort of hackish.
     NotesWidget.prototype.EventuallySaveUserNote = function() {
+        if (SA.User == "") {
+            return;
+        }
         if (this.UserNoteTimerId) {
             clearTimeout(this.UserNoteTimerId);
         }
