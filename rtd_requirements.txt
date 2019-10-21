@@ -1,4 +1,4 @@
-Flask==0.10.1
+Flask==1.0
 Flask-Admin==1.0.8
 Flask-OAuthlib==0.4.3
 Flask-Security==1.7.3
